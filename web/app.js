@@ -14,13 +14,17 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
   }
 
   const form = document.getElementById('acesso-form');
+  const app = document.getElementById('portal-app');
+  const telaAcesso = document.getElementById('tela-acesso');
+  const telaSituacao = document.getElementById('tela-situacao');
   const emailOuRga = document.getElementById('email-ou-rga');
   const codigo = document.getElementById('codigo-acesso');
   const botaoSolicitar = document.getElementById('solicitar-codigo');
+  const botaoSair = document.getElementById('sair');
   const status = document.getElementById('mensagem-status');
   const situacao = document.getElementById('minha-situacao');
 
-  if (!form || !emailOuRga || !codigo || !botaoSolicitar || !status || !situacao) {
+  if (!form || !app || !telaAcesso || !telaSituacao || !emailOuRga || !codigo || !botaoSolicitar || !botaoSair || !status || !situacao) {
     return;
   }
 
@@ -75,12 +79,25 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
       if (validacao.ok) {
         const minhaSituacao = await carregarMinhaSituacao(obterSessionToken(validacao));
         renderizarMinhaSituacao(situacao, minhaSituacao);
+        mostrarTelaSituacao(app, telaAcesso, telaSituacao);
       }
     } catch (erro) {
       atualizarStatus(status, erro.message);
     } finally {
       alternarFormularioOcupado(form, false);
     }
+  });
+
+  botaoSair.addEventListener('click', function aoSair() {
+    form.reset();
+    situacao.innerHTML = [
+      '<p class="empty-state">',
+      'Depois do fluxo simulado de entrada, esta área mostrará uma prévia visual da futura tela "Minha situação".',
+      '</p>'
+    ].join('');
+    atualizarStatus(status, 'Sessão encerrada neste navegador.');
+    mostrarTelaAcesso(app, telaAcesso, telaSituacao);
+    emailOuRga.focus();
   });
 })();
 
@@ -379,6 +396,34 @@ function alternarFormularioOcupado(form, ocupado) {
   Array.prototype.forEach.call(form.elements, function alternarCampo(campo) {
     campo.disabled = ocupado;
   });
+}
+
+/**
+ * Mostra a tela de situação após a entrada.
+ *
+ * @param {HTMLElement} app Elemento raiz.
+ * @param {HTMLElement} telaAcesso Tela de acesso.
+ * @param {HTMLElement} telaSituacao Tela de situação.
+ */
+function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
+  app.classList.remove('view-login');
+  app.classList.add('view-situacao');
+  telaAcesso.hidden = true;
+  telaSituacao.hidden = false;
+}
+
+/**
+ * Volta para a tela de acesso.
+ *
+ * @param {HTMLElement} app Elemento raiz.
+ * @param {HTMLElement} telaAcesso Tela de acesso.
+ * @param {HTMLElement} telaSituacao Tela de situação.
+ */
+function mostrarTelaAcesso(app, telaAcesso, telaSituacao) {
+  app.classList.remove('view-situacao');
+  app.classList.add('view-login');
+  telaSituacao.hidden = true;
+  telaAcesso.hidden = false;
 }
 
 /**

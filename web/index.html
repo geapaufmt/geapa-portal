@@ -13,8 +13,8 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <main class="portal-shell">
-      <section class="access-panel" aria-labelledby="portal-title">
+    <main class="portal-shell view-login" id="portal-app">
+      <section class="access-panel" id="tela-acesso" aria-labelledby="portal-title">
         <p class="eyebrow">GEAPA</p>
         <h1 id="portal-title">Portal GEAPA</h1>
         <p class="intro">
@@ -55,10 +55,13 @@
         </p>
       </section>
 
-      <section class="situation-panel" aria-labelledby="situacao-title">
-        <div class="section-heading">
-          <p class="eyebrow">Área simulada</p>
-          <h2 id="situacao-title">Minha situação</h2>
+      <section class="situation-panel" id="tela-situacao" aria-labelledby="situacao-title" hidden>
+        <div class="situation-topbar">
+          <div class="section-heading">
+            <p class="eyebrow">Área simulada</p>
+            <h2 id="situacao-title">Minha situação</h2>
+          </div>
+          <button id="sair" class="secondary-button" type="button">Sair</button>
         </div>
 
         <p class="simulation-warning">
