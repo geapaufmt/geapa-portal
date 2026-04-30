@@ -96,15 +96,14 @@ web/index.html
 A tela funciona apenas com HTML, CSS e JavaScript local. O fluxo de solicitar
 codigo, validar codigo e carregar "Minha situacao" ainda e simulado.
 
-## Como publicar futuramente no GitHub Pages
+## Como publicar no GitHub Pages
 
 1. Acesse o repositorio no GitHub.
 2. Entre em **Settings > Pages**.
-3. Em **Build and deployment**, escolha **Deploy from a branch**.
-4. Selecione a branch `main`.
-5. Se o GitHub Pages permitir escolher a pasta, selecione `/web`.
-6. Caso a interface do GitHub nao permita publicar diretamente `/web`, criar em
-   etapa futura um workflow do GitHub Actions para publicar somente essa pasta.
+3. Em **Build and deployment**, escolha **GitHub Actions**.
+4. Salve a configuracao.
+5. A cada push na branch `main`, o workflow `.github/workflows/pages.yml`
+   publica somente a pasta `web/`.
 
 O GitHub Pages deve publicar somente o conteudo publico da pasta `web/`.
 
