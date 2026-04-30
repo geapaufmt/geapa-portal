@@ -28,13 +28,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
     const identificador = emailOuRga.value.trim();
 
     if (!identificador) {
-      atualizarStatus(status, 'Informe um e-mail ou RGA para receber o codigo simulado.');
+      atualizarStatus(status, 'Informe um e-mail ou RGA para receber o código.');
       emailOuRga.focus();
       return;
     }
 
     botaoSolicitar.disabled = true;
-    atualizarStatus(status, 'Solicitando codigo em modo placeholder...');
+    atualizarStatus(status, 'Solicitando código...');
 
     try {
       const resposta = await solicitarCodigo(identificador);
@@ -60,12 +60,12 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
     }
 
     if (!codigoInformado) {
-      atualizarStatus(status, 'Informe o codigo de acesso simulado.');
+      atualizarStatus(status, 'Informe o código de acesso.');
       codigo.focus();
       return;
     }
 
-    atualizarStatus(status, 'Validando codigo em modo placeholder...');
+    atualizarStatus(status, 'Validando código...');
     alternarFormularioOcupado(form, true);
 
     try {
@@ -154,7 +154,7 @@ async function chamarApi(acao, dados) {
   });
 
   if (!resposta.ok) {
-    throw new Error('Nao foi possivel falar com a API do Portal GEAPA.');
+    throw new Error('Não foi possível falar com a API do Portal GEAPA.');
   }
 
   const payload = await resposta.json();
@@ -182,11 +182,11 @@ function normalizarMinhaSituacao(resposta) {
     modo: (resposta.meta && resposta.meta.modo) || resposta.modo || 'placeholder',
     nomeExibicao: dados.nomeExibicao || 'Membro GEAPA',
     situacaoGeral: dados.situacaoGeral || 'Simulada',
-    resumo: 'Esta previa veio da API do Apps Script, ainda sem consultar dados oficiais.',
+    resumo: 'Esta prévia veio da API do Apps Script, ainda sem consultar dados oficiais.',
     itens: itens.length ? itens : [
       'Nenhuma planilha oficial foi consultada.',
-      'Nenhum dado real de membro esta no GitHub Pages.',
-      'A consulta real sera filtrada pelo Apps Script.'
+      'Nenhum dado real de membro está no GitHub Pages.',
+      'A consulta real será filtrada pelo Apps Script.'
     ]
   };
 }
@@ -221,7 +221,7 @@ function renderizarMinhaSituacao(container, dados) {
   container.innerHTML = [
     '<div class="situation-summary">',
     '<p class="simulation-title">' + escaparHtml(dados.nomeExibicao) + '</p>',
-    '<p><strong>Situacao:</strong> ' + escaparHtml(dados.situacaoGeral) + '</p>',
+    '<p><strong>Situação:</strong> ' + escaparHtml(dados.situacaoGeral) + '</p>',
     '<p>' + escaparHtml(dados.resumo) + '</p>',
     '</div>',
     '<ul class="simulation-list">',

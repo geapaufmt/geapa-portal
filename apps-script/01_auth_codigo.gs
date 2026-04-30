@@ -25,7 +25,7 @@ function portalSolicitarCodigo(emailOuRga) {
   if (!identificador) {
     return portalRespostaErro_(
       'IDENTIFICADOR_OBRIGATORIO',
-      'Informe um e-mail ou RGA para solicitar o codigo.',
+      'Informe um e-mail ou RGA para solicitar o código.',
       {}
     );
   }
@@ -45,7 +45,7 @@ function portalSolicitarCodigo(emailOuRga) {
   if (!config.envioEmailHabilitado) {
     return portalRespostaErro_(
       'ENVIO_EMAIL_DESABILITADO',
-      'O envio real de codigo ainda nao esta habilitado.',
+      'O envio real de código ainda não está habilitado.',
       {}
     );
   }
@@ -53,7 +53,7 @@ function portalSolicitarCodigo(emailOuRga) {
   if (!portalEmailPermitidoParaTeste_(identificador, config.emailsTeste)) {
     return portalRespostaErro_(
       'EMAIL_FORA_DA_LISTA_TESTE',
-      'Este e-mail nao esta liberado para testes do portal.',
+      'Este e-mail não está liberado para testes do portal.',
       {}
     );
   }
@@ -64,7 +64,7 @@ function portalSolicitarCodigo(emailOuRga) {
   if (cache.get(chaveRateLimit)) {
     return portalRespostaErro_(
       'AGUARDE_NOVA_SOLICITACAO',
-      'Aguarde alguns instantes antes de solicitar outro codigo.',
+      'Aguarde alguns instantes antes de solicitar outro código.',
       {}
     );
   }
@@ -82,7 +82,7 @@ function portalSolicitarCodigo(emailOuRga) {
 
   return portalRespostaOk_(
     'CODIGO_ENVIADO_TESTE',
-    'Codigo enviado para o e-mail autorizado de teste.',
+    'Código enviado para o e-mail autorizado de teste.',
     {
       identificadorRecebido: identificador,
       validadeMinutos: PORTAL_CONFIG.validadeCodigoMinutos
@@ -110,7 +110,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
   if (!identificador || !codigoNormalizado) {
     return portalRespostaErro_(
       'DADOS_VALIDACAO_OBRIGATORIOS',
-      'Informe e-mail/RGA e codigo para entrar.',
+      'Informe e-mail/RGA e código para entrar.',
       {}
     );
   }
@@ -123,7 +123,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
   if (!hashSalvo) {
     return portalRespostaErro_(
       'CODIGO_EXPIRADO_OU_INEXISTENTE',
-      'Codigo expirado ou inexistente. Solicite um novo codigo.',
+      'Código expirado ou inexistente. Solicite um novo código.',
       {}
     );
   }
@@ -135,7 +135,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
     cache.remove(chaveTentativas);
     return portalRespostaErro_(
       'TENTATIVAS_EXCEDIDAS',
-      'Limite de tentativas excedido. Solicite um novo codigo.',
+      'Limite de tentativas excedido. Solicite um novo código.',
       {}
     );
   }
@@ -148,7 +148,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
     );
     return portalRespostaErro_(
       'CODIGO_INVALIDO',
-      'Codigo invalido. Confira o e-mail recebido e tente novamente.',
+      'Código inválido. Confira o e-mail recebido e tente novamente.',
       {
         tentativasRestantes: Math.max(
           PORTAL_CONFIG.maxTentativasCodigo - tentativas - 1,
@@ -165,7 +165,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
 
   return portalRespostaOk_(
     'CODIGO_VALIDADO_TESTE',
-    'Codigo validado em modo de teste.',
+    'Código validado em modo de teste.',
     {
       sessionToken: sessionToken,
       identificadorRecebido: identificador
@@ -301,13 +301,13 @@ function portalHashTexto_(valor) {
  * @param {string} codigo Codigo temporario.
  */
 function portalEnviarCodigoEmail_(email, codigo) {
-  var assunto = 'Codigo de acesso - Portal GEAPA';
+  var assunto = 'Código de acesso - Portal GEAPA';
   var corpo = [
-    'Seu codigo de acesso ao Portal GEAPA e: ' + codigo,
+    'Seu código de acesso ao Portal GEAPA é: ' + codigo,
     '',
     'Validade: ' + PORTAL_CONFIG.validadeCodigoMinutos + ' minutos.',
     '',
-    'Se voce nao solicitou este codigo, ignore este e-mail.',
+    'Se você não solicitou este código, ignore este e-mail.',
     '',
     'Esta mensagem faz parte dos testes iniciais do Portal GEAPA.'
   ].join('\n');

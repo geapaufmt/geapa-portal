@@ -27,7 +27,7 @@ Google Drive
   Armazena documentos, arquivos e recursos institucionais.
 
 Gmail / Apps Script
-  Envia codigos de acesso, avisos e e-mails automaticos.
+  Envia códigos de acesso, avisos e e-mails automáticos.
 ```
 
 Regra central: **o front-end chama somente endpoints do Apps Script**. Toda

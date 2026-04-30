@@ -23,7 +23,7 @@ function portalMinhaSituacao(token) {
   if (!tokenNormalizado) {
     return portalRespostaErro_(
       'SESSAO_OBRIGATORIA',
-      'Informe a sessao temporaria para consultar a situacao.',
+      'Informe a sessão temporária para consultar a situação.',
       {}
     );
   }
@@ -31,14 +31,14 @@ function portalMinhaSituacao(token) {
   if (!portalSessaoTemporariaValida_(tokenNormalizado)) {
     return portalRespostaErro_(
       'SESSAO_INVALIDA_OU_EXPIRADA',
-      'Sessao invalida ou expirada. Entre novamente.',
+      'Sessão inválida ou expirada. Entre novamente.',
       {}
     );
   }
 
   return portalRespostaOk_(
     'MINHA_SITUACAO_PLACEHOLDER',
-    'Situacao simulada carregada.',
+    'Situação simulada carregada.',
     {
       tokenRecebido: token || '',
       situacao: portalDebugMinhaSituacaoPorRga('RGA-SIMULADO')
@@ -59,10 +59,10 @@ function portalDebugMinhaSituacaoPorRga(rga) {
   return {
     rga: rga || 'RGA-SIMULADO',
     nomeExibicao: 'Membro GEAPA',
-    situacaoGeral: 'Em simulacao',
+    situacaoGeral: 'Em simulação',
     vinculo: 'Placeholder',
     pendencias: [
-      'Nenhuma pendencia real consultada nesta V1.'
+      'Nenhuma pendência real consultada nesta V1.'
     ],
     avisos: [
       'Dados simulados para desenvolvimento inicial do portal.'

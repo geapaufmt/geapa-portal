@@ -86,7 +86,7 @@ function portalExecutarAcao_(requisicao) {
   if (!acao) {
     return portalRespostaErro_(
       'ACAO_OBRIGATORIA',
-      'Informe a acao da API.',
+      'Informe a ação da API.',
       {}
     );
   }
@@ -108,7 +108,7 @@ function portalExecutarAcao_(requisicao) {
 
   return portalRespostaErro_(
     'ACAO_NAO_RECONHECIDA',
-    'Acao nao reconhecida.',
+    'Ação não reconhecida.',
     {
       acaoRecebida: acao
     }

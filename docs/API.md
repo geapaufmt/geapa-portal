@@ -37,7 +37,7 @@ Todas as respostas devem seguir este formato:
 {
   "ok": true,
   "code": "CODIGO_DA_RESPOSTA",
-  "message": "Mensagem para exibicao ou debug controlado.",
+  "message": "Mensagem para exibição ou debug controlado.",
   "data": {},
   "meta": {
     "app": "Portal GEAPA",
@@ -49,11 +49,11 @@ Todas as respostas devem seguir este formato:
 
 Campos:
 
-- `ok`: indica sucesso ou falha da operacao.
+- `ok`: indica sucesso ou falha da operação.
 - `code`: codigo estavel para o front-end tratar respostas.
-- `message`: mensagem curta e nao sensivel.
+- `message`: mensagem curta e não sensível.
 - `data`: dados especificos da acao.
-- `meta`: informacoes tecnicas nao sensiveis.
+- `meta`: informações técnicas não sensíveis.
 
 ## GET de saude
 
@@ -100,7 +100,7 @@ Resposta em modo de teste com envio habilitado:
 {
   "ok": true,
   "code": "CODIGO_ENVIADO_TESTE",
-  "message": "Codigo enviado para o e-mail autorizado de teste.",
+  "message": "Código enviado para o e-mail autorizado de teste.",
   "data": {
     "identificadorRecebido": "valor-informado-pelo-membro",
     "validadeMinutos": 10
@@ -129,7 +129,7 @@ Resposta em modo de teste:
 {
   "ok": true,
   "code": "CODIGO_VALIDADO_TESTE",
-  "message": "Codigo validado em modo de teste.",
+  "message": "Código validado em modo de teste.",
   "data": {
     "sessionToken": "sessao-temporaria",
     "identificadorRecebido": "valor-informado-pelo-membro"
@@ -157,11 +157,11 @@ Resposta placeholder:
 {
   "ok": true,
   "code": "MINHA_SITUACAO_PLACEHOLDER",
-  "message": "Situacao simulada carregada.",
+  "message": "Situação simulada carregada.",
   "data": {
     "situacao": {
       "nomeExibicao": "Membro GEAPA",
-      "situacaoGeral": "Em simulacao",
+      "situacaoGeral": "Em simulação",
       "pendencias": [],
       "avisos": []
     }
