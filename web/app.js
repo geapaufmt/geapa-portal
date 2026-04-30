@@ -38,7 +38,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
 
     try {
       const resposta = await solicitarCodigo(identificador);
-      atualizarStatus(status, resposta.mensagem);
+      atualizarStatus(status, obterMensagem(resposta));
       codigo.focus();
     } catch (erro) {
       atualizarStatus(status, erro.message);
@@ -70,10 +70,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
 
     try {
       const validacao = await validarCodigo(identificador, codigoInformado);
-      atualizarStatus(status, validacao.mensagem);
+      atualizarStatus(status, obterMensagem(validacao));
 
       if (validacao.ok) {
-        const minhaSituacao = await carregarMinhaSituacao(validacao.token);
+        const minhaSituacao = await carregarMinhaSituacao(obterSessionToken(validacao));
         renderizarMinhaSituacao(situacao, minhaSituacao);
       }
     } catch (erro) {
@@ -160,7 +160,7 @@ async function chamarApi(acao, dados) {
   const payload = await resposta.json();
 
   if (!payload.ok) {
-    throw new Error(payload.mensagem || 'A API retornou uma resposta inesperada.');
+    throw new Error(obterMensagem(payload) || 'A API retornou uma resposta inesperada.');
   }
 
   return payload;
@@ -173,13 +173,13 @@ async function chamarApi(acao, dados) {
  * @return {Object} Dados prontos para renderizacao.
  */
 function normalizarMinhaSituacao(resposta) {
-  const dados = resposta.dados || {};
+  const dados = (resposta.data && resposta.data.situacao) || resposta.dados || {};
   const pendencias = dados.pendencias || [];
   const avisos = dados.avisos || [];
   const itens = pendencias.concat(avisos);
 
   return {
-    modo: resposta.modo || 'placeholder',
+    modo: (resposta.meta && resposta.meta.modo) || resposta.modo || 'placeholder',
     nomeExibicao: dados.nomeExibicao || 'Membro GEAPA',
     situacaoGeral: dados.situacaoGeral || 'Simulada',
     resumo: 'Esta previa veio da API do Apps Script, ainda sem consultar dados oficiais.',
@@ -189,6 +189,26 @@ function normalizarMinhaSituacao(resposta) {
       'A consulta real sera filtrada pelo Apps Script.'
     ]
   };
+}
+
+/**
+ * Obtem mensagem considerando o contrato novo e o legado.
+ *
+ * @param {Object} resposta Resposta da API.
+ * @return {string} Mensagem da resposta.
+ */
+function obterMensagem(resposta) {
+  return resposta.message || resposta.mensagem || '';
+}
+
+/**
+ * Obtem token de sessao considerando o contrato novo e o legado.
+ *
+ * @param {Object} resposta Resposta da API.
+ * @return {string} Token temporario placeholder.
+ */
+function obterSessionToken(resposta) {
+  return (resposta.data && resposta.data.sessionToken) || resposta.token || '';
 }
 
 /**

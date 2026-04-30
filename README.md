@@ -120,6 +120,7 @@ maquina.
 
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Seguranca](docs/SECURITY.md)
+- [Contrato da API](docs/API.md)
 
 ## Proximos passos
 

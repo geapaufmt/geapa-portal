@@ -12,18 +12,18 @@
  * @return {TextOutput} JSON de status.
  */
 function doGet(e) {
-  return portalJsonOutput_({
-    ok: true,
-    app: PORTAL_CONFIG.nomePortal,
-    modo: 'placeholder',
-    mensagem: 'API do Portal GEAPA ativa em modo placeholder.',
-    acoesDisponiveis: [
-      'solicitarCodigo',
-      'validarCodigo',
-      'minhaSituacao'
-    ],
-    parametrosRecebidos: e && e.parameter ? e.parameter : {}
-  });
+  return portalJsonOutput_(portalRespostaOk_(
+    'PORTAL_API_OK',
+    'API do Portal GEAPA ativa em modo placeholder.',
+    {
+      acoesDisponiveis: [
+        'solicitarCodigo',
+        'validarCodigo',
+        'minhaSituacao'
+      ],
+      parametrosRecebidos: e && e.parameter ? e.parameter : {}
+    }
+  ));
 }
 
 /**
@@ -38,13 +38,13 @@ function doPost(e) {
     var resposta = portalExecutarAcao_(requisicao);
     return portalJsonOutput_(resposta);
   } catch (erro) {
-    return portalJsonOutput_({
-      ok: false,
-      app: PORTAL_CONFIG.nomePortal,
-      modo: 'placeholder',
-      mensagem: 'Erro ao processar requisicao placeholder.',
-      erro: erro && erro.message ? erro.message : String(erro)
-    });
+    return portalJsonOutput_(portalRespostaErro_(
+      'ERRO_INTERNO_PLACEHOLDER',
+      'Erro ao processar requisicao placeholder.',
+      {
+        detalhe: erro && erro.message ? erro.message : String(erro)
+      }
+    ));
   }
 }
 
@@ -83,6 +83,14 @@ function portalLerRequisicao_(e) {
 function portalExecutarAcao_(requisicao) {
   var acao = requisicao.acao || '';
 
+  if (!acao) {
+    return portalRespostaErro_(
+      'ACAO_OBRIGATORIA',
+      'Informe a acao da API.',
+      {}
+    );
+  }
+
   if (acao === 'solicitarCodigo') {
     return portalSolicitarCodigo(requisicao.emailOuRga || '');
   }
@@ -98,12 +106,59 @@ function portalExecutarAcao_(requisicao) {
     return portalMinhaSituacao(requisicao.token || '');
   }
 
+  return portalRespostaErro_(
+    'ACAO_NAO_RECONHECIDA',
+    'Acao nao reconhecida.',
+    {
+      acaoRecebida: acao
+    }
+  );
+}
+
+/**
+ * Cria uma resposta de sucesso no envelope padrao da API.
+ *
+ * @param {string} code Codigo estavel da resposta.
+ * @param {string} message Mensagem curta e nao sensivel.
+ * @param {Object} data Dados especificos da acao.
+ * @return {Object} Resposta padronizada.
+ */
+function portalRespostaOk_(code, message, data) {
+  return portalResposta_(true, code, message, data);
+}
+
+/**
+ * Cria uma resposta de erro no envelope padrao da API.
+ *
+ * @param {string} code Codigo estavel do erro.
+ * @param {string} message Mensagem curta e nao sensivel.
+ * @param {Object} data Dados auxiliares nao sensiveis.
+ * @return {Object} Resposta padronizada.
+ */
+function portalRespostaErro_(code, message, data) {
+  return portalResposta_(false, code, message, data);
+}
+
+/**
+ * Monta o envelope padrao de resposta da API.
+ *
+ * @param {boolean} ok Resultado da operacao.
+ * @param {string} code Codigo estavel.
+ * @param {string} message Mensagem curta.
+ * @param {Object} data Dados especificos da acao.
+ * @return {Object} Resposta padronizada.
+ */
+function portalResposta_(ok, code, message, data) {
   return {
-    ok: false,
-    app: PORTAL_CONFIG.nomePortal,
-    modo: 'placeholder',
-    mensagem: 'Acao nao reconhecida.',
-    acaoRecebida: acao
+    ok: ok,
+    code: code,
+    message: message,
+    data: data || {},
+    meta: {
+      app: PORTAL_CONFIG.nomePortal,
+      modo: 'placeholder',
+      versaoContrato: PORTAL_CONFIG.versaoContrato
+    }
   };
 }
 

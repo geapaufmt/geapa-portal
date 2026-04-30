@@ -54,6 +54,21 @@ O Apps Script deve:
 - limitar tentativas de codigo;
 - expirar codigos temporarios.
 
+## Envio de codigo por e-mail
+
+Enquanto o portal estiver em desenvolvimento, envio real de codigo deve ficar
+restrito a e-mails de teste configurados nas propriedades privadas do Apps
+Script.
+
+Nao versionar:
+
+- lista de e-mails de teste;
+- salts de hash;
+- codigos enviados;
+- tokens de sessao.
+
+Codigos temporarios devem expirar rapidamente e nao devem aparecer em logs.
+
 ## Regra para membro comum
 
 Um membro comum so pode receber os proprios dados. O backend nunca deve retornar

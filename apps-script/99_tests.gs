@@ -14,14 +14,18 @@
 function portalRunTests() {
   var solicitar = portalSolicitarCodigo('membro@example.test');
   var validar = portalValidarCodigo('membro@example.test', '123456');
-  var situacao = portalMinhaSituacao(validar.token);
+  var sessao = portalCriarSessaoTemporaria_('membro@example.test');
+  var situacao = portalMinhaSituacao(sessao);
   var debug = portalDebugMinhaSituacaoPorRga('RGA-TESTE');
 
   var resultado = {
     ok: Boolean(
-      solicitar.ok &&
-      validar.ok &&
+      !solicitar.ok &&
+      !validar.ok &&
       situacao.ok &&
+      solicitar.code === 'ENVIO_EMAIL_DESABILITADO' &&
+      validar.code === 'CODIGO_EXPIRADO_OU_INEXISTENTE' &&
+      situacao.code === 'MINHA_SITUACAO_PLACEHOLDER' &&
       debug.rga === 'RGA-TESTE'
     ),
     modo: 'placeholder',

@@ -17,10 +17,29 @@ var PORTAL_CONFIG = {
   urlFrontend: '',
 
   /**
-   * Tempo futuro de validade do codigo temporario, em minutos.
-   * Ainda nao usado na V1.
+   * Tempo de validade do codigo temporario, em minutos.
    */
-  validadeCodigoMinutos: 10
+  validadeCodigoMinutos: 10,
+
+  /**
+   * Limite de tentativas para validar um codigo antes de bloquear a sessao
+   * temporaria. Usado apenas no fluxo de teste inicial.
+   */
+  maxTentativasCodigo: 5,
+
+  /**
+   * Intervalo minimo entre duas solicitacoes de codigo para o mesmo e-mail.
+   */
+  intervaloSolicitacaoSegundos: 60,
+
+  /**
+   * Propriedades configuradas no Apps Script, fora do repositorio.
+   */
+  propriedades: {
+    envioEmailHabilitado: 'PORTAL_ENVIO_EMAIL_HABILITADO',
+    emailsTeste: 'PORTAL_EMAILS_TESTE',
+    codigoSalt: 'PORTAL_CODIGO_SALT'
+  }
 };
 
 /**

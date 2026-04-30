@@ -18,12 +18,32 @@
  * @return {Object} Situacao simulada do membro.
  */
 function portalMinhaSituacao(token) {
-  return {
-    ok: true,
-    modo: 'placeholder',
-    tokenRecebido: token || '',
-    dados: portalDebugMinhaSituacaoPorRga('RGA-SIMULADO')
-  };
+  var tokenNormalizado = String(token || '').trim();
+
+  if (!tokenNormalizado) {
+    return portalRespostaErro_(
+      'SESSAO_OBRIGATORIA',
+      'Informe a sessao temporaria para consultar a situacao.',
+      {}
+    );
+  }
+
+  if (!portalSessaoTemporariaValida_(tokenNormalizado)) {
+    return portalRespostaErro_(
+      'SESSAO_INVALIDA_OU_EXPIRADA',
+      'Sessao invalida ou expirada. Entre novamente.',
+      {}
+    );
+  }
+
+  return portalRespostaOk_(
+    'MINHA_SITUACAO_PLACEHOLDER',
+    'Situacao simulada carregada.',
+    {
+      tokenRecebido: token || '',
+      situacao: portalDebugMinhaSituacaoPorRga('RGA-SIMULADO')
+    }
+  );
 }
 
 /**
@@ -49,4 +69,15 @@ function portalDebugMinhaSituacaoPorRga(rga) {
     ],
     atualizadoEm: new Date().toISOString()
   };
+}
+
+/**
+ * Valida se a sessao temporaria existe no cache.
+ *
+ * @param {string} token Token temporario.
+ * @return {boolean} Resultado da validacao.
+ */
+function portalSessaoTemporariaValida_(token) {
+  var chave = portalCacheKey_('sessao', token);
+  return Boolean(CacheService.getScriptCache().get(chave));
 }
