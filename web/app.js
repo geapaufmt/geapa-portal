@@ -77,9 +77,15 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
       atualizarStatus(status, obterMensagem(validacao));
 
       if (validacao.ok) {
-        const minhaSituacao = await carregarMinhaSituacao(obterSessionToken(validacao));
-        renderizarMinhaSituacao(situacao, minhaSituacao);
         mostrarTelaSituacao(app, telaAcesso, telaSituacao);
+        renderizarCarregandoSituacao(situacao);
+
+        try {
+          const minhaSituacao = await carregarMinhaSituacao(obterSessionToken(validacao));
+          renderizarMinhaSituacao(situacao, minhaSituacao);
+        } catch (erroSituacao) {
+          renderizarErroSituacao(situacao, erroSituacao.message);
+        }
       }
     } catch (erro) {
       atualizarStatus(status, erro.message);
@@ -275,6 +281,31 @@ function renderizarMinhaSituacao(container, dados) {
     dados.ultimaAtualizacao
       ? '<p class="updated-at">Atualizado em: ' + escaparHtml(formatarData(dados.ultimaAtualizacao)) + '</p>'
       : ''
+  ].join('');
+}
+
+/**
+ * Mostra um estado de carregamento para a tela de situação.
+ *
+ * @param {HTMLElement} container Area da tela Minha situação.
+ */
+function renderizarCarregandoSituacao(container) {
+  container.innerHTML = [
+    '<p class="simulation-title">Carregando Minha situação</p>',
+    '<p class="empty-state">Buscando dados simulados no backend do Portal GEAPA.</p>'
+  ].join('');
+}
+
+/**
+ * Mostra erro dentro da tela de situação.
+ *
+ * @param {HTMLElement} container Area da tela Minha situação.
+ * @param {string} mensagem Mensagem de erro.
+ */
+function renderizarErroSituacao(container, mensagem) {
+  container.innerHTML = [
+    '<p class="simulation-title">Não foi possível carregar Minha situação</p>',
+    '<p class="empty-state">' + escaparHtml(mensagem || 'Tente sair e entrar novamente.') + '</p>'
   ].join('');
 }
 
