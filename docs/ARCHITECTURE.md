@@ -73,6 +73,34 @@ Fluxo previsto para etapa futura:
 
 O front-end nao deve receber dados de outros membros para filtrar visualmente.
 
+## Integração prevista com GEAPA-CORE
+
+O Portal GEAPA possui uma camada de adaptação em `apps-script/03_membros.gs`.
+Essa camada tenta usar uma função futura do GEAPA-CORE antes de recorrer ao
+cadastro privado de teste.
+
+Contrato esperado da função futura:
+
+```js
+geapaCoreBuscarMembroParaPortal(emailOuRga)
+```
+
+Retorno esperado:
+
+```json
+{
+  "id": "identificador-interno",
+  "nomeExibicao": "Nome do membro",
+  "emailCadastrado": "email-cadastrado",
+  "rga": "rga-do-membro",
+  "situacaoGeral": "situação resumida",
+  "vinculo": "descrição do vínculo"
+}
+```
+
+O Apps Script do portal deve continuar filtrando os dados no backend e enviando
+ao navegador somente os dados do próprio membro.
+
 ## Regra central
 
 O front-end nunca acessa Google Sheets diretamente. Ele chama apenas endpoints do

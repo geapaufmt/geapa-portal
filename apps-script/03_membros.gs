@@ -14,20 +14,13 @@
  */
 function portalBuscarMembroPorEmailOuRga_(emailOuRga) {
   var identificador = portalNormalizarIdentificador_(emailOuRga);
-  var membros = portalListarMembrosTeste_();
+  var membroCore = portalBuscarMembroViaGeapaCore_(identificador);
 
-  for (var i = 0; i < membros.length; i++) {
-    var membro = portalNormalizarMembroTeste_(membros[i]);
-
-    if (
-      membro.emailCadastrado === identificador ||
-      membro.rgaNormalizado === identificador
-    ) {
-      return membro;
-    }
+  if (membroCore) {
+    return membroCore;
   }
 
-  return null;
+  return portalBuscarMembroTestePorIdentificador_(identificador);
 }
 
 /**
@@ -38,6 +31,63 @@ function portalBuscarMembroPorEmailOuRga_(emailOuRga) {
  */
 function portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) {
   return portalBuscarMembroPorEmailOuRga_(identificadorSessao);
+}
+
+/**
+ * Ponto de integracao previsto com GEAPA-CORE.
+ *
+ * Quando o GEAPA-CORE expuser uma funcao global compativel, o portal passara a
+ * usa-la automaticamente. Enquanto ela nao existir, o retorno fica nulo e o
+ * fluxo segue para o cadastro de teste.
+ *
+ * Contrato esperado da funcao futura:
+ * geapaCoreBuscarMembroParaPortal(emailOuRga) => {
+ *   id: string,
+ *   nomeExibicao: string,
+ *   emailCadastrado: string,
+ *   rga: string,
+ *   situacaoGeral: string,
+ *   vinculo: string
+ * }
+ *
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Membro normalizado ou nulo.
+ */
+function portalBuscarMembroViaGeapaCore_(identificador) {
+  if (typeof geapaCoreBuscarMembroParaPortal !== 'function') {
+    return null;
+  }
+
+  var membro = geapaCoreBuscarMembroParaPortal(identificador);
+
+  if (!membro) {
+    return null;
+  }
+
+  return portalNormalizarMembro_(membro, 'geapa-core');
+}
+
+/**
+ * Busca membro no cadastro privado de teste.
+ *
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Membro encontrado ou nulo.
+ */
+function portalBuscarMembroTestePorIdentificador_(identificador) {
+  var membros = portalListarMembrosTeste_();
+
+  for (var i = 0; i < membros.length; i++) {
+    var membro = portalNormalizarMembro_(membros[i], 'teste');
+
+    if (
+      membro.emailCadastrado === identificador ||
+      membro.rgaNormalizado === identificador
+    ) {
+      return membro;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -64,17 +114,19 @@ function portalListarMembrosTeste_() {
 }
 
 /**
- * Normaliza um membro de teste para o contrato interno do portal.
+ * Normaliza um membro para o contrato interno do portal.
  *
- * @param {Object} membro Membro configurado em propriedade privada.
+ * @param {Object} membro Membro recebido do GEAPA-CORE ou do cadastro de teste.
+ * @param {string} origem Origem dos dados.
  * @return {Object} Membro normalizado.
  */
-function portalNormalizarMembroTeste_(membro) {
+function portalNormalizarMembro_(membro, origem) {
   var email = portalNormalizarIdentificador_(membro.emailCadastrado || membro.email || '');
   var rga = String(membro.rga || '').trim();
 
   return {
     id: String(membro.id || rga || email || 'membro-teste'),
+    origem: origem || 'teste',
     nomeExibicao: String(membro.nomeExibicao || 'Membro GEAPA'),
     emailCadastrado: email,
     rga: rga || 'RGA-SIMULADO',
