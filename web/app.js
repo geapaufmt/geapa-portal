@@ -6,7 +6,7 @@
  * autorizacao aqui. Toda validacao real devera acontecer no Apps Script.
  */
 
-const API_URL = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec';
 
 (function iniciarPortalGeapa() {
   if (typeof document === 'undefined') {
@@ -24,7 +24,7 @@ const API_URL = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT';
     return;
   }
 
-  botaoSolicitar.addEventListener('click', function aoSolicitarCodigo() {
+  botaoSolicitar.addEventListener('click', async function aoSolicitarCodigo() {
     const identificador = emailOuRga.value.trim();
 
     if (!identificador) {
@@ -33,12 +33,21 @@ const API_URL = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT';
       return;
     }
 
-    const resposta = solicitarCodigo(identificador);
-    atualizarStatus(status, resposta.mensagem);
-    codigo.focus();
+    botaoSolicitar.disabled = true;
+    atualizarStatus(status, 'Solicitando codigo em modo placeholder...');
+
+    try {
+      const resposta = await solicitarCodigo(identificador);
+      atualizarStatus(status, resposta.mensagem);
+      codigo.focus();
+    } catch (erro) {
+      atualizarStatus(status, erro.message);
+    } finally {
+      botaoSolicitar.disabled = false;
+    }
   });
 
-  form.addEventListener('submit', function aoEntrar(event) {
+  form.addEventListener('submit', async function aoEntrar(event) {
     event.preventDefault();
 
     const identificador = emailOuRga.value.trim();
@@ -56,69 +65,125 @@ const API_URL = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT';
       return;
     }
 
-    const validacao = validarCodigo(identificador, codigoInformado);
-    atualizarStatus(status, validacao.mensagem);
+    atualizarStatus(status, 'Validando codigo em modo placeholder...');
+    alternarFormularioOcupado(form, true);
 
-    if (validacao.ok) {
-      const minhaSituacao = carregarMinhaSituacao(validacao.token);
-      renderizarMinhaSituacao(situacao, minhaSituacao);
+    try {
+      const validacao = await validarCodigo(identificador, codigoInformado);
+      atualizarStatus(status, validacao.mensagem);
+
+      if (validacao.ok) {
+        const minhaSituacao = await carregarMinhaSituacao(validacao.token);
+        renderizarMinhaSituacao(situacao, minhaSituacao);
+      }
+    } catch (erro) {
+      atualizarStatus(status, erro.message);
+    } finally {
+      alternarFormularioOcupado(form, false);
     }
   });
 })();
 
 /**
- * Simula a solicitacao de codigo temporario.
+ * Solicita codigo temporario ao Apps Script.
  *
- * Futuramente esta funcao devera chamar o Apps Script:
- * fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao: 'solicitarCodigo', emailOuRga }) })
+ * Nesta etapa, o Apps Script ainda retorna dados simulados e nao envia e-mail.
  *
  * @param {string} emailOuRga E-mail ou RGA informado pelo membro.
- * @return {{ok: boolean, mensagem: string}}
+ * @return {Promise<{ok: boolean, mensagem: string}>}
  */
 function solicitarCodigo(emailOuRga) {
-  return {
-    ok: true,
-    mensagem: 'Codigo simulado solicitado para "' + emailOuRga + '". Nenhum e-mail foi enviado.'
-  };
+  return chamarApi('solicitarCodigo', {
+    emailOuRga: emailOuRga
+  });
 }
 
 /**
- * Simula a validacao do codigo temporario.
+ * Valida codigo temporario no Apps Script.
  *
- * Futuramente esta funcao devera chamar o Apps Script:
- * fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao: 'validarCodigo', emailOuRga, codigo }) })
+ * Nesta etapa, o Apps Script ainda aceita respostas simuladas.
  *
  * @param {string} emailOuRga E-mail ou RGA informado pelo membro.
  * @param {string} codigo Codigo digitado na tela.
- * @return {{ok: boolean, mensagem: string, token: string}}
+ * @return {Promise<{ok: boolean, mensagem: string, token: string}>}
  */
 function validarCodigo(emailOuRga, codigo) {
-  return {
-    ok: true,
-    mensagem: 'Entrada simulada concluida. Dados reais ainda nao foram consultados.',
-    token: 'sessao-simulada-sem-valor-real',
-    identificador: emailOuRga,
+  return chamarApi('validarCodigo', {
+    emailOuRga: emailOuRga,
     codigo: codigo
-  };
+  });
 }
 
 /**
- * Simula o carregamento da tela "Minha situacao".
+ * Carrega a tela "Minha situacao" pelo Apps Script.
  *
- * Futuramente esta funcao devera chamar o Apps Script:
- * fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao: 'minhaSituacao', token }) })
+ * Nesta etapa, o backend ainda devolve dados simulados.
  *
  * @param {string} token Token temporario retornado pelo backend.
- * @return {Object} Dados simulados para renderizacao local.
+ * @return {Promise<Object>} Dados simulados para renderizacao local.
  */
-function carregarMinhaSituacao(token) {
+async function carregarMinhaSituacao(token) {
+  const resposta = await chamarApi('minhaSituacao', {
+    token: token
+  });
+
+  return normalizarMinhaSituacao(resposta);
+}
+
+/**
+ * Chama o Apps Script usando formulario simples.
+ *
+ * Nao adicionar chaves, tokens fixos ou IDs sensiveis neste cliente publico.
+ * A autorizacao real deve continuar no Apps Script.
+ *
+ * @param {string} acao Nome da acao no backend.
+ * @param {Object} dados Parametros da acao.
+ * @return {Promise<Object>} Resposta JSON do Apps Script.
+ */
+async function chamarApi(acao, dados) {
+  const corpo = new URLSearchParams();
+  corpo.set('acao', acao);
+
+  Object.keys(dados || {}).forEach(function adicionarCampo(chave) {
+    corpo.set(chave, dados[chave]);
+  });
+
+  const resposta = await fetch(API_URL, {
+    method: 'POST',
+    body: corpo
+  });
+
+  if (!resposta.ok) {
+    throw new Error('Nao foi possivel falar com a API do Portal GEAPA.');
+  }
+
+  const payload = await resposta.json();
+
+  if (!payload.ok) {
+    throw new Error(payload.mensagem || 'A API retornou uma resposta inesperada.');
+  }
+
+  return payload;
+}
+
+/**
+ * Adapta a resposta placeholder do Apps Script para a interface.
+ *
+ * @param {Object} resposta Resposta da acao minhaSituacao.
+ * @return {Object} Dados prontos para renderizacao.
+ */
+function normalizarMinhaSituacao(resposta) {
+  const dados = resposta.dados || {};
+  const pendencias = dados.pendencias || [];
+  const avisos = dados.avisos || [];
+  const itens = pendencias.concat(avisos);
+
   return {
-    modo: 'simulacao',
-    tokenRecebido: token,
-    nomeExibicao: 'Membro GEAPA',
-    situacaoGeral: 'Simulada',
-    resumo: 'Esta previa mostra apenas a estrutura visual da futura consulta individual.',
-    itens: [
+    modo: resposta.modo || 'placeholder',
+    nomeExibicao: dados.nomeExibicao || 'Membro GEAPA',
+    situacaoGeral: dados.situacaoGeral || 'Simulada',
+    resumo: 'Esta previa veio da API do Apps Script, ainda sem consultar dados oficiais.',
+    itens: itens.length ? itens : [
       'Nenhuma planilha oficial foi consultada.',
       'Nenhum dado real de membro esta no GitHub Pages.',
       'A consulta real sera filtrada pelo Apps Script.'
@@ -155,6 +220,18 @@ function renderizarMinhaSituacao(container, dados) {
  */
 function atualizarStatus(status, mensagem) {
   status.textContent = mensagem;
+}
+
+/**
+ * Bloqueia ou libera os campos enquanto uma chamada esta em andamento.
+ *
+ * @param {HTMLFormElement} form Formulario de acesso.
+ * @param {boolean} ocupado Estado de carregamento.
+ */
+function alternarFormularioOcupado(form, ocupado) {
+  Array.prototype.forEach.call(form.elements, function alternarCampo(campo) {
+    campo.disabled = ocupado;
+  });
 }
 
 /**
