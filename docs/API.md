@@ -162,7 +162,19 @@ Resposta placeholder:
     "situacao": {
       "nomeExibicao": "Membro GEAPA",
       "situacaoGeral": "Em simulação",
+      "vinculo": "Membro em acompanhamento",
+      "ultimaAtualizacao": "2026-04-30T00:00:00.000Z",
+      "resumo": {
+        "frequencia": "Simulada",
+        "pendenciasAbertas": 0,
+        "certificadosDisponiveis": 1
+      },
       "pendencias": [],
+      "participacao": {
+        "frequenciaGeral": "Sem dados oficiais nesta etapa",
+        "atividadesRecentes": []
+      },
+      "certificados": [],
       "avisos": []
     }
   },

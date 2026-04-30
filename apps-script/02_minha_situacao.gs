@@ -60,14 +60,39 @@ function portalDebugMinhaSituacaoPorRga(rga) {
     rga: rga || 'RGA-SIMULADO',
     nomeExibicao: 'Membro GEAPA',
     situacaoGeral: 'Em simulação',
-    vinculo: 'Placeholder',
-    pendencias: [
-      'Nenhuma pendência real consultada nesta V1.'
+    vinculo: 'Membro em acompanhamento',
+    ultimaAtualizacao: new Date().toISOString(),
+    resumo: {
+      frequencia: 'Simulada',
+      pendenciasAbertas: 0,
+      certificadosDisponiveis: 1
+    },
+    pendencias: [],
+    participacao: {
+      frequenciaGeral: 'Sem dados oficiais nesta etapa',
+      atividadesRecentes: [
+        {
+          titulo: 'Reunião de acolhimento',
+          data: 'Data simulada',
+          status: 'Participação simulada'
+        },
+        {
+          titulo: 'Atividade formativa',
+          data: 'Data simulada',
+          status: 'Registro demonstrativo'
+        }
+      ]
+    },
+    certificados: [
+      {
+        titulo: 'Certificado demonstrativo',
+        status: 'Disponível em simulação'
+      }
     ],
     avisos: [
-      'Dados simulados para desenvolvimento inicial do portal.'
-    ],
-    atualizadoEm: new Date().toISOString()
+      'Dados simulados para desenvolvimento inicial do portal.',
+      'Nenhuma planilha oficial foi consultada nesta etapa.'
+    ]
   };
 }
 

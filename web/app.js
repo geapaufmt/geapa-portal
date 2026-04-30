@@ -175,15 +175,19 @@ async function chamarApi(acao, dados) {
 function normalizarMinhaSituacao(resposta) {
   const dados = (resposta.data && resposta.data.situacao) || resposta.dados || {};
   const pendencias = dados.pendencias || [];
-  const avisos = dados.avisos || [];
-  const itens = pendencias.concat(avisos);
 
   return {
     modo: (resposta.meta && resposta.meta.modo) || resposta.modo || 'placeholder',
     nomeExibicao: dados.nomeExibicao || 'Membro GEAPA',
     situacaoGeral: dados.situacaoGeral || 'Simulada',
-    resumo: 'Esta prévia veio da API do Apps Script, ainda sem consultar dados oficiais.',
-    itens: itens.length ? itens : [
+    vinculo: dados.vinculo || 'Vínculo simulado',
+    rga: dados.rga || 'RGA-SIMULADO',
+    ultimaAtualizacao: dados.ultimaAtualizacao || dados.atualizadoEm || '',
+    resumo: dados.resumo || {},
+    pendencias: pendencias,
+    participacao: dados.participacao || {},
+    certificados: dados.certificados || [],
+    avisos: dados.avisos || [
       'Nenhuma planilha oficial foi consultada.',
       'Nenhum dado real de membro está no GitHub Pages.',
       'A consulta real será filtrada pelo Apps Script.'
@@ -218,18 +222,141 @@ function obterSessionToken(resposta) {
  * @param {Object} dados Dados simulados retornados por carregarMinhaSituacao.
  */
 function renderizarMinhaSituacao(container, dados) {
+  const atividades = dados.participacao.atividadesRecentes || [];
+
   container.innerHTML = [
-    '<div class="situation-summary">',
+    '<div class="member-header">',
+    '<div>',
     '<p class="simulation-title">' + escaparHtml(dados.nomeExibicao) + '</p>',
-    '<p><strong>Situação:</strong> ' + escaparHtml(dados.situacaoGeral) + '</p>',
-    '<p>' + escaparHtml(dados.resumo) + '</p>',
+    '<p class="member-subtitle">' + escaparHtml(dados.vinculo) + '</p>',
     '</div>',
-    '<ul class="simulation-list">',
-    dados.itens.map(function montarItem(item) {
+    '<span class="status-pill">' + escaparHtml(dados.situacaoGeral) + '</span>',
+    '</div>',
+    '<dl class="summary-grid">',
+    montarResumoItem('RGA', dados.rga),
+    montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Simulada'),
+    montarResumoItem('Pendências', String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0)),
+    montarResumoItem('Certificados', String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
+    '</dl>',
+    '<div class="situation-section">',
+    '<h3>Pendências</h3>',
+    montarListaOuVazio(dados.pendencias, 'Nenhuma pendência registrada nesta simulação.'),
+    '</div>',
+    '<div class="situation-section">',
+    '<h3>Participação</h3>',
+    '<p class="section-note">' + escaparHtml(dados.participacao.frequenciaGeral || 'Sem dados oficiais nesta etapa.') + '</p>',
+    montarAtividades(atividades),
+    '</div>',
+    '<div class="situation-section">',
+    '<h3>Certificados</h3>',
+    montarCertificados(dados.certificados),
+    '</div>',
+    '<div class="situation-section">',
+    '<h3>Avisos</h3>',
+    montarListaOuVazio(dados.avisos, 'Nenhum aviso registrado nesta simulação.'),
+    '</div>',
+    dados.ultimaAtualizacao
+      ? '<p class="updated-at">Atualizado em: ' + escaparHtml(formatarData(dados.ultimaAtualizacao)) + '</p>'
+      : ''
+  ].join('');
+}
+
+/**
+ * Monta um item do resumo principal.
+ *
+ * @param {string} rotulo Rotulo do campo.
+ * @param {string} valor Valor do campo.
+ * @return {string} HTML do item.
+ */
+function montarResumoItem(rotulo, valor) {
+  return [
+    '<div class="summary-item">',
+    '<dt>' + escaparHtml(rotulo) + '</dt>',
+    '<dd>' + escaparHtml(valor || '-') + '</dd>',
+    '</div>'
+  ].join('');
+}
+
+/**
+ * Monta lista simples ou mensagem vazia.
+ *
+ * @param {string[]} itens Itens a exibir.
+ * @param {string} vazio Mensagem de estado vazio.
+ * @return {string} HTML da lista.
+ */
+function montarListaOuVazio(itens, vazio) {
+  if (!itens || !itens.length) {
+    return '<p class="empty-state">' + escaparHtml(vazio) + '</p>';
+  }
+
+  return [
+    '<ul class="detail-list">',
+    itens.map(function montarItem(item) {
       return '<li>' + escaparHtml(item) + '</li>';
     }).join(''),
     '</ul>'
   ].join('');
+}
+
+/**
+ * Monta atividades recentes simuladas.
+ *
+ * @param {Object[]} atividades Atividades retornadas pela API.
+ * @return {string} HTML das atividades.
+ */
+function montarAtividades(atividades) {
+  if (!atividades.length) {
+    return '<p class="empty-state">Nenhuma atividade registrada nesta simulação.</p>';
+  }
+
+  return [
+    '<ul class="activity-list">',
+    atividades.map(function montarAtividade(atividade) {
+      return [
+        '<li>',
+        '<span>' + escaparHtml(atividade.titulo || 'Atividade') + '</span>',
+        '<small>' + escaparHtml((atividade.data || '-') + ' · ' + (atividade.status || 'Simulada')) + '</small>',
+        '</li>'
+      ].join('');
+    }).join(''),
+    '</ul>'
+  ].join('');
+}
+
+/**
+ * Monta lista de certificados simulados.
+ *
+ * @param {Object[]} certificados Certificados retornados pela API.
+ * @return {string} HTML dos certificados.
+ */
+function montarCertificados(certificados) {
+  if (!certificados.length) {
+    return '<p class="empty-state">Nenhum certificado disponível nesta simulação.</p>';
+  }
+
+  return [
+    '<ul class="detail-list">',
+    certificados.map(function montarCertificado(certificado) {
+      return '<li>' + escaparHtml(certificado.titulo || 'Certificado') + ' — ' + escaparHtml(certificado.status || 'Simulado') + '</li>';
+    }).join(''),
+    '</ul>'
+  ].join('');
+}
+
+/**
+ * Formata data ISO para pt-BR quando possivel.
+ *
+ * @param {string} valor Data recebida da API.
+ * @return {string} Data formatada.
+ */
+function formatarData(valor) {
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return valor;
+  }
+
+  return data.toLocaleString('pt-BR');
 }
 
 /**
