@@ -11,6 +11,14 @@
   "jsonExtensions": [
     ".json"
   ],
-  "filePushOrder": [],
+  "filePushOrder": [
+    "00_config.gs",
+    "01_auth_codigo.gs",
+    "02_minha_situacao.gs",
+    "03_membros.gs",
+    "03_webapp.gs",
+    "99_tests.gs",
+    "appsscript.json"
+  ],
   "skipSubdirectories": false
 }

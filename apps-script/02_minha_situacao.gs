@@ -36,12 +36,23 @@ function portalMinhaSituacao(token) {
     );
   }
 
+  var identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
+  var membro = portalBuscarMembroPorIdentificadorSessao_(identificadorSessao);
+
+  if (!membro) {
+    return portalRespostaErro_(
+      'MEMBRO_SESSAO_NAO_ENCONTRADO',
+      'Não foi possível localizar o cadastro de teste da sessão.',
+      {}
+    );
+  }
+
   return portalRespostaOk_(
     'MINHA_SITUACAO_PLACEHOLDER',
     'Situação simulada carregada.',
     {
       tokenRecebido: token || '',
-      situacao: portalDebugMinhaSituacaoPorRga('RGA-SIMULADO')
+      situacao: portalDebugMinhaSituacaoPorMembro_(membro)
     }
   );
 }
@@ -56,11 +67,26 @@ function portalMinhaSituacao(token) {
  * @return {Object} Dados simulados da situacao do membro.
  */
 function portalDebugMinhaSituacaoPorRga(rga) {
-  return {
+  return portalDebugMinhaSituacaoPorMembro_({
     rga: rga || 'RGA-SIMULADO',
     nomeExibicao: 'Membro GEAPA',
     situacaoGeral: 'Em simulação',
-    vinculo: 'Membro em acompanhamento',
+    vinculo: 'Membro em acompanhamento'
+  });
+}
+
+/**
+ * Monta dados simulados da situacao a partir de um membro.
+ *
+ * @param {Object} membro Membro normalizado.
+ * @return {Object} Dados simulados da situacao.
+ */
+function portalDebugMinhaSituacaoPorMembro_(membro) {
+  return {
+    rga: membro.rga || 'RGA-SIMULADO',
+    nomeExibicao: membro.nomeExibicao || 'Membro GEAPA',
+    situacaoGeral: membro.situacaoGeral || 'Em simulação',
+    vinculo: membro.vinculo || 'Membro em acompanhamento',
     ultimaAtualizacao: new Date().toISOString(),
     resumo: {
       frequencia: 'Simulada',

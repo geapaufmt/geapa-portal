@@ -3,9 +3,9 @@
 Este documento descreve o contrato inicial entre o front-end publico do Portal
 GEAPA e o backend em Google Apps Script.
 
-Nesta etapa, a API ja pode enviar codigo real por e-mail, mas somente para
-enderecos liberados em uma lista de teste nas propriedades do Apps Script. Ela
-nao valida cadastro oficial e nao acessa planilhas oficiais.
+Nesta etapa, a API ja pode resolver um membro em um cadastro de teste privado,
+enviar codigo real ao e-mail cadastrado e carregar a tela "Minha situacao" com
+dados simulados daquele membro. Ela ainda nao acessa planilhas oficiais.
 
 ## URL base
 
@@ -103,6 +103,7 @@ Resposta em modo de teste com envio habilitado:
   "message": "Código enviado para o e-mail autorizado de teste.",
   "data": {
     "identificadorRecebido": "valor-informado-pelo-membro",
+    "destino": "me***@exemplo.org",
     "validadeMinutos": 10
   },
   "meta": {
@@ -212,6 +213,7 @@ Configurar em **Project Settings > Script properties**:
 PORTAL_ENVIO_EMAIL_HABILITADO=true
 PORTAL_EMAILS_TESTE=email1@exemplo.org,email2@exemplo.org
 PORTAL_CODIGO_SALT=valor-aleatorio-longo
+PORTAL_MEMBROS_TESTE_JSON=[{"emailCadastrado":"email1@exemplo.org","rga":"RGA-TESTE","nomeExibicao":"Membro de Teste","situacaoGeral":"Em simulacao","vinculo":"Membro em acompanhamento"}]
 ```
 
 Esses valores nao devem ser versionados no GitHub.

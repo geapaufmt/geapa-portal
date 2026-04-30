@@ -30,13 +30,13 @@ function portalSolicitarCodigo(emailOuRga) {
     );
   }
 
-  if (!portalEhEmail_(identificador)) {
+  var membro = portalBuscarMembroPorEmailOuRga_(identificador);
+
+  if (!membro) {
     return portalRespostaErro_(
-      'IDENTIFICADOR_NAO_SUPORTADO_NESTA_ETAPA',
-      'Nesta etapa de teste, informe um e-mail autorizado.',
-      {
-        identificadorRecebido: identificador
-      }
+      'MEMBRO_NAO_ENCONTRADO_TESTE',
+      'Cadastro de teste não encontrado para o e-mail ou RGA informado.',
+      {}
     );
   }
 
@@ -50,7 +50,7 @@ function portalSolicitarCodigo(emailOuRga) {
     );
   }
 
-  if (!portalEmailPermitidoParaTeste_(identificador, config.emailsTeste)) {
+  if (!portalEmailPermitidoParaTeste_(membro.emailCadastrado, config.emailsTeste)) {
     return portalRespostaErro_(
       'EMAIL_FORA_DA_LISTA_TESTE',
       'Este e-mail não está liberado para testes do portal.',
@@ -59,7 +59,8 @@ function portalSolicitarCodigo(emailOuRga) {
   }
 
   var cache = CacheService.getScriptCache();
-  var chaveRateLimit = portalCacheKey_('rate', identificador);
+  var identificadorSessao = membro.emailCadastrado;
+  var chaveRateLimit = portalCacheKey_('rate', identificadorSessao);
 
   if (cache.get(chaveRateLimit)) {
     return portalRespostaErro_(
@@ -70,21 +71,22 @@ function portalSolicitarCodigo(emailOuRga) {
   }
 
   var codigo = portalGerarCodigo_();
-  var chaveCodigo = portalCacheKey_('codigo', identificador);
-  var chaveTentativas = portalCacheKey_('tentativas', identificador);
+  var chaveCodigo = portalCacheKey_('codigo', identificadorSessao);
+  var chaveTentativas = portalCacheKey_('tentativas', identificadorSessao);
   var validadeSegundos = PORTAL_CONFIG.validadeCodigoMinutos * 60;
 
-  cache.put(chaveCodigo, portalHashCodigo_(identificador, codigo), validadeSegundos);
+  cache.put(chaveCodigo, portalHashCodigo_(identificadorSessao, codigo), validadeSegundos);
   cache.put(chaveTentativas, '0', validadeSegundos);
   cache.put(chaveRateLimit, '1', PORTAL_CONFIG.intervaloSolicitacaoSegundos);
 
-  portalEnviarCodigoEmail_(identificador, codigo);
+  portalEnviarCodigoEmail_(membro.emailCadastrado, codigo);
 
   return portalRespostaOk_(
     'CODIGO_ENVIADO_TESTE',
-    'Código enviado para o e-mail autorizado de teste.',
+    'Código enviado para o e-mail cadastrado do membro.',
     {
       identificadorRecebido: identificador,
+      destino: portalMascararEmail_(membro.emailCadastrado),
       validadeMinutos: PORTAL_CONFIG.validadeCodigoMinutos
     }
   );
@@ -115,9 +117,20 @@ function portalValidarCodigo(emailOuRga, codigo) {
     );
   }
 
+  var membro = portalBuscarMembroPorEmailOuRga_(identificador);
+
+  if (!membro) {
+    return portalRespostaErro_(
+      'MEMBRO_NAO_ENCONTRADO_TESTE',
+      'Cadastro de teste não encontrado para o e-mail ou RGA informado.',
+      {}
+    );
+  }
+
+  var identificadorSessao = membro.emailCadastrado;
   var cache = CacheService.getScriptCache();
-  var chaveCodigo = portalCacheKey_('codigo', identificador);
-  var chaveTentativas = portalCacheKey_('tentativas', identificador);
+  var chaveCodigo = portalCacheKey_('codigo', identificadorSessao);
+  var chaveTentativas = portalCacheKey_('tentativas', identificadorSessao);
   var hashSalvo = cache.get(chaveCodigo);
 
   if (!hashSalvo) {
@@ -140,7 +153,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
     );
   }
 
-  if (hashSalvo !== portalHashCodigo_(identificador, codigoNormalizado)) {
+  if (hashSalvo !== portalHashCodigo_(identificadorSessao, codigoNormalizado)) {
     cache.put(
       chaveTentativas,
       String(tentativas + 1),
@@ -161,14 +174,18 @@ function portalValidarCodigo(emailOuRga, codigo) {
   cache.remove(chaveCodigo);
   cache.remove(chaveTentativas);
 
-  var sessionToken = portalCriarSessaoTemporaria_(identificador);
+  var sessionToken = portalCriarSessaoTemporaria_(identificadorSessao);
 
   return portalRespostaOk_(
     'CODIGO_VALIDADO_TESTE',
     'Código validado em modo de teste.',
     {
       sessionToken: sessionToken,
-      identificadorRecebido: identificador
+      identificadorRecebido: identificador,
+      membro: {
+        nomeExibicao: membro.nomeExibicao,
+        rga: membro.rga
+      }
     }
   );
 }
@@ -328,4 +345,35 @@ function portalCriarSessaoTemporaria_(identificador) {
 
   CacheService.getScriptCache().put(chave, identificador, validadeSegundos);
   return token;
+}
+
+/**
+ * Retorna o identificador salvo na sessao temporaria.
+ *
+ * @param {string} token Token temporario.
+ * @return {string} Identificador salvo, ou vazio.
+ */
+function portalGetIdentificadorSessao_(token) {
+  var chave = portalCacheKey_('sessao', token);
+  return CacheService.getScriptCache().get(chave) || '';
+}
+
+/**
+ * Mascara e-mail para retorno seguro ao front-end.
+ *
+ * @param {string} email E-mail cadastrado.
+ * @return {string} E-mail mascarado.
+ */
+function portalMascararEmail_(email) {
+  var partes = String(email || '').split('@');
+
+  if (partes.length !== 2) {
+    return '';
+  }
+
+  var nome = partes[0];
+  var dominio = partes[1];
+  var prefixo = nome.slice(0, 2);
+
+  return prefixo + '***@' + dominio;
 }
