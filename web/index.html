@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Portal GEAPA</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="portal-shell">
+      <section class="access-panel" aria-labelledby="portal-title">
+        <p class="eyebrow">GEAPA</p>
+        <h1 id="portal-title">Portal GEAPA</h1>
+        <p class="intro">
+          Acesso inicial para membros acompanharem, futuramente, sua situacao no GEAPA.
+        </p>
+
+        <form id="codigo-form" class="access-form">
+          <label for="email-ou-rga">E-mail ou RGA</label>
+          <div class="input-row">
+            <input
+              id="email-ou-rga"
+              name="emailOuRga"
+              type="text"
+              autocomplete="username"
+              placeholder="Digite seu e-mail ou RGA"
+              required
+            >
+            <button type="submit">Receber codigo</button>
+          </div>
+        </form>
+
+        <p id="mensagem-status" class="status-message" role="status" aria-live="polite">
+          Nenhum codigo sera enviado nesta versao inicial.
+        </p>
+      </section>
+
+      <section class="situation-panel" aria-labelledby="situacao-title">
+        <div class="section-heading">
+          <p class="eyebrow">Area futura</p>
+          <h2 id="situacao-title">Minha situacao</h2>
+        </div>
+
+        <div id="minha-situacao" class="situation-card">
+          <p class="empty-state">
+            Esta area exibira os dados do proprio membro apos a autenticacao por codigo.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
