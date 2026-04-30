@@ -1,0 +1,11 @@
+{
+  "name": "Portal GEAPA",
+  "short_name": "GEAPA",
+  "description": "Portal institucional do GEAPA para acesso futuro de membros.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5fbf7",
+  "theme_color": "#1f6b45",
+  "lang": "pt-BR"
+}

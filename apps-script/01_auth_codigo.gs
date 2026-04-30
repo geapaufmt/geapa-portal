@@ -45,7 +45,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
     ok: true,
     modo: 'placeholder',
     mensagem: 'Validacao simulada. Nenhum codigo real foi conferido.',
-    token: 'TOKEN_SIMULADO_NAO_USAR_EM_PRODUCAO',
+    token: 'sessao-simulada-sem-valor-real',
     identificadorRecebido: emailOuRga || '',
     codigoRecebido: codigo || ''
   };

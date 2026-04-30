@@ -4,6 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Portal GEAPA</title>
+    <meta
+      name="description"
+      content="Portal institucional do GEAPA para acesso futuro de membros."
+    >
+    <meta name="theme-color" content="#1f6b45">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
@@ -12,12 +18,13 @@
         <p class="eyebrow">GEAPA</p>
         <h1 id="portal-title">Portal GEAPA</h1>
         <p class="intro">
-          Acesso inicial para membros acompanharem, futuramente, sua situacao no GEAPA.
+          Portal institucional do grupo para acesso futuro de membros a
+          informacoes individuais, com dados protegidos pelo backend do GEAPA.
         </p>
 
-        <form id="codigo-form" class="access-form">
+        <form id="acesso-form" class="access-form">
           <label for="email-ou-rga">E-mail ou RGA</label>
-          <div class="input-row">
+          <div class="field-row">
             <input
               id="email-ou-rga"
               name="emailOuRga"
@@ -26,24 +33,42 @@
               placeholder="Digite seu e-mail ou RGA"
               required
             >
-            <button type="submit">Receber codigo</button>
+            <button id="solicitar-codigo" type="button">Receber codigo</button>
+          </div>
+
+          <label for="codigo-acesso">Codigo de acesso</label>
+          <div class="field-row">
+            <input
+              id="codigo-acesso"
+              name="codigo"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              placeholder="Digite o codigo recebido"
+            >
+            <button id="entrar" type="submit">Entrar</button>
           </div>
         </form>
 
         <p id="mensagem-status" class="status-message" role="status" aria-live="polite">
-          Nenhum codigo sera enviado nesta versao inicial.
+          Dados e codigos exibidos nesta etapa sao simulados.
         </p>
       </section>
 
       <section class="situation-panel" aria-labelledby="situacao-title">
         <div class="section-heading">
-          <p class="eyebrow">Area futura</p>
+          <p class="eyebrow">Area simulada</p>
           <h2 id="situacao-title">Minha situacao</h2>
         </div>
 
+        <p class="simulation-warning">
+          Esta versao nao consulta planilhas oficiais. Nenhum dado real e exibido.
+        </p>
+
         <div id="minha-situacao" class="situation-card">
           <p class="empty-state">
-            Esta area exibira os dados do proprio membro apos a autenticacao por codigo.
+            Depois do fluxo simulado de entrada, esta area mostrara uma previa
+            visual da futura tela "Minha situacao".
           </p>
         </div>
       </section>
