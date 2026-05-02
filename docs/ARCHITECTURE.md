@@ -101,6 +101,14 @@ Retorno esperado:
 O Apps Script do portal deve continuar filtrando os dados no backend e enviando
 ao navegador somente os dados do próprio membro.
 
+Na fase atual, o portal aceita três formas de integração:
+
+- função `geapaCoreBuscarMembroParaPortal(emailOuRga)` copiada no mesmo projeto Apps Script;
+- biblioteca Apps Script com identificador `GEAPA_CORE`, `GEAPACORE` ou `GEAPA_CORE_LIB`;
+- fallback privado `PORTAL_MEMBROS_TESTE_JSON`.
+
+Se a biblioteca for usada, o identificador recomendado é `GEAPA_CORE`.
+
 ## Regra central
 
 O front-end nunca acessa Google Sheets diretamente. Ele chama apenas endpoints do

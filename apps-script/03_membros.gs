@@ -36,9 +36,9 @@ function portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) {
 /**
  * Ponto de integracao previsto com GEAPA-CORE.
  *
- * Quando o GEAPA-CORE expuser uma funcao global compativel, o portal passara a
- * usa-la automaticamente. Enquanto ela nao existir, o retorno fica nulo e o
- * fluxo segue para o cadastro de teste.
+ * Quando o GEAPA-CORE estiver disponivel no mesmo projeto ou como biblioteca
+ * Apps Script, o portal passara a usa-lo automaticamente. Enquanto ele nao
+ * existir, o retorno fica nulo e o fluxo segue para o cadastro de teste.
  *
  * Contrato esperado da funcao futura:
  * geapaCoreBuscarMembroParaPortal(emailOuRga) => {
@@ -55,7 +55,7 @@ function portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) {
  */
 function portalBuscarMembroViaGeapaCore_(identificador) {
   if (typeof geapaCoreBuscarMembroParaPortal !== 'function') {
-    return null;
+    return portalBuscarMembroViaGeapaCoreLibrary_(identificador);
   }
 
   var membro = geapaCoreBuscarMembroParaPortal(identificador);
@@ -65,6 +65,79 @@ function portalBuscarMembroViaGeapaCore_(identificador) {
   }
 
   return portalNormalizarMembro_(membro, 'geapa-core');
+}
+
+/**
+ * Tenta consultar o GEAPA-CORE quando ele estiver instalado como Library.
+ *
+ * Identificadores de biblioteca aceitos nesta fase:
+ * - GEAPA_CORE
+ * - GEAPACORE
+ * - GEAPA_CORE_LIB
+ *
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Membro normalizado ou nulo.
+ */
+function portalBuscarMembroViaGeapaCoreLibrary_(identificador) {
+  var libs = [];
+
+  if (typeof GEAPA_CORE !== 'undefined') {
+    libs.push({
+      nome: 'GEAPA_CORE',
+      api: GEAPA_CORE
+    });
+  }
+
+  if (typeof GEAPACORE !== 'undefined') {
+    libs.push({
+      nome: 'GEAPACORE',
+      api: GEAPACORE
+    });
+  }
+
+  if (typeof GEAPA_CORE_LIB !== 'undefined') {
+    libs.push({
+      nome: 'GEAPA_CORE_LIB',
+      api: GEAPA_CORE_LIB
+    });
+  }
+
+  for (var i = 0; i < libs.length; i++) {
+    var lib = libs[i];
+    var membro = portalChamarBuscaMembroCoreLibrary_(lib.api, identificador);
+
+    if (membro) {
+      return portalNormalizarMembro_(membro, lib.nome);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Chama os formatos aceitos para a biblioteca do GEAPA-CORE.
+ *
+ * @param {Object} api Objeto global da biblioteca.
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Membro retornado pela biblioteca.
+ */
+function portalChamarBuscaMembroCoreLibrary_(api, identificador) {
+  if (!api) {
+    return null;
+  }
+
+  if (typeof api.geapaCoreBuscarMembroParaPortal === 'function') {
+    return api.geapaCoreBuscarMembroParaPortal(identificador);
+  }
+
+  if (
+    api.portal &&
+    typeof api.portal.buscarMembroParaPortal === 'function'
+  ) {
+    return api.portal.buscarMembroParaPortal(identificador);
+  }
+
+  return null;
 }
 
 /**

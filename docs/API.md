@@ -8,8 +8,10 @@ enviar codigo real ao e-mail cadastrado e carregar a tela "Minha situacao" com
 dados simulados daquele membro. Ela ainda nao acessa planilhas oficiais.
 
 O backend ja possui ponto de integracao previsto com GEAPA-CORE por meio da
-funcao futura `geapaCoreBuscarMembroParaPortal(emailOuRga)`. Se essa funcao nao
-existir no ambiente, a API usa `PORTAL_MEMBROS_TESTE_JSON` como fallback.
+funcao `geapaCoreBuscarMembroParaPortal(emailOuRga)`. Essa funcao pode estar
+copiada no mesmo projeto Apps Script ou exposta por biblioteca com identificador
+`GEAPA_CORE`. Se essa integracao nao existir no ambiente, a API usa
+`PORTAL_MEMBROS_TESTE_JSON` como fallback.
 
 ## URL base
 
