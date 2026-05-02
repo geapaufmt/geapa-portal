@@ -377,3 +377,43 @@ function portalMascararEmail_(email) {
 
   return prefixo + '***@' + dominio;
 }
+
+/**
+ * Mascara um RGA ou outro identificador sem e-mail.
+ *
+ * @param {string} rga RGA ou identificador textual.
+ * @return {string} Identificador mascarado.
+ */
+function portalMascararRga_(rga) {
+  var valor = String(rga || '').trim();
+
+  if (!valor) {
+    return '';
+  }
+
+  if (valor.length <= 4) {
+    return '***';
+  }
+
+  return valor.slice(0, 2) + '***' + valor.slice(-2);
+}
+
+/**
+ * Mascara o identificador informado no diagnostico.
+ *
+ * @param {string} identificador E-mail, RGA ou outro identificador.
+ * @return {string} Identificador mascarado.
+ */
+function portalMascararIdentificador_(identificador) {
+  var valor = portalNormalizarIdentificador_(identificador);
+
+  if (!valor) {
+    return '';
+  }
+
+  if (portalEhEmail_(valor)) {
+    return portalMascararEmail_(valor);
+  }
+
+  return portalMascararRga_(valor);
+}

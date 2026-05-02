@@ -220,9 +220,26 @@ PORTAL_ENVIO_EMAIL_HABILITADO=true
 PORTAL_EMAILS_TESTE=email1@exemplo.org,email2@exemplo.org
 PORTAL_CODIGO_SALT=valor-aleatorio-longo
 PORTAL_MEMBROS_TESTE_JSON=[{"emailCadastrado":"email1@exemplo.org","rga":"RGA-TESTE","nomeExibicao":"Membro de Teste","situacaoGeral":"Em simulacao","vinculo":"Membro em acompanhamento"}]
+PORTAL_DIAGNOSTICO_IDENTIFICADOR=email-ou-rga-para-teste
 ```
 
 Esses valores nao devem ser versionados no GitHub.
+
+## Diagnostico interno de cadastro
+
+Para descobrir se um cadastro esta sendo encontrado pelo `GEAPA_CORE`, pelo
+fallback `PORTAL_MEMBROS_TESTE_JSON` ou se nao foi encontrado, use a funcao
+manual:
+
+```text
+portalRunDiagnosticoCadastro
+```
+
+Antes de executar, configure a Script Property privada
+`PORTAL_DIAGNOSTICO_IDENTIFICADOR` com o e-mail ou RGA de teste. A funcao
+retorna apenas diagnostico mascarado, como origem do cadastro, e-mail mascarado,
+RGA mascarado, status de envio de e-mail e se o e-mail cadastrado esta liberado
+em `PORTAL_EMAILS_TESTE`.
 
 Erros futuros deverao usar codigos estaveis, sem expor detalhes sensiveis ao
 front-end.

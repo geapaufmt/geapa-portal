@@ -24,6 +24,71 @@ function portalBuscarMembroPorEmailOuRga_(emailOuRga) {
 }
 
 /**
+ * Diagnostica a origem de um cadastro sem expor dados completos.
+ *
+ * Esta funcao foi feita para testes no editor do Apps Script. Ela ajuda a
+ * descobrir se o cadastro veio do GEAPA-CORE, do fallback de teste ou se nao
+ * foi encontrado. O retorno evita e-mail completo e nao inclui dados sensiveis.
+ *
+ * @param {string} emailOuRga E-mail ou RGA usado no teste.
+ * @return {Object} Diagnostico seguro para manutencao.
+ */
+function portalDiagnosticarBuscaMembro_(emailOuRga) {
+  var identificador = portalNormalizarIdentificador_(emailOuRga);
+
+  if (!identificador) {
+    return {
+      ok: false,
+      code: 'IDENTIFICADOR_OBRIGATORIO',
+      message: 'Informe um e-mail ou RGA para diagnosticar o cadastro.'
+    };
+  }
+
+  var resultado = {
+    ok: false,
+    code: 'MEMBRO_NAO_ENCONTRADO',
+    message: 'Nenhum cadastro foi encontrado para o identificador informado.',
+    identificadorInformado: portalMascararIdentificador_(identificador),
+    origem: 'nao-encontrado',
+    encontrado: false,
+    emailMascarado: '',
+    rgaMascarado: '',
+    liberadoParaTeste: false,
+    envioEmailHabilitado: false
+  };
+
+  try {
+    var membro = portalBuscarMembroPorEmailOuRga_(identificador);
+    var config = portalGetAuthRuntimeConfig_();
+
+    resultado.envioEmailHabilitado = config.envioEmailHabilitado;
+
+    if (!membro) {
+      return resultado;
+    }
+
+    resultado.ok = true;
+    resultado.code = 'MEMBRO_ENCONTRADO';
+    resultado.message = 'Cadastro encontrado para o identificador informado.';
+    resultado.origem = membro.origem || 'desconhecida';
+    resultado.encontrado = true;
+    resultado.emailMascarado = portalMascararEmail_(membro.emailCadastrado);
+    resultado.rgaMascarado = portalMascararRga_(membro.rga);
+    resultado.liberadoParaTeste = portalEmailPermitidoParaTeste_(
+      membro.emailCadastrado,
+      config.emailsTeste
+    );
+
+    return resultado;
+  } catch (erro) {
+    resultado.code = 'ERRO_DIAGNOSTICO';
+    resultado.message = 'Ocorreu erro ao diagnosticar o cadastro.';
+    resultado.erro = erro && erro.message ? erro.message : String(erro);
+    return resultado;
+  }
+}
+
+/**
  * Busca um membro a partir do identificador salvo na sessao.
  *
  * @param {string} identificadorSessao Identificador salvo no cache.

@@ -57,3 +57,43 @@ function portalRunDebugMinhaSituacaoTest() {
   Logger.log(JSON.stringify(resultado, null, 2));
   return resultado;
 }
+
+/**
+ * Diagnostica um cadastro configurado em Script Properties.
+ *
+ * Como o editor do Apps Script nao passa parametros pelo botao Executar,
+ * informe o e-mail ou RGA de teste na propriedade privada:
+ *
+ * PORTAL_DIAGNOSTICO_IDENTIFICADOR
+ *
+ * Esta funcao nao deve ser chamada pelo front-end. Ela existe apenas para
+ * manutencao e testes no editor do Apps Script.
+ *
+ * @return {Object} Diagnostico seguro do cadastro.
+ */
+function portalRunDiagnosticoCadastro() {
+  var propriedades = PropertiesService.getScriptProperties();
+  var identificador = propriedades.getProperty(
+    PORTAL_CONFIG.propriedades.diagnosticoIdentificador
+  );
+  var resultado = portalDiagnosticarBuscaMembro_(identificador);
+
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
+/**
+ * Diagnostica diretamente um e-mail ou RGA recebido por chamada manual.
+ *
+ * Use esta funcao em testes programaticos. Para o botao Executar do editor,
+ * prefira `portalRunDiagnosticoCadastro`.
+ *
+ * @param {string} emailOuRga E-mail ou RGA de teste.
+ * @return {Object} Diagnostico seguro do cadastro.
+ */
+function portalDiagnosticarCadastro(emailOuRga) {
+  var resultado = portalDiagnosticarBuscaMembro_(emailOuRga);
+
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}

@@ -39,7 +39,8 @@ var PORTAL_CONFIG = {
     envioEmailHabilitado: 'PORTAL_ENVIO_EMAIL_HABILITADO',
     emailsTeste: 'PORTAL_EMAILS_TESTE',
     membrosTeste: 'PORTAL_MEMBROS_TESTE_JSON',
-    codigoSalt: 'PORTAL_CODIGO_SALT'
+    codigoSalt: 'PORTAL_CODIGO_SALT',
+    diagnosticoIdentificador: 'PORTAL_DIAGNOSTICO_IDENTIFICADOR'
   }
 };
 
