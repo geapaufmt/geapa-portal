@@ -107,7 +107,19 @@ Na fase atual, o portal aceita três formas de integração:
 - biblioteca Apps Script com identificador `GEAPA_CORE`, `GEAPACORE` ou `GEAPA_CORE_LIB`;
 - fallback privado `PORTAL_MEMBROS_TESTE_JSON`.
 
-Se a biblioteca for usada, o identificador recomendado é `GEAPA_CORE`.
+O projeto já declara essa biblioteca no manifesto `apps-script/appsscript.json`
+com o identificador `GEAPA_CORE`, usando o mesmo padrão dos demais módulos do
+ecossistema GEAPA:
+
+- `libraryId`: script ID público do projeto `geapa-core`;
+- `userSymbol`: `GEAPA_CORE`;
+- `version`: `0`;
+- `developmentMode`: `true`.
+
+Enquanto `developmentMode` estiver ativo, o portal usa a versão de
+desenvolvimento do `geapa-core`. Isso facilita os testes iniciais, porque evita
+criar uma nova versão da biblioteca a cada ajuste feito no core. Quando o portal
+entrar em uso real, o recomendado é trocar para uma versão fixa da biblioteca.
 
 ## Regra central
 
