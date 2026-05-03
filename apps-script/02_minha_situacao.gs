@@ -174,11 +174,45 @@ function portalNormalizarMinhaSituacaoCore_(resposta) {
       frequenciaGeral: participacao.frequenciaGeral || 'Participação e frequência serão integradas em uma próxima etapa.',
       atividadesRecentes: Array.isArray(participacao.atividadesRecentes)
         ? participacao.atividadesRecentes
-        : []
+        : [],
+      apresentacoes: portalNormalizarApresentacoesCore_(participacao.apresentacoes)
     },
     certificados: Array.isArray(situacao.certificados) ? situacao.certificados : [],
     avisos: avisos
   };
+}
+
+/**
+ * Normaliza o bloco de apresentacoes retornado pelo GEAPA-CORE.
+ *
+ * @param {Object} apresentacoes Bloco bruto do core.
+ * @return {Object} Bloco seguro para o front-end.
+ */
+function portalNormalizarApresentacoesCore_(apresentacoes) {
+  var dados = apresentacoes || {};
+
+  return {
+    periodoUltimaApresentacao: String(dados.periodoUltimaApresentacao || '').trim(),
+    quantidadeRealizadas: portalNormalizarNumeroNaoNegativo_(dados.quantidadeRealizadas),
+    periodoUltimaApresentacaoBaseLegado: String(dados.periodoUltimaApresentacaoBaseLegado || '').trim(),
+    quantidadeRealizadasBaseLegado: portalNormalizarNumeroNaoNegativo_(dados.quantidadeRealizadasBaseLegado)
+  };
+}
+
+/**
+ * Garante numero nao negativo para campos numericos do portal.
+ *
+ * @param {*} valor Valor recebido do core.
+ * @return {number} Numero seguro.
+ */
+function portalNormalizarNumeroNaoNegativo_(valor) {
+  var numero = Number(valor);
+
+  if (!isFinite(numero) || isNaN(numero) || numero < 0) {
+    return 0;
+  }
+
+  return numero;
 }
 
 /**
