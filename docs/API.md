@@ -221,10 +221,20 @@ Resposta quando a situacao vem do GEAPA-CORE:
   "meta": {
     "app": "Portal GEAPA",
     "modo": "placeholder",
-    "versaoContrato": "v1-placeholder"
+    "versaoContrato": "v1-placeholder",
+    "desempenho": {
+      "origemDados": "geapa-core",
+      "tempoMs": 820,
+      "cacheMinhaSituacaoSegundos": 120
+    }
   }
 }
 ```
+
+Quando a mesma tela for consultada novamente dentro do cache curto do backend,
+o `code` pode ser `MINHA_SITUACAO_CACHE` e `meta.desempenho.origemDados` pode
+vir como `cache`. Esse cache fica somente no Apps Script, expira rapidamente e
+guarda apenas a resposta ja filtrada do proprio membro.
 
 As pendencias retornadas nesta etapa sao apenas cadastrais ou administrativas
 objetivas. Nao devem incluir observacoes internas, motivos disciplinares,
@@ -288,6 +298,26 @@ Na configuracao atual:
 O front-end salva o token apenas em `sessionStorage`, para restaurar a tela ao
 atualizar a mesma aba do navegador. Quando a sessao expira no Apps Script, o
 portal limpa o token local e pede novo codigo.
+
+## Desempenho
+
+A tela "Minha situacao" possui cache curto no Apps Script, definido por
+`PORTAL_CONFIG.cacheMinhaSituacaoSegundos`. Na configuracao atual, o cache dura
+120 segundos.
+
+Esse cache reduz chamadas repetidas ao GEAPA-CORE quando o membro atualiza a
+pagina ou quando o portal recarrega a mesma tela em seguida. Ele nao substitui a
+validacao de sessao: antes de ler o cache, o Apps Script valida o token
+temporario.
+
+O backend tambem pode enviar `meta.desempenho` com:
+
+- `origemDados`: `geapa-core`, `fallback-local` ou `cache`;
+- `tempoMs`: tempo aproximado de processamento no Apps Script;
+- `cacheMinhaSituacaoSegundos`: duracao configurada para o cache.
+
+O front-end registra esses tempos no console do navegador apenas para
+diagnostico local, sem exibir informacoes tecnicas ao membro.
 
 ## Diagnostico interno de cadastro
 

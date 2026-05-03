@@ -123,8 +123,8 @@ function portalExecutarAcao_(requisicao) {
  * @param {Object} data Dados especificos da acao.
  * @return {Object} Resposta padronizada.
  */
-function portalRespostaOk_(code, message, data) {
-  return portalResposta_(true, code, message, data);
+function portalRespostaOk_(code, message, data, metaExtra) {
+  return portalResposta_(true, code, message, data, metaExtra);
 }
 
 /**
@@ -135,8 +135,8 @@ function portalRespostaOk_(code, message, data) {
  * @param {Object} data Dados auxiliares nao sensiveis.
  * @return {Object} Resposta padronizada.
  */
-function portalRespostaErro_(code, message, data) {
-  return portalResposta_(false, code, message, data);
+function portalRespostaErro_(code, message, data, metaExtra) {
+  return portalResposta_(false, code, message, data, metaExtra);
 }
 
 /**
@@ -148,17 +148,25 @@ function portalRespostaErro_(code, message, data) {
  * @param {Object} data Dados especificos da acao.
  * @return {Object} Resposta padronizada.
  */
-function portalResposta_(ok, code, message, data) {
+function portalResposta_(ok, code, message, data, metaExtra) {
+  var meta = {
+    app: PORTAL_CONFIG.nomePortal,
+    modo: 'placeholder',
+    versaoContrato: PORTAL_CONFIG.versaoContrato
+  };
+
+  if (metaExtra) {
+    Object.keys(metaExtra).forEach(function copiarMeta(chave) {
+      meta[chave] = metaExtra[chave];
+    });
+  }
+
   return {
     ok: ok,
     code: code,
     message: message,
     data: data || {},
-    meta: {
-      app: PORTAL_CONFIG.nomePortal,
-      modo: 'placeholder',
-      versaoContrato: PORTAL_CONFIG.versaoContrato
-    }
+    meta: meta
   };
 }
 

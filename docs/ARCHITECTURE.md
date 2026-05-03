@@ -85,6 +85,25 @@ blocos.
 
 O front-end nao deve receber dados de outros membros para filtrar visualmente.
 
+## Desempenho e cache
+
+O ponto mais sensivel de desempenho da V1 e a chamada da tela "Minha situacao",
+porque ela pode consultar o GEAPA-CORE e, por consequencia, dados oficiais no
+ecossistema Google.
+
+Para reduzir recarregamentos repetidos, o Apps Script usa um cache curto da
+resposta ja filtrada do proprio membro. Antes de usar esse cache, o backend
+continua validando a sessao temporaria. O cache nao fica no GitHub Pages e nao
+substitui regras de autorizacao.
+
+O tempo atual de cache e definido em `PORTAL_CONFIG.cacheMinhaSituacaoSegundos`.
+Na configuracao inicial, ele e de 120 segundos.
+
+O front-end registra tempos de resposta no console do navegador para ajudar a
+acompanhar se novos blocos da tela estao deixando o portal lento. Esses logs
+devem conter apenas tempos, origem da resposta e nome da acao, nunca dados do
+membro.
+
 ## Integração prevista com GEAPA-CORE
 
 O Portal GEAPA possui uma camada de adaptação em `apps-script/03_membros.gs`.

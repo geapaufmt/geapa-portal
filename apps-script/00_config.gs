@@ -30,6 +30,13 @@ var PORTAL_CONFIG = {
   validadeSessaoMinutos: 120,
 
   /**
+   * Cache curto da tela "Minha situacao", em segundos.
+   * Reduz leituras repetidas no GEAPA-CORE quando a mesma sessao atualiza a
+   * pagina ou recarrega os dados em seguida.
+   */
+  cacheMinhaSituacaoSegundos: 120,
+
+  /**
    * Limite de tentativas para validar um codigo antes de bloquear a sessao
    * temporaria. Usado apenas no fluxo de teste inicial.
    */

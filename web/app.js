@@ -155,11 +155,14 @@ function validarCodigo(emailOuRga, codigo) {
  * @return {Promise<Object>} Dados parciais para renderizacao local.
  */
 async function carregarMinhaSituacao(token) {
+  const inicio = obterTempoAtual();
   const resposta = await chamarApi('minhaSituacao', {
     token: token
   });
+  const situacao = normalizarMinhaSituacao(resposta);
+  situacao.desempenho.tempoClienteMs = Math.round(obterTempoAtual() - inicio);
 
-  return normalizarMinhaSituacao(resposta);
+  return situacao;
 }
 
 /**
@@ -173,6 +176,7 @@ async function carregarMinhaSituacao(token) {
  * @return {Promise<Object>} Resposta JSON do Apps Script.
  */
 async function chamarApi(acao, dados) {
+  const inicio = obterTempoAtual();
   const corpo = new URLSearchParams();
   corpo.set('acao', acao);
 
@@ -195,6 +199,12 @@ async function chamarApi(acao, dados) {
     throw new Error(obterMensagem(payload) || 'A API retornou uma resposta inesperada.');
   }
 
+  registrarDesempenhoApi(acao, {
+    tempoClienteMs: Math.round(obterTempoAtual() - inicio),
+    tempoBackendMs: obterTempoBackendMs(payload),
+    origemDados: obterOrigemDados(payload)
+  });
+
   return payload;
 }
 
@@ -209,6 +219,7 @@ function normalizarMinhaSituacao(resposta) {
   const pendencias = Array.isArray(dados.pendencias) ? dados.pendencias : [];
   const participacao = dados.participacao || {};
   const diretoria = dados.diretoria || {};
+  const desempenho = (resposta.meta && resposta.meta.desempenho) || {};
 
   return {
     modo: (resposta.meta && resposta.meta.modo) || resposta.modo || 'placeholder',
@@ -230,6 +241,11 @@ function normalizarMinhaSituacao(resposta) {
     },
     diretoria: normalizarDiretoria(diretoria),
     certificados: dados.certificados || [],
+    desempenho: {
+      origemDados: desempenho.origemDados || '',
+      tempoBackendMs: normalizarNumeroNaoNegativo(desempenho.tempoMs),
+      tempoClienteMs: 0
+    },
     avisos: dados.avisos || [
       'Os dados cadastrais básicos são carregados pelo backend do portal.',
       'Nenhum dado real de membro está no GitHub Pages.',
@@ -689,6 +705,68 @@ function formatarQuantidadeApresentacoes(quantidade) {
   const rotulo = numero === 1 ? 'apresentação' : 'apresentações';
 
   return numero + ' ' + rotulo;
+}
+
+/**
+ * Registra tempos de chamada para diagnostico local no navegador.
+ *
+ * Esses dados nao contem informacoes de membro e ajudam a acompanhar se o
+ * portal esta ficando lento conforme novos blocos forem integrados.
+ *
+ * @param {string} acao Acao chamada na API.
+ * @param {Object} desempenho Tempos e origem da resposta.
+ */
+function registrarDesempenhoApi(acao, desempenho) {
+  if (typeof console === 'undefined' || typeof console.info !== 'function') {
+    return;
+  }
+
+  console.info('[Portal GEAPA]', acao, {
+    origemDados: desempenho.origemDados || 'api',
+    tempoBackendMs: desempenho.tempoBackendMs || 0,
+    tempoClienteMs: desempenho.tempoClienteMs || 0
+  });
+}
+
+/**
+ * Obtem origem da resposta informada pelo backend.
+ *
+ * @param {Object} resposta Resposta da API.
+ * @return {string} Origem dos dados.
+ */
+function obterOrigemDados(resposta) {
+  return resposta.meta &&
+    resposta.meta.desempenho &&
+    resposta.meta.desempenho.origemDados
+    ? resposta.meta.desempenho.origemDados
+    : '';
+}
+
+/**
+ * Obtem tempo de backend informado pelo Apps Script.
+ *
+ * @param {Object} resposta Resposta da API.
+ * @return {number} Tempo do backend em milissegundos.
+ */
+function obterTempoBackendMs(resposta) {
+  return resposta.meta &&
+    resposta.meta.desempenho &&
+    resposta.meta.desempenho.tempoMs
+    ? normalizarNumeroNaoNegativo(resposta.meta.desempenho.tempoMs)
+    : 0;
+}
+
+/**
+ * Retorna marcador de tempo em milissegundos.
+ *
+ * @return {number} Tempo atual.
+ */
+function obterTempoAtual() {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+
+  return Date.now();
 }
 
 /**

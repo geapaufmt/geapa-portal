@@ -20,6 +20,7 @@
  * @return {Object} Situacao parcial do membro.
  */
 function portalMinhaSituacao(token) {
+  var inicio = portalAgoraMs_();
   var tokenNormalizado = String(token || '').trim();
 
   if (!tokenNormalizado) {
@@ -39,16 +40,32 @@ function portalMinhaSituacao(token) {
   }
 
   var identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
+  var situacaoCache = portalLerMinhaSituacaoCache_(identificadorSessao);
+
+  if (situacaoCache) {
+    return portalRespostaOk_(
+      'MINHA_SITUACAO_CACHE',
+      'Minha situação carregada em cache temporário.',
+      {
+        tokenRecebido: token || '',
+        situacao: situacaoCache
+      },
+      portalMetaDesempenho_('cache', inicio)
+    );
+  }
+
   var situacaoCore = portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao);
 
   if (situacaoCore) {
+    portalSalvarMinhaSituacaoCache_(identificadorSessao, situacaoCore);
     return portalRespostaOk_(
       'MINHA_SITUACAO_CORE',
       'Minha situação carregada pelo GEAPA-CORE.',
       {
         tokenRecebido: token || '',
         situacao: situacaoCore
-      }
+      },
+      portalMetaDesempenho_('geapa-core', inicio)
     );
   }
 
@@ -62,13 +79,17 @@ function portalMinhaSituacao(token) {
     );
   }
 
+  var situacaoParcial = portalMontarMinhaSituacaoParcial_(membro);
+  portalSalvarMinhaSituacaoCache_(identificadorSessao, situacaoParcial);
+
   return portalRespostaOk_(
     'MINHA_SITUACAO_PARCIAL',
     'Dados cadastrais carregados. Os demais blocos ainda estão em preparação.',
     {
       tokenRecebido: token || '',
-      situacao: portalMontarMinhaSituacaoParcial_(membro)
-    }
+      situacao: situacaoParcial
+    },
+    portalMetaDesempenho_('fallback-local', inicio)
   );
 }
 
@@ -242,4 +263,80 @@ function portalNormalizarNumeroNaoNegativo_(valor) {
 function portalSessaoTemporariaValida_(token) {
   var chave = portalCacheKey_('sessao', token);
   return Boolean(CacheService.getScriptCache().get(chave));
+}
+
+/**
+ * Le a ultima resposta segura da tela "Minha situacao" em cache temporario.
+ *
+ * O cache fica apenas no Apps Script, nunca no GitHub Pages. A chave usa hash
+ * do identificador da sessao e o valor expira rapidamente.
+ *
+ * @param {string} identificadorSessao Identificador associado a sessao.
+ * @return {Object|null} Situacao em cache ou nulo.
+ */
+function portalLerMinhaSituacaoCache_(identificadorSessao) {
+  var chave = portalCacheKey_('minhaSituacao', identificadorSessao);
+  var bruto = CacheService.getScriptCache().get(chave);
+
+  if (!bruto) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(bruto);
+  } catch (erro) {
+    return null;
+  }
+}
+
+/**
+ * Salva a tela "Minha situacao" em cache curto.
+ *
+ * Se o payload crescer alem do limite do CacheService, o portal apenas segue
+ * sem cache para nao impedir o acesso do membro.
+ *
+ * @param {string} identificadorSessao Identificador associado a sessao.
+ * @param {Object} situacao Situacao normalizada e ja filtrada.
+ */
+function portalSalvarMinhaSituacaoCache_(identificadorSessao, situacao) {
+  if (!PORTAL_CONFIG.cacheMinhaSituacaoSegundos || !identificadorSessao || !situacao) {
+    return;
+  }
+
+  try {
+    var chave = portalCacheKey_('minhaSituacao', identificadorSessao);
+    CacheService.getScriptCache().put(
+      chave,
+      JSON.stringify(situacao),
+      PORTAL_CONFIG.cacheMinhaSituacaoSegundos
+    );
+  } catch (erro) {
+    // Cache e melhoria de desempenho, nao requisito funcional.
+  }
+}
+
+/**
+ * Monta metadados de desempenho nao sensiveis.
+ *
+ * @param {string} origem Origem da resposta.
+ * @param {number} inicioMs Momento inicial da execucao.
+ * @return {Object} Metadados extras para a API.
+ */
+function portalMetaDesempenho_(origem, inicioMs) {
+  return {
+    desempenho: {
+      origemDados: origem,
+      tempoMs: Math.max(portalAgoraMs_() - inicioMs, 0),
+      cacheMinhaSituacaoSegundos: PORTAL_CONFIG.cacheMinhaSituacaoSegundos
+    }
+  };
+}
+
+/**
+ * Retorna timestamp em milissegundos.
+ *
+ * @return {number} Timestamp atual.
+ */
+function portalAgoraMs_() {
+  return new Date().getTime();
 }
