@@ -200,9 +200,7 @@ Resposta quando a situacao vem do GEAPA-CORE:
         "atividadesRecentes": [],
         "apresentacoes": {
           "periodoUltimaApresentacao": "GEAPA_2025",
-          "quantidadeRealizadas": 2,
-          "periodoUltimaApresentacaoBaseLegado": "",
-          "quantidadeRealizadasBaseLegado": 0
+          "quantidadeRealizadas": 2
         }
       },
       "certificados": [],
@@ -225,10 +223,10 @@ objetivas. Nao devem incluir observacoes internas, motivos disciplinares,
 motivos de suspensao ou avaliacao subjetiva.
 
 O bloco `participacao.apresentacoes` usa apenas campos objetivos da aba
-`Membros Atuais`: periodo e quantidade de apresentacoes atuais e da base
-legado. O card de resumo do portal exibe a soma de
-`quantidadeRealizadas + quantidadeRealizadasBaseLegado`. Ele nao inclui
-frequencia detalhada nem lista de presenca.
+`Membros Atuais`: periodo da ultima apresentacao e quantidade consolidada de
+apresentacoes. A coluna `QTD_APRESENTACOES_REALIZADAS` ja inclui a base legado,
+entao o portal nao soma campos separados de legado. Ele nao inclui frequencia
+detalhada nem lista de presenca.
 
 ## Codigos de erro previstos
 

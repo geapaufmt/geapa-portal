@@ -7,6 +7,7 @@
  */
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec';
+const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
 
 (function iniciarPortalGeapa() {
   if (typeof document === 'undefined') {
@@ -77,13 +78,16 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
       atualizarStatus(status, obterMensagem(validacao));
 
       if (validacao.ok) {
+        const sessionToken = obterSessionToken(validacao);
+        salvarSessaoLocal(sessionToken);
         mostrarTelaSituacao(app, telaAcesso, telaSituacao);
         renderizarCarregandoSituacao(situacao);
 
         try {
-          const minhaSituacao = await carregarMinhaSituacao(obterSessionToken(validacao));
+          const minhaSituacao = await carregarMinhaSituacao(sessionToken);
           renderizarMinhaSituacao(situacao, minhaSituacao);
         } catch (erroSituacao) {
+          limparSessaoLocal();
           renderizarErroSituacao(situacao, erroSituacao.message);
         }
       }
@@ -95,6 +99,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
   });
 
   botaoSair.addEventListener('click', function aoSair() {
+    limparSessaoLocal();
     form.reset();
     situacao.innerHTML = [
       '<p class="empty-state">',
@@ -105,6 +110,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
     mostrarTelaAcesso(app, telaAcesso, telaSituacao);
     emailOuRga.focus();
   });
+
+  restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status);
 })();
 
 /**
@@ -278,7 +285,7 @@ function renderizarMinhaSituacao(container, dados) {
     montarResumoItem('RGA', dados.rga),
     montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Em preparação'),
     montarResumoItem('Pendências', String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0)),
-    montarResumoItem('Apresentações', formatarQuantidadeApresentacoes(calcularTotalApresentacoes(apresentacoes))),
+    montarResumoItem('Apresentações', formatarQuantidadeApresentacoes(apresentacoes.quantidadeRealizadas)),
     montarResumoItem('Certificados', String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
     '</dl>',
     '<div class="situation-section">',
@@ -357,10 +364,82 @@ function normalizarApresentacoes(apresentacoes) {
 
   return {
     periodoUltimaApresentacao: String(dados.periodoUltimaApresentacao || '').trim(),
-    quantidadeRealizadas: normalizarNumeroNaoNegativo(dados.quantidadeRealizadas),
-    periodoUltimaApresentacaoBaseLegado: String(dados.periodoUltimaApresentacaoBaseLegado || '').trim(),
-    quantidadeRealizadasBaseLegado: normalizarNumeroNaoNegativo(dados.quantidadeRealizadasBaseLegado)
+    quantidadeRealizadas: normalizarNumeroNaoNegativo(dados.quantidadeRealizadas)
   };
+}
+
+/**
+ * Tenta restaurar a sessao temporaria ao atualizar a pagina.
+ *
+ * A sessao fica apenas no sessionStorage do navegador e continua dependendo da
+ * validade definida no Apps Script. Ao expirar, o membro precisa entrar de novo.
+ *
+ * @param {HTMLElement} app Elemento raiz.
+ * @param {HTMLElement} telaAcesso Tela de acesso.
+ * @param {HTMLElement} telaSituacao Tela de situacao.
+ * @param {HTMLElement} situacao Container da tela Minha situacao.
+ * @param {HTMLElement} status Elemento de status.
+ */
+async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status) {
+  const token = lerSessaoLocal();
+
+  if (!token) {
+    return;
+  }
+
+  mostrarTelaSituacao(app, telaAcesso, telaSituacao);
+  renderizarCarregandoSituacao(situacao);
+
+  try {
+    const minhaSituacao = await carregarMinhaSituacao(token);
+    renderizarMinhaSituacao(situacao, minhaSituacao);
+    atualizarStatus(status, 'Sessão restaurada neste navegador.');
+  } catch (erro) {
+    limparSessaoLocal();
+    mostrarTelaAcesso(app, telaAcesso, telaSituacao);
+    atualizarStatus(status, 'Sua sessão expirou. Entre novamente para continuar.');
+  }
+}
+
+/**
+ * Salva token temporario somente para a aba atual do navegador.
+ *
+ * @param {string} token Token temporario retornado pelo backend.
+ */
+function salvarSessaoLocal(token) {
+  if (!token) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, token);
+  } catch (erro) {
+    // Se o navegador bloquear storage, o portal continua funcionando sem restauracao.
+  }
+}
+
+/**
+ * Le token temporario salvo para a aba atual.
+ *
+ * @return {string} Token salvo ou vazio.
+ */
+function lerSessaoLocal() {
+  try {
+    return window.sessionStorage.getItem(SESSION_STORAGE_KEY) || '';
+  } catch (erro) {
+    return '';
+  }
+}
+
+/**
+ * Remove token temporario salvo no navegador.
+ */
+function limparSessaoLocal() {
+  try {
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (erro) {
+    // Nada a fazer: storage indisponivel nao deve quebrar o portal.
+  }
 }
 
 /**
@@ -410,28 +489,18 @@ function montarPendencias(pendencias) {
  */
 function montarApresentacoes(apresentacoes) {
   const possuiAtual = apresentacoes.periodoUltimaApresentacao || apresentacoes.quantidadeRealizadas > 0;
-  const possuiLegado = apresentacoes.periodoUltimaApresentacaoBaseLegado || apresentacoes.quantidadeRealizadasBaseLegado > 0;
 
-  if (!possuiAtual && !possuiLegado) {
+  if (!possuiAtual) {
     return '<p class="empty-state">Nenhuma apresentação registrada até o momento.</p>';
   }
 
   return [
     '<div class="presentation-list">',
-    possuiAtual
-      ? montarCartaoApresentacao(
-        'Apresentações atuais',
-        apresentacoes.quantidadeRealizadas,
-        apresentacoes.periodoUltimaApresentacao
-      )
-      : '',
-    possuiLegado
-      ? montarCartaoApresentacao(
-        'Base legado',
-        apresentacoes.quantidadeRealizadasBaseLegado,
-        apresentacoes.periodoUltimaApresentacaoBaseLegado
-      )
-      : '',
+    montarCartaoApresentacao(
+      'Apresentações registradas',
+      apresentacoes.quantidadeRealizadas,
+      apresentacoes.periodoUltimaApresentacao
+    ),
     '</div>'
   ].join('');
 }
@@ -547,19 +616,6 @@ function formatarQuantidadeApresentacoes(quantidade) {
   const rotulo = numero === 1 ? 'apresentação' : 'apresentações';
 
   return numero + ' ' + rotulo;
-}
-
-/**
- * Soma apresentacoes atuais e da base legado para o resumo principal.
- *
- * @param {Object} apresentacoes Dados normalizados de apresentacoes.
- * @return {number} Total de apresentacoes registradas.
- */
-function calcularTotalApresentacoes(apresentacoes) {
-  const dados = apresentacoes || {};
-
-  return normalizarNumeroNaoNegativo(dados.quantidadeRealizadas) +
-    normalizarNumeroNaoNegativo(dados.quantidadeRealizadasBaseLegado);
 }
 
 /**

@@ -193,9 +193,7 @@ function portalNormalizarApresentacoesCore_(apresentacoes) {
 
   return {
     periodoUltimaApresentacao: String(dados.periodoUltimaApresentacao || '').trim(),
-    quantidadeRealizadas: portalNormalizarNumeroNaoNegativo_(dados.quantidadeRealizadas),
-    periodoUltimaApresentacaoBaseLegado: String(dados.periodoUltimaApresentacaoBaseLegado || '').trim(),
-    quantidadeRealizadasBaseLegado: portalNormalizarNumeroNaoNegativo_(dados.quantidadeRealizadasBaseLegado)
+    quantidadeRealizadas: portalNormalizarNumeroNaoNegativo_(dados.quantidadeRealizadas)
   };
 }
 
