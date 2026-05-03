@@ -99,6 +99,66 @@ function portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) {
 }
 
 /**
+ * Busca a tela "Minha situacao" usando o contrato oficial do GEAPA-CORE.
+ *
+ * Se a funcao ainda nao existir no core ou se o membro nao for encontrado por
+ * esse caminho, retorna nulo para que o portal mantenha o fallback parcial.
+ *
+ * @param {string} identificadorSessao Identificador associado a sessao.
+ * @return {Object|null} Situacao normalizada para o front-end.
+ */
+function portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao) {
+  var identificador = portalNormalizarIdentificador_(identificadorSessao);
+
+  if (!identificador) {
+    return null;
+  }
+
+  var resposta = portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador);
+
+  if (!resposta) {
+    resposta = portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador);
+  }
+
+  return portalNormalizarMinhaSituacaoCore_(resposta);
+}
+
+/**
+ * Tenta chamar a funcao global quando ela estiver copiada no mesmo projeto.
+ *
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Resposta do GEAPA-CORE ou nulo.
+ */
+function portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador) {
+  if (typeof geapaCoreBuscarMinhaSituacaoParaPortal !== 'function') {
+    return null;
+  }
+
+  return geapaCoreBuscarMinhaSituacaoParaPortal(identificador);
+}
+
+/**
+ * Tenta chamar o contrato de "Minha situacao" quando o GEAPA-CORE estiver como
+ * biblioteca Apps Script.
+ *
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Resposta do GEAPA-CORE ou nulo.
+ */
+function portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador) {
+  var libs = portalListarBibliotecasGeapaCore_();
+
+  for (var i = 0; i < libs.length; i++) {
+    var resposta = portalChamarMinhaSituacaoCoreLibrary_(libs[i].api, identificador);
+
+    if (resposta && resposta.ok === true) {
+      return resposta;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Ponto de integracao previsto com GEAPA-CORE.
  *
  * Quando o GEAPA-CORE estiver disponivel no mesmo projeto ou como biblioteca
@@ -144,6 +204,26 @@ function portalBuscarMembroViaGeapaCore_(identificador) {
  * @return {Object|null} Membro normalizado ou nulo.
  */
 function portalBuscarMembroViaGeapaCoreLibrary_(identificador) {
+  var libs = portalListarBibliotecasGeapaCore_();
+
+  for (var i = 0; i < libs.length; i++) {
+    var lib = libs[i];
+    var membro = portalChamarBuscaMembroCoreLibrary_(lib.api, identificador);
+
+    if (membro) {
+      return portalNormalizarMembro_(membro, lib.nome);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Lista os identificadores de biblioteca do GEAPA-CORE aceitos pelo portal.
+ *
+ * @return {Object[]} Bibliotecas disponiveis.
+ */
+function portalListarBibliotecasGeapaCore_() {
   var libs = [];
 
   if (typeof GEAPA_CORE !== 'undefined') {
@@ -167,16 +247,7 @@ function portalBuscarMembroViaGeapaCoreLibrary_(identificador) {
     });
   }
 
-  for (var i = 0; i < libs.length; i++) {
-    var lib = libs[i];
-    var membro = portalChamarBuscaMembroCoreLibrary_(lib.api, identificador);
-
-    if (membro) {
-      return portalNormalizarMembro_(membro, lib.nome);
-    }
-  }
-
-  return null;
+  return libs;
 }
 
 /**
@@ -200,6 +271,32 @@ function portalChamarBuscaMembroCoreLibrary_(api, identificador) {
     typeof api.portal.buscarMembroParaPortal === 'function'
   ) {
     return api.portal.buscarMembroParaPortal(identificador);
+  }
+
+  return null;
+}
+
+/**
+ * Chama os formatos aceitos do contrato "Minha situacao" no GEAPA-CORE.
+ *
+ * @param {Object} api Objeto global da biblioteca.
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Resposta retornada pela biblioteca.
+ */
+function portalChamarMinhaSituacaoCoreLibrary_(api, identificador) {
+  if (!api) {
+    return null;
+  }
+
+  if (typeof api.geapaCoreBuscarMinhaSituacaoParaPortal === 'function') {
+    return api.geapaCoreBuscarMinhaSituacaoParaPortal(identificador);
+  }
+
+  if (
+    api.portal &&
+    typeof api.portal.buscarMinhaSituacaoParaPortal === 'function'
+  ) {
+    return api.portal.buscarMinhaSituacaoParaPortal(identificador);
   }
 
   return null;

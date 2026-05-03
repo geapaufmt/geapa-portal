@@ -39,6 +39,19 @@ function portalMinhaSituacao(token) {
   }
 
   var identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
+  var situacaoCore = portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao);
+
+  if (situacaoCore) {
+    return portalRespostaOk_(
+      'MINHA_SITUACAO_CORE',
+      'Minha situação carregada pelo GEAPA-CORE.',
+      {
+        tokenRecebido: token || '',
+        situacao: situacaoCore
+      }
+    );
+  }
+
   var membro = portalBuscarMembroPorIdentificadorSessao_(identificadorSessao);
 
   if (!membro) {
@@ -112,6 +125,59 @@ function portalMontarMinhaSituacaoParcial_(membro) {
       'Frequência, pendências, certificados e histórico ainda não foram integrados.',
       'Nenhum dado oficial é acessado diretamente pelo GitHub Pages.'
     ]
+  };
+}
+
+/**
+ * Normaliza o contrato da tela "Minha situacao" retornado pelo GEAPA-CORE.
+ *
+ * O GEAPA-CORE retorna um objeto com `membro` e `minhaSituacao`. O portal
+ * transforma esse contrato no formato unico consumido pelo front-end, sem
+ * repassar e-mail cadastrado nem detalhes tecnicos.
+ *
+ * @param {Object} resposta Resposta da funcao do GEAPA-CORE.
+ * @return {Object|null} Situacao normalizada ou nulo.
+ */
+function portalNormalizarMinhaSituacaoCore_(resposta) {
+  if (!resposta || resposta.ok !== true || !resposta.membro) {
+    return null;
+  }
+
+  var membro = portalNormalizarMembro_(resposta.membro, 'GEAPA_CORE');
+  var situacao = resposta.minhaSituacao || {};
+  var resumo = situacao.resumo || {};
+  var participacao = situacao.participacao || {};
+  var avisos = situacao.avisos || [];
+
+  if (!avisos.length) {
+    avisos = [
+      'Dados carregados pelo GEAPA-CORE.',
+      'Frequência, pendências, certificados e histórico serão exibidos conforme forem integrados ao core.'
+    ];
+  }
+
+  return {
+    rga: membro.rga,
+    nomeExibicao: membro.nomeExibicao,
+    situacaoGeral: membro.situacaoGeral || 'Cadastro localizado',
+    vinculo: membro.vinculo || 'Membro em acompanhamento',
+    dadosCadastraisReais: true,
+    blocosComplementares: 'geapa-core',
+    ultimaAtualizacao: new Date().toISOString(),
+    resumo: {
+      frequencia: resumo.frequencia || 'Em preparação',
+      pendenciasAbertas: Number(resumo.pendenciasAbertas || 0),
+      certificadosDisponiveis: Number(resumo.certificadosDisponiveis || 0)
+    },
+    pendencias: Array.isArray(situacao.pendencias) ? situacao.pendencias : [],
+    participacao: {
+      frequenciaGeral: participacao.frequenciaGeral || 'Participação e frequência serão integradas em uma próxima etapa.',
+      atividadesRecentes: Array.isArray(participacao.atividadesRecentes)
+        ? participacao.atividadesRecentes
+        : []
+    },
+    certificados: Array.isArray(situacao.certificados) ? situacao.certificados : [],
+    avisos: avisos
   };
 }
 

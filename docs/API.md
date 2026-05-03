@@ -9,11 +9,17 @@ primeira versao parcial da tela "Minha situacao". Nome, RGA, vinculo e situacao
 geral podem vir do backend; frequencia, pendencias, certificados e historico
 ainda ficam em preparacao.
 
-O backend ja possui ponto de integracao previsto com GEAPA-CORE por meio da
-funcao `geapaCoreBuscarMembroParaPortal(emailOuRga)`. Essa funcao pode estar
-copiada no mesmo projeto Apps Script ou exposta por biblioteca com identificador
-`GEAPA_CORE`. Se essa integracao nao existir no ambiente, a API usa
-`PORTAL_MEMBROS_TESTE_JSON` como fallback.
+O backend possui dois pontos de integracao com GEAPA-CORE:
+
+- `geapaCoreBuscarMembroParaPortal(emailOuRga)`, usado no fluxo de codigo para
+  localizar o e-mail cadastrado do membro;
+- `geapaCoreBuscarMinhaSituacaoParaPortal(emailOuRga)`, usado para carregar a
+  tela "Minha situacao".
+
+Essas funcoes podem estar copiadas no mesmo projeto Apps Script ou expostas por
+biblioteca com identificador `GEAPA_CORE`. Se essa integracao nao existir no
+ambiente, a API usa `PORTAL_MEMBROS_TESTE_JSON` e monta uma resposta parcial
+local como fallback.
 
 ## URL base
 
@@ -173,7 +179,7 @@ Resposta parcial:
       "situacaoGeral": "Cadastro localizado",
       "vinculo": "Membro em acompanhamento",
       "dadosCadastraisReais": true,
-      "blocosComplementares": "em-preparacao",
+      "blocosComplementares": "geapa-core",
       "ultimaAtualizacao": "2026-04-30T00:00:00.000Z",
       "resumo": {
         "frequencia": "Em preparação",
@@ -218,6 +224,8 @@ Resposta parcial:
 - `TENTATIVAS_EXCEDIDAS`: limite de tentativas foi atingido.
 - `SESSAO_OBRIGATORIA`: token de sessao nao foi informado.
 - `SESSAO_INVALIDA_OU_EXPIRADA`: sessao nao existe ou expirou.
+- `MEMBRO_SESSAO_NAO_ENCONTRADO`: a sessao existe, mas o cadastro associado nao
+  foi encontrado pelo core nem pelo fallback de teste.
 
 ## Propriedades privadas do Apps Script
 

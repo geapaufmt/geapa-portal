@@ -131,9 +131,10 @@ maquina.
 
 ## Proximos passos
 
-- Definir no GEAPA-CORE o contrato oficial dos blocos de frequencia,
+- Ampliar no GEAPA-CORE as fontes oficiais dos blocos de frequencia,
   pendencias, certificados e historico.
-- Integrar gradualmente esses blocos na tela "Minha situacao".
+- Integrar gradualmente esses blocos na tela "Minha situacao" conforme o core
+  disponibilizar dados confiaveis.
 - Trocar a biblioteca `GEAPA_CORE` de modo desenvolvimento para uma versao fixa
   antes de uso amplo.
 - Garantir que cada membro receba somente os proprios dados.

@@ -253,6 +253,9 @@ function renderizarMinhaSituacao(container, dados) {
   const rotuloOrigem = dados.dadosCadastraisReais
     ? 'Dados cadastrais carregados'
     : 'Dados de teste carregados';
+  const notaOrigem = dados.blocosComplementares === 'geapa-core'
+    ? rotuloOrigem + ' pelo GEAPA-CORE. Os blocos complementares serão preenchidos conforme o core disponibilizar essas informações.'
+    : rotuloOrigem + '. Os blocos complementares ainda estão em preparação.';
 
   container.innerHTML = [
     '<div class="member-header">',
@@ -262,7 +265,7 @@ function renderizarMinhaSituacao(container, dados) {
     '</div>',
     '<span class="status-pill">' + escaparHtml(dados.situacaoGeral) + '</span>',
     '</div>',
-    '<p class="section-note">' + escaparHtml(rotuloOrigem) + '. Os blocos complementares ainda estão em preparação.</p>',
+    '<p class="section-note">' + escaparHtml(notaOrigem) + '</p>',
     '<dl class="summary-grid">',
     montarResumoItem('RGA', dados.rga),
     montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Em preparação'),

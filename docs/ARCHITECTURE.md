@@ -67,28 +67,32 @@ Fluxo atual e previsto:
 1. O front-end envia ao Apps Script a sessao temporaria do membro.
 2. O Apps Script valida a sessao.
 3. O Apps Script identifica o membro associado a sessao.
-4. O Apps Script consulta o cadastro via GEAPA-CORE ou fallback privado de teste.
+4. O Apps Script tenta consultar `geapaCoreBuscarMinhaSituacaoParaPortal` no
+   GEAPA-CORE.
 5. O Apps Script filtra os dados no backend.
 6. O Apps Script retorna somente dados do proprio membro.
 7. O front-end renderiza a tela "Minha situacao".
 
-Na fase atual, a tela exibe dados cadastrais basicos do membro localizado, como
-nome de exibicao, RGA, vinculo e situacao geral. Frequencia, pendencias,
-certificados e historico permanecem em preparacao ate que o contrato definitivo
-seja entregue pelo GEAPA-CORE.
+Na fase atual, o portal ja tenta usar o contrato oficial do GEAPA-CORE para a
+tela "Minha situacao". Se esse contrato ainda nao estiver disponivel no ambiente
+ou nao encontrar o membro, o portal usa o cadastro basico resolvido pelo backend
+e monta uma resposta parcial local. Frequencia, pendencias, certificados e
+historico permanecem vazios ou em preparacao ate que o GEAPA-CORE disponibilize
+fontes confiaveis para esses blocos.
 
 O front-end nao deve receber dados de outros membros para filtrar visualmente.
 
 ## Integração prevista com GEAPA-CORE
 
 O Portal GEAPA possui uma camada de adaptação em `apps-script/03_membros.gs`.
-Essa camada tenta usar uma função futura do GEAPA-CORE antes de recorrer ao
-cadastro privado de teste.
+Essa camada tenta usar as funcoes publicas do GEAPA-CORE antes de recorrer ao
+cadastro privado de teste ou ao contrato parcial local.
 
 Contrato esperado da função futura:
 
 ```js
 geapaCoreBuscarMembroParaPortal(emailOuRga)
+geapaCoreBuscarMinhaSituacaoParaPortal(emailOuRga)
 ```
 
 Retorno esperado:
