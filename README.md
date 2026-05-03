@@ -76,6 +76,9 @@ geapa-portal/
 |-- .clasp.example.json
 |-- docs/
 |   |-- ARCHITECTURE.md
+|   |-- API.md
+|   |-- DATA_MATRIX.md
+|   |-- PILOT_CHECKLIST.md
 |   `-- SECURITY.md
 |-- apps-script/
 |   |-- appsscript.json
@@ -128,6 +131,8 @@ maquina.
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Seguranca](docs/SECURITY.md)
 - [Contrato da API](docs/API.md)
+- [Matriz de dados](docs/DATA_MATRIX.md)
+- [Checklist de piloto](docs/PILOT_CHECKLIST.md)
 
 ## Proximos passos
 
