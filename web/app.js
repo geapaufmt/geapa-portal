@@ -208,6 +208,7 @@ function normalizarMinhaSituacao(resposta) {
   const dados = (resposta.data && resposta.data.situacao) || resposta.dados || {};
   const pendencias = Array.isArray(dados.pendencias) ? dados.pendencias : [];
   const participacao = dados.participacao || {};
+  const diretoria = dados.diretoria || {};
 
   return {
     modo: (resposta.meta && resposta.meta.modo) || resposta.modo || 'placeholder',
@@ -227,6 +228,7 @@ function normalizarMinhaSituacao(resposta) {
         : [],
       apresentacoes: normalizarApresentacoes(participacao.apresentacoes)
     },
+    diretoria: normalizarDiretoria(diretoria),
     certificados: dados.certificados || [],
     avisos: dados.avisos || [
       'Os dados cadastrais básicos são carregados pelo backend do portal.',
@@ -265,6 +267,7 @@ function obterSessionToken(resposta) {
 function renderizarMinhaSituacao(container, dados) {
   const atividades = dados.participacao.atividadesRecentes || [];
   const apresentacoes = dados.participacao.apresentacoes || {};
+  const diretoria = dados.diretoria || {};
   const rotuloOrigem = dados.dadosCadastraisReais
     ? 'Dados cadastrais carregados'
     : 'Dados de teste carregados';
@@ -286,6 +289,7 @@ function renderizarMinhaSituacao(container, dados) {
     montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Em preparação'),
     montarResumoItem('Pendências', String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0)),
     montarResumoItem('Apresentações', formatarQuantidadeApresentacoes(apresentacoes.quantidadeRealizadas)),
+    montarResumoItem('Diretoria', diretoria.statusElegibilidade || 'Em preparação'),
     montarResumoItem('Certificados', String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
     '</dl>',
     '<div class="situation-section">',
@@ -297,6 +301,10 @@ function renderizarMinhaSituacao(container, dados) {
     montarApresentacoes(apresentacoes),
     '<p class="section-note">' + escaparHtml(dados.participacao.frequenciaGeral || 'Participação e frequência ainda serão integradas.') + '</p>',
     montarAtividades(atividades),
+    '</div>',
+    '<div class="situation-section">',
+    '<h3>Diretoria</h3>',
+    montarDiretoria(diretoria),
     '</div>',
     '<div class="situation-section">',
     '<h3>Certificados</h3>',
@@ -365,6 +373,24 @@ function normalizarApresentacoes(apresentacoes) {
   return {
     periodoUltimaApresentacao: String(dados.periodoUltimaApresentacao || '').trim(),
     quantidadeRealizadas: normalizarNumeroNaoNegativo(dados.quantidadeRealizadas)
+  };
+}
+
+/**
+ * Normaliza o bloco orientativo de elegibilidade para Diretoria.
+ *
+ * @param {Object} diretoria Dados brutos de diretoria.
+ * @return {Object} Dados normalizados.
+ */
+function normalizarDiretoria(diretoria) {
+  const dados = diretoria || {};
+
+  return {
+    statusElegibilidade: String(dados.statusElegibilidade || '').trim(),
+    diasComputados: normalizarNumeroNaoNegativo(dados.diasComputados),
+    limiteDias: normalizarNumeroNaoNegativo(dados.limiteDias),
+    saldoDias: normalizarNumeroNaoNegativo(dados.saldoDias),
+    dataLimiteEstimada: String(dados.dataLimiteEstimada || '').trim()
   };
 }
 
@@ -501,6 +527,53 @@ function montarApresentacoes(apresentacoes) {
       apresentacoes.quantidadeRealizadas,
       apresentacoes.periodoUltimaApresentacao
     ),
+    '</div>'
+  ].join('');
+}
+
+/**
+ * Monta o bloco orientativo de elegibilidade para Diretoria.
+ *
+ * @param {Object} diretoria Dados normalizados de diretoria.
+ * @return {string} HTML do bloco.
+ */
+function montarDiretoria(diretoria) {
+  const possuiDados = diretoria.statusElegibilidade ||
+    diretoria.diasComputados > 0 ||
+    diretoria.limiteDias > 0 ||
+    diretoria.saldoDias > 0 ||
+    diretoria.dataLimiteEstimada;
+
+  if (!possuiDados) {
+    return '<p class="empty-state">Elegibilidade para Diretoria ainda não foi integrada para este cadastro.</p>';
+  }
+
+  return [
+    '<p class="section-note">',
+    'Informação orientativa calculada a partir dos registros disponíveis. Em caso de dúvida, confirme com a Diretoria.',
+    '</p>',
+    '<div class="board-grid">',
+    montarBoardItem('Status', diretoria.statusElegibilidade || 'Não informado'),
+    montarBoardItem('Dias computados', String(diretoria.diasComputados)),
+    montarBoardItem('Limite de dias', String(diretoria.limiteDias)),
+    montarBoardItem('Saldo de dias', String(diretoria.saldoDias)),
+    montarBoardItem('Data limite estimada', diretoria.dataLimiteEstimada || 'Não informada'),
+    '</div>'
+  ].join('');
+}
+
+/**
+ * Monta item compacto do bloco Diretoria.
+ *
+ * @param {string} rotulo Rotulo do campo.
+ * @param {string} valor Valor do campo.
+ * @return {string} HTML do item.
+ */
+function montarBoardItem(rotulo, valor) {
+  return [
+    '<div class="board-item">',
+    '<span>' + escaparHtml(rotulo) + '</span>',
+    '<strong>' + escaparHtml(valor || '-') + '</strong>',
     '</div>'
   ].join('');
 }

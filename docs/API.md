@@ -203,6 +203,13 @@ Resposta quando a situacao vem do GEAPA-CORE:
           "quantidadeRealizadas": 2
         }
       },
+      "diretoria": {
+        "statusElegibilidade": "APTO",
+        "diasComputados": 0,
+        "limiteDias": 549,
+        "saldoDias": 549,
+        "dataLimiteEstimada": "18/05/2027"
+      },
       "certificados": [],
       "avisos": [
         "Dados carregados pelo GEAPA-CORE.",
@@ -227,6 +234,10 @@ O bloco `participacao.apresentacoes` usa apenas campos objetivos da aba
 apresentacoes. A coluna `QTD_APRESENTACOES_REALIZADAS` ja inclui a base legado,
 entao o portal nao soma campos separados de legado. Ele nao inclui frequencia
 detalhada nem lista de presenca.
+
+O bloco `diretoria` e orientativo e usa apenas campos objetivos da aba
+`Membros Atuais`: status de elegibilidade, dias computados, limite, saldo e data
+limite estimada. Decisoes finais continuam sendo da Diretoria.
 
 ## Codigos de erro previstos
 

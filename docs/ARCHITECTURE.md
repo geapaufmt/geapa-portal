@@ -75,10 +75,11 @@ Fluxo atual e previsto:
 
 Na fase atual, o portal ja tenta usar o contrato oficial do GEAPA-CORE para a
 tela "Minha situacao". Esse contrato pode retornar pendencias cadastrais,
-administrativas objetivas e um resumo de apresentacoes do proprio membro. Se o
-contrato ainda nao estiver disponivel no ambiente ou nao encontrar o membro, o
-portal usa o cadastro basico resolvido pelo backend e monta uma resposta parcial
-local. Frequencia detalhada, certificados e historico permanecem vazios ou em
+administrativas objetivas, um resumo de apresentacoes e informacoes orientativas
+de elegibilidade para Diretoria do proprio membro. Se o contrato ainda nao
+estiver disponivel no ambiente ou nao encontrar o membro, o portal usa o
+cadastro basico resolvido pelo backend e monta uma resposta parcial local.
+Frequencia detalhada, certificados e historico permanecem vazios ou em
 preparacao ate que o GEAPA-CORE disponibilize fontes confiaveis para esses
 blocos.
 

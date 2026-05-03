@@ -147,6 +147,7 @@ function portalNormalizarMinhaSituacaoCore_(resposta) {
   var situacao = resposta.minhaSituacao || {};
   var resumo = situacao.resumo || {};
   var participacao = situacao.participacao || {};
+  var diretoria = situacao.diretoria || {};
   var avisos = situacao.avisos || [];
 
   if (!avisos.length) {
@@ -177,6 +178,7 @@ function portalNormalizarMinhaSituacaoCore_(resposta) {
         : [],
       apresentacoes: portalNormalizarApresentacoesCore_(participacao.apresentacoes)
     },
+    diretoria: portalNormalizarDiretoriaCore_(diretoria),
     certificados: Array.isArray(situacao.certificados) ? situacao.certificados : [],
     avisos: avisos
   };
@@ -194,6 +196,24 @@ function portalNormalizarApresentacoesCore_(apresentacoes) {
   return {
     periodoUltimaApresentacao: String(dados.periodoUltimaApresentacao || '').trim(),
     quantidadeRealizadas: portalNormalizarNumeroNaoNegativo_(dados.quantidadeRealizadas)
+  };
+}
+
+/**
+ * Normaliza o bloco orientativo de elegibilidade para Diretoria.
+ *
+ * @param {Object} diretoria Bloco bruto do core.
+ * @return {Object} Bloco seguro para o front-end.
+ */
+function portalNormalizarDiretoriaCore_(diretoria) {
+  var dados = diretoria || {};
+
+  return {
+    statusElegibilidade: String(dados.statusElegibilidade || '').trim(),
+    diasComputados: portalNormalizarNumeroNaoNegativo_(dados.diasComputados),
+    limiteDias: portalNormalizarNumeroNaoNegativo_(dados.limiteDias),
+    saldoDias: portalNormalizarNumeroNaoNegativo_(dados.saldoDias),
+    dataLimiteEstimada: String(dados.dataLimiteEstimada || '').trim()
   };
 }
 
