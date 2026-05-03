@@ -57,19 +57,25 @@ Fluxo previsto para etapa futura:
 8. O Apps Script valida codigo, expiracao e tentativas.
 9. O Apps Script emite uma sessao ou token temporario.
 
-Nesta etapa, o fluxo e apenas simulado no front-end.
+Nesta etapa, o fluxo ja envia codigos reais, mas somente para e-mails
+autorizados em `PORTAL_EMAILS_TESTE`.
 
 ## Fluxo da tela "Minha situacao"
 
-Fluxo previsto para etapa futura:
+Fluxo atual e previsto:
 
 1. O front-end envia ao Apps Script a sessao temporaria do membro.
 2. O Apps Script valida a sessao.
 3. O Apps Script identifica o membro associado a sessao.
-4. O Apps Script consulta as fontes oficiais via GEAPA-CORE ou funcoes internas.
+4. O Apps Script consulta o cadastro via GEAPA-CORE ou fallback privado de teste.
 5. O Apps Script filtra os dados no backend.
-6. O Apps Script retorna somente os dados do proprio membro.
+6. O Apps Script retorna somente dados do proprio membro.
 7. O front-end renderiza a tela "Minha situacao".
+
+Na fase atual, a tela exibe dados cadastrais basicos do membro localizado, como
+nome de exibicao, RGA, vinculo e situacao geral. Frequencia, pendencias,
+certificados e historico permanecem em preparacao ate que o contrato definitivo
+seja entregue pelo GEAPA-CORE.
 
 O front-end nao deve receber dados de outros membros para filtrar visualmente.
 

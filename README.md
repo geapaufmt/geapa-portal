@@ -39,16 +39,22 @@ backend.
 - Preparar o portal para hospedagem estatica no GitHub Pages.
 - Manter o backend separado em `apps-script/`.
 - Criar documentacao clara sobre arquitetura e seguranca.
-- Simular o fluxo visual de acesso por codigo.
-- Preparar um cliente de API no front-end, ainda em modo placeholder.
-- Nao implementar autenticacao real nem acesso a dados oficiais.
+- Testar o fluxo de acesso por codigo enviado ao e-mail cadastrado.
+- Manter o front-end como cliente publico da API em Apps Script.
+- Carregar a primeira versao parcial da tela "Minha situacao", com dados
+  cadastrais basicos resolvidos pelo backend.
+- Manter frequencia, pendencias, certificados e historico fora da integracao
+  ate que o contrato definitivo exista no GEAPA-CORE.
 
 ## Escopo atual
 
 - Interface publica em `web/`.
 - Manifesto PWA inicial em `web/manifest.json`.
-- Cliente de API simulado em `web/app.js`.
-- Backend placeholder em Google Apps Script.
+- Cliente de API em `web/app.js`, sem segredos e sem acesso direto a planilhas.
+- Backend em Google Apps Script com envio de codigo controlado por lista de
+  teste.
+- Integracao inicial com `GEAPA_CORE` como biblioteca Apps Script.
+- Diagnostico interno de cadastro para testes no editor do Apps Script.
 - Documentacao de arquitetura e seguranca.
 
 ## Fora do escopo nesta etapa
@@ -60,7 +66,7 @@ backend.
 - Notificacoes push.
 - Acesso real a planilhas.
 - IDs sensiveis de planilhas.
-- Tokens, chaves privadas ou dados reais de membros.
+- Tokens, chaves privadas ou bases de dados reais de membros no repositorio.
 
 ## Estrutura do repositorio
 
@@ -93,8 +99,9 @@ Abra o arquivo abaixo em um navegador:
 web/index.html
 ```
 
-A tela funciona apenas com HTML, CSS e JavaScript local. O fluxo de solicitar
-codigo, validar codigo e carregar "Minha situacao" ainda e simulado.
+A tela funciona apenas com HTML, CSS e JavaScript. O front-end chama a API
+publicada do Apps Script para solicitar codigo, validar codigo e carregar a
+primeira versao parcial de "Minha situacao".
 
 ## Como publicar no GitHub Pages
 
@@ -124,10 +131,9 @@ maquina.
 
 ## Proximos passos
 
-- Publicar o Web App do Apps Script e obter a URL publica da API.
-- Substituir `API_URL` em `web/app.js` pela URL do Web App publicado.
-- Implementar endpoints reais no Apps Script.
-- Criar armazenamento temporario e seguro para codigos de acesso.
-- Enviar codigos pelo Gmail institucional via Apps Script.
-- Integrar a leitura de dados oficiais via GEAPA-CORE.
+- Definir no GEAPA-CORE o contrato oficial dos blocos de frequencia,
+  pendencias, certificados e historico.
+- Integrar gradualmente esses blocos na tela "Minha situacao".
+- Trocar a biblioteca `GEAPA_CORE` de modo desenvolvimento para uma versao fixa
+  antes de uso amplo.
 - Garantir que cada membro receba somente os proprios dados.

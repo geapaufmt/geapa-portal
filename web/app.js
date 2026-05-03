@@ -98,7 +98,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
     form.reset();
     situacao.innerHTML = [
       '<p class="empty-state">',
-      'Depois do fluxo simulado de entrada, esta área mostrará uma prévia visual da futura tela "Minha situação".',
+      'Depois da entrada, esta área mostrará a primeira versão da tela "Minha situação".',
       '</p>'
     ].join('');
     atualizarStatus(status, 'Sessão encerrada neste navegador.');
@@ -110,7 +110,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJc
 /**
  * Solicita codigo temporario ao Apps Script.
  *
- * Nesta etapa, o Apps Script ainda retorna dados simulados e nao envia e-mail.
+ * Nesta etapa, o Apps Script envia e-mail apenas para cadastros liberados para
+ * teste.
  *
  * @param {string} emailOuRga E-mail ou RGA informado pelo membro.
  * @return {Promise<{ok: boolean, mensagem: string}>}
@@ -124,7 +125,7 @@ function solicitarCodigo(emailOuRga) {
 /**
  * Valida codigo temporario no Apps Script.
  *
- * Nesta etapa, o Apps Script ainda aceita respostas simuladas.
+ * Nesta etapa, o Apps Script valida codigos temporarios de teste.
  *
  * @param {string} emailOuRga E-mail ou RGA informado pelo membro.
  * @param {string} codigo Codigo digitado na tela.
@@ -140,10 +141,11 @@ function validarCodigo(emailOuRga, codigo) {
 /**
  * Carrega a tela "Minha situacao" pelo Apps Script.
  *
- * Nesta etapa, o backend ainda devolve dados simulados.
+ * Nesta etapa, o backend devolve dados cadastrais basicos e blocos
+ * complementares ainda em preparacao.
  *
  * @param {string} token Token temporario retornado pelo backend.
- * @return {Promise<Object>} Dados simulados para renderizacao local.
+ * @return {Promise<Object>} Dados parciais para renderizacao local.
  */
 async function carregarMinhaSituacao(token) {
   const resposta = await chamarApi('minhaSituacao', {
@@ -190,7 +192,7 @@ async function chamarApi(acao, dados) {
 }
 
 /**
- * Adapta a resposta placeholder do Apps Script para a interface.
+ * Adapta a resposta parcial do Apps Script para a interface.
  *
  * @param {Object} resposta Resposta da acao minhaSituacao.
  * @return {Object} Dados prontos para renderizacao.
@@ -203,17 +205,19 @@ function normalizarMinhaSituacao(resposta) {
     modo: (resposta.meta && resposta.meta.modo) || resposta.modo || 'placeholder',
     nomeExibicao: dados.nomeExibicao || 'Membro GEAPA',
     situacaoGeral: dados.situacaoGeral || 'Simulada',
-    vinculo: dados.vinculo || 'Vínculo simulado',
+    vinculo: dados.vinculo || 'Vínculo em preparação',
     rga: dados.rga || 'RGA-SIMULADO',
+    dadosCadastraisReais: Boolean(dados.dadosCadastraisReais),
+    blocosComplementares: dados.blocosComplementares || 'em-preparacao',
     ultimaAtualizacao: dados.ultimaAtualizacao || dados.atualizadoEm || '',
     resumo: dados.resumo || {},
     pendencias: pendencias,
     participacao: dados.participacao || {},
     certificados: dados.certificados || [],
     avisos: dados.avisos || [
-      'Nenhuma planilha oficial foi consultada.',
+      'Os dados cadastrais básicos são carregados pelo backend do portal.',
       'Nenhum dado real de membro está no GitHub Pages.',
-      'A consulta real será filtrada pelo Apps Script.'
+      'Frequência, pendências, certificados e histórico ainda serão integrados.'
     ]
   };
 }
@@ -239,13 +243,16 @@ function obterSessionToken(resposta) {
 }
 
 /**
- * Renderiza a area simulada de "Minha situacao".
+ * Renderiza a area "Minha situacao".
  *
- * @param {HTMLElement} container Elemento que recebera a tela simulada.
- * @param {Object} dados Dados simulados retornados por carregarMinhaSituacao.
+ * @param {HTMLElement} container Elemento que recebera a tela.
+ * @param {Object} dados Dados parciais retornados por carregarMinhaSituacao.
  */
 function renderizarMinhaSituacao(container, dados) {
   const atividades = dados.participacao.atividadesRecentes || [];
+  const rotuloOrigem = dados.dadosCadastraisReais
+    ? 'Dados cadastrais carregados'
+    : 'Dados de teste carregados';
 
   container.innerHTML = [
     '<div class="member-header">',
@@ -255,19 +262,20 @@ function renderizarMinhaSituacao(container, dados) {
     '</div>',
     '<span class="status-pill">' + escaparHtml(dados.situacaoGeral) + '</span>',
     '</div>',
+    '<p class="section-note">' + escaparHtml(rotuloOrigem) + '. Os blocos complementares ainda estão em preparação.</p>',
     '<dl class="summary-grid">',
     montarResumoItem('RGA', dados.rga),
-    montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Simulada'),
+    montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Em preparação'),
     montarResumoItem('Pendências', String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0)),
     montarResumoItem('Certificados', String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
     '</dl>',
     '<div class="situation-section">',
     '<h3>Pendências</h3>',
-    montarListaOuVazio(dados.pendencias, 'Nenhuma pendência registrada nesta simulação.'),
+    montarListaOuVazio(dados.pendencias, 'Pendências ainda não foram integradas.'),
     '</div>',
     '<div class="situation-section">',
     '<h3>Participação</h3>',
-    '<p class="section-note">' + escaparHtml(dados.participacao.frequenciaGeral || 'Sem dados oficiais nesta etapa.') + '</p>',
+    '<p class="section-note">' + escaparHtml(dados.participacao.frequenciaGeral || 'Participação e frequência ainda serão integradas.') + '</p>',
     montarAtividades(atividades),
     '</div>',
     '<div class="situation-section">',
@@ -276,7 +284,7 @@ function renderizarMinhaSituacao(container, dados) {
     '</div>',
     '<div class="situation-section">',
     '<h3>Avisos</h3>',
-    montarListaOuVazio(dados.avisos, 'Nenhum aviso registrado nesta simulação.'),
+    montarListaOuVazio(dados.avisos, 'Nenhum aviso registrado nesta etapa.'),
     '</div>',
     dados.ultimaAtualizacao
       ? '<p class="updated-at">Atualizado em: ' + escaparHtml(formatarData(dados.ultimaAtualizacao)) + '</p>'
@@ -292,7 +300,7 @@ function renderizarMinhaSituacao(container, dados) {
 function renderizarCarregandoSituacao(container) {
   container.innerHTML = [
     '<p class="simulation-title">Carregando Minha situação</p>',
-    '<p class="empty-state">Buscando dados simulados no backend do Portal GEAPA.</p>'
+    '<p class="empty-state">Buscando dados no backend do Portal GEAPA.</p>'
   ].join('');
 }
 
@@ -347,14 +355,14 @@ function montarListaOuVazio(itens, vazio) {
 }
 
 /**
- * Monta atividades recentes simuladas.
+ * Monta atividades recentes.
  *
  * @param {Object[]} atividades Atividades retornadas pela API.
  * @return {string} HTML das atividades.
  */
 function montarAtividades(atividades) {
   if (!atividades.length) {
-    return '<p class="empty-state">Nenhuma atividade registrada nesta simulação.</p>';
+    return '<p class="empty-state">Atividades recentes ainda não foram integradas.</p>';
   }
 
   return [
@@ -372,14 +380,14 @@ function montarAtividades(atividades) {
 }
 
 /**
- * Monta lista de certificados simulados.
+ * Monta lista de certificados.
  *
  * @param {Object[]} certificados Certificados retornados pela API.
  * @return {string} HTML dos certificados.
  */
 function montarCertificados(certificados) {
   if (!certificados.length) {
-    return '<p class="empty-state">Nenhum certificado disponível nesta simulação.</p>';
+    return '<p class="empty-state">Certificados ainda não foram integrados.</p>';
   }
 
   return [

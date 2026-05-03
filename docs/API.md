@@ -3,9 +3,11 @@
 Este documento descreve o contrato inicial entre o front-end publico do Portal
 GEAPA e o backend em Google Apps Script.
 
-Nesta etapa, a API ja pode resolver um membro em um cadastro de teste privado,
-enviar codigo real ao e-mail cadastrado e carregar a tela "Minha situacao" com
-dados simulados daquele membro. Ela ainda nao acessa planilhas oficiais.
+Nesta etapa, a API ja pode resolver um membro pelo `GEAPA_CORE` ou por um
+cadastro de teste privado, enviar codigo real ao e-mail cadastrado e carregar a
+primeira versao parcial da tela "Minha situacao". Nome, RGA, vinculo e situacao
+geral podem vir do backend; frequencia, pendencias, certificados e historico
+ainda ficam em preparacao.
 
 O backend ja possui ponto de integracao previsto com GEAPA-CORE por meio da
 funcao `geapaCoreBuscarMembroParaPortal(emailOuRga)`. Essa funcao pode estar
@@ -158,31 +160,37 @@ acao=minhaSituacao
 token=sessao-temporaria
 ```
 
-Resposta placeholder:
+Resposta parcial:
 
 ```json
 {
   "ok": true,
-  "code": "MINHA_SITUACAO_PLACEHOLDER",
-  "message": "Situação simulada carregada.",
+  "code": "MINHA_SITUACAO_PARCIAL",
+  "message": "Dados cadastrais carregados. Os demais blocos ainda estão em preparação.",
   "data": {
     "situacao": {
       "nomeExibicao": "Membro GEAPA",
-      "situacaoGeral": "Em simulação",
+      "situacaoGeral": "Cadastro localizado",
       "vinculo": "Membro em acompanhamento",
+      "dadosCadastraisReais": true,
+      "blocosComplementares": "em-preparacao",
       "ultimaAtualizacao": "2026-04-30T00:00:00.000Z",
       "resumo": {
-        "frequencia": "Simulada",
+        "frequencia": "Em preparação",
         "pendenciasAbertas": 0,
-        "certificadosDisponiveis": 1
+        "certificadosDisponiveis": 0
       },
       "pendencias": [],
       "participacao": {
-        "frequenciaGeral": "Sem dados oficiais nesta etapa",
+        "frequenciaGeral": "Participação e frequência serão integradas em uma próxima etapa.",
         "atividadesRecentes": []
       },
       "certificados": [],
-      "avisos": []
+      "avisos": [
+        "Os dados cadastrais básicos já são carregados pelo backend do portal.",
+        "Frequência, pendências, certificados e histórico ainda não foram integrados.",
+        "Nenhum dado oficial é acessado diretamente pelo GitHub Pages."
+      ]
     }
   },
   "meta": {

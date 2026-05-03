@@ -1,8 +1,10 @@
 /**
- * Placeholders da tela "Minha situacao no GEAPA".
+ * Tela "Minha situacao no GEAPA".
  *
- * Este arquivo nao acessa planilhas oficiais. Os dados retornados sao
- * simulados e servem apenas para orientar o contrato inicial do portal.
+ * Nesta fase, o portal ja usa o cadastro localizado pelo GEAPA-CORE ou pelo
+ * fallback de teste para exibir dados cadastrais basicos do proprio membro.
+ * Frequencia, pendencias, certificados e historico ainda permanecem como
+ * placeholders ate que o contrato definitivo seja criado no GEAPA-CORE.
  */
 
 /**
@@ -15,7 +17,7 @@
  * - retornar apenas informacoes do proprio membro.
  *
  * @param {string} token Token temporario recebido apos validar codigo.
- * @return {Object} Situacao simulada do membro.
+ * @return {Object} Situacao parcial do membro.
  */
 function portalMinhaSituacao(token) {
   var tokenNormalizado = String(token || '').trim();
@@ -48,11 +50,11 @@ function portalMinhaSituacao(token) {
   }
 
   return portalRespostaOk_(
-    'MINHA_SITUACAO_PLACEHOLDER',
-    'Situação simulada carregada.',
+    'MINHA_SITUACAO_PARCIAL',
+    'Dados cadastrais carregados. Os demais blocos ainda estão em preparação.',
     {
       tokenRecebido: token || '',
-      situacao: portalDebugMinhaSituacaoPorMembro_(membro)
+      situacao: portalMontarMinhaSituacaoParcial_(membro)
     }
   );
 }
@@ -67,7 +69,7 @@ function portalMinhaSituacao(token) {
  * @return {Object} Dados simulados da situacao do membro.
  */
 function portalDebugMinhaSituacaoPorRga(rga) {
-  return portalDebugMinhaSituacaoPorMembro_({
+  return portalMontarMinhaSituacaoParcial_({
     rga: rga || 'RGA-SIMULADO',
     nomeExibicao: 'Membro GEAPA',
     situacaoGeral: 'Em simulação',
@@ -76,48 +78,39 @@ function portalDebugMinhaSituacaoPorRga(rga) {
 }
 
 /**
- * Monta dados simulados da situacao a partir de um membro.
+ * Monta a primeira versao da tela "Minha situacao".
+ *
+ * Campos cadastrais basicos podem vir do GEAPA-CORE. Os demais blocos ainda
+ * ficam com textos de preparacao para evitar expor dados reais antes do
+ * contrato definitivo.
  *
  * @param {Object} membro Membro normalizado.
- * @return {Object} Dados simulados da situacao.
+ * @return {Object} Dados parciais da situacao.
  */
-function portalDebugMinhaSituacaoPorMembro_(membro) {
+function portalMontarMinhaSituacaoParcial_(membro) {
   return {
     rga: membro.rga || 'RGA-SIMULADO',
     nomeExibicao: membro.nomeExibicao || 'Membro GEAPA',
-    situacaoGeral: membro.situacaoGeral || 'Em simulação',
+    situacaoGeral: membro.situacaoGeral || 'Cadastro localizado',
     vinculo: membro.vinculo || 'Membro em acompanhamento',
+    dadosCadastraisReais: membro.origem !== 'teste',
+    blocosComplementares: 'em-preparacao',
     ultimaAtualizacao: new Date().toISOString(),
     resumo: {
-      frequencia: 'Simulada',
+      frequencia: 'Em preparação',
       pendenciasAbertas: 0,
-      certificadosDisponiveis: 1
+      certificadosDisponiveis: 0
     },
     pendencias: [],
     participacao: {
-      frequenciaGeral: 'Sem dados oficiais nesta etapa',
-      atividadesRecentes: [
-        {
-          titulo: 'Reunião de acolhimento',
-          data: 'Data simulada',
-          status: 'Participação simulada'
-        },
-        {
-          titulo: 'Atividade formativa',
-          data: 'Data simulada',
-          status: 'Registro demonstrativo'
-        }
-      ]
+      frequenciaGeral: 'Participação e frequência serão integradas em uma próxima etapa.',
+      atividadesRecentes: []
     },
-    certificados: [
-      {
-        titulo: 'Certificado demonstrativo',
-        status: 'Disponível em simulação'
-      }
-    ],
+    certificados: [],
     avisos: [
-      'Dados simulados para desenvolvimento inicial do portal.',
-      'Nenhuma planilha oficial foi consultada nesta etapa.'
+      'Os dados cadastrais básicos já são carregados pelo backend do portal.',
+      'Frequência, pendências, certificados e histórico ainda não foram integrados.',
+      'Nenhum dado oficial é acessado diretamente pelo GitHub Pages.'
     ]
   };
 }
