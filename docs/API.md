@@ -166,13 +166,13 @@ acao=minhaSituacao
 token=sessao-temporaria
 ```
 
-Resposta parcial:
+Resposta quando a situacao vem do GEAPA-CORE:
 
 ```json
 {
   "ok": true,
-  "code": "MINHA_SITUACAO_PARCIAL",
-  "message": "Dados cadastrais carregados. Os demais blocos ainda estão em preparação.",
+  "code": "MINHA_SITUACAO_CORE",
+  "message": "Minha situação carregada pelo GEAPA-CORE.",
   "data": {
     "situacao": {
       "nomeExibicao": "Membro GEAPA",
@@ -183,19 +183,26 @@ Resposta parcial:
       "ultimaAtualizacao": "2026-04-30T00:00:00.000Z",
       "resumo": {
         "frequencia": "Em preparação",
-        "pendenciasAbertas": 0,
+        "pendenciasAbertas": 1,
         "certificadosDisponiveis": 0
       },
-      "pendencias": [],
+      "pendencias": [
+        {
+          "tipo": "cadastro",
+          "titulo": "RGA não informado",
+          "descricao": "Procure a Diretoria para atualizar seu RGA no cadastro do GEAPA.",
+          "severidade": "media",
+          "status": "pendente"
+        }
+      ],
       "participacao": {
         "frequenciaGeral": "Participação e frequência serão integradas em uma próxima etapa.",
         "atividadesRecentes": []
       },
       "certificados": [],
       "avisos": [
-        "Os dados cadastrais básicos já são carregados pelo backend do portal.",
-        "Frequência, pendências, certificados e histórico ainda não foram integrados.",
-        "Nenhum dado oficial é acessado diretamente pelo GitHub Pages."
+        "Dados carregados pelo GEAPA-CORE.",
+        "Frequência, certificados e histórico serão exibidos conforme forem integrados ao core."
       ]
     }
   },
@@ -206,6 +213,10 @@ Resposta parcial:
   }
 }
 ```
+
+As pendencias retornadas nesta etapa sao apenas cadastrais ou administrativas
+objetivas. Nao devem incluir observacoes internas, motivos disciplinares,
+motivos de suspensao ou avaliacao subjetiva.
 
 ## Codigos de erro previstos
 

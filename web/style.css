@@ -313,6 +313,7 @@ button:focus-visible {
   line-height: 1.55;
 }
 
+.pendency-list,
 .activity-list {
   display: grid;
   gap: 10px;
@@ -320,11 +321,49 @@ button:focus-visible {
   list-style: none;
 }
 
+.pendency-card,
 .activity-list li {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
   background: var(--white);
+}
+
+.pendency-card {
+  border-left: 4px solid var(--green-600);
+}
+
+.pendency-card.severity-media {
+  border-left-color: #c9921a;
+}
+
+.pendency-card.severity-alta {
+  border-left-color: #b33a2b;
+}
+
+.pendency-card p {
+  margin: 8px 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.pendency-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.pendency-heading span {
+  color: var(--green-950);
+  font-weight: 700;
+}
+
+.pendency-heading small,
+.severity-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .activity-list span,
@@ -381,6 +420,11 @@ button:focus-visible {
 
   .situation-topbar {
     display: grid;
+  }
+
+  .pendency-heading {
+    display: grid;
+    gap: 4px;
   }
 
   .secondary-button {

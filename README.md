@@ -132,7 +132,7 @@ maquina.
 ## Proximos passos
 
 - Ampliar no GEAPA-CORE as fontes oficiais dos blocos de frequencia,
-  pendencias, certificados e historico.
+  certificados e historico.
 - Integrar gradualmente esses blocos na tela "Minha situacao" conforme o core
   disponibilizar dados confiaveis.
 - Trocar a biblioteca `GEAPA_CORE` de modo desenvolvimento para uma versao fixa

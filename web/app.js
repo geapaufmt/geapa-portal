@@ -199,7 +199,7 @@ async function chamarApi(acao, dados) {
  */
 function normalizarMinhaSituacao(resposta) {
   const dados = (resposta.data && resposta.data.situacao) || resposta.dados || {};
-  const pendencias = dados.pendencias || [];
+  const pendencias = Array.isArray(dados.pendencias) ? dados.pendencias : [];
 
   return {
     modo: (resposta.meta && resposta.meta.modo) || resposta.modo || 'placeholder',
@@ -254,7 +254,7 @@ function renderizarMinhaSituacao(container, dados) {
     ? 'Dados cadastrais carregados'
     : 'Dados de teste carregados';
   const notaOrigem = dados.blocosComplementares === 'geapa-core'
-    ? rotuloOrigem + ' pelo GEAPA-CORE. Os blocos complementares serão preenchidos conforme o core disponibilizar essas informações.'
+    ? rotuloOrigem + ' pelo GEAPA-CORE. Pendências cadastrais podem aparecer quando houver algo a regularizar.'
     : rotuloOrigem + '. Os blocos complementares ainda estão em preparação.';
 
   container.innerHTML = [
@@ -274,7 +274,7 @@ function renderizarMinhaSituacao(container, dados) {
     '</dl>',
     '<div class="situation-section">',
     '<h3>Pendências</h3>',
-    montarListaOuVazio(dados.pendencias, 'Pendências ainda não foram integradas.'),
+    montarPendencias(dados.pendencias),
     '</div>',
     '<div class="situation-section">',
     '<h3>Participação</h3>',
@@ -333,6 +333,45 @@ function montarResumoItem(rotulo, valor) {
     '<dt>' + escaparHtml(rotulo) + '</dt>',
     '<dd>' + escaparHtml(valor || '-') + '</dd>',
     '</div>'
+  ].join('');
+}
+
+/**
+ * Monta pendencias cadastrais ou administrativas retornadas pelo GEAPA-CORE.
+ *
+ * @param {Array<string|Object>} pendencias Pendencias retornadas pela API.
+ * @return {string} HTML das pendencias.
+ */
+function montarPendencias(pendencias) {
+  if (!pendencias || !pendencias.length) {
+    return '<p class="empty-state">Nenhuma pendência cadastral aberta.</p>';
+  }
+
+  return [
+    '<ul class="pendency-list">',
+    pendencias.map(function montarPendencia(pendencia) {
+      if (typeof pendencia === 'string') {
+        return '<li class="pendency-card">' + escaparHtml(pendencia) + '</li>';
+      }
+
+      const severidade = normalizarSeveridade(pendencia.severidade);
+      const tipo = pendencia.tipo ? formatarRotuloCurto(pendencia.tipo) : 'Pendência';
+      const status = pendencia.status ? formatarRotuloCurto(pendencia.status) : 'Pendente';
+
+      return [
+        '<li class="pendency-card severity-' + escaparHtml(severidade) + '">',
+        '<div class="pendency-heading">',
+        '<span>' + escaparHtml(pendencia.titulo || 'Pendência cadastral') + '</span>',
+        '<small>' + escaparHtml(tipo + ' · ' + status) + '</small>',
+        '</div>',
+        pendencia.descricao
+          ? '<p>' + escaparHtml(pendencia.descricao) + '</p>'
+          : '',
+        '<small class="severity-label">Severidade: ' + escaparHtml(formatarRotuloCurto(severidade)) + '</small>',
+        '</li>'
+      ].join('');
+    }).join(''),
+    '</ul>'
   ].join('');
 }
 
@@ -400,6 +439,41 @@ function montarCertificados(certificados) {
     }).join(''),
     '</ul>'
   ].join('');
+}
+
+/**
+ * Normaliza severidade recebida pelo backend para classes CSS conhecidas.
+ *
+ * @param {string} valor Severidade retornada pela API.
+ * @return {string} Severidade normalizada.
+ */
+function normalizarSeveridade(valor) {
+  const normalizada = String(valor || 'baixa').toLowerCase();
+
+  if (['baixa', 'media', 'alta'].indexOf(normalizada) === -1) {
+    return 'baixa';
+  }
+
+  return normalizada;
+}
+
+/**
+ * Formata rotulos curtos vindos do contrato da API.
+ *
+ * @param {string} valor Valor em formato tecnico.
+ * @return {string} Rotulo legivel.
+ */
+function formatarRotuloCurto(valor) {
+  const texto = String(valor || '')
+    .replace(/_/g, ' ')
+    .trim()
+    .toLowerCase();
+
+  if (!texto) {
+    return '';
+  }
+
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 /**
