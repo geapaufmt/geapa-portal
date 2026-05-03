@@ -226,7 +226,9 @@ motivos de suspensao ou avaliacao subjetiva.
 
 O bloco `participacao.apresentacoes` usa apenas campos objetivos da aba
 `Membros Atuais`: periodo e quantidade de apresentacoes atuais e da base
-legado. Ele nao inclui frequencia detalhada nem lista de presenca.
+legado. O card de resumo do portal exibe a soma de
+`quantidadeRealizadas + quantidadeRealizadasBaseLegado`. Ele nao inclui
+frequencia detalhada nem lista de presenca.
 
 ## Codigos de erro previstos
 

@@ -278,7 +278,7 @@ function renderizarMinhaSituacao(container, dados) {
     montarResumoItem('RGA', dados.rga),
     montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Em preparação'),
     montarResumoItem('Pendências', String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0)),
-    montarResumoItem('Apresentações', formatarQuantidadeApresentacoes(apresentacoes.quantidadeRealizadas)),
+    montarResumoItem('Apresentações', formatarQuantidadeApresentacoes(calcularTotalApresentacoes(apresentacoes))),
     montarResumoItem('Certificados', String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
     '</dl>',
     '<div class="situation-section">',
@@ -547,6 +547,19 @@ function formatarQuantidadeApresentacoes(quantidade) {
   const rotulo = numero === 1 ? 'apresentação' : 'apresentações';
 
   return numero + ' ' + rotulo;
+}
+
+/**
+ * Soma apresentacoes atuais e da base legado para o resumo principal.
+ *
+ * @param {Object} apresentacoes Dados normalizados de apresentacoes.
+ * @return {number} Total de apresentacoes registradas.
+ */
+function calcularTotalApresentacoes(apresentacoes) {
+  const dados = apresentacoes || {};
+
+  return normalizarNumeroNaoNegativo(dados.quantidadeRealizadas) +
+    normalizarNumeroNaoNegativo(dados.quantidadeRealizadasBaseLegado);
 }
 
 /**
