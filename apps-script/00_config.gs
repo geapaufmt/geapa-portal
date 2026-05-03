@@ -22,6 +22,14 @@ var PORTAL_CONFIG = {
   validadeCodigoMinutos: 10,
 
   /**
+   * Tempo de validade da sessao temporaria apos validar o codigo, em minutos.
+   * Deve ser maior que a validade do codigo para evitar novo login a cada
+   * atualizacao da pagina, mas ainda curto o bastante para reduzir risco em
+   * computadores compartilhados.
+   */
+  validadeSessaoMinutos: 120,
+
+  /**
    * Limite de tentativas para validar um codigo antes de bloquear a sessao
    * temporaria. Usado apenas no fluxo de teste inicial.
    */

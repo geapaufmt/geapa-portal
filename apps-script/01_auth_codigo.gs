@@ -181,6 +181,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
     'Código validado em modo de teste.',
     {
       sessionToken: sessionToken,
+      validadeSessaoMinutos: PORTAL_CONFIG.validadeSessaoMinutos,
       identificadorRecebido: identificador,
       membro: {
         nomeExibicao: membro.nomeExibicao,
@@ -341,7 +342,7 @@ function portalEnviarCodigoEmail_(email, codigo) {
 function portalCriarSessaoTemporaria_(identificador) {
   var token = 'sessao-' + Utilities.getUuid();
   var chave = portalCacheKey_('sessao', token);
-  var validadeSegundos = PORTAL_CONFIG.validadeCodigoMinutos * 60;
+  var validadeSegundos = PORTAL_CONFIG.validadeSessaoMinutos * 60;
 
   CacheService.getScriptCache().put(chave, identificador, validadeSegundos);
   return token;

@@ -147,6 +147,7 @@ Resposta em modo de teste:
   "message": "Código validado em modo de teste.",
   "data": {
     "sessionToken": "sessao-temporaria",
+    "validadeSessaoMinutos": 120,
     "identificadorRecebido": "valor-informado-pelo-membro"
   },
   "meta": {
@@ -272,6 +273,21 @@ PORTAL_DIAGNOSTICO_IDENTIFICADOR=email-ou-rga-para-teste
 ```
 
 Esses valores nao devem ser versionados no GitHub.
+
+## Validade de codigo e sessao
+
+O codigo enviado por e-mail tem validade curta, definida em
+`PORTAL_CONFIG.validadeCodigoMinutos`. A sessao temporaria criada apos validar o
+codigo tem validade propria, definida em `PORTAL_CONFIG.validadeSessaoMinutos`.
+
+Na configuracao atual:
+
+- codigo: 10 minutos;
+- sessao: 120 minutos.
+
+O front-end salva o token apenas em `sessionStorage`, para restaurar a tela ao
+atualizar a mesma aba do navegador. Quando a sessao expira no Apps Script, o
+portal limpa o token local e pede novo codigo.
 
 ## Diagnostico interno de cadastro
 

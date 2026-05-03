@@ -69,6 +69,22 @@ Nao versionar:
 
 Códigos temporários devem expirar rapidamente e não devem aparecer em logs.
 
+## Validade de acesso
+
+O código temporário enviado por e-mail e a sessão do membro possuem validades
+separadas:
+
+- o código deve ser curto, para reduzir risco caso o e-mail seja acessado por
+  engano ou com atraso;
+- a sessão pode durar mais tempo, para evitar novo login a cada atualização da
+  página;
+- a configuração atual usa 10 minutos para o código e 120 minutos para a
+  sessão;
+- o front-end pode guardar o token apenas em `sessionStorage`, nunca como segredo
+  permanente;
+- o Apps Script continua sendo a fonte de verdade para decidir se a sessão ainda
+  é válida.
+
 ## Regra para membro comum
 
 Um membro comum so pode receber os proprios dados. O backend nunca deve retornar
