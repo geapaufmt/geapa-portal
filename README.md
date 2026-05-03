@@ -131,7 +131,7 @@ maquina.
 
 ## Proximos passos
 
-- Ampliar no GEAPA-CORE as fontes oficiais dos blocos de frequencia,
+- Ampliar no GEAPA-CORE as fontes oficiais dos blocos de frequencia detalhada,
   certificados e historico.
 - Integrar gradualmente esses blocos na tela "Minha situacao" conforme o core
   disponibilizar dados confiaveis.

@@ -200,6 +200,7 @@ async function chamarApi(acao, dados) {
 function normalizarMinhaSituacao(resposta) {
   const dados = (resposta.data && resposta.data.situacao) || resposta.dados || {};
   const pendencias = Array.isArray(dados.pendencias) ? dados.pendencias : [];
+  const participacao = dados.participacao || {};
 
   return {
     modo: (resposta.meta && resposta.meta.modo) || resposta.modo || 'placeholder',
@@ -212,7 +213,13 @@ function normalizarMinhaSituacao(resposta) {
     ultimaAtualizacao: dados.ultimaAtualizacao || dados.atualizadoEm || '',
     resumo: dados.resumo || {},
     pendencias: pendencias,
-    participacao: dados.participacao || {},
+    participacao: {
+      frequenciaGeral: participacao.frequenciaGeral || '',
+      atividadesRecentes: Array.isArray(participacao.atividadesRecentes)
+        ? participacao.atividadesRecentes
+        : [],
+      apresentacoes: normalizarApresentacoes(participacao.apresentacoes)
+    },
     certificados: dados.certificados || [],
     avisos: dados.avisos || [
       'Os dados cadastrais básicos são carregados pelo backend do portal.',
@@ -250,6 +257,7 @@ function obterSessionToken(resposta) {
  */
 function renderizarMinhaSituacao(container, dados) {
   const atividades = dados.participacao.atividadesRecentes || [];
+  const apresentacoes = dados.participacao.apresentacoes || {};
   const rotuloOrigem = dados.dadosCadastraisReais
     ? 'Dados cadastrais carregados'
     : 'Dados de teste carregados';
@@ -270,6 +278,7 @@ function renderizarMinhaSituacao(container, dados) {
     montarResumoItem('RGA', dados.rga),
     montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Em preparação'),
     montarResumoItem('Pendências', String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0)),
+    montarResumoItem('Apresentações', formatarQuantidadeApresentacoes(apresentacoes.quantidadeRealizadas)),
     montarResumoItem('Certificados', String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
     '</dl>',
     '<div class="situation-section">',
@@ -278,6 +287,7 @@ function renderizarMinhaSituacao(container, dados) {
     '</div>',
     '<div class="situation-section">',
     '<h3>Participação</h3>',
+    montarApresentacoes(apresentacoes),
     '<p class="section-note">' + escaparHtml(dados.participacao.frequenciaGeral || 'Participação e frequência ainda serão integradas.') + '</p>',
     montarAtividades(atividades),
     '</div>',
@@ -337,6 +347,23 @@ function montarResumoItem(rotulo, valor) {
 }
 
 /**
+ * Normaliza o bloco de apresentacoes retornado pelo GEAPA-CORE.
+ *
+ * @param {Object} apresentacoes Dados brutos de apresentacoes.
+ * @return {Object} Dados normalizados.
+ */
+function normalizarApresentacoes(apresentacoes) {
+  const dados = apresentacoes || {};
+
+  return {
+    periodoUltimaApresentacao: String(dados.periodoUltimaApresentacao || '').trim(),
+    quantidadeRealizadas: normalizarNumeroNaoNegativo(dados.quantidadeRealizadas),
+    periodoUltimaApresentacaoBaseLegado: String(dados.periodoUltimaApresentacaoBaseLegado || '').trim(),
+    quantidadeRealizadasBaseLegado: normalizarNumeroNaoNegativo(dados.quantidadeRealizadasBaseLegado)
+  };
+}
+
+/**
  * Monta pendencias cadastrais ou administrativas retornadas pelo GEAPA-CORE.
  *
  * @param {Array<string|Object>} pendencias Pendencias retornadas pela API.
@@ -372,6 +399,58 @@ function montarPendencias(pendencias) {
       ].join('');
     }).join(''),
     '</ul>'
+  ].join('');
+}
+
+/**
+ * Monta o bloco de apresentacoes na secao de participacao.
+ *
+ * @param {Object} apresentacoes Dados normalizados de apresentacoes.
+ * @return {string} HTML do bloco.
+ */
+function montarApresentacoes(apresentacoes) {
+  const possuiAtual = apresentacoes.periodoUltimaApresentacao || apresentacoes.quantidadeRealizadas > 0;
+  const possuiLegado = apresentacoes.periodoUltimaApresentacaoBaseLegado || apresentacoes.quantidadeRealizadasBaseLegado > 0;
+
+  if (!possuiAtual && !possuiLegado) {
+    return '<p class="empty-state">Nenhuma apresentação registrada até o momento.</p>';
+  }
+
+  return [
+    '<div class="presentation-list">',
+    possuiAtual
+      ? montarCartaoApresentacao(
+        'Apresentações atuais',
+        apresentacoes.quantidadeRealizadas,
+        apresentacoes.periodoUltimaApresentacao
+      )
+      : '',
+    possuiLegado
+      ? montarCartaoApresentacao(
+        'Base legado',
+        apresentacoes.quantidadeRealizadasBaseLegado,
+        apresentacoes.periodoUltimaApresentacaoBaseLegado
+      )
+      : '',
+    '</div>'
+  ].join('');
+}
+
+/**
+ * Monta um cartao de resumo de apresentacoes.
+ *
+ * @param {string} titulo Titulo do cartao.
+ * @param {number} quantidade Quantidade de apresentacoes.
+ * @param {string} periodo Periodo da ultima apresentacao.
+ * @return {string} HTML do cartao.
+ */
+function montarCartaoApresentacao(titulo, quantidade, periodo) {
+  return [
+    '<div class="presentation-card">',
+    '<span>' + escaparHtml(titulo) + '</span>',
+    '<strong>' + escaparHtml(formatarQuantidadeApresentacoes(quantidade)) + '</strong>',
+    '<small>Último período: ' + escaparHtml(periodo || 'Não registrado') + '</small>',
+    '</div>'
   ].join('');
 }
 
@@ -439,6 +518,35 @@ function montarCertificados(certificados) {
     }).join(''),
     '</ul>'
   ].join('');
+}
+
+/**
+ * Normaliza numero nao negativo vindo da API.
+ *
+ * @param {number|string} valor Valor retornado pelo backend.
+ * @return {number} Numero seguro para exibicao.
+ */
+function normalizarNumeroNaoNegativo(valor) {
+  const numero = Number(valor);
+
+  if (!Number.isFinite(numero) || numero < 0) {
+    return 0;
+  }
+
+  return numero;
+}
+
+/**
+ * Formata quantidade de apresentacoes com pluralizacao simples.
+ *
+ * @param {number|string} quantidade Quantidade retornada pelo backend.
+ * @return {string} Texto formatado.
+ */
+function formatarQuantidadeApresentacoes(quantidade) {
+  const numero = normalizarNumeroNaoNegativo(quantidade);
+  const rotulo = numero === 1 ? 'apresentação' : 'apresentações';
+
+  return numero + ' ' + rotulo;
 }
 
 /**

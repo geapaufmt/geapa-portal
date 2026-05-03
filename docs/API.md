@@ -197,7 +197,13 @@ Resposta quando a situacao vem do GEAPA-CORE:
       ],
       "participacao": {
         "frequenciaGeral": "Participação e frequência serão integradas em uma próxima etapa.",
-        "atividadesRecentes": []
+        "atividadesRecentes": [],
+        "apresentacoes": {
+          "periodoUltimaApresentacao": "GEAPA_2025",
+          "quantidadeRealizadas": 2,
+          "periodoUltimaApresentacaoBaseLegado": "",
+          "quantidadeRealizadasBaseLegado": 0
+        }
       },
       "certificados": [],
       "avisos": [
@@ -217,6 +223,10 @@ Resposta quando a situacao vem do GEAPA-CORE:
 As pendencias retornadas nesta etapa sao apenas cadastrais ou administrativas
 objetivas. Nao devem incluir observacoes internas, motivos disciplinares,
 motivos de suspensao ou avaliacao subjetiva.
+
+O bloco `participacao.apresentacoes` usa apenas campos objetivos da aba
+`Membros Atuais`: periodo e quantidade de apresentacoes atuais e da base
+legado. Ele nao inclui frequencia detalhada nem lista de presenca.
 
 ## Codigos de erro previstos
 
