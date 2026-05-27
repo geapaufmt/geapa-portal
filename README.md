@@ -54,6 +54,8 @@ backend.
 - Backend em Google Apps Script com envio de codigo controlado por lista de
   teste.
 - Integracao inicial com `GEAPA_CORE` como biblioteca Apps Script.
+- Tela inicial de Atividades em modo mock, sem escrita real e sem consulta a
+  planilhas.
 - Diagnostico interno de cadastro para testes no editor do Apps Script.
 - Documentacao de arquitetura e seguranca.
 
@@ -77,7 +79,10 @@ geapa-portal/
 |-- docs/
 |   |-- ARCHITECTURE.md
 |   |-- API.md
+|   |-- api-contrato-atividades.md
 |   |-- DATA_MATRIX.md
+|   |-- diagnostico-portal.md
+|   |-- fases-portal.md
 |   |-- PILOT_CHECKLIST.md
 |   `-- SECURITY.md
 |-- apps-script/
@@ -88,6 +93,13 @@ geapa-portal/
 |   |-- 03_webapp.gs
 |   `-- 99_tests.gs
 `-- web/
+    |-- assets/
+    |   `-- js/
+    |       |-- api.js
+    |       |-- atividades.js
+    |       |-- auth.js
+    |       |-- config.js
+    |       `-- ui.js
     |-- index.html
     |-- style.css
     |-- app.js
@@ -105,6 +117,9 @@ web/index.html
 A tela funciona apenas com HTML, CSS e JavaScript. O front-end chama a API
 publicada do Apps Script para solicitar codigo, validar codigo e carregar a
 primeira versao parcial de "Minha situacao".
+
+A tela **Atividades** pode ser aberta pelo botao "Ver atividades em
+demonstracao" e usa somente dados simulados nesta etapa.
 
 ## Como publicar no GitHub Pages
 
@@ -131,13 +146,18 @@ maquina.
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Seguranca](docs/SECURITY.md)
 - [Contrato da API](docs/API.md)
+- [Contrato inicial de atividades](docs/api-contrato-atividades.md)
 - [Matriz de dados](docs/DATA_MATRIX.md)
 - [Checklist de piloto](docs/PILOT_CHECKLIST.md)
+- [Diagnostico do portal](docs/diagnostico-portal.md)
+- [Fases de evolucao](docs/fases-portal.md)
 
 ## Proximos passos
 
-- Ampliar no GEAPA-CORE as fontes oficiais dos blocos de frequencia detalhada,
-  certificados e historico.
+- Inspecionar `geapa-atividades` e definir o contrato real para listagem e
+  detalhes de atividades.
+- Ampliar no GEAPA-CORE as fontes oficiais dos blocos de atividades,
+  frequencia detalhada, certificados e historico.
 - Integrar gradualmente esses blocos na tela "Minha situacao" conforme o core
   disponibilizar dados confiaveis.
 - Trocar a biblioteca `GEAPA_CORE` de modo desenvolvimento para uma versao fixa
