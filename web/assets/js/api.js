@@ -11,7 +11,7 @@
 
   var atividadesMock = [
     {
-      idAtividade: 'ATV-0005',
+      idAtividade: 'ATV-2026-1-0005',
       dataAtividade: '2026-04-16',
       diaSemana: 'quinta-feira',
       horarioInicio: '18h30',
@@ -35,7 +35,7 @@
       podeEditar: false
     },
     {
-      idAtividade: 'ATV-0006',
+      idAtividade: 'ATV-2026-1-0006',
       dataAtividade: '2026-05-21',
       diaSemana: 'quinta-feira',
       horarioInicio: '18h30',
@@ -59,7 +59,7 @@
       podeEditar: false
     },
     {
-      idAtividade: 'ATV-0007',
+      idAtividade: 'ATV-2026-1-0007',
       dataAtividade: '2026-06-04',
       diaSemana: 'quinta-feira',
       horarioInicio: '19h00',
@@ -85,8 +85,8 @@
   ];
 
   var detalhesMock = {
-    'ATV-0005': {
-      idAtividade: 'ATV-0005',
+    'ATV-2026-1-0005': {
+      idAtividade: 'ATV-2026-1-0005',
       tituloPublico: 'Apresentação de Membro',
       descricaoPublica: 'Atividade acadêmica semanal do GEAPA com apresentação e discussão coletiva.',
       dataAtividade: '2026-04-16',
@@ -106,8 +106,8 @@
       linkMaterialPublico: '',
       linkAtaPublica: ''
     },
-    'ATV-0006': {
-      idAtividade: 'ATV-0006',
+    'ATV-2026-1-0006': {
+      idAtividade: 'ATV-2026-1-0006',
       tituloPublico: 'Reunião Ordinária',
       descricaoPublica: 'Reunião interna para encaminhamentos acadêmicos e administrativos do grupo.',
       dataAtividade: '2026-05-21',
@@ -127,8 +127,8 @@
       linkMaterialPublico: '',
       linkAtaPublica: ''
     },
-    'ATV-0007': {
-      idAtividade: 'ATV-0007',
+    'ATV-2026-1-0007': {
+      idAtividade: 'ATV-2026-1-0007',
       tituloPublico: 'Oficina Temática',
       descricaoPublica: 'Oficina remota com conteúdo formativo para membros e convidados.',
       dataAtividade: '2026-06-04',

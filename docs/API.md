@@ -303,7 +303,7 @@ Resposta esperada:
   "message": "Atividades carregadas pelo módulo GEAPA Atividades.",
   "data": [
     {
-      "idAtividade": "ATV-0005",
+      "idAtividade": "ATV-2026-1-0005",
       "dataAtividade": "2026-04-16",
       "diaSemana": "quinta-feira",
       "horarioInicio": "18h30",
@@ -338,6 +338,12 @@ retornado pelo GEAPA-CORE:
 - `DIRETORIA` ou `PRESIDENCIA` vira `DIRETORIA`;
 - demais usuários seguem como `MEMBRO`.
 
+A origem atual da leitura real é a base **ATIVIDADES INTERNAS GEAPA v2 - DEV**,
+cadastrada no Registry como `ATIVIDADES_V2_DB`. A listagem usa
+`PORTAL_ATIVIDADES_CALENDARIO`. O único ID estrutural retornado é
+`ID_ATIVIDADE`, exposto no JSON como `idAtividade`, no padrão
+`ATV-AAAA-S-NNNN`.
+
 ## Acao: atividadeDetalhe
 
 Entrada:
@@ -345,7 +351,7 @@ Entrada:
 ```text
 acao=atividadeDetalhe
 token=sessao-temporaria
-idAtividade=ATV-0005
+idAtividade=ATV-2026-1-0005
 ```
 
 Resposta esperada:
@@ -356,7 +362,7 @@ Resposta esperada:
   "code": "ATIVIDADE_DETALHE_CARREGADO",
   "message": "Detalhes da atividade carregados pelo módulo GEAPA Atividades.",
   "data": {
-    "idAtividade": "ATV-0005",
+    "idAtividade": "ATV-2026-1-0005",
     "tituloPublico": "Apresentação de Membro",
     "descricaoPublica": "Atividade acadêmica semanal do GEAPA.",
     "dataAtividade": "2026-04-16",

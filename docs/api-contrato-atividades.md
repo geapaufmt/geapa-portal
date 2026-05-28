@@ -5,6 +5,11 @@ GEAPA. O front-end pode usar dados mockados em desenvolvimento, mas o modo real
 chama o Apps Script do portal, que valida a sessão e consulta o contrato público
 somente leitura do módulo `geapa-atividades`.
 
+A origem atual da leitura real é a base **ATIVIDADES INTERNAS GEAPA v2 - DEV**,
+cadastrada no Registry pela key `ATIVIDADES_V2_DB`. A lista usa a aba
+`PORTAL_ATIVIDADES_CALENDARIO` e os detalhes usam a aba `Atividades`, sempre em
+modo somente leitura.
+
 ## Regras gerais
 
 - O GitHub Pages nunca acessa planilhas diretamente.
@@ -18,6 +23,10 @@ somente leitura do módulo `geapa-atividades`.
   partir das Vigências. `SECRETARIA` é enviado como `SECRETARIO`; `DIRETORIA`
   ou `PRESIDENCIA` são enviados como `DIRETORIA`; os demais usuários seguem
   como `MEMBRO`.
+- O identificador estrutural usado pelo portal é sempre `ID_ATIVIDADE`, no
+  padrão `ATV-AAAA-S-NNNN`, por exemplo `ATV-2026-1-0005`.
+- IDs antigos como `ID_ATIVIDADE_GLOBAL`, `ID_ATIVIDADE_LOCAL` e
+  `ID_ATIVIDADE_V1` não fazem parte do contrato do portal.
 
 ## Formato de resposta
 
@@ -63,7 +72,7 @@ Resposta esperada:
   "ok": true,
   "data": [
     {
-      "idAtividade": "ATV-0005",
+      "idAtividade": "ATV-2026-1-0005",
       "dataAtividade": "2026-04-16",
       "diaSemana": "quinta-feira",
       "horarioInicio": "18h30",
@@ -95,13 +104,13 @@ Resposta esperada:
 Contrato lógico:
 
 ```text
-GET /atividades/detalhe?idAtividade=ATV-0005
+GET /atividades/detalhe?idAtividade=ATV-2026-1-0005
 ```
 
 No Apps Script atual, a implementação real poderá usar ação equivalente:
 
 ```text
-acao=atividadeDetalhe&idAtividade=ATV-0005
+acao=atividadeDetalhe&idAtividade=ATV-2026-1-0005
 token=sessao-temporaria
 ```
 
@@ -111,7 +120,7 @@ Resposta esperada:
 {
   "ok": true,
   "data": {
-    "idAtividade": "ATV-0005",
+    "idAtividade": "ATV-2026-1-0005",
     "tituloPublico": "Apresentação de Membro",
     "descricaoPublica": "Atividade acadêmica semanal do GEAPA.",
     "dataAtividade": "2026-04-16",
@@ -138,7 +147,7 @@ Resposta esperada:
 
 - `POST /atividades/criar`
 - `POST /atividades/editar`
-- `GET /atividades/chamada?idAtividade=ATV-0005`
+- `GET /atividades/chamada?idAtividade=ATV-2026-1-0005`
 - `POST /atividades/registrar-chamada`
 - `POST /atividades/justificar-falta`
 - `GET /justificativas/minhas`

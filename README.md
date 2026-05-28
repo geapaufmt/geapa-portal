@@ -123,6 +123,9 @@ primeira versao parcial de "Minha situacao".
 A tela **Atividades** pode ser aberta pelo botão "Atividades" depois do login.
 Em modo real, ela exige sessão válida e chama o Apps Script, que por sua vez
 consulta o contrato público somente leitura do módulo `geapa-atividades`.
+Nesta etapa, a leitura real aponta para a base **ATIVIDADES INTERNAS GEAPA v2 -
+DEV**, pela key `ATIVIDADES_V2_DB`, usando `ID_ATIVIDADE` no padrão
+`ATV-AAAA-S-NNNN`.
 
 Depois do login, o portal também recebe do GEAPA-CORE o bloco seguro `usuario`,
 calculado a partir das Vigências oficiais. Esse bloco informa perfis, funções
