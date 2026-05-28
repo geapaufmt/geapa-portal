@@ -440,7 +440,7 @@ function portalSessaoTemporariaValida_(token) {
  * @return {Object|null} Situacao em cache ou nulo.
  */
 function portalLerMinhaSituacaoCache_(identificadorSessao) {
-  var chave = portalCacheKey_('minhaSituacao', identificadorSessao);
+  var chave = portalCacheKey_('minhaSituacaoV2', identificadorSessao);
   var bruto = CacheService.getScriptCache().get(chave);
 
   if (!bruto) {
@@ -469,7 +469,7 @@ function portalSalvarMinhaSituacaoCache_(identificadorSessao, situacao) {
   }
 
   try {
-    var chave = portalCacheKey_('minhaSituacao', identificadorSessao);
+    var chave = portalCacheKey_('minhaSituacaoV2', identificadorSessao);
     CacheService.getScriptCache().put(
       chave,
       JSON.stringify(situacao),
