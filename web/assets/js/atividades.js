@@ -9,6 +9,8 @@
   var api = global.PortalGeapaApi;
   var auth = global.PortalGeapaAuth;
   var ui = global.PortalGeapaUi;
+  var detalhesCache = {};
+  var atividadesResumoCache = {};
 
   function iniciarAtividades() {
     var telaAtividades = document.getElementById('tela-atividades');
@@ -131,6 +133,12 @@
       return;
     }
 
+    atividades.forEach(function guardarResumo(atividade) {
+      if (atividade && atividade.idAtividade) {
+        atividadesResumoCache[atividade.idAtividade] = atividade;
+      }
+    });
+
     container.innerHTML = atividades.map(function montarAtividade(atividade) {
       return [
         '<article class="activity-card" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '">',
@@ -202,6 +210,16 @@
   }
 
   function carregarDetalheAtividade(idAtividade) {
+    var detalheCache = detalhesCache[idAtividade];
+    var resumo = atividadesResumoCache[idAtividade];
+
+    if (detalheCache) {
+      abrirModal(detalheCache);
+      return;
+    }
+
+    abrirModalCarregando(idAtividade, resumo);
+
     api.apiGet('/atividades/detalhe', {
       idAtividade: idAtividade
     }).then(function tratarResposta(resposta) {
@@ -209,12 +227,37 @@
         throw new Error(resposta.message || 'Não foi possível carregar detalhes.');
       }
 
+      detalhesCache[idAtividade] = resposta.data;
       abrirModal(resposta.data);
     }).catch(function tratarErro(erro) {
       abrirModal({
+        idAtividade: idAtividade,
         tituloPublico: 'Erro ao carregar atividade',
         descricaoPublica: erro.message
       });
+    });
+  }
+
+  function abrirModalCarregando(idAtividade, resumo) {
+    abrirModal({
+      idAtividade: idAtividade,
+      tituloPublico: resumo && resumo.tituloPublico ? resumo.tituloPublico : 'Carregando atividade',
+      descricaoPublica: 'Buscando detalhes no backend do Portal GEAPA...',
+      dataAtividade: resumo && resumo.dataAtividade,
+      horarioCompleto: resumo && resumo.horarioInicio && resumo.horarioFim
+        ? resumo.horarioInicio + ' às ' + resumo.horarioFim
+        : '',
+      local: resumo && resumo.local,
+      formato: resumo && resumo.formato,
+      tipoAtividade: resumo && resumo.tipoPublico,
+      subtipoAtividade: resumo && resumo.subtipoAtividade,
+      classificacaoAcesso: resumo && resumo.classificacaoAcesso,
+      contaPresenca: resumo && resumo.contaPresenca,
+      contaFalta: resumo && resumo.contaFalta,
+      geraCertificado: resumo && resumo.geraCertificado,
+      cargaHoraria: resumo && resumo.cargaHoraria,
+      statusPublico: resumo && resumo.statusPublico,
+      carregando: true
     });
   }
 
@@ -226,6 +269,9 @@
       '<p class="eyebrow">' + ui.escaparHtml(detalhe.idAtividade || 'Atividade') + '</p>',
       '<h3>' + ui.escaparHtml(detalhe.tituloPublico || 'Atividade') + '</h3>',
       '<p class="section-note">' + ui.escaparHtml(detalhe.descricaoPublica || '') + '</p>',
+      detalhe.carregando
+        ? '<p class="status-message">Carregando detalhes completos...</p>'
+        : '',
       '<dl class="activity-detail-grid">',
       montarFato('Data', ui.formatarData(detalhe.dataAtividade)),
       montarFato('Horário', detalhe.horarioCompleto),
