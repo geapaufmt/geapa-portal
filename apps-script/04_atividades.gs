@@ -19,7 +19,10 @@ function portalListarAtividades(token) {
     return contexto.resposta;
   }
 
-  var cacheKey = portalCacheKey_('atividadesLista', contexto.identificadorSessao);
+  var cacheKey = portalCacheKey_(
+    'atividadesLista',
+    contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
+  );
   var cache = portalLerJsonCache_(cacheKey);
 
   if (cache) {
@@ -133,18 +136,85 @@ function portalMontarContextoAtividades_(token) {
   }
 
   var identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
+  var situacao = portalLerMinhaSituacaoCache_(identificadorSessao);
+
+  if (!situacao) {
+    situacao = portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao);
+
+    if (situacao) {
+      portalSalvarMinhaSituacaoCache_(identificadorSessao, situacao);
+    }
+  }
+
   var membro = portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) || {};
+  var usuario = situacao && situacao.usuario
+    ? situacao.usuario
+    : portalMontarUsuarioBasico_(membro);
+  var perfilAtividades = portalResolverPerfilAtividades_(usuario);
 
   return {
     ok: true,
     identificadorSessao: identificadorSessao,
     contextoAtividades: {
-      perfil: 'MEMBRO',
+      perfil: perfilAtividades,
       rga: String(membro.rga || '').trim(),
       email: String(membro.emailCadastrado || identificadorSessao || '').trim(),
-      somenteVisiveis: true
+      somenteVisiveis: perfilAtividades === 'MEMBRO'
     }
   };
+}
+
+/**
+ * Resolve o perfil entendido pelo modulo geapa-atividades.
+ *
+ * O Core trabalha com perfis mais ricos, como PRESIDENCIA e SECRETARIA. O
+ * modulo de Atividades recebe um perfil operacional menor e continua validando
+ * as permissoes reais no backend.
+ *
+ * @param {Object} usuario Usuario normalizado da sessao.
+ * @return {string} Perfil esperado pelo modulo de Atividades.
+ */
+function portalResolverPerfilAtividades_(usuario) {
+  var dados = usuario || {};
+  var perfis = Array.isArray(dados.perfis) ? dados.perfis : [];
+  var permissoes = dados.permissoes || {};
+
+  if (portalUsuarioTemPerfil_(perfis, 'ADMIN_TECNICO') || permissoes.podeGerenciarConfiguracoes === true) {
+    return 'ADMIN_TECNICO';
+  }
+
+  if (portalUsuarioTemPerfil_(perfis, 'SECRETARIA')) {
+    return 'SECRETARIO';
+  }
+
+  if (
+    portalUsuarioTemPerfil_(perfis, 'DIRETORIA') ||
+    portalUsuarioTemPerfil_(perfis, 'PRESIDENCIA') ||
+    permissoes.podeGerenciarAtividades === true
+  ) {
+    return 'DIRETORIA';
+  }
+
+  return 'MEMBRO';
+}
+
+/**
+ * Verifica se o usuario possui um perfil.
+ *
+ * @param {string[]} perfis Perfis normalizados.
+ * @param {string} perfil Perfil desejado.
+ * @return {boolean} Resultado.
+ */
+function portalUsuarioTemPerfil_(perfis, perfil) {
+  var desejado = String(perfil || '').trim().toUpperCase();
+
+  for (var i = 0; i < perfis.length; i++) {
+    if (String(perfis[i] || '').trim().toUpperCase() === desejado) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function portalChamarAtividadesListar_(contexto) {

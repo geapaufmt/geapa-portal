@@ -24,8 +24,9 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
   const botaoSair = document.getElementById('sair');
   const status = document.getElementById('mensagem-status');
   const situacao = document.getElementById('minha-situacao');
+  const usuarioContexto = document.getElementById('usuario-contexto');
 
-  if (!form || !app || !telaAcesso || !telaSituacao || !emailOuRga || !codigo || !botaoSolicitar || !botaoSair || !status || !situacao) {
+  if (!form || !app || !telaAcesso || !telaSituacao || !emailOuRga || !codigo || !botaoSolicitar || !botaoSair || !status || !situacao || !usuarioContexto) {
     return;
   }
 
@@ -85,9 +86,13 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
 
         try {
           const minhaSituacao = await carregarMinhaSituacao(sessionToken);
+          aplicarUsuarioAtual(minhaSituacao);
+          atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
           renderizarMinhaSituacao(situacao, minhaSituacao);
         } catch (erroSituacao) {
           limparSessaoLocal();
+          limparUsuarioAtual();
+          atualizarContextoUsuario(usuarioContexto, null);
           renderizarErroSituacao(situacao, erroSituacao.message);
         }
       }
@@ -100,6 +105,8 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
 
   botaoSair.addEventListener('click', function aoSair() {
     limparSessaoLocal();
+    limparUsuarioAtual();
+    atualizarContextoUsuario(usuarioContexto, null);
     form.reset();
     situacao.innerHTML = [
       '<p class="empty-state">',
@@ -111,7 +118,7 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
     emailOuRga.focus();
   });
 
-  restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status);
+  restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto);
 })();
 
 /**
@@ -219,6 +226,7 @@ function normalizarMinhaSituacao(resposta) {
   const pendencias = Array.isArray(dados.pendencias) ? dados.pendencias : [];
   const participacao = dados.participacao || {};
   const diretoria = dados.diretoria || {};
+  const usuario = dados.usuario || {};
   const desempenho = (resposta.meta && resposta.meta.desempenho) || {};
 
   return {
@@ -227,6 +235,7 @@ function normalizarMinhaSituacao(resposta) {
     situacaoGeral: dados.situacaoGeral || 'Simulada',
     vinculo: dados.vinculo || 'Vínculo em preparação',
     rga: dados.rga || 'RGA-SIMULADO',
+    usuario: normalizarUsuario(usuario, dados),
     dadosCadastraisReais: Boolean(dados.dadosCadastraisReais),
     blocosComplementares: dados.blocosComplementares || 'em-preparacao',
     ultimaAtualizacao: dados.ultimaAtualizacao || dados.atualizadoEm || '',
@@ -284,6 +293,7 @@ function renderizarMinhaSituacao(container, dados) {
   const atividades = dados.participacao.atividadesRecentes || [];
   const apresentacoes = dados.participacao.apresentacoes || {};
   const diretoria = dados.diretoria || {};
+  const usuario = dados.usuario || {};
   const rotuloOrigem = dados.dadosCadastraisReais
     ? 'Dados cadastrais carregados'
     : 'Dados de teste carregados';
@@ -302,12 +312,17 @@ function renderizarMinhaSituacao(container, dados) {
     '<p class="section-note">' + escaparHtml(notaOrigem) + '</p>',
     '<dl class="summary-grid">',
     montarResumoItem('RGA', dados.rga),
+    montarResumoItem('Perfil', formatarPerfil(usuario.perfilPrincipal)),
     montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Em preparação'),
     montarResumoItem('Pendências', String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0)),
     montarResumoItem('Apresentações', formatarQuantidadeApresentacoes(apresentacoes.quantidadeRealizadas)),
     montarResumoItem('Diretoria', diretoria.statusElegibilidade || 'Em preparação'),
     montarResumoItem('Certificados', String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
     '</dl>',
+    '<div class="situation-section">',
+    '<h3>Funções atuais</h3>',
+    montarCargosUsuario(usuario.cargosAtuais),
+    '</div>',
     '<div class="situation-section">',
     '<h3>Pendências</h3>',
     montarPendencias(dados.pendencias),
@@ -411,6 +426,124 @@ function normalizarDiretoria(diretoria) {
 }
 
 /**
+ * Normaliza o usuario autenticado retornado pelo backend.
+ *
+ * @param {Object} usuario Dados de perfil vindos do Apps Script/Core.
+ * @param {Object} dadosSituacao Dados principais da tela Minha situacao.
+ * @return {Object} Usuario seguro para controlar a interface.
+ */
+function normalizarUsuario(usuario, dadosSituacao) {
+  const dados = usuario || {};
+  const situacao = dadosSituacao || {};
+  const perfis = Array.isArray(dados.perfis) && dados.perfis.length
+    ? dados.perfis.map(normalizarPerfil)
+    : ['MEMBRO'];
+
+  return {
+    id: String(dados.id || situacao.rga || '').trim(),
+    nomeExibicao: String(dados.nomeExibicao || situacao.nomeExibicao || 'Membro GEAPA').trim(),
+    rga: String(dados.rga || situacao.rga || '').trim(),
+    perfilPrincipal: normalizarPerfil(dados.perfilPrincipal || perfis[0] || 'MEMBRO'),
+    perfis: removerDuplicados(perfis),
+    cargosAtuais: Array.isArray(dados.cargosAtuais)
+      ? dados.cargosAtuais.map(normalizarCargoUsuario)
+      : [],
+    permissoes: normalizarPermissoesUsuario(dados.permissoes)
+  };
+}
+
+/**
+ * Normaliza perfil operacional conhecido.
+ *
+ * @param {string} perfil Perfil bruto.
+ * @return {string} Perfil normalizado.
+ */
+function normalizarPerfil(perfil) {
+  const normalizado = String(perfil || 'MEMBRO').trim().toUpperCase();
+  const permitidos = [
+    'MEMBRO',
+    'DIRETORIA',
+    'PRESIDENCIA',
+    'SECRETARIA',
+    'COMUNICACAO',
+    'CONSELHO',
+    'ASSESSORIA',
+    'ADMIN_TECNICO'
+  ];
+
+  return permitidos.indexOf(normalizado) >= 0 ? normalizado : 'MEMBRO';
+}
+
+/**
+ * Normaliza cargo atual do usuario.
+ *
+ * @param {Object} cargo Cargo bruto.
+ * @return {Object} Cargo normalizado.
+ */
+function normalizarCargoUsuario(cargo) {
+  const dados = cargo || {};
+
+  return {
+    cargoKey: String(dados.cargoKey || '').trim(),
+    cargoNome: String(dados.cargoNome || '').trim(),
+    grupoCargo: String(dados.grupoCargo || '').trim(),
+    fonte: String(dados.fonte || '').trim(),
+    idDiretoria: String(dados.idDiretoria || '').trim(),
+    dataInicio: String(dados.dataInicio || '').trim(),
+    dataFimPrevista: String(dados.dataFimPrevista || '').trim()
+  };
+}
+
+/**
+ * Normaliza permissoes booleanas do usuario.
+ *
+ * @param {Object} permissoes Permissoes brutas.
+ * @return {Object} Permissoes normalizadas.
+ */
+function normalizarPermissoesUsuario(permissoes) {
+  const dados = permissoes || {};
+  const chaves = [
+    'podeVerAreaDiretoria',
+    'podeGerenciarAtividades',
+    'podeRegistrarChamada',
+    'podeEditarAtividade',
+    'podeAnalisarJustificativas',
+    'podeGerenciarCertificados',
+    'podeGerenciarComunicacao',
+    'podeGerenciarConfiguracoes'
+  ];
+  const saida = {};
+
+  chaves.forEach(function normalizarPermissao(chave) {
+    saida[chave] = dados[chave] === true;
+  });
+
+  return saida;
+}
+
+/**
+ * Remove repeticoes mantendo a ordem.
+ *
+ * @param {string[]} valores Lista de valores.
+ * @return {string[]} Lista sem repeticoes.
+ */
+function removerDuplicados(valores) {
+  const vistos = {};
+  const saida = [];
+
+  valores.forEach(function adicionarUnico(valor) {
+    if (!valor || vistos[valor]) {
+      return;
+    }
+
+    vistos[valor] = true;
+    saida.push(valor);
+  });
+
+  return saida.length ? saida : ['MEMBRO'];
+}
+
+/**
  * Tenta restaurar a sessao temporaria ao atualizar a pagina.
  *
  * A sessao fica apenas no sessionStorage do navegador e continua dependendo da
@@ -422,7 +555,7 @@ function normalizarDiretoria(diretoria) {
  * @param {HTMLElement} situacao Container da tela Minha situacao.
  * @param {HTMLElement} status Elemento de status.
  */
-async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status) {
+async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto) {
   const token = lerSessaoLocal();
 
   if (!token) {
@@ -434,10 +567,14 @@ async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, sta
 
   try {
     const minhaSituacao = await carregarMinhaSituacao(token);
+    aplicarUsuarioAtual(minhaSituacao);
+    atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
     renderizarMinhaSituacao(situacao, minhaSituacao);
     atualizarStatus(status, 'Sessão restaurada neste navegador.');
   } catch (erro) {
     limparSessaoLocal();
+    limparUsuarioAtual();
+    atualizarContextoUsuario(usuarioContexto, null);
     mostrarTelaAcesso(app, telaAcesso, telaSituacao);
     atualizarStatus(status, 'Sua sessão expirou. Entre novamente para continuar.');
   }
@@ -579,6 +716,39 @@ function montarDiretoria(diretoria) {
 }
 
 /**
+ * Monta os cargos ou funcoes atuais do usuario autenticado.
+ *
+ * @param {Object[]} cargos Cargos retornados pelo backend.
+ * @return {string} HTML do bloco.
+ */
+function montarCargosUsuario(cargos) {
+  if (!cargos || !cargos.length) {
+    return '<p class="empty-state">Nenhuma função institucional vigente registrada para este usuário.</p>';
+  }
+
+  return [
+    '<ul class="role-list">',
+    cargos.map(function montarCargo(cargo) {
+      const periodo = [
+        cargo.dataInicio ? 'Início: ' + formatarDataCurta(cargo.dataInicio) : '',
+        cargo.dataFimPrevista ? 'Fim previsto: ' + formatarDataCurta(cargo.dataFimPrevista) : ''
+      ].filter(Boolean).join(' · ');
+
+      return [
+        '<li class="role-card">',
+        '<div>',
+        '<span>' + escaparHtml(cargo.cargoNome || formatarPerfil(cargo.cargoKey) || 'Função institucional') + '</span>',
+        '<small>' + escaparHtml(formatarPerfil(cargo.grupoCargo || cargo.fonte || '')) + '</small>',
+        '</div>',
+        periodo ? '<small>' + escaparHtml(periodo) + '</small>' : '',
+        '</li>'
+      ].join('');
+    }).join(''),
+    '</ul>'
+  ].join('');
+}
+
+/**
  * Monta item compacto do bloco Diretoria.
  *
  * @param {string} rotulo Rotulo do campo.
@@ -592,6 +762,65 @@ function montarBoardItem(rotulo, valor) {
     '<strong>' + escaparHtml(valor || '-') + '</strong>',
     '</div>'
   ].join('');
+}
+
+/**
+ * Aplica o usuario atual na camada de autorizacao visual.
+ *
+ * @param {Object} dados Dados normalizados de Minha situacao.
+ */
+function aplicarUsuarioAtual(dados) {
+  if (window.PortalGeapaAuth && typeof window.PortalGeapaAuth.setUsuarioAtual === 'function') {
+    window.PortalGeapaAuth.setUsuarioAtual(dados.usuario);
+  }
+}
+
+/**
+ * Limpa o usuario atual da camada de autorizacao visual.
+ */
+function limparUsuarioAtual() {
+  if (window.PortalGeapaAuth && typeof window.PortalGeapaAuth.limparUsuarioAtual === 'function') {
+    window.PortalGeapaAuth.limparUsuarioAtual();
+  }
+}
+
+/**
+ * Atualiza o resumo de perfil exibido no topo da area interna.
+ *
+ * @param {HTMLElement} container Elemento do resumo.
+ * @param {Object|null} usuario Usuario atual.
+ */
+function atualizarContextoUsuario(container, usuario) {
+  const botaoDiretoria = document.querySelector('[data-area-diretoria]');
+
+  if (!container) {
+    return;
+  }
+
+  if (!usuario) {
+    container.hidden = true;
+    container.innerHTML = '';
+
+    if (botaoDiretoria) {
+      botaoDiretoria.hidden = true;
+    }
+
+    return;
+  }
+
+  const perfis = Array.isArray(usuario.perfis) && usuario.perfis.length
+    ? usuario.perfis.map(formatarPerfil).join(' · ')
+    : 'Membro';
+
+  container.hidden = false;
+  container.innerHTML = [
+    '<span>' + escaparHtml(formatarPerfil(usuario.perfilPrincipal || 'MEMBRO')) + '</span>',
+    '<small>' + escaparHtml(perfis) + '</small>'
+  ].join('');
+
+  if (botaoDiretoria) {
+    botaoDiretoria.hidden = !(usuario.permissoes && usuario.permissoes.podeVerAreaDiretoria);
+  }
 }
 
 /**
@@ -805,6 +1034,47 @@ function formatarRotuloCurto(valor) {
 }
 
 /**
+ * Formata perfis, grupos e chaves de cargo para exibicao.
+ *
+ * @param {string} valor Valor tecnico.
+ * @return {string} Rotulo em portugues.
+ */
+function formatarPerfil(valor) {
+  const normalizado = String(valor || '').trim().toUpperCase();
+  const mapa = {
+    MEMBRO: 'Membro',
+    DIRETORIA: 'Diretoria',
+    PRESIDENCIA: 'Presidência',
+    SECRETARIA: 'Secretaria',
+    SECRETARIO: 'Secretário',
+    COMUNICACAO: 'Comunicação',
+    CONSELHO: 'Conselho',
+    ASSESSORIA: 'Assessoria',
+    ADMIN_TECNICO: 'Administração técnica',
+    PRESIDENTE: 'Presidente',
+    VICE_PRESIDENTE: 'Vice-presidente',
+    SECRETARIO_GERAL: 'Secretário(a) Geral',
+    SECRETARIO_EXECUTIVO: 'Secretário(a) Executivo(a)',
+    DIRETOR_COMUNICACAO: 'Diretor(a) de Comunicação',
+    DIRETOR_EVENTOS: 'Diretor(a) de Eventos',
+    DIRETOR_ENSINO: 'Diretor(a) de Ensino',
+    DIRETOR_PESQUISA: 'Diretor(a) de Pesquisa',
+    DIRETOR_EXTENSAO: 'Diretor(a) de Extensão',
+    ASSESSOR_COMUNICACAO: 'Assessor(a) de Comunicação',
+    CONSELHEIRO_CONSULTIVO: 'Conselheiro(a) Consultivo(a)',
+    VIGENCIAS_DIRETORES: 'Diretoria',
+    VIGENCIAS_ASSESSORES: 'Assessoria',
+    VIGENCIAS_CONSELHEIROS: 'Conselho'
+  };
+
+  if (mapa[normalizado]) {
+    return mapa[normalizado];
+  }
+
+  return formatarRotuloCurto(normalizado);
+}
+
+/**
  * Formata data ISO para pt-BR quando possivel.
  *
  * @param {string} valor Data recebida da API.
@@ -818,6 +1088,22 @@ function formatarData(valor) {
   }
 
   return data.toLocaleString('pt-BR');
+}
+
+/**
+ * Formata data sem horario para exibicao curta.
+ *
+ * @param {string} valor Data recebida da API.
+ * @return {string} Data formatada.
+ */
+function formatarDataCurta(valor) {
+  const data = new Date(valor + 'T00:00:00');
+
+  if (Number.isNaN(data.getTime())) {
+    return valor;
+  }
+
+  return data.toLocaleDateString('pt-BR');
 }
 
 /**

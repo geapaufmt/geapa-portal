@@ -181,6 +181,34 @@ Resposta quando a situacao vem do GEAPA-CORE:
       "nomeExibicao": "Membro GEAPA",
       "situacaoGeral": "Cadastro localizado",
       "vinculo": "Membro em acompanhamento",
+      "usuario": {
+        "id": "202311801000",
+        "nomeExibicao": "Membro GEAPA",
+        "rga": "202311801000",
+        "perfilPrincipal": "DIRETORIA",
+        "perfis": ["MEMBRO", "DIRETORIA", "SECRETARIA"],
+        "cargosAtuais": [
+          {
+            "cargoKey": "SECRETARIO_GERAL",
+            "cargoNome": "Secretário(a) Geral",
+            "grupoCargo": "SECRETARIA",
+            "fonte": "VIGENCIAS_DIRETORES",
+            "idDiretoria": "2026-2027",
+            "dataInicio": "2026-05-19",
+            "dataFimPrevista": "2027-05-18"
+          }
+        ],
+        "permissoes": {
+          "podeVerAreaDiretoria": true,
+          "podeGerenciarAtividades": true,
+          "podeRegistrarChamada": true,
+          "podeEditarAtividade": true,
+          "podeAnalisarJustificativas": true,
+          "podeGerenciarCertificados": false,
+          "podeGerenciarComunicacao": false,
+          "podeGerenciarConfiguracoes": false
+        }
+      },
       "dadosCadastraisReais": true,
       "blocosComplementares": "geapa-core",
       "ultimaAtualizacao": "2026-04-30T00:00:00.000Z",
@@ -248,6 +276,11 @@ apresentacoes. A coluna `QTD_APRESENTACOES_REALIZADAS` ja inclui a base legado,
 entao o portal nao soma campos separados de legado. Ele nao inclui frequencia
 detalhada nem lista de presenca.
 
+O bloco `usuario` vem do GEAPA-CORE e usa Vigencias como fonte oficial de cargos
+atuais. O front-end usa `perfis`, `cargosAtuais` e `permissoes` apenas para
+montar navegacao e esconder ou mostrar areas. A autorizacao real de qualquer
+acao sensivel continua obrigatoriamente no Apps Script/backend.
+
 O bloco `diretoria` e orientativo e usa apenas campos objetivos da aba
 `Membros Atuais`: status de elegibilidade, dias computados, limite, saldo e data
 limite estimada. Decisoes finais continuam sendo da Diretoria.
@@ -298,7 +331,12 @@ Resposta esperada:
 ```
 
 Essa ação exige sessão válida e chama o contrato público somente leitura do
-módulo `geapa-atividades`. O portal envia contexto de `MEMBRO` nesta etapa.
+módulo `geapa-atividades`. O perfil enviado ao módulo vem do bloco `usuario`
+retornado pelo GEAPA-CORE:
+
+- `SECRETARIA` vira `SECRETARIO`;
+- `DIRETORIA` ou `PRESIDENCIA` vira `DIRETORIA`;
+- demais usuários seguem como `MEMBRO`.
 
 ## Acao: atividadeDetalhe
 

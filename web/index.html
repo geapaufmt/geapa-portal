@@ -54,11 +54,6 @@
           Nesta etapa, apenas e-mails autorizados para teste recebem código.
         </p>
 
-        <div class="panel-actions">
-          <button class="secondary-button" type="button" data-open-atividades>
-            Ver atividades
-          </button>
-        </div>
       </section>
 
       <section class="situation-panel" id="tela-situacao" aria-labelledby="situacao-title" hidden>
@@ -67,9 +62,13 @@
             <p class="eyebrow">Área do membro</p>
             <h2 id="situacao-title">Minha situação</h2>
           </div>
+          <div id="usuario-contexto" class="user-context" hidden></div>
           <div class="topbar-actions">
             <button class="secondary-button" type="button" data-open-atividades>
               Atividades
+            </button>
+            <button class="secondary-button" type="button" data-area-diretoria hidden disabled>
+              Diretoria
             </button>
             <button id="sair" class="secondary-button" type="button">Sair</button>
           </div>
@@ -111,13 +110,13 @@
               Pronta para carregar atividades.
             </p>
           </div>
-          <button class="secondary-button compact-button" type="button" disabled>
+          <button class="secondary-button compact-button" type="button" data-create-activity hidden disabled>
             Criar atividade
           </button>
         </div>
 
         <div id="atividades-lista" class="activities-list">
-          <p class="empty-state">Abra a tela para carregar atividades simuladas.</p>
+          <p class="empty-state">Abra a tela para carregar atividades disponíveis.</p>
         </div>
       </section>
 

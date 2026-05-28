@@ -85,6 +85,30 @@ blocos.
 
 O front-end nao deve receber dados de outros membros para filtrar visualmente.
 
+## Perfis e Vigências
+
+O perfil do usuário autenticado é calculado pelo GEAPA-CORE a partir das fontes
+oficiais do ecossistema, especialmente `Membros Atuais` e as abas de Vigências
+de diretores, assessores e conselheiros.
+
+O portal recebe apenas o bloco seguro `usuario`, com:
+
+- `perfilPrincipal`;
+- `perfis`;
+- `cargosAtuais` do próprio usuário;
+- `permissoes` iniciais.
+
+O GitHub Pages usa esses dados apenas para montar navegação e esconder ou
+exibir áreas. A autorização real continua no Apps Script/backend, que deve
+validar sessão, identidade, perfil e permissão antes de qualquer ação sensível.
+
+Para o módulo de Atividades, o Apps Script converte os perfis ricos do Core para
+o contrato operacional do módulo:
+
+- `SECRETARIA` vira `SECRETARIO`;
+- `DIRETORIA` ou `PRESIDENCIA` vira `DIRETORIA`;
+- demais usuários seguem como `MEMBRO`.
+
 ## Desempenho e cache
 
 O ponto mais sensivel de desempenho da V1 e a chamada da tela "Minha situacao",

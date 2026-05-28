@@ -14,6 +14,10 @@ somente leitura do módulo `geapa-atividades`.
   justificar falta permanecem mockadas até existir backend validado.
 - Nenhum mock deve conter dados pessoais reais.
 - A leitura real de Atividades exige sessão válida do Portal GEAPA.
+- O contexto enviado ao módulo usa o perfil oficial calculado pelo GEAPA-CORE a
+  partir das Vigências. `SECRETARIA` é enviado como `SECRETARIO`; `DIRETORIA`
+  ou `PRESIDENCIA` são enviados como `DIRETORIA`; os demais usuários seguem
+  como `MEMBRO`.
 
 ## Formato de resposta
 

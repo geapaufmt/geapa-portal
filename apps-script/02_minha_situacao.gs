@@ -122,11 +122,14 @@ function portalDebugMinhaSituacaoPorRga(rga) {
  * @return {Object} Dados parciais da situacao.
  */
 function portalMontarMinhaSituacaoParcial_(membro) {
+  var usuario = portalMontarUsuarioBasico_(membro);
+
   return {
     rga: membro.rga || 'RGA-SIMULADO',
     nomeExibicao: membro.nomeExibicao || 'Membro GEAPA',
     situacaoGeral: membro.situacaoGeral || 'Cadastro localizado',
     vinculo: membro.vinculo || 'Membro em acompanhamento',
+    usuario: usuario,
     dadosCadastraisReais: membro.origem !== 'teste',
     blocosComplementares: 'em-preparacao',
     ultimaAtualizacao: new Date().toISOString(),
@@ -165,6 +168,8 @@ function portalNormalizarMinhaSituacaoCore_(resposta) {
   }
 
   var membro = portalNormalizarMembro_(resposta.membro, 'GEAPA_CORE');
+  var usuario = portalNormalizarUsuarioCore_(resposta.usuario) ||
+    portalMontarUsuarioBasico_(membro);
   var situacao = resposta.minhaSituacao || {};
   var resumo = situacao.resumo || {};
   var participacao = situacao.participacao || {};
@@ -183,6 +188,7 @@ function portalNormalizarMinhaSituacaoCore_(resposta) {
     nomeExibicao: membro.nomeExibicao,
     situacaoGeral: membro.situacaoGeral || 'Cadastro localizado',
     vinculo: membro.vinculo || 'Membro em acompanhamento',
+    usuario: usuario,
     dadosCadastraisReais: true,
     blocosComplementares: 'geapa-core',
     ultimaAtualizacao: new Date().toISOString(),
@@ -203,6 +209,165 @@ function portalNormalizarMinhaSituacaoCore_(resposta) {
     certificados: Array.isArray(situacao.certificados) ? situacao.certificados : [],
     avisos: avisos
   };
+}
+
+/**
+ * Monta o contrato minimo de usuario para fallback local.
+ *
+ * Mesmo no fallback, o usuario autenticado deve ser tratado como MEMBRO para
+ * que o front-end nao precise inventar perfil.
+ *
+ * @param {Object} membro Membro normalizado.
+ * @return {Object} Usuario seguro para a interface.
+ */
+function portalMontarUsuarioBasico_(membro) {
+  var dados = membro || {};
+
+  return {
+    id: String(dados.id || dados.rga || dados.emailCadastrado || '').trim(),
+    nomeExibicao: String(dados.nomeExibicao || 'Membro GEAPA').trim(),
+    rga: String(dados.rga || '').trim(),
+    perfilPrincipal: 'MEMBRO',
+    perfis: ['MEMBRO'],
+    cargosAtuais: [],
+    permissoes: portalPermissoesUsuarioVazias_()
+  };
+}
+
+/**
+ * Normaliza o bloco usuario retornado pelo GEAPA-CORE.
+ *
+ * O bloco pode conter e-mail do proprio usuario, mas a interface usa apenas
+ * perfil, cargos e permissoes para montar navegacao. Dados de terceiros nunca
+ * devem passar por este contrato.
+ *
+ * @param {Object} usuario Bloco bruto do Core.
+ * @return {Object|null} Usuario normalizado.
+ */
+function portalNormalizarUsuarioCore_(usuario) {
+  if (!usuario) {
+    return null;
+  }
+
+  var perfis = Array.isArray(usuario.perfis) && usuario.perfis.length
+    ? usuario.perfis.map(portalNormalizarPerfilUsuario_)
+    : ['MEMBRO'];
+  var cargos = Array.isArray(usuario.cargosAtuais)
+    ? usuario.cargosAtuais.map(portalNormalizarCargoUsuario_)
+    : [];
+
+  return {
+    id: String(usuario.id || usuario.rga || '').trim(),
+    nomeExibicao: String(usuario.nomeExibicao || 'Membro GEAPA').trim(),
+    rga: String(usuario.rga || '').trim(),
+    perfilPrincipal: portalNormalizarPerfilUsuario_(usuario.perfilPrincipal || perfis[0] || 'MEMBRO'),
+    perfis: portalUnicos_(perfis),
+    cargosAtuais: cargos,
+    permissoes: portalNormalizarPermissoesUsuario_(usuario.permissoes)
+  };
+}
+
+/**
+ * Normaliza perfis conhecidos do portal.
+ *
+ * @param {*} perfil Perfil bruto.
+ * @return {string} Perfil seguro.
+ */
+function portalNormalizarPerfilUsuario_(perfil) {
+  var normalizado = String(perfil || 'MEMBRO')
+    .trim()
+    .toUpperCase();
+  var permitidos = [
+    'MEMBRO',
+    'DIRETORIA',
+    'PRESIDENCIA',
+    'SECRETARIA',
+    'COMUNICACAO',
+    'CONSELHO',
+    'ASSESSORIA',
+    'ADMIN_TECNICO'
+  ];
+
+  return permitidos.indexOf(normalizado) >= 0 ? normalizado : 'MEMBRO';
+}
+
+/**
+ * Normaliza um cargo atual do usuario.
+ *
+ * @param {Object} cargo Cargo retornado pelo Core.
+ * @return {Object} Cargo seguro para a interface.
+ */
+function portalNormalizarCargoUsuario_(cargo) {
+  var dados = cargo || {};
+
+  return {
+    cargoKey: String(dados.cargoKey || '').trim(),
+    cargoNome: String(dados.cargoNome || '').trim(),
+    grupoCargo: String(dados.grupoCargo || '').trim(),
+    fonte: String(dados.fonte || '').trim(),
+    idDiretoria: String(dados.idDiretoria || '').trim(),
+    dataInicio: String(dados.dataInicio || '').trim(),
+    dataFimPrevista: String(dados.dataFimPrevista || '').trim()
+  };
+}
+
+/**
+ * Retorna permissoes falsas para membro comum.
+ *
+ * @return {Object} Permissoes padrao.
+ */
+function portalPermissoesUsuarioVazias_() {
+  return {
+    podeVerAreaDiretoria: false,
+    podeGerenciarAtividades: false,
+    podeRegistrarChamada: false,
+    podeEditarAtividade: false,
+    podeAnalisarJustificativas: false,
+    podeGerenciarCertificados: false,
+    podeGerenciarComunicacao: false,
+    podeGerenciarConfiguracoes: false
+  };
+}
+
+/**
+ * Normaliza permissoes booleanas do usuario.
+ *
+ * @param {Object} permissoes Permissoes brutas.
+ * @return {Object} Permissoes seguras.
+ */
+function portalNormalizarPermissoesUsuario_(permissoes) {
+  var base = portalPermissoesUsuarioVazias_();
+  var dados = permissoes || {};
+  var chaves = Object.keys(base);
+
+  for (var i = 0; i < chaves.length; i++) {
+    base[chaves[i]] = dados[chaves[i]] === true;
+  }
+
+  return base;
+}
+
+/**
+ * Remove repeticoes mantendo a ordem original.
+ *
+ * @param {string[]} valores Lista de valores.
+ * @return {string[]} Lista sem repeticoes.
+ */
+function portalUnicos_(valores) {
+  var vistos = {};
+  var saida = [];
+
+  for (var i = 0; i < valores.length; i++) {
+    var valor = String(valores[i] || '').trim();
+    if (!valor || vistos[valor]) {
+      continue;
+    }
+
+    vistos[valor] = true;
+    saida.push(valor);
+  }
+
+  return saida.length ? saida : ['MEMBRO'];
 }
 
 /**

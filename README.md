@@ -120,9 +120,14 @@ A tela funciona apenas com HTML, CSS e JavaScript. O front-end chama a API
 publicada do Apps Script para solicitar codigo, validar codigo e carregar a
 primeira versao parcial de "Minha situacao".
 
-A tela **Atividades** pode ser aberta pelo botao "Ver atividades". Em modo
-real, ela exige sessao valida e chama o Apps Script, que por sua vez consulta o
-contrato publico somente leitura do modulo `geapa-atividades`.
+A tela **Atividades** pode ser aberta pelo botão "Atividades" depois do login.
+Em modo real, ela exige sessão válida e chama o Apps Script, que por sua vez
+consulta o contrato público somente leitura do módulo `geapa-atividades`.
+
+Depois do login, o portal também recebe do GEAPA-CORE o bloco seguro `usuario`,
+calculado a partir das Vigências oficiais. Esse bloco informa perfis, funções
+vigentes do próprio usuário e permissões iniciais para organizar a navegação do
+front-end. Qualquer autorização real continua sendo validada no Apps Script.
 
 ## Como publicar no GitHub Pages
 

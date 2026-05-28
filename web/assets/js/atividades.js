@@ -1,8 +1,8 @@
 /**
  * Tela inicial de Atividades do Portal GEAPA.
  *
- * Esta entrega trabalha apenas com dados mockados. A integracao real devera
- * passar pelo Apps Script e validar permissoes no backend.
+ * Esta tela usa o Apps Script em modo real e dados simulados apenas quando
+ * MOCK_MODE estiver ativo. Permissoes visuais nao substituem o backend.
  */
 
 (function configurarAtividadesPortal(global) {
@@ -18,6 +18,7 @@
     var botoesAbrir = document.querySelectorAll('[data-open-atividades]');
     var botoesVoltar = document.querySelectorAll('[data-voltar-situacao]');
     var botaoFecharModal = document.getElementById('fechar-atividade-modal');
+    var botaoCriar = document.querySelector('[data-create-activity]');
 
     if (!telaAtividades || !lista || !status || !modal || !api || !auth || !ui) {
       return;
@@ -26,6 +27,7 @@
     Array.prototype.forEach.call(botoesAbrir, function registrarBotao(botao) {
       botao.addEventListener('click', function abrirAtividades() {
         mostrarTelaAtividades();
+        atualizarAcoesDaTela(botaoCriar);
         carregarAtividades(lista, status);
       });
     });
@@ -45,6 +47,16 @@
         fecharModal();
       }
     });
+  }
+
+  function atualizarAcoesDaTela(botaoCriar) {
+    if (!botaoCriar) {
+      return;
+    }
+
+    botaoCriar.hidden = !auth.canCreateActivity();
+    botaoCriar.disabled = true;
+    botaoCriar.title = 'Criação de atividades ainda não está disponível pelo portal.';
   }
 
   function mostrarTelaAtividades() {
