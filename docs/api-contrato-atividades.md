@@ -1,8 +1,9 @@
 # Contrato Inicial de Atividades
 
-Este documento descreve o contrato lógico inicial para a tela de Atividades do
-Portal GEAPA. Nesta fase, o front-end usa dados mockados e não chama o Apps
-Script para atividades.
+Este documento descreve o contrato inicial para a tela de Atividades do Portal
+GEAPA. O front-end pode usar dados mockados em desenvolvimento, mas o modo real
+chama o Apps Script do portal, que valida a sessão e consulta o contrato público
+somente leitura do módulo `geapa-atividades`.
 
 ## Regras gerais
 
@@ -12,6 +13,7 @@ Script para atividades.
 - Ações sensíveis como criar atividade, editar atividade, registrar chamada e
   justificar falta permanecem mockadas até existir backend validado.
 - Nenhum mock deve conter dados pessoais reais.
+- A leitura real de Atividades exige sessão válida do Portal GEAPA.
 
 ## Formato de resposta
 
@@ -47,6 +49,7 @@ No Apps Script atual, a implementação real poderá usar ação equivalente:
 
 ```text
 acao=atividadesListar
+token=sessao-temporaria
 ```
 
 Resposta esperada:
@@ -95,6 +98,7 @@ No Apps Script atual, a implementação real poderá usar ação equivalente:
 
 ```text
 acao=atividadeDetalhe&idAtividade=ATV-0005
+token=sessao-temporaria
 ```
 
 Resposta esperada:
@@ -137,6 +141,17 @@ Resposta esperada:
 - `GET /diretoria/pendencias`
 
 Esses endpoints não estão implementados nesta entrega.
+
+## Integração atual do portal
+
+O Apps Script do portal chama o módulo `geapa-atividades` como biblioteca
+`GEAPA_ATIVIDADES`, em modo de desenvolvimento nesta fase. As ações públicas do
+Web App são:
+
+- `atividadesListar`
+- `atividadeDetalhe`
+
+Ambas validam a sessão temporária do portal antes de consultar atividades.
 
 ## Validações obrigatórias no backend futuro
 

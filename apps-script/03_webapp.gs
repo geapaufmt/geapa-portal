@@ -19,7 +19,9 @@ function doGet(e) {
       acoesDisponiveis: [
         'solicitarCodigo',
         'validarCodigo',
-        'minhaSituacao'
+        'minhaSituacao',
+        'atividadesListar',
+        'atividadeDetalhe'
       ],
       parametrosRecebidos: e && e.parameter ? e.parameter : {}
     }
@@ -104,6 +106,17 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'minhaSituacao') {
     return portalMinhaSituacao(requisicao.token || '');
+  }
+
+  if (acao === 'atividadesListar') {
+    return portalListarAtividades(requisicao.token || '');
+  }
+
+  if (acao === 'atividadeDetalhe') {
+    return portalDetalheAtividade(
+      requisicao.token || '',
+      requisicao.idAtividade || ''
+    );
   }
 
   return portalRespostaErro_(

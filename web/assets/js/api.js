@@ -31,8 +31,8 @@
       visibilidadePortal: 'MEMBROS',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
-      podeRegistrarChamada: true,
-      podeEditar: true
+      podeRegistrarChamada: false,
+      podeEditar: false
     },
     {
       idAtividade: 'ATV-0006',
@@ -55,8 +55,8 @@
       visibilidadePortal: 'MEMBROS',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
-      podeRegistrarChamada: true,
-      podeEditar: true
+      podeRegistrarChamada: false,
+      podeEditar: false
     },
     {
       idAtividade: 'ATV-0007',
@@ -80,7 +80,7 @@
       podeVerDetalhes: true,
       podeJustificarFalta: false,
       podeRegistrarChamada: false,
-      podeEditar: true
+      podeEditar: false
     }
   ];
 
@@ -155,7 +155,45 @@
       return apiGetMock(route, params || {});
     }
 
-    return fetch(config.GEAPA_API_BASE_URL + route + buildQueryString(params))
+    return chamarAppsScript(route, params || {});
+  }
+
+  function apiPost(route, payload) {
+    if (config.MOCK_MODE) {
+      return apiPostMock(route, payload || {});
+    }
+
+    return chamarAppsScript(route, payload || {});
+  }
+
+  function chamarAppsScript(route, params) {
+    var acao = obterAcaoAppsScript(route);
+    var corpo = new URLSearchParams();
+
+    if (!acao) {
+      return Promise.resolve({
+        ok: false,
+        errorCode: 'ROTA_NAO_MAPEADA',
+        message: 'Rota não mapeada para a API do Portal GEAPA.'
+      });
+    }
+
+    corpo.set('acao', acao);
+    Object.keys(params || {}).forEach(function adicionarCampo(chave) {
+      if (params[chave] !== undefined && params[chave] !== null) {
+        corpo.set(chave, params[chave]);
+      }
+    });
+
+    var token = obterTokenSessaoLocal();
+    if (token && !corpo.has('token')) {
+      corpo.set('token', token);
+    }
+
+    return fetch(config.GEAPA_API_BASE_URL, {
+      method: 'POST',
+      body: corpo
+    })
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error('Não foi possível falar com a API do Portal GEAPA.');
@@ -166,26 +204,21 @@
       .catch(handleApiError);
   }
 
-  function apiPost(route, payload) {
-    if (config.MOCK_MODE) {
-      return apiPostMock(route, payload || {});
+  function obterAcaoAppsScript(route) {
+    var rotas = {
+      '/atividades/listar': 'atividadesListar',
+      '/atividades/detalhe': 'atividadeDetalhe'
+    };
+
+    return rotas[route] || '';
+  }
+
+  function obterTokenSessaoLocal() {
+    try {
+      return window.sessionStorage.getItem('geapaPortal.sessionToken') || '';
+    } catch (erro) {
+      return '';
     }
-
-    return fetch(config.GEAPA_API_BASE_URL + route, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload || {})
-    })
-      .then(function tratarResposta(resposta) {
-        if (!resposta.ok) {
-          throw new Error('Não foi possível falar com a API do Portal GEAPA.');
-        }
-
-        return resposta.json();
-      })
-      .catch(handleApiError);
   }
 
   function apiGetMock(route, params) {

@@ -35,7 +35,7 @@ Fora do escopo:
 - justificar falta real;
 - escrever em planilhas.
 
-## Fase 2: Contrato real com GEAPA-CORE
+## Fase 2: Contrato real de Atividades
 
 Objetivo: preparar dados reais de atividades para leitura no portal.
 
@@ -43,8 +43,8 @@ Entregas previstas:
 
 - inspecionar `geapa-atividades`;
 - definir fonte oficial de atividades;
-- criar função no GEAPA-CORE para listar atividades do portal;
-- criar função no GEAPA-CORE para detalhar uma atividade;
+- criar função no `geapa-atividades` para listar atividades do portal;
+- criar função no `geapa-atividades` para detalhar uma atividade;
 - manter filtros de visibilidade no backend.
 
 ## Fase 3: Integração real de leitura
@@ -52,11 +52,16 @@ Entregas previstas:
 Objetivo: trocar mocks por chamadas reais ao Apps Script para listagem e
 detalhes.
 
-Entregas previstas:
+Entregas atuais:
 
 - endpoint `atividadesListar`;
 - endpoint `atividadeDetalhe`;
-- cache adequado no Apps Script;
+- cache curto no Apps Script;
+- biblioteca `GEAPA_ATIVIDADES` em modo de desenvolvimento;
+- sessão temporária obrigatória para leitura real.
+
+Entregas ainda previstas:
+
 - mensagens de erro estáveis;
 - testes com perfis variados.
 

@@ -90,7 +90,7 @@
 
   function carregarAtividades(lista, status) {
     lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
-    status.textContent = 'Buscando atividades em modo de demonstração.';
+    status.textContent = 'Buscando atividades no Portal GEAPA.';
 
     api.apiGet('/atividades/listar', {})
       .then(function tratarResposta(resposta) {
@@ -99,12 +99,18 @@
         }
 
         renderizarAtividades(lista, resposta.data || []);
-        status.textContent = 'Dados simulados. Nenhuma atividade real foi consultada.';
+        status.textContent = configEmModoMock()
+          ? 'Dados simulados. Nenhuma atividade real foi consultada.'
+          : 'Leitura segura carregada pelo backend do Portal GEAPA.';
       })
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
         status.textContent = 'Falha ao carregar atividades.';
       });
+  }
+
+  function configEmModoMock() {
+    return Boolean(global.PortalGeapaConfig && global.PortalGeapaConfig.MOCK_MODE);
   }
 
   function renderizarAtividades(container, atividades) {

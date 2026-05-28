@@ -9,7 +9,7 @@
   function getUsuarioAtual() {
     return {
       nomeExibicao: 'Membro GEAPA',
-      perfil: 'DIRETORIA'
+      perfil: 'MEMBRO'
     };
   }
 

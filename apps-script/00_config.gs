@@ -37,6 +37,13 @@ var PORTAL_CONFIG = {
   cacheMinhaSituacaoSegundos: 120,
 
   /**
+   * Cache curto da leitura de atividades, em segundos.
+   * A lista e os detalhes sao somente leitura, mas ainda passam pela validacao
+   * da sessao antes de usar cache.
+   */
+  cacheAtividadesSegundos: 120,
+
+  /**
    * Limite de tentativas para validar um codigo antes de bloquear a sessao
    * temporaria. Usado apenas no fluxo de teste inicial.
    */

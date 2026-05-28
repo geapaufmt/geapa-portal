@@ -88,7 +88,9 @@ Resposta esperada:
     "acoesDisponiveis": [
       "solicitarCodigo",
       "validarCodigo",
-      "minhaSituacao"
+      "minhaSituacao",
+      "atividadesListar",
+      "atividadeDetalhe"
     ]
   },
   "meta": {
@@ -250,6 +252,98 @@ O bloco `diretoria` e orientativo e usa apenas campos objetivos da aba
 `Membros Atuais`: status de elegibilidade, dias computados, limite, saldo e data
 limite estimada. Decisoes finais continuam sendo da Diretoria.
 
+## Acao: atividadesListar
+
+Entrada:
+
+```text
+acao=atividadesListar
+token=sessao-temporaria
+```
+
+Resposta esperada:
+
+```json
+{
+  "ok": true,
+  "code": "ATIVIDADES_CARREGADAS",
+  "message": "Atividades carregadas pelo módulo GEAPA Atividades.",
+  "data": [
+    {
+      "idAtividade": "ATV-0005",
+      "dataAtividade": "2026-04-16",
+      "diaSemana": "quinta-feira",
+      "horarioInicio": "18h30",
+      "horarioFim": "20h30",
+      "tituloPublico": "Apresentação de Membro",
+      "tipoPublico": "Apresentação",
+      "subtipoAtividade": "APRESENTACAO_MEMBRO",
+      "local": "Auditório 7, Xingú I",
+      "formato": "PRESENCIAL",
+      "classificacaoAcesso": "ABERTA",
+      "publicoAlvo": "Membros",
+      "contaPresenca": true,
+      "contaFalta": true,
+      "geraCertificado": true,
+      "cargaHoraria": 2,
+      "statusPublico": "REALIZADA",
+      "visibilidadePortal": "MEMBROS",
+      "podeVerDetalhes": true,
+      "podeJustificarFalta": false,
+      "podeRegistrarChamada": false,
+      "podeEditar": false
+    }
+  ]
+}
+```
+
+Essa ação exige sessão válida e chama o contrato público somente leitura do
+módulo `geapa-atividades`. O portal envia contexto de `MEMBRO` nesta etapa.
+
+## Acao: atividadeDetalhe
+
+Entrada:
+
+```text
+acao=atividadeDetalhe
+token=sessao-temporaria
+idAtividade=ATV-0005
+```
+
+Resposta esperada:
+
+```json
+{
+  "ok": true,
+  "code": "ATIVIDADE_DETALHE_CARREGADO",
+  "message": "Detalhes da atividade carregados pelo módulo GEAPA Atividades.",
+  "data": {
+    "idAtividade": "ATV-0005",
+    "tituloPublico": "Apresentação de Membro",
+    "descricaoPublica": "Atividade acadêmica semanal do GEAPA.",
+    "dataAtividade": "2026-04-16",
+    "horarioCompleto": "18h30 às 20h30",
+    "local": "Auditório 7, Xingú I",
+    "formato": "PRESENCIAL",
+    "tipoAtividade": "ACADEMICA",
+    "subtipoAtividade": "APRESENTACAO_MEMBRO",
+    "classificacaoReuniao": "ORDINARIA",
+    "classificacaoAcesso": "ABERTA",
+    "responsavelPublico": "",
+    "contaPresenca": true,
+    "contaFalta": true,
+    "geraCertificado": true,
+    "cargaHoraria": 2,
+    "statusPublico": "REALIZADA",
+    "linkMaterialPublico": "",
+    "linkAtaPublica": ""
+  }
+}
+```
+
+Detalhes internos, e-mails, observações privadas, logs, listas nominais e
+presença de outros membros não devem ser retornados.
+
 ## Codigos de erro previstos
 
 - `ACAO_OBRIGATORIA`: nenhuma acao foi enviada.
@@ -269,6 +363,11 @@ limite estimada. Decisoes finais continuam sendo da Diretoria.
 - `SESSAO_INVALIDA_OU_EXPIRADA`: sessao nao existe ou expirou.
 - `MEMBRO_SESSAO_NAO_ENCONTRADO`: a sessao existe, mas o cadastro associado nao
   foi encontrado pelo core nem pelo fallback de teste.
+- `ATIVIDADES_INDISPONIVEIS`: biblioteca ou contrato de atividades ainda nao
+  esta disponivel para o portal.
+- `ID_ATIVIDADE_OBRIGATORIO`: detalhe de atividade foi solicitado sem ID.
+- `ATIVIDADE_NAO_ENCONTRADA`: atividade nao encontrada ou indisponivel para o
+  perfil atual.
 
 ## Propriedades privadas do Apps Script
 

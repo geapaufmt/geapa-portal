@@ -54,8 +54,8 @@ backend.
 - Backend em Google Apps Script com envio de codigo controlado por lista de
   teste.
 - Integracao inicial com `GEAPA_CORE` como biblioteca Apps Script.
-- Tela inicial de Atividades em modo mock, sem escrita real e sem consulta a
-  planilhas.
+- Tela inicial de Atividades com leitura segura via Apps Script e fallback de
+  mock para desenvolvimento, sem escrita real.
 - Diagnostico interno de cadastro para testes no editor do Apps Script.
 - Documentacao de arquitetura e seguranca.
 
@@ -90,7 +90,9 @@ geapa-portal/
 |   |-- 00_config.gs
 |   |-- 01_auth_codigo.gs
 |   |-- 02_minha_situacao.gs
+|   |-- 03_membros.gs
 |   |-- 03_webapp.gs
+|   |-- 04_atividades.gs
 |   `-- 99_tests.gs
 `-- web/
     |-- assets/
@@ -118,8 +120,9 @@ A tela funciona apenas com HTML, CSS e JavaScript. O front-end chama a API
 publicada do Apps Script para solicitar codigo, validar codigo e carregar a
 primeira versao parcial de "Minha situacao".
 
-A tela **Atividades** pode ser aberta pelo botao "Ver atividades em
-demonstracao" e usa somente dados simulados nesta etapa.
+A tela **Atividades** pode ser aberta pelo botao "Ver atividades". Em modo
+real, ela exige sessao valida e chama o Apps Script, que por sua vez consulta o
+contrato publico somente leitura do modulo `geapa-atividades`.
 
 ## Como publicar no GitHub Pages
 
