@@ -208,6 +208,7 @@
     var rotas = {
       '/atividades/bundle': 'atividadesBundle',
       '/atividades/listar': 'atividadesListar',
+      '/atividades/detalhes-preload': 'atividadesDetalhesPreload',
       '/atividades/detalhe': 'atividadeDetalhe'
     };
 
@@ -238,6 +239,16 @@
       return Promise.resolve({
         ok: true,
         data: atividadesMock.slice()
+      });
+    }
+
+    if (route === '/atividades/detalhes-preload') {
+      return Promise.resolve({
+        ok: true,
+        data: {
+          detalhesPorId: Object.assign({}, detalhesMock),
+          ultimaAtualizacao: new Date().toISOString()
+        }
       });
     }
 

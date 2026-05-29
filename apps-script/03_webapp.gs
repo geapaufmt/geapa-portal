@@ -22,6 +22,7 @@ function doGet(e) {
         'minhaSituacao',
         'atividadesBundle',
         'atividadesListar',
+        'atividadesDetalhesPreload',
         'atividadeDetalhe'
       ],
       parametrosRecebidos: e && e.parameter ? e.parameter : {}
@@ -115,6 +116,10 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'atividadesListar') {
     return portalListarAtividades(requisicao.token || '');
+  }
+
+  if (acao === 'atividadesDetalhesPreload') {
+    return portalPrecarregarDetalhesAtividades(requisicao.token || '');
   }
 
   if (acao === 'atividadeDetalhe') {

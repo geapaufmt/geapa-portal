@@ -52,37 +52,30 @@ Resposta de erro:
 
 ## Listar atividades
 
-Fluxo preferencial do Portal:
+Fluxo preferencial para a primeira renderizacao:
 
 ```text
-GET /atividades/bundle
+GET /atividades/listar
 ```
 
 No Apps Script atual, a acao equivalente e:
 
 ```text
-acao=atividadesBundle
+acao=atividadesListar
 token=sessao-temporaria
 ```
 
-Resposta esperada:
+Depois que a lista aparecer, o Portal dispara preload assÃ­ncrono de detalhes:
 
-```json
-{
-  "ok": true,
-  "data": {
-    "calendario": [],
-    "detalhesPorId": {},
-    "ultimaAtualizacao": "2026-05-29T12:00:00.000Z"
-  }
-}
+```text
+acao=atividadesDetalhesPreload
+token=sessao-temporaria
 ```
 
-O bundle deve ser a primeira tentativa da aba Atividades. Ele reduz chamadas
-repetidas porque entrega a lista e os detalhes seguros por `ID_ATIVIDADE` em
-uma unica requisicao. Se o contrato `atividadesV2_portalGetAtividadesBundle`
-ainda nao existir no modulo `geapa-atividades`, o portal mantem fallback para
-`atividadesListar` e `atividadeDetalhe`.
+O bundle continua existindo como contrato de apoio, mas nao deve bloquear a
+primeira renderizacao da aba Atividades. Se um detalhe ainda nao estiver em
+cache quando o usuario clicar, o Portal chama `atividadeDetalhe` somente para
+aquele `ID_ATIVIDADE`.
 
 Contrato lógico:
 
@@ -195,6 +188,7 @@ Web App são:
 
 - `atividadesBundle`
 - `atividadesListar`
+- `atividadesDetalhesPreload`
 - `atividadeDetalhe`
 
 Ambas validam a sessão temporária do portal antes de consultar atividades.
@@ -228,8 +222,9 @@ GEAPA-PORTAL-PERF
 
 Eventos principais:
 
-- `atividades.aba.bundle`: tempo da primeira carga da aba via bundle;
+- `atividades.lista.renderizada`: tempo ate a primeira renderizacao da lista;
 - `atividades.aba.cache`: tempo ao reabrir a aba usando cache local;
-- `atividades.aba.fallback_lista`: tempo quando o bundle nao esta disponivel;
+- `atividades.detalhes.preload`: tempo de preload dos detalhes;
+- `atividades.lista.falhou`: erro ao carregar o calendario inicial;
 - `atividades.detalhe.cache`: abertura de detalhe sem nova chamada;
 - `atividades.detalhe.fallback_backend`: detalhe carregado pelo endpoint antigo.

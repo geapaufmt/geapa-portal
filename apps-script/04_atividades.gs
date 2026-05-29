@@ -105,6 +105,64 @@ function portalAtividadesBundle(token) {
 }
 
 /**
+ * Carrega detalhes por atividade para preload assÃ­ncrono do front-end.
+ *
+ * A lista inicial da aba Atividades deve usar `portalListarAtividades`. Este
+ * endpoint existe para aquecer o cache de detalhes sem bloquear a primeira
+ * renderizacao da tela.
+ *
+ * @param {string} token Token temporario do portal.
+ * @return {Object} Resposta padronizada da API.
+ */
+function portalPrecarregarDetalhesAtividades(token) {
+  var contexto = portalMontarContextoAtividades_(token);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var cacheKey = portalCacheKey_(
+    'atividadesDetalhesPreload',
+    contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
+  );
+  var cache = portalLerJsonCache_(cacheKey);
+
+  if (cache) {
+    return portalRespostaOk_(
+      'ATIVIDADES_DETALHES_PRELOAD_CACHE',
+      'Detalhes de atividades carregados em cache temporario.',
+      cache,
+      portalMetaAtividades_('cache')
+    );
+  }
+
+  var resposta = portalChamarAtividadesDetalhesPreload_(contexto.contextoAtividades);
+  var normalizada = portalNormalizarRespostaDetalhesPreload_(resposta);
+
+  if (!normalizada.ok) {
+    var respostaBundle = portalChamarAtividadesBundle_(contexto.contextoAtividades);
+    normalizada = portalNormalizarRespostaDetalhesPreload_(respostaBundle);
+  }
+
+  if (!normalizada.ok) {
+    return portalRespostaErro_(
+      'ATIVIDADES_DETALHES_INDISPONIVEIS',
+      'Detalhes de atividades ainda nao estao disponiveis para preload.',
+      {}
+    );
+  }
+
+  portalSalvarJsonCache_(cacheKey, normalizada.data, PORTAL_CONFIG.cacheAtividadesSegundos);
+
+  return portalRespostaOk_(
+    'ATIVIDADES_DETALHES_PRELOAD_CARREGADO',
+    'Detalhes de atividades carregados para preload.',
+    normalizada.data,
+    portalMetaAtividades_(normalizada.origem || 'geapa-atividades-detalhes')
+  );
+}
+
+/**
  * Carrega detalhes seguros de uma atividade visivel ao membro autenticado.
  *
  * @param {string} token Token temporario do portal.
@@ -315,6 +373,21 @@ function portalChamarAtividadesBundle_(contexto) {
   return null;
 }
 
+function portalChamarAtividadesDetalhesPreload_(contexto) {
+  if (typeof atividadesV2_portalGetAtividadesDetalhes === 'function') {
+    return atividadesV2_portalGetAtividadesDetalhes(contexto);
+  }
+
+  if (
+    typeof GEAPA_ATIVIDADES !== 'undefined' &&
+    typeof GEAPA_ATIVIDADES.atividadesV2_portalGetAtividadesDetalhes === 'function'
+  ) {
+    return GEAPA_ATIVIDADES.atividadesV2_portalGetAtividadesDetalhes(contexto);
+  }
+
+  return null;
+}
+
 function portalNormalizarRespostaAtividades_(resposta) {
   if (!resposta) {
     return {
@@ -341,6 +414,28 @@ function portalNormalizarRespostaAtividades_(resposta) {
   return {
     ok: true,
     data: resposta.data || []
+  };
+}
+
+function portalNormalizarRespostaDetalhesPreload_(resposta) {
+  if (!resposta || resposta.ok !== true) {
+    return {
+      ok: false
+    };
+  }
+
+  var dados = resposta.data || resposta.dados || resposta || {};
+  var detalhesPorId = portalNormalizarDetalhesPorIdAtividades_(dados.detalhesPorId || dados.detalhes);
+
+  return {
+    ok: true,
+    origem: dados.detalhesPorId || dados.detalhes
+      ? 'geapa-atividades-detalhes'
+      : 'geapa-atividades-bundle',
+    data: {
+      detalhesPorId: detalhesPorId,
+      ultimaAtualizacao: dados.ultimaAtualizacao || new Date().toISOString()
+    }
   };
 }
 

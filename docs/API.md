@@ -91,6 +91,7 @@ Resposta esperada:
       "minhaSituacao",
       "atividadesBundle",
       "atividadesListar",
+      "atividadesDetalhesPreload",
       "atividadeDetalhe"
     ]
   },
@@ -318,6 +319,38 @@ Essa e a acao preferencial da aba Atividades. O backend do portal tenta chamar
 O front-end guarda esse pacote em `sessionStorage` por 5 minutos, com chave
 derivada da sessao atual. Para medir a melhoria, abrir o console do navegador e
 filtrar por `GEAPA-PORTAL-PERF`.
+
+Observacao de performance: a aba Atividades nao deve aguardar este pacote para
+renderizar a lista. O primeiro carregamento usa `atividadesListar` para exibir
+`PORTAL_ATIVIDADES_CALENDARIO` rapidamente e dispara o preload de detalhes em
+segundo plano.
+
+## Acao: atividadesDetalhesPreload
+
+Entrada:
+
+```text
+acao=atividadesDetalhesPreload
+token=sessao-temporaria
+```
+
+Resposta esperada:
+
+```json
+{
+  "ok": true,
+  "code": "ATIVIDADES_DETALHES_PRELOAD_CARREGADO",
+  "message": "Detalhes de atividades carregados para preload.",
+  "data": {
+    "detalhesPorId": {},
+    "ultimaAtualizacao": "2026-05-29T12:00:00.000Z"
+  }
+}
+```
+
+Essa acao aquece o cache de detalhes depois que a lista ja apareceu na tela.
+Se um detalhe ainda nao estiver em cache quando o usuario clicar, o portal usa
+`atividadeDetalhe` apenas para aquele `ID_ATIVIDADE`.
 
 ## Acao: atividadesListar
 

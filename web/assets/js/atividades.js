@@ -14,6 +14,7 @@
   var atividadesResumoCache = {};
   var atividadesBundleCache = null;
   var atividadesBundleCacheSalvoEm = 0;
+  var detalhesPreloadPromise = null;
 
   function iniciarAtividades() {
     var telaAtividades = document.getElementById('tela-atividades');
@@ -140,36 +141,45 @@
         ? 'Dados simulados. Nenhuma atividade real foi consultada.'
         : 'Leitura segura carregada em cache local.';
       registrarPerfAtividades('atividades.aba.cache', inicio, {
-        total: bundleCache.calendario.length
+        total: bundleCache.calendario.length,
+        payloadBytes: estimarPayloadBytes(bundleCache.calendario)
       });
+      iniciarPreloadDetalhesAtividades(bundleCache, status);
       return;
     }
 
     lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
     status.textContent = 'Buscando atividades no Portal GEAPA.';
 
-    api.apiGet('/atividades/bundle', {})
+    api.apiGet('/atividades/listar', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Nao foi possivel carregar atividades.');
         }
 
-        var bundle = normalizarBundleAtividades(resposta.data);
+        var bundle = normalizarBundleAtividades({
+          calendario: resposta.data || [],
+          detalhesPorId: {},
+          ultimaAtualizacao: new Date().toISOString()
+        });
         aplicarBundleAtividades(bundle);
         salvarBundleAtividadesCache(bundle);
         renderizarAtividades(lista, bundle.calendario);
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-          : 'Leitura segura carregada pelo backend do Portal GEAPA.';
-        registrarPerfAtividades('atividades.aba.bundle', inicio, {
-          total: bundle.calendario.length
+          : 'Atividades carregadas. Detalhes sendo preparados em segundo plano.';
+        registrarPerfAtividades('atividades.lista.renderizada', inicio, {
+          total: bundle.calendario.length,
+          payloadBytes: estimarPayloadBytes(resposta.data || [])
         });
+        iniciarPreloadDetalhesAtividades(bundle, status);
       })
       .catch(function tratarErro(erro) {
-        registrarPerfAtividades('atividades.aba.bundle_falhou', inicio, {
+        registrarPerfAtividades('atividades.lista.falhou', inicio, {
           erro: erro.message
         });
-        carregarAtividadesFallback(lista, status, inicio);
+        lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
+        status.textContent = 'Falha ao carregar atividades.';
       });
   }
 
@@ -202,6 +212,68 @@
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
         status.textContent = 'Falha ao carregar atividades.';
       });
+  }
+
+  function iniciarPreloadDetalhesAtividades(bundle, status) {
+    var dados = normalizarBundleAtividades(bundle);
+
+    if (!dados.calendario.length || todosDetalhesCarregados(dados.calendario)) {
+      return;
+    }
+
+    if (detalhesPreloadPromise) {
+      return;
+    }
+
+    var inicio = obterTempoAtual();
+
+    detalhesPreloadPromise = api.apiGet('/atividades/detalhes-preload', {})
+      .then(function tratarResposta(resposta) {
+        if (!resposta.ok) {
+          throw new Error(resposta.message || 'Nao foi possivel preparar detalhes.');
+        }
+
+        var detalhes = normalizarDetalhesPorId((resposta.data || {}).detalhesPorId);
+        mesclarDetalhesNoCache(detalhes, (resposta.data || {}).ultimaAtualizacao);
+        registrarPerfAtividades('atividades.detalhes.preload', inicio, {
+          totalDetalhes: Object.keys(detalhes).length,
+          payloadBytes: estimarPayloadBytes(resposta.data || {})
+        });
+
+        if (status && !configEmModoMock()) {
+          status.textContent = 'Atividades e detalhes preparados para consulta rápida.';
+        }
+      })
+      .catch(function tratarErro(erro) {
+        registrarPerfAtividades('atividades.detalhes.preload_falhou', inicio, {
+          erro: erro.message
+        });
+      })
+      .then(function limparPreload() {
+        detalhesPreloadPromise = null;
+      });
+  }
+
+  function todosDetalhesCarregados(calendario) {
+    return calendario.every(function verificarDetalhe(atividade) {
+      return atividade && atividade.idAtividade && detalhesCache[atividade.idAtividade];
+    });
+  }
+
+  function mesclarDetalhesNoCache(detalhesPorId, ultimaAtualizacao) {
+    var bundle = atividadesBundleCache || normalizarBundleAtividades({});
+    var detalhes = normalizarDetalhesPorId(detalhesPorId);
+
+    Object.keys(detalhes).forEach(function guardarDetalhe(idAtividade) {
+      detalhesCache[idAtividade] = detalhes[idAtividade];
+      bundle.detalhesPorId[idAtividade] = detalhes[idAtividade];
+    });
+
+    if (ultimaAtualizacao) {
+      bundle.ultimaAtualizacao = ultimaAtualizacao;
+    }
+
+    salvarBundleAtividadesCache(bundle);
   }
 
   function configEmModoMock() {
@@ -380,6 +452,14 @@
     }, detalhes || {}));
   }
 
+  function estimarPayloadBytes(valor) {
+    try {
+      return JSON.stringify(valor || {}).length;
+    } catch (erro) {
+      return 0;
+    }
+  }
+
   function renderizarAtividades(container, atividades) {
     if (!atividades.length) {
       container.innerHTML = '<p class="empty-state">Nenhuma atividade disponível nesta etapa.</p>';
@@ -470,7 +550,8 @@
     if (detalheCache) {
       abrirModal(detalheCache);
       registrarPerfAtividades('atividades.detalhe.cache', inicio, {
-        idAtividade: idAtividade
+        idAtividade: idAtividade,
+        payloadBytes: estimarPayloadBytes(detalheCache)
       });
       return;
     }
@@ -488,7 +569,8 @@
       atualizarDetalheNoBundleCache(idAtividade, resposta.data);
       abrirModal(resposta.data);
       registrarPerfAtividades('atividades.detalhe.fallback_backend', inicio, {
-        idAtividade: idAtividade
+        idAtividade: idAtividade,
+        payloadBytes: estimarPayloadBytes(resposta.data)
       });
     }).catch(function tratarErro(erro) {
       abrirModal({
