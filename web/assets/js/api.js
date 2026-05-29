@@ -206,6 +206,7 @@
 
   function obterAcaoAppsScript(route) {
     var rotas = {
+      '/atividades/bundle': 'atividadesBundle',
       '/atividades/listar': 'atividadesListar',
       '/atividades/detalhe': 'atividadeDetalhe'
     };
@@ -222,6 +223,17 @@
   }
 
   function apiGetMock(route, params) {
+    if (route === '/atividades/bundle') {
+      return Promise.resolve({
+        ok: true,
+        data: {
+          calendario: atividadesMock.slice(),
+          detalhesPorId: Object.assign({}, detalhesMock),
+          ultimaAtualizacao: new Date().toISOString()
+        }
+      });
+    }
+
     if (route === '/atividades/listar') {
       return Promise.resolve({
         ok: true,

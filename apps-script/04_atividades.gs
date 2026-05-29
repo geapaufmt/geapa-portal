@@ -52,6 +52,59 @@ function portalListarAtividades(token) {
 }
 
 /**
+ * Carrega a lista e os detalhes seguros de atividades em uma unica chamada.
+ *
+ * Quando o modulo geapa-atividades expuser o bundle v2, ele e usado como fonte
+ * preferencial. Se o contrato ainda nao existir no ambiente atual, o portal
+ * monta o mesmo envelope usando os endpoints antigos de lista e detalhe.
+ *
+ * @param {string} token Token temporario do portal.
+ * @return {Object} Resposta padronizada da API.
+ */
+function portalAtividadesBundle(token) {
+  var contexto = portalMontarContextoAtividades_(token);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var cacheKey = portalCacheKey_(
+    'atividadesBundle',
+    contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
+  );
+  var cache = portalLerJsonCache_(cacheKey);
+
+  if (cache) {
+    return portalRespostaOk_(
+      'ATIVIDADES_BUNDLE_CACHE',
+      'Atividades carregadas em cache temporario.',
+      cache,
+      portalMetaAtividades_('cache')
+    );
+  }
+
+  var respostaBundle = portalChamarAtividadesBundle_(contexto.contextoAtividades);
+  var normalizada = portalNormalizarRespostaBundleAtividades_(respostaBundle);
+
+  if (!normalizada.ok) {
+    normalizada = portalMontarBundleAtividadesFallback_(token);
+  }
+
+  if (!normalizada.ok) {
+    return normalizada.resposta;
+  }
+
+  portalSalvarJsonCache_(cacheKey, normalizada.data, PORTAL_CONFIG.cacheAtividadesSegundos);
+
+  return portalRespostaOk_(
+    normalizada.code || 'ATIVIDADES_BUNDLE_CARREGADO',
+    normalizada.message || 'Atividades carregadas em pacote unico.',
+    normalizada.data,
+    portalMetaAtividades_(normalizada.origem || 'geapa-atividades-bundle')
+  );
+}
+
+/**
  * Carrega detalhes seguros de uma atividade visivel ao membro autenticado.
  *
  * @param {string} token Token temporario do portal.
@@ -247,6 +300,21 @@ function portalChamarAtividadesDetalhe_(idAtividade, contexto) {
   return null;
 }
 
+function portalChamarAtividadesBundle_(contexto) {
+  if (typeof atividadesV2_portalGetAtividadesBundle === 'function') {
+    return atividadesV2_portalGetAtividadesBundle(contexto);
+  }
+
+  if (
+    typeof GEAPA_ATIVIDADES !== 'undefined' &&
+    typeof GEAPA_ATIVIDADES.atividadesV2_portalGetAtividadesBundle === 'function'
+  ) {
+    return GEAPA_ATIVIDADES.atividadesV2_portalGetAtividadesBundle(contexto);
+  }
+
+  return null;
+}
+
 function portalNormalizarRespostaAtividades_(resposta) {
   if (!resposta) {
     return {
@@ -273,6 +341,101 @@ function portalNormalizarRespostaAtividades_(resposta) {
   return {
     ok: true,
     data: resposta.data || []
+  };
+}
+
+function portalNormalizarRespostaBundleAtividades_(resposta) {
+  if (!resposta || resposta.ok !== true) {
+    return {
+      ok: false
+    };
+  }
+
+  var dados = resposta.data || resposta.dados || resposta || {};
+  var calendario = Array.isArray(dados)
+    ? dados
+    : (Array.isArray(dados.calendario) ? dados.calendario : []);
+  var detalhesPorId = portalNormalizarDetalhesPorIdAtividades_(dados.detalhesPorId);
+
+  return {
+    ok: true,
+    code: 'ATIVIDADES_BUNDLE_CARREGADO',
+    message: resposta.message || 'Atividades carregadas em pacote unico.',
+    origem: 'geapa-atividades-bundle',
+    data: {
+      calendario: calendario,
+      detalhesPorId: detalhesPorId,
+      ultimaAtualizacao: dados.ultimaAtualizacao || new Date().toISOString()
+    }
+  };
+}
+
+function portalNormalizarDetalhesPorIdAtividades_(valor) {
+  var detalhes = {};
+
+  if (Array.isArray(valor)) {
+    valor.forEach(function guardarDetalhe(item) {
+      if (item && item.idAtividade) {
+        detalhes[item.idAtividade] = item;
+      }
+    });
+    return detalhes;
+  }
+
+  if (valor && typeof valor === 'object') {
+    Object.keys(valor).forEach(function copiarDetalhe(idAtividade) {
+      if (valor[idAtividade]) {
+        detalhes[idAtividade] = valor[idAtividade];
+      }
+    });
+  }
+
+  return detalhes;
+}
+
+function portalMontarBundleAtividadesFallback_(token) {
+  var lista = portalListarAtividades(token);
+
+  if (!lista || lista.ok !== true) {
+    return {
+      ok: false,
+      resposta: lista || portalRespostaErro_(
+        'ATIVIDADES_INDISPONIVEIS',
+        'A integracao de atividades ainda nao esta disponivel.',
+        {}
+      )
+    };
+  }
+
+  var calendario = Array.isArray(lista.data) ? lista.data : [];
+  var detalhesPorId = {};
+
+  calendario.forEach(function carregarDetalhe(atividade) {
+    var idAtividade = atividade && atividade.idAtividade
+      ? String(atividade.idAtividade).trim()
+      : '';
+
+    if (!idAtividade || atividade.podeVerDetalhes === false) {
+      return;
+    }
+
+    var detalhe = portalDetalheAtividade(token, idAtividade);
+
+    if (detalhe && detalhe.ok === true && detalhe.data) {
+      detalhesPorId[idAtividade] = detalhe.data;
+    }
+  });
+
+  return {
+    ok: true,
+    code: 'ATIVIDADES_BUNDLE_FALLBACK',
+    message: 'Atividades carregadas por fallback de lista e detalhes.',
+    origem: 'fallback-lista-detalhe',
+    data: {
+      calendario: calendario,
+      detalhesPorId: detalhesPorId,
+      ultimaAtualizacao: new Date().toISOString()
+    }
   };
 }
 

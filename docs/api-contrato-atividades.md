@@ -7,8 +7,8 @@ somente leitura do módulo `geapa-atividades`.
 
 A origem atual da leitura real é a base **ATIVIDADES INTERNAS GEAPA v2 - DEV**,
 cadastrada no Registry pela key `ATIVIDADES_V2_DB`. A lista usa a aba
-`PORTAL_ATIVIDADES_CALENDARIO` e os detalhes usam a aba `Atividades`, sempre em
-modo somente leitura.
+`PORTAL_ATIVIDADES_CALENDARIO` e `PORTAL_ATIVIDADES_DETALHES`, sempre em modo
+somente leitura.
 
 ## Regras gerais
 
@@ -51,6 +51,38 @@ Resposta de erro:
 ```
 
 ## Listar atividades
+
+Fluxo preferencial do Portal:
+
+```text
+GET /atividades/bundle
+```
+
+No Apps Script atual, a acao equivalente e:
+
+```text
+acao=atividadesBundle
+token=sessao-temporaria
+```
+
+Resposta esperada:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "calendario": [],
+    "detalhesPorId": {},
+    "ultimaAtualizacao": "2026-05-29T12:00:00.000Z"
+  }
+}
+```
+
+O bundle deve ser a primeira tentativa da aba Atividades. Ele reduz chamadas
+repetidas porque entrega a lista e os detalhes seguros por `ID_ATIVIDADE` em
+uma unica requisicao. Se o contrato `atividadesV2_portalGetAtividadesBundle`
+ainda nao existir no modulo `geapa-atividades`, o portal mantem fallback para
+`atividadesListar` e `atividadeDetalhe`.
 
 Contrato lógico:
 
@@ -161,6 +193,7 @@ O Apps Script do portal chama o módulo `geapa-atividades` como biblioteca
 `GEAPA_ATIVIDADES`, em modo de desenvolvimento nesta fase. As ações públicas do
 Web App são:
 
+- `atividadesBundle`
 - `atividadesListar`
 - `atividadeDetalhe`
 
@@ -176,3 +209,27 @@ Ambas validam a sessão temporária do portal antes de consultar atividades.
 - lock para evitar concorrência;
 - log de ação;
 - retorno estruturado e sem dados desnecessários.
+## Cache e medicao de performance
+
+O front-end guarda o bundle de atividades em `sessionStorage` por TTL curto
+de 5 minutos, usando uma chave derivada da sessao atual. Dentro desse periodo:
+
+- abrir a aba Atividades novamente nao deve chamar o backend;
+- clicar em uma atividade que ja veio no bundle nao deve chamar
+  `/atividades/detalhe`;
+- se um detalhe nao veio no bundle, o portal ainda usa
+  `/atividades/detalhe` como fallback e atualiza o cache local.
+
+Para medir antes/depois, abrir o console do navegador e filtrar por:
+
+```text
+GEAPA-PORTAL-PERF
+```
+
+Eventos principais:
+
+- `atividades.aba.bundle`: tempo da primeira carga da aba via bundle;
+- `atividades.aba.cache`: tempo ao reabrir a aba usando cache local;
+- `atividades.aba.fallback_lista`: tempo quando o bundle nao esta disponivel;
+- `atividades.detalhe.cache`: abertura de detalhe sem nova chamada;
+- `atividades.detalhe.fallback_backend`: detalhe carregado pelo endpoint antigo.

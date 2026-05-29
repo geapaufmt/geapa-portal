@@ -89,6 +89,7 @@ Resposta esperada:
       "solicitarCodigo",
       "validarCodigo",
       "minhaSituacao",
+      "atividadesBundle",
       "atividadesListar",
       "atividadeDetalhe"
     ]
@@ -284,6 +285,39 @@ acao sensivel continua obrigatoriamente no Apps Script/backend.
 O bloco `diretoria` e orientativo e usa apenas campos objetivos da aba
 `Membros Atuais`: status de elegibilidade, dias computados, limite, saldo e data
 limite estimada. Decisoes finais continuam sendo da Diretoria.
+
+## Acao: atividadesBundle
+
+Entrada:
+
+```text
+acao=atividadesBundle
+token=sessao-temporaria
+```
+
+Resposta esperada:
+
+```json
+{
+  "ok": true,
+  "code": "ATIVIDADES_BUNDLE_CARREGADO",
+  "message": "Atividades carregadas em pacote unico.",
+  "data": {
+    "calendario": [],
+    "detalhesPorId": {},
+    "ultimaAtualizacao": "2026-05-29T12:00:00.000Z"
+  }
+}
+```
+
+Essa e a acao preferencial da aba Atividades. O backend do portal tenta chamar
+`atividadesV2_portalGetAtividadesBundle(contexto)` no modulo
+`geapa-atividades`. Se o contrato nao existir, mantem fallback para
+`atividadesListar` e `atividadeDetalhe`.
+
+O front-end guarda esse pacote em `sessionStorage` por 5 minutos, com chave
+derivada da sessao atual. Para medir a melhoria, abrir o console do navegador e
+filtrar por `GEAPA-PORTAL-PERF`.
 
 ## Acao: atividadesListar
 

@@ -20,6 +20,7 @@ function doGet(e) {
         'solicitarCodigo',
         'validarCodigo',
         'minhaSituacao',
+        'atividadesBundle',
         'atividadesListar',
         'atividadeDetalhe'
       ],
@@ -106,6 +107,10 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'minhaSituacao') {
     return portalMinhaSituacao(requisicao.token || '');
+  }
+
+  if (acao === 'atividadesBundle') {
+    return portalAtividadesBundle(requisicao.token || '');
   }
 
   if (acao === 'atividadesListar') {

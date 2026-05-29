@@ -9,8 +9,11 @@
   var api = global.PortalGeapaApi;
   var auth = global.PortalGeapaAuth;
   var ui = global.PortalGeapaUi;
+  var ATIVIDADES_CACHE_TTL_MS = 5 * 60 * 1000;
   var detalhesCache = {};
   var atividadesResumoCache = {};
+  var atividadesBundleCache = null;
+  var atividadesBundleCacheSalvoEm = 0;
 
   function iniciarAtividades() {
     var telaAtividades = document.getElementById('tela-atividades');
@@ -103,6 +106,9 @@
   }
 
   function carregarAtividades(lista, status) {
+    carregarAtividadesComBundle(lista, status);
+    return;
+
     lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
     status.textContent = 'Buscando atividades no Portal GEAPA.';
 
@@ -123,8 +129,255 @@
       });
   }
 
+  function carregarAtividadesComBundle(lista, status) {
+    var inicio = obterTempoAtual();
+    var bundleCache = lerBundleAtividadesCacheValido();
+
+    if (bundleCache) {
+      aplicarBundleAtividades(bundleCache);
+      renderizarAtividades(lista, bundleCache.calendario);
+      status.textContent = configEmModoMock()
+        ? 'Dados simulados. Nenhuma atividade real foi consultada.'
+        : 'Leitura segura carregada em cache local.';
+      registrarPerfAtividades('atividades.aba.cache', inicio, {
+        total: bundleCache.calendario.length
+      });
+      return;
+    }
+
+    lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
+    status.textContent = 'Buscando atividades no Portal GEAPA.';
+
+    api.apiGet('/atividades/bundle', {})
+      .then(function tratarResposta(resposta) {
+        if (!resposta.ok) {
+          throw new Error(resposta.message || 'Nao foi possivel carregar atividades.');
+        }
+
+        var bundle = normalizarBundleAtividades(resposta.data);
+        aplicarBundleAtividades(bundle);
+        salvarBundleAtividadesCache(bundle);
+        renderizarAtividades(lista, bundle.calendario);
+        status.textContent = configEmModoMock()
+          ? 'Dados simulados. Nenhuma atividade real foi consultada.'
+          : 'Leitura segura carregada pelo backend do Portal GEAPA.';
+        registrarPerfAtividades('atividades.aba.bundle', inicio, {
+          total: bundle.calendario.length
+        });
+      })
+      .catch(function tratarErro(erro) {
+        registrarPerfAtividades('atividades.aba.bundle_falhou', inicio, {
+          erro: erro.message
+        });
+        carregarAtividadesFallback(lista, status, inicio);
+      });
+  }
+
+  function carregarAtividadesFallback(lista, status, inicioOriginal) {
+    var inicio = obterTempoAtual();
+
+    api.apiGet('/atividades/listar', {})
+      .then(function tratarResposta(resposta) {
+        if (!resposta.ok) {
+          throw new Error(resposta.message || 'Nao foi possivel carregar atividades.');
+        }
+
+        var bundle = normalizarBundleAtividades({
+          calendario: resposta.data || [],
+          detalhesPorId: {},
+          ultimaAtualizacao: new Date().toISOString()
+        });
+        aplicarBundleAtividades(bundle);
+        salvarBundleAtividadesCache(bundle);
+        renderizarAtividades(lista, bundle.calendario);
+        status.textContent = configEmModoMock()
+          ? 'Dados simulados. Nenhuma atividade real foi consultada.'
+          : 'Leitura segura carregada pelo backend do Portal GEAPA.';
+        registrarPerfAtividades('atividades.aba.fallback_lista', inicioOriginal || inicio, {
+          total: bundle.calendario.length,
+          tempoFallbackMs: Math.round(obterTempoAtual() - inicio)
+        });
+      })
+      .catch(function tratarErro(erro) {
+        lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
+        status.textContent = 'Falha ao carregar atividades.';
+      });
+  }
+
   function configEmModoMock() {
     return Boolean(global.PortalGeapaConfig && global.PortalGeapaConfig.MOCK_MODE);
+  }
+
+  function normalizarBundleAtividades(dados) {
+    var origem = dados || {};
+    var calendario = Array.isArray(origem.calendario)
+      ? origem.calendario.slice()
+      : [];
+
+    return {
+      calendario: calendario,
+      detalhesPorId: normalizarDetalhesPorId(origem.detalhesPorId),
+      ultimaAtualizacao: origem.ultimaAtualizacao || ''
+    };
+  }
+
+  function normalizarDetalhesPorId(valor) {
+    var detalhes = {};
+
+    if (Array.isArray(valor)) {
+      valor.forEach(function guardarDetalhe(item) {
+        if (item && item.idAtividade) {
+          detalhes[item.idAtividade] = item;
+        }
+      });
+      return detalhes;
+    }
+
+    Object.keys(valor || {}).forEach(function copiarDetalhe(idAtividade) {
+      if (valor[idAtividade]) {
+        detalhes[idAtividade] = valor[idAtividade];
+      }
+    });
+
+    return detalhes;
+  }
+
+  function aplicarBundleAtividades(bundle) {
+    var dados = normalizarBundleAtividades(bundle);
+
+    atividadesBundleCache = dados;
+    dados.calendario.forEach(function guardarResumo(atividade) {
+      if (atividade && atividade.idAtividade) {
+        atividadesResumoCache[atividade.idAtividade] = atividade;
+      }
+    });
+
+    Object.keys(dados.detalhesPorId).forEach(function guardarDetalhe(idAtividade) {
+      detalhesCache[idAtividade] = dados.detalhesPorId[idAtividade];
+    });
+  }
+
+  function lerBundleAtividadesCacheValido() {
+    if (cacheAtividadesMemoriaValido()) {
+      return atividadesBundleCache;
+    }
+
+    try {
+      var chave = obterChaveCacheAtividades();
+      var bruto = chave ? window.sessionStorage.getItem(chave) : '';
+
+      if (!bruto) {
+        return null;
+      }
+
+      var registro = JSON.parse(bruto);
+      var expirado = !registro.salvoEm || obterTempoCacheAtual() - registro.salvoEm > ATIVIDADES_CACHE_TTL_MS;
+
+      if (expirado) {
+        window.sessionStorage.removeItem(chave);
+        return null;
+      }
+
+      atividadesBundleCache = normalizarBundleAtividades(registro.bundle);
+      atividadesBundleCacheSalvoEm = registro.salvoEm;
+      return atividadesBundleCache;
+    } catch (erro) {
+      return null;
+    }
+  }
+
+  function cacheAtividadesMemoriaValido() {
+    return Boolean(
+      atividadesBundleCache &&
+      atividadesBundleCacheSalvoEm &&
+      obterTempoCacheAtual() - atividadesBundleCacheSalvoEm <= ATIVIDADES_CACHE_TTL_MS
+    );
+  }
+
+  function salvarBundleAtividadesCache(bundle) {
+    atividadesBundleCache = normalizarBundleAtividades(bundle);
+    atividadesBundleCacheSalvoEm = obterTempoCacheAtual();
+
+    try {
+      var chave = obterChaveCacheAtividades();
+
+      if (!chave) {
+        return;
+      }
+
+      window.sessionStorage.setItem(chave, JSON.stringify({
+        salvoEm: atividadesBundleCacheSalvoEm,
+        ttlMs: ATIVIDADES_CACHE_TTL_MS,
+        bundle: atividadesBundleCache
+      }));
+    } catch (erro) {
+      // O portal continua funcionando sem cache local.
+    }
+  }
+
+  function atualizarDetalheNoBundleCache(idAtividade, detalhe) {
+    var bundle = atividadesBundleCache || normalizarBundleAtividades({});
+
+    if (!idAtividade || !detalhe) {
+      return;
+    }
+
+    bundle.detalhesPorId[idAtividade] = detalhe;
+    salvarBundleAtividadesCache(bundle);
+  }
+
+  function obterChaveCacheAtividades() {
+    var token = '';
+    var usuario = auth.getUsuarioAtual ? auth.getUsuarioAtual() : {};
+    var usuarioId = usuario && (usuario.id || usuario.rga || usuario.emailCadastrado || usuario.nomeExibicao)
+      ? String(usuario.id || usuario.rga || usuario.emailCadastrado || usuario.nomeExibicao)
+      : 'usuario';
+
+    try {
+      token = window.sessionStorage.getItem('geapaPortal.sessionToken') || '';
+    } catch (erro) {
+      token = '';
+    }
+
+    if (!token) {
+      return '';
+    }
+
+    return 'geapaPortal.atividadesBundle.' + hashCurto(token + ':' + usuarioId);
+  }
+
+  function hashCurto(valor) {
+    var texto = String(valor || '');
+    var hash = 0;
+
+    for (var i = 0; i < texto.length; i++) {
+      hash = ((hash << 5) - hash) + texto.charCodeAt(i);
+      hash |= 0;
+    }
+
+    return Math.abs(hash).toString(36);
+  }
+
+  function obterTempoAtual() {
+    if (global.performance && typeof global.performance.now === 'function') {
+      return global.performance.now();
+    }
+
+    return Date.now();
+  }
+
+  function obterTempoCacheAtual() {
+    return Date.now();
+  }
+
+  function registrarPerfAtividades(evento, inicio, detalhes) {
+    if (!global.console || typeof global.console.debug !== 'function') {
+      return;
+    }
+
+    global.console.debug('[GEAPA-PORTAL-PERF]', evento, Object.assign({
+      tempoMs: Math.round(obterTempoAtual() - inicio)
+    }, detalhes || {}));
   }
 
   function renderizarAtividades(container, atividades) {
@@ -210,11 +463,15 @@
   }
 
   function carregarDetalheAtividade(idAtividade) {
-    var detalheCache = detalhesCache[idAtividade];
+    var inicio = obterTempoAtual();
+    var detalheCache = cacheAtividadesMemoriaValido() ? detalhesCache[idAtividade] : null;
     var resumo = atividadesResumoCache[idAtividade];
 
     if (detalheCache) {
       abrirModal(detalheCache);
+      registrarPerfAtividades('atividades.detalhe.cache', inicio, {
+        idAtividade: idAtividade
+      });
       return;
     }
 
@@ -228,7 +485,11 @@
       }
 
       detalhesCache[idAtividade] = resposta.data;
+      atualizarDetalheNoBundleCache(idAtividade, resposta.data);
       abrirModal(resposta.data);
+      registrarPerfAtividades('atividades.detalhe.fallback_backend', inicio, {
+        idAtividade: idAtividade
+      });
     }).catch(function tratarErro(erro) {
       abrirModal({
         idAtividade: idAtividade,
