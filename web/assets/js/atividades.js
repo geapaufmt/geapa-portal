@@ -15,6 +15,7 @@
   var atividadesBundleCache = null;
   var atividadesBundleCacheSalvoEm = 0;
   var detalhesPreloadPromise = null;
+  var detalhesPreloadTimer = null;
 
   function iniciarAtividades() {
     var telaAtividades = document.getElementById('tela-atividades');
@@ -225,6 +226,17 @@
       return;
     }
 
+    if (detalhesPreloadTimer) {
+      global.clearTimeout(detalhesPreloadTimer);
+    }
+
+    detalhesPreloadTimer = global.setTimeout(function iniciarDepoisDaPintura() {
+      detalhesPreloadTimer = null;
+      executarPreloadDetalhesAtividades(status);
+    }, 700);
+  }
+
+  function executarPreloadDetalhesAtividades(status) {
     var inicio = obterTempoAtual();
 
     detalhesPreloadPromise = api.apiGet('/atividades/detalhes-preload', {})

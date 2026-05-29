@@ -140,14 +140,9 @@ function portalPrecarregarDetalhesAtividades(token) {
   var normalizada = portalNormalizarRespostaDetalhesPreload_(resposta);
 
   if (!normalizada.ok) {
-    var respostaBundle = portalChamarAtividadesBundle_(contexto.contextoAtividades);
-    normalizada = portalNormalizarRespostaDetalhesPreload_(respostaBundle);
-  }
-
-  if (!normalizada.ok) {
     return portalRespostaErro_(
       'ATIVIDADES_DETALHES_INDISPONIVEIS',
-      'Detalhes de atividades ainda nao estao disponiveis para preload.',
+      'Preload leve de detalhes ainda nao esta disponivel.',
       {}
     );
   }

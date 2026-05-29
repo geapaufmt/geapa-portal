@@ -352,6 +352,11 @@ Essa acao aquece o cache de detalhes depois que a lista ja apareceu na tela.
 Se um detalhe ainda nao estiver em cache quando o usuario clicar, o portal usa
 `atividadeDetalhe` apenas para aquele `ID_ATIVIDADE`.
 
+Importante: esta acao nao deve cair para `atividadesBundle` como fallback,
+porque o bundle tambem le calendario e detalhes e pode atrasar o primeiro uso
+percebido da aba. Se o preload leve nao estiver disponivel, o portal mantem a
+lista renderizada e busca detalhes individualmente sob demanda.
+
 ## Acao: atividadesListar
 
 Entrada:
