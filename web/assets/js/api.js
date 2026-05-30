@@ -209,7 +209,9 @@
       '/atividades/bundle': 'atividadesBundle',
       '/atividades/listar': 'atividadesListar',
       '/atividades/detalhes-preload': 'atividadesDetalhesPreload',
-      '/atividades/detalhe': 'atividadeDetalhe'
+      '/atividades/detalhe': 'atividadeDetalhe',
+      '/atividades/chamada': 'atividadeChamada',
+      '/atividades/chamada/salvar': 'atividadeSalvarChamada'
     };
 
     return rotas[route] || '';
@@ -269,6 +271,21 @@
       });
     }
 
+    if (route === '/atividades/chamada') {
+      return Promise.resolve(criarChamadaMock(params.idAtividade));
+    }
+
+    if (route === '/atividades/chamada/salvar') {
+      return Promise.resolve({
+        ok: true,
+        message: 'Chamada simulada salva com sucesso.',
+        data: {
+          idAtividade: params.idAtividade || '',
+          modo: 'MOCK'
+        }
+      });
+    }
+
     return Promise.resolve({
       ok: false,
       errorCode: 'ROTA_MOCK_NAO_IMPLEMENTADA',
@@ -277,6 +294,17 @@
   }
 
   function apiPostMock(route) {
+    if (route === '/atividades/chamada/salvar') {
+      return Promise.resolve({
+        ok: true,
+        message: 'Chamada simulada salva com sucesso.',
+        data: {
+          route: route,
+          modo: 'MOCK'
+        }
+      });
+    }
+
     return Promise.resolve({
       ok: true,
       message: 'Ação simulada com sucesso em modo de desenvolvimento.',
@@ -284,6 +312,73 @@
         route: route
       }
     });
+  }
+
+  function criarChamadaMock(idAtividade) {
+    var atividade = detalhesMock[idAtividade] || detalhesMock['ATV-2026-1-0005'];
+
+    if (!atividade) {
+      return {
+        ok: false,
+        errorCode: 'ATIVIDADE_NAO_ENCONTRADA',
+        message: 'Atividade não encontrada.'
+      };
+    }
+
+    return {
+      ok: true,
+      data: {
+        atividade: {
+          idAtividade: atividade.idAtividade,
+          tituloPublico: atividade.tituloPublico,
+          dataAtividade: atividade.dataAtividade,
+          horarioCompleto: atividade.horarioCompleto,
+          local: atividade.local,
+          formato: atividade.formato,
+          statusPublico: atividade.statusPublico,
+          contaPresenca: atividade.contaPresenca,
+          contaFalta: atividade.contaFalta
+        },
+        participantes: [
+          {
+            tipoParticipante: 'MEMBRO',
+            rga: 'RGA-TESTE-1',
+            nome: 'Membro de Teste 1',
+            statusPresenca: '',
+            codigoPresenca: '',
+            observacoes: '',
+            aplicavelNaData: true,
+            contaPresenca: true,
+            contaFalta: true,
+            bloqueado: false,
+            motivoBloqueio: ''
+          },
+          {
+            tipoParticipante: 'MEMBRO',
+            rga: 'RGA-TESTE-2',
+            nome: 'Membro de Teste 2',
+            statusPresenca: 'PRESENTE_PRESENCIAL',
+            codigoPresenca: 'P',
+            observacoes: '',
+            aplicavelNaData: true,
+            contaPresenca: true,
+            contaFalta: true,
+            bloqueado: false,
+            motivoBloqueio: ''
+          }
+        ],
+        resumo: {
+          totalParticipantes: 2,
+          totalPresentes: 1,
+          totalFaltas: 0,
+          totalNaoSeAplica: 0,
+          totalSemMarcacao: 1
+        },
+        podeSalvar: true,
+        modo: 'MOCK',
+        ultimaAtualizacao: new Date().toISOString()
+      }
+    };
   }
 
   function handleApiError(error) {

@@ -23,7 +23,9 @@ function doGet(e) {
         'atividadesBundle',
         'atividadesListar',
         'atividadesDetalhesPreload',
-        'atividadeDetalhe'
+        'atividadeDetalhe',
+        'atividadeChamada',
+        'atividadeSalvarChamada'
       ],
       parametrosRecebidos: e && e.parameter ? e.parameter : {}
     }
@@ -126,6 +128,20 @@ function portalExecutarAcao_(requisicao) {
     return portalDetalheAtividade(
       requisicao.token || '',
       requisicao.idAtividade || ''
+    );
+  }
+
+  if (acao === 'atividadeChamada') {
+    return portalBuscarChamadaAtividade(
+      requisicao.token || '',
+      requisicao.idAtividade || ''
+    );
+  }
+
+  if (acao === 'atividadeSalvarChamada') {
+    return portalSalvarChamadaAtividade(
+      requisicao.token || '',
+      requisicao.payload || ''
     );
   }
 

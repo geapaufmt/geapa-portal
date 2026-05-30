@@ -16,6 +16,14 @@
   var atividadesBundleCacheSalvoEm = 0;
   var detalhesPreloadPromise = null;
   var detalhesPreloadTimer = null;
+  var chamadaAtual = null;
+  var STATUS_CHAMADA = [
+    { valor: '', rotulo: 'Sem marcação', codigo: '' },
+    { valor: 'PRESENTE_PRESENCIAL', rotulo: 'Presente presencial', codigo: 'P' },
+    { valor: 'PRESENTE_REMOTO', rotulo: 'Presente remoto', codigo: 'R' },
+    { valor: 'FALTA', rotulo: 'Falta', codigo: 'F' },
+    { valor: 'NAO_SE_APLICA', rotulo: 'Não se aplica', codigo: 'N/A' }
+  ];
 
   function iniciarAtividades() {
     var telaAtividades = document.getElementById('tela-atividades');
@@ -427,7 +435,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesBundle.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesBundle.v2.' + hashCurto(token + ':' + usuarioId);
   }
 
   function hashCurto(valor) {
@@ -505,7 +513,7 @@
         '</dl>',
         '<div class="activity-actions">',
         montarBotaoDetalhes(atividade),
-        montarBotaoMock('Registrar chamada', auth.canRegisterAttendance(atividade)),
+        montarBotaoChamada(atividade),
         montarBotaoMock('Editar', auth.canEditActivity(atividade)),
         montarBotaoMock('Justificar falta', auth.canJustifyAbsence(atividade)),
         '</div>',
@@ -518,6 +526,15 @@
       function registrarDetalhe(botao) {
         botao.addEventListener('click', function abrirDetalhe() {
           carregarDetalheAtividade(botao.getAttribute('data-activity-details'));
+        });
+      }
+    );
+
+    Array.prototype.forEach.call(
+      container.querySelectorAll('[data-activity-attendance]'),
+      function registrarChamada(botao) {
+        botao.addEventListener('click', function abrirChamada() {
+          carregarChamadaAtividade(botao.getAttribute('data-activity-attendance'));
         });
       }
     );
@@ -544,6 +561,18 @@
     ].join('');
   }
 
+  function montarBotaoChamada(atividade) {
+    if (!auth.canRegisterAttendance(atividade)) {
+      return '';
+    }
+
+    return [
+      '<button class="secondary-button compact-button" type="button" data-activity-attendance="',
+      ui.escaparHtml(atividade.idAtividade),
+      '">Registrar chamada</button>'
+    ].join('');
+  }
+
   function montarBotaoMock(rotulo, permitido) {
     if (!permitido) {
       return '';
@@ -558,6 +587,8 @@
     var inicio = obterTempoAtual();
     var detalheCache = cacheAtividadesMemoriaValido() ? detalhesCache[idAtividade] : null;
     var resumo = atividadesResumoCache[idAtividade];
+
+    definirTituloModal('Detalhes da atividade');
 
     if (detalheCache) {
       abrirModal(detalheCache);
@@ -591,6 +622,335 @@
         descricaoPublica: erro.message
       });
     });
+  }
+
+  function carregarChamadaAtividade(idAtividade) {
+    var inicio = obterTempoAtual();
+
+    definirTituloModal('Registrar chamada');
+    abrirModal({
+      idAtividade: idAtividade,
+      tituloPublico: 'Carregando chamada',
+      descricaoPublica: 'Buscando participantes aplicáveis no backend do Portal GEAPA...',
+      carregando: true
+    });
+
+    api.apiGet('/atividades/chamada', {
+      idAtividade: idAtividade
+    }).then(function tratarResposta(resposta) {
+      if (!resposta.ok) {
+        throw new Error(resposta.message || 'Não foi possível carregar a chamada.');
+      }
+
+      chamadaAtual = normalizarChamada(resposta.data);
+      renderizarChamada(chamadaAtual);
+      registrarPerfAtividades('atividades.chamada.carregada', inicio, {
+        idAtividade: idAtividade,
+        totalParticipantes: chamadaAtual.participantes.length,
+        payloadBytes: estimarPayloadBytes(resposta.data || {})
+      });
+    }).catch(function tratarErro(erro) {
+      definirTituloModal('Registrar chamada');
+      abrirModal({
+        idAtividade: idAtividade,
+        tituloPublico: 'Erro ao carregar chamada',
+        descricaoPublica: erro.message
+      });
+    });
+  }
+
+  function normalizarChamada(dados) {
+    var origem = dados || {};
+    var atividade = origem.atividade || {};
+    var participantes = Array.isArray(origem.participantes)
+      ? origem.participantes
+      : [];
+
+    return {
+      atividade: atividade,
+      participantes: participantes.map(function normalizarParticipante(participante, indice) {
+        return {
+          indice: indice,
+          tipoParticipante: String(participante.tipoParticipante || '').trim() || 'MEMBRO',
+          rga: String(participante.rga || '').trim(),
+          nome: String(participante.nome || 'Participante').trim(),
+          instituicao: String(participante.instituicao || '').trim(),
+          statusPresenca: String(participante.statusPresenca || '').trim(),
+          codigoPresenca: String(participante.codigoPresenca || '').trim(),
+          observacoes: String(participante.observacoes || '').trim(),
+          aplicavelNaData: participante.aplicavelNaData !== false,
+          contaPresenca: participante.contaPresenca === true,
+          contaFalta: participante.contaFalta === true,
+          bloqueado: participante.bloqueado === true,
+          motivoBloqueio: String(participante.motivoBloqueio || '').trim()
+        };
+      }),
+      resumo: origem.resumo || {},
+      podeSalvar: origem.podeSalvar === true,
+      modo: origem.modo || 'DEV',
+      ultimaAtualizacao: origem.ultimaAtualizacao || ''
+    };
+  }
+
+  function renderizarChamada(chamada) {
+    var conteudo = document.getElementById('atividade-modal-content');
+    var atividade = chamada.atividade || {};
+
+    definirTituloModal('Registrar chamada');
+    conteudo.innerHTML = [
+      '<div class="attendance-shell">',
+      '<p class="eyebrow">' + ui.escaparHtml(atividade.idAtividade || 'Atividade') + '</p>',
+      '<h3>' + ui.escaparHtml(atividade.tituloPublico || 'Chamada') + '</h3>',
+      '<p class="section-note">',
+      ui.escaparHtml([
+        ui.formatarData(atividade.dataAtividade),
+        atividade.horarioCompleto,
+        atividade.local
+      ].filter(Boolean).join(' · ')),
+      '</p>',
+      '<p class="simulation-warning">Registro em modo ' + ui.escaparHtml(chamada.modo || 'DEV') + '. A chamada é salva somente pela API do Apps Script.</p>',
+      montarResumoChamada(calcularResumoChamada(chamada.participantes)),
+      '<div class="attendance-list">',
+      chamada.participantes.length
+        ? chamada.participantes.map(montarParticipanteChamada).join('')
+        : '<p class="empty-state">Nenhum participante aplicável foi localizado para esta atividade.</p>',
+      '</div>',
+      '<div class="attendance-footer">',
+      '<p id="chamada-status" class="section-note" role="status" aria-live="polite"></p>',
+      '<button class="secondary-button compact-button" type="button" data-save-attendance ' +
+        (chamada.podeSalvar ? '' : 'disabled') +
+        '>Salvar chamada</button>',
+      '</div>',
+      '</div>'
+    ].join('');
+
+    registrarEventosChamada(conteudo);
+    atualizarResumoChamada();
+  }
+
+  function montarResumoChamada(resumo) {
+    return [
+      '<dl class="attendance-summary" data-attendance-summary>',
+      montarFato('Participantes', resumo.totalParticipantes),
+      montarFato('Presentes', resumo.totalPresentes),
+      montarFato('Faltas', resumo.totalFaltas),
+      montarFato('N/A', resumo.totalNaoSeAplica),
+      montarFato('Sem marcação', resumo.totalSemMarcacao),
+      '</dl>'
+    ].join('');
+  }
+
+  function montarParticipanteChamada(participante) {
+    var bloqueado = participante.bloqueado || participante.aplicavelNaData === false;
+
+    return [
+      '<article class="attendance-row" data-attendance-row data-index="' + participante.indice + '">',
+      '<div class="attendance-person">',
+      '<strong>' + ui.escaparHtml(participante.nome) + '</strong>',
+      '<small>' + ui.escaparHtml(montarSubtituloParticipante(participante)) + '</small>',
+      bloqueado
+        ? '<small class="attendance-lock">' + ui.escaparHtml(participante.motivoBloqueio || 'Não aplicável nesta data.') + '</small>'
+        : '',
+      '</div>',
+      '<label class="attendance-field">',
+      '<span>Presença</span>',
+      '<select data-attendance-status ' + (bloqueado ? 'disabled' : '') + '>',
+      STATUS_CHAMADA.map(function montarOpcao(opcao) {
+        return '<option value="' + ui.escaparHtml(opcao.valor) + '" ' +
+          (opcao.valor === participante.statusPresenca ? 'selected' : '') +
+          '>' + ui.escaparHtml(opcao.rotulo) + '</option>';
+      }).join(''),
+      '</select>',
+      '</label>',
+      '<label class="attendance-field attendance-note">',
+      '<span>Observação</span>',
+      '<input data-attendance-note type="text" maxlength="300" value="' + ui.escaparHtml(participante.observacoes) + '" ' +
+        (bloqueado ? 'disabled' : '') +
+        '>',
+      '</label>',
+      '</article>'
+    ].join('');
+  }
+
+  function montarSubtituloParticipante(participante) {
+    var partes = [
+      participante.tipoParticipante,
+      participante.rga,
+      participante.instituicao
+    ].filter(Boolean);
+
+    return partes.join(' · ');
+  }
+
+  function registrarEventosChamada(container) {
+    Array.prototype.forEach.call(
+      container.querySelectorAll('[data-attendance-status], [data-attendance-note]'),
+      function registrarCampo(campo) {
+        campo.addEventListener('change', atualizarResumoChamada);
+        campo.addEventListener('input', atualizarResumoChamada);
+      }
+    );
+
+    var botaoSalvar = container.querySelector('[data-save-attendance]');
+    if (botaoSalvar) {
+      botaoSalvar.addEventListener('click', salvarChamadaAtual);
+    }
+  }
+
+  function atualizarResumoChamada() {
+    var participantes = lerParticipantesChamadaDoModal();
+    var resumo = calcularResumoChamada(participantes);
+    var containerResumo = document.querySelector('[data-attendance-summary]');
+
+    if (containerResumo) {
+      containerResumo.outerHTML = montarResumoChamada(resumo);
+    }
+  }
+
+  function lerParticipantesChamadaDoModal() {
+    var participantesBase = chamadaAtual ? chamadaAtual.participantes : [];
+    var linhas = document.querySelectorAll('[data-attendance-row]');
+
+    return Array.prototype.map.call(linhas, function lerLinha(linha) {
+      var indice = Number(linha.getAttribute('data-index'));
+      var base = participantesBase[indice] || {};
+      var status = linha.querySelector('[data-attendance-status]');
+      var observacao = linha.querySelector('[data-attendance-note]');
+      var statusValor = status ? status.value : base.statusPresenca;
+
+      return Object.assign({}, base, {
+        statusPresenca: statusValor,
+        codigoPresenca: obterCodigoPresenca(statusValor),
+        observacoes: observacao ? observacao.value.trim() : base.observacoes
+      });
+    });
+  }
+
+  function calcularResumoChamada(participantes) {
+    var resumo = {
+      totalParticipantes: participantes.length,
+      totalPresentes: 0,
+      totalFaltas: 0,
+      totalNaoSeAplica: 0,
+      totalSemMarcacao: 0
+    };
+
+    participantes.forEach(function contarParticipante(participante) {
+      if (participante.bloqueado || participante.aplicavelNaData === false) {
+        return;
+      }
+
+      if (participante.statusPresenca === 'PRESENTE_PRESENCIAL' || participante.statusPresenca === 'PRESENTE_REMOTO') {
+        resumo.totalPresentes++;
+      } else if (participante.statusPresenca === 'FALTA') {
+        resumo.totalFaltas++;
+      } else if (participante.statusPresenca === 'NAO_SE_APLICA') {
+        resumo.totalNaoSeAplica++;
+      } else {
+        resumo.totalSemMarcacao++;
+      }
+    });
+
+    return resumo;
+  }
+
+  function obterCodigoPresenca(status) {
+    var encontrado = STATUS_CHAMADA.find(function encontrarStatus(opcao) {
+      return opcao.valor === status;
+    });
+
+    return encontrado ? encontrado.codigo : '';
+  }
+
+  function salvarChamadaAtual() {
+    if (!chamadaAtual || !chamadaAtual.atividade) {
+      return;
+    }
+
+    var participantes = lerParticipantesChamadaDoModal();
+    var resumo = calcularResumoChamada(participantes);
+    var status = document.getElementById('chamada-status');
+    var botao = document.querySelector('[data-save-attendance]');
+
+    if (resumo.totalSemMarcacao > 0) {
+      if (status) {
+        status.textContent = 'Marque todos os participantes antes de salvar a chamada.';
+      }
+      return;
+    }
+
+    var payload = montarPayloadSalvarChamada(chamadaAtual.atividade.idAtividade, participantes);
+    var inicio = obterTempoAtual();
+
+    if (botao) {
+      botao.disabled = true;
+      botao.textContent = 'Salvando...';
+    }
+    if (status) {
+      status.textContent = 'Salvando chamada na base DEV.';
+    }
+
+    api.apiPost('/atividades/chamada/salvar', {
+      payload: JSON.stringify(payload)
+    }).then(function tratarResposta(resposta) {
+      if (!resposta.ok) {
+        throw new Error(resposta.message || 'Não foi possível salvar a chamada.');
+      }
+
+      chamadaAtual.participantes = participantes;
+      if (status) {
+        status.textContent = resposta.message || 'Chamada salva com sucesso.';
+      }
+      registrarPerfAtividades('atividades.chamada.salva', inicio, {
+        idAtividade: payload.idAtividade,
+        totalRegistros: payload.registros.length + payload.externos.length,
+        payloadBytes: estimarPayloadBytes(payload)
+      });
+    }).catch(function tratarErro(erro) {
+      if (status) {
+        status.textContent = erro.message;
+      }
+    }).then(function finalizar() {
+      if (botao) {
+        botao.disabled = false;
+        botao.textContent = 'Salvar chamada';
+      }
+    });
+  }
+
+  function montarPayloadSalvarChamada(idAtividade, participantes) {
+    var payload = {
+      idAtividade: idAtividade,
+      registros: [],
+      externos: []
+    };
+
+    participantes.forEach(function adicionarParticipante(participante) {
+      if (participante.bloqueado || participante.aplicavelNaData === false || !participante.statusPresenca) {
+        return;
+      }
+
+      var item = {
+        tipoParticipante: participante.tipoParticipante,
+        rga: participante.rga,
+        nome: participante.nome,
+        statusPresenca: participante.statusPresenca,
+        codigoPresenca: participante.codigoPresenca,
+        observacoes: participante.observacoes
+      };
+
+      if (participante.tipoParticipante === 'MEMBRO') {
+        payload.registros.push(item);
+        return;
+      }
+
+      payload.externos.push(Object.assign({}, item, {
+        email: '',
+        instituicao: participante.instituicao
+      }));
+    });
+
+    return payload;
   }
 
   function abrirModalCarregando(idAtividade, resumo) {
@@ -648,6 +1008,14 @@
 
     modal.hidden = false;
     document.body.classList.add('modal-open');
+  }
+
+  function definirTituloModal(titulo) {
+    var tituloModal = document.getElementById('atividade-modal-title');
+
+    if (tituloModal) {
+      tituloModal.textContent = titulo;
+    }
   }
 
   function fecharModal() {

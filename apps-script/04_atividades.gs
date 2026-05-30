@@ -216,6 +216,89 @@ function portalDetalheAtividade(token, idAtividade) {
   );
 }
 
+/**
+ * Busca a tela operacional de chamada para uma atividade.
+ *
+ * A permissao real e validada no modulo geapa-atividades. O portal apenas
+ * valida a sessao e repassa contexto seguro do usuario atual.
+ *
+ * @param {string} token Token temporario do portal.
+ * @param {string} idAtividade ID da atividade.
+ * @return {Object} Resposta padronizada da API.
+ */
+function portalBuscarChamadaAtividade(token, idAtividade) {
+  var atividadeId = String(idAtividade || '').trim();
+
+  if (!atividadeId) {
+    return portalRespostaErro_(
+      'ID_ATIVIDADE_OBRIGATORIO',
+      'Informe a atividade para chamada.',
+      {}
+    );
+  }
+
+  var contexto = portalMontarContextoAtividades_(token);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var resposta = portalChamarAtividadesChamada_(
+    atividadeId,
+    contexto.contextoAtividades
+  );
+  var normalizada = portalNormalizarRespostaObjetoAtividades_(resposta);
+
+  if (!normalizada.ok) {
+    return normalizada.resposta;
+  }
+
+  return portalRespostaOk_(
+    'ATIVIDADE_CHAMADA_CARREGADA',
+    'Chamada carregada pelo modulo GEAPA Atividades.',
+    normalizada.data,
+    portalMetaAtividades_('geapa-atividades-chamada')
+  );
+}
+
+/**
+ * Salva a chamada de uma atividade na base v2 DEV via modulo geapa-atividades.
+ *
+ * @param {string} token Token temporario do portal.
+ * @param {string|Object} payloadJson Payload JSON enviado pelo front-end.
+ * @return {Object} Resposta padronizada da API.
+ */
+function portalSalvarChamadaAtividade(token, payloadJson) {
+  var contexto = portalMontarContextoAtividades_(token);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var payload = portalLerPayloadJson_(payloadJson);
+
+  if (!payload.ok) {
+    return payload.resposta;
+  }
+
+  var resposta = portalChamarAtividadesSalvarChamada_(
+    payload.data,
+    contexto.contextoAtividades
+  );
+  var normalizada = portalNormalizarRespostaObjetoAtividades_(resposta);
+
+  if (!normalizada.ok) {
+    return normalizada.resposta;
+  }
+
+  return portalRespostaOk_(
+    'ATIVIDADE_CHAMADA_SALVA',
+    normalizada.message || 'Chamada salva com sucesso na base DEV.',
+    normalizada.data,
+    portalMetaAtividades_('geapa-atividades-chamada')
+  );
+}
+
 function portalMontarContextoAtividades_(token) {
   var tokenNormalizado = String(token || '').trim();
 
@@ -353,6 +436,36 @@ function portalChamarAtividadesDetalhe_(idAtividade, contexto) {
   return null;
 }
 
+function portalChamarAtividadesChamada_(idAtividade, contexto) {
+  if (typeof atividadesV2_portalGetChamada === 'function') {
+    return atividadesV2_portalGetChamada(idAtividade, contexto);
+  }
+
+  if (
+    typeof GEAPA_ATIVIDADES !== 'undefined' &&
+    typeof GEAPA_ATIVIDADES.atividadesV2_portalGetChamada === 'function'
+  ) {
+    return GEAPA_ATIVIDADES.atividadesV2_portalGetChamada(idAtividade, contexto);
+  }
+
+  return null;
+}
+
+function portalChamarAtividadesSalvarChamada_(payload, contexto) {
+  if (typeof atividadesV2_portalSalvarChamada === 'function') {
+    return atividadesV2_portalSalvarChamada(payload, contexto);
+  }
+
+  if (
+    typeof GEAPA_ATIVIDADES !== 'undefined' &&
+    typeof GEAPA_ATIVIDADES.atividadesV2_portalSalvarChamada === 'function'
+  ) {
+    return GEAPA_ATIVIDADES.atividadesV2_portalSalvarChamada(payload, contexto);
+  }
+
+  return null;
+}
+
 function portalChamarAtividadesBundle_(contexto) {
   if (typeof atividadesV2_portalGetAtividadesBundle === 'function') {
     return atividadesV2_portalGetAtividadesBundle(contexto);
@@ -410,6 +523,74 @@ function portalNormalizarRespostaAtividades_(resposta) {
     ok: true,
     data: resposta.data || []
   };
+}
+
+function portalNormalizarRespostaObjetoAtividades_(resposta) {
+  if (!resposta) {
+    return {
+      ok: false,
+      resposta: portalRespostaErro_(
+        'ATIVIDADES_INDISPONIVEIS',
+        'A integracao de atividades ainda nao esta disponivel.',
+        {}
+      )
+    };
+  }
+
+  if (resposta.ok !== true) {
+    return {
+      ok: false,
+      resposta: portalRespostaErro_(
+        resposta.errorCode || 'ERRO_ATIVIDADES',
+        resposta.message || 'Nao foi possivel consultar atividades.',
+        {}
+      )
+    };
+  }
+
+  return {
+    ok: true,
+    message: resposta.message || '',
+    data: resposta.data || {}
+  };
+}
+
+function portalLerPayloadJson_(payloadJson) {
+  if (payloadJson && typeof payloadJson === 'object') {
+    return {
+      ok: true,
+      data: payloadJson
+    };
+  }
+
+  var bruto = String(payloadJson || '').trim();
+
+  if (!bruto) {
+    return {
+      ok: false,
+      resposta: portalRespostaErro_(
+        'PAYLOAD_OBRIGATORIO',
+        'Informe os dados da chamada.',
+        {}
+      )
+    };
+  }
+
+  try {
+    return {
+      ok: true,
+      data: JSON.parse(bruto)
+    };
+  } catch (erro) {
+    return {
+      ok: false,
+      resposta: portalRespostaErro_(
+        'PAYLOAD_INVALIDO',
+        'Os dados da chamada estao em formato invalido.',
+        {}
+      )
+    };
+  }
 }
 
 function portalNormalizarRespostaDetalhesPreload_(resposta) {

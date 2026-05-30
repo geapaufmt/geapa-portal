@@ -92,7 +92,9 @@ Resposta esperada:
       "atividadesBundle",
       "atividadesListar",
       "atividadesDetalhesPreload",
-      "atividadeDetalhe"
+      "atividadeDetalhe",
+      "atividadeChamada",
+      "atividadeSalvarChamada"
     ]
   },
   "meta": {
@@ -459,6 +461,63 @@ Resposta esperada:
 
 Detalhes internos, e-mails, observações privadas, logs, listas nominais e
 presença de outros membros não devem ser retornados.
+
+## Acao: atividadeChamada
+
+Entrada:
+
+```text
+acao=atividadeChamada
+token=sessao-temporaria
+idAtividade=ATV-2026-1-0005
+```
+
+Resposta esperada:
+
+```json
+{
+  "ok": true,
+  "code": "ATIVIDADE_CHAMADA_CARREGADA",
+  "message": "Chamada carregada pelo modulo GEAPA Atividades.",
+  "data": {
+    "atividade": {},
+    "participantes": [],
+    "resumo": {},
+    "podeSalvar": true,
+    "modo": "DEV"
+  }
+}
+```
+
+Essa acao e operacional e somente perfis autorizados podem usa-la. O backend do
+portal valida a sessao e repassa o contexto ao `geapa-atividades`, que valida a
+permissao real, busca membros aplicaveis pela data da atividade e mescla
+registros ja existentes.
+
+## Acao: atividadeSalvarChamada
+
+Entrada:
+
+```text
+acao=atividadeSalvarChamada
+token=sessao-temporaria
+payload={...json...}
+```
+
+O campo `payload` contem JSON serializado com:
+
+```json
+{
+  "idAtividade": "ATV-2026-1-0005",
+  "registros": [],
+  "externos": []
+}
+```
+
+O salvamento ocorre somente pela API do Apps Script e pelo modulo
+`geapa-atividades`, usando a base v2 DEV. O front-end nao escreve diretamente em
+planilhas. O modulo revalida permissao, atividade, membros aplicaveis, status
+de presenca, `LockService` e logs.
 
 ## Codigos de erro previstos
 

@@ -178,7 +178,32 @@ Resposta esperada:
 - `GET /justificativas/minhas`
 - `GET /diretoria/pendencias`
 
-Esses endpoints não estão implementados nesta entrega.
+As acoes de chamada operacional ja existem em modo DEV no Web App do portal; os
+demais endpoints seguem fora desta entrega.
+
+## Chamada operacional em DEV
+
+O Portal usa duas acoes para o registro de chamada na base Atividades v2 DEV:
+
+```text
+acao=atividadeChamada
+token=sessao-temporaria
+idAtividade=ATV-2026-1-0005
+```
+
+```text
+acao=atividadeSalvarChamada
+token=sessao-temporaria
+payload={...json...}
+```
+
+O front-end exibe o botao "Registrar chamada" apenas quando o contrato de
+atividades indicar `podeRegistrarChamada = true` e o perfil visual permitir. A
+autorizacao real continua no Apps Script e no modulo `geapa-atividades`.
+
+O payload de salvamento e enviado em lote, com `registros` para membros e
+`externos` para convidados/externos ja presentes na chamada retornada pelo
+backend. O Portal nao escreve diretamente em planilhas.
 
 ## Integração atual do portal
 
@@ -190,6 +215,8 @@ Web App são:
 - `atividadesListar`
 - `atividadesDetalhesPreload`
 - `atividadeDetalhe`
+- `atividadeChamada`
+- `atividadeSalvarChamada`
 
 Ambas validam a sessão temporária do portal antes de consultar atividades.
 
