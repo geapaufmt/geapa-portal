@@ -170,6 +170,7 @@ function portalNormalizarMinhaSituacaoCore_(resposta) {
   var membro = portalNormalizarMembro_(resposta.membro, 'GEAPA_CORE');
   var usuario = portalNormalizarUsuarioCore_(resposta.usuario) ||
     portalMontarUsuarioBasico_(membro);
+  usuario = portalAplicarAutorizacaoPortalCore_(usuario, membro);
   var situacao = resposta.minhaSituacao || {};
   var resumo = situacao.resumo || {};
   var participacao = situacao.participacao || {};
@@ -285,6 +286,7 @@ function portalNormalizarPerfilUsuario_(perfil) {
     'COMUNICACAO',
     'CONSELHO',
     'ASSESSORIA',
+    'ADMIN',
     'ADMIN_TECNICO'
   ];
 
@@ -343,6 +345,138 @@ function portalNormalizarPermissoesUsuario_(permissoes) {
   for (var i = 0; i < chaves.length; i++) {
     base[chaves[i]] = dados[chaves[i]] === true;
   }
+
+  return base;
+}
+
+/**
+ * Aplica permissÃµes do novo controle PORTAL_* do GEAPA-CORE, quando
+ * disponivel.
+ *
+ * Essa camada permite que `PERFIL_PORTAL = ADMIN` e permissoes como
+ * `presencas:gerir` e `atividades:gerir` liberem a interface operacional do
+ * portal, sem substituir a validacao real do backend.
+ *
+ * @param {Object} usuario Usuario ja normalizado.
+ * @param {Object} membro Membro da sessao.
+ * @return {Object} Usuario com perfis/permissoes enriquecidos.
+ */
+function portalAplicarAutorizacaoPortalCore_(usuario, membro) {
+  var dados = usuario || portalMontarUsuarioBasico_(membro);
+  var autorizacao = portalBuscarAutorizacaoPortalCore_(membro);
+
+  if (!autorizacao || (autorizacao.authorized !== true && autorizacao.ok !== true)) {
+    return dados;
+  }
+
+  var perfilPortal = portalNormalizarPerfilUsuario_(
+    autorizacao.perfilPortal || autorizacao.perfil || ''
+  );
+  var permissoes = portalNormalizarPermissoesPortalCore_(
+    autorizacao.permissions || autorizacao.permissoes || []
+  );
+  var perfis = Array.isArray(dados.perfis) ? dados.perfis.slice() : ['MEMBRO'];
+
+  if (perfilPortal && perfis.indexOf(perfilPortal) < 0) {
+    perfis.push(perfilPortal);
+  }
+
+  if (perfilPortal === 'ADMIN' && perfis.indexOf('ADMIN_TECNICO') < 0) {
+    perfis.push('ADMIN_TECNICO');
+  }
+
+  return {
+    id: dados.id,
+    nomeExibicao: dados.nomeExibicao,
+    rga: dados.rga,
+    perfilPrincipal: perfilPortal && perfilPortal !== 'MEMBRO'
+      ? perfilPortal
+      : dados.perfilPrincipal,
+    perfis: portalUnicos_(perfis),
+    cargosAtuais: dados.cargosAtuais || [],
+    permissoes: portalMesclarPermissoesUsuario_(dados.permissoes, permissoes)
+  };
+}
+
+function portalBuscarAutorizacaoPortalCore_(membro) {
+  var identificador = String((membro && (membro.emailCadastrado || membro.rga)) || '').trim();
+
+  if (!identificador) {
+    return null;
+  }
+
+  try {
+    if (typeof corePortalAuthorizeEmail === 'function') {
+      return corePortalAuthorizeEmail(identificador, {});
+    }
+
+    if (
+      typeof GEAPA_CORE !== 'undefined' &&
+      typeof GEAPA_CORE.corePortalAuthorizeEmail === 'function'
+    ) {
+      return GEAPA_CORE.corePortalAuthorizeEmail(identificador, {});
+    }
+
+    if (
+      typeof GEAPA_CORE !== 'undefined' &&
+      GEAPA_CORE.portal &&
+      typeof GEAPA_CORE.portal.authorizeEmail === 'function'
+    ) {
+      return GEAPA_CORE.portal.authorizeEmail(identificador, {});
+    }
+  } catch (erro) {
+    Logger.log('GEAPA-PORTAL-AUTHZ ' + JSON.stringify({
+      etapa: 'corePortalAuthorizeEmail',
+      erro: erro && erro.message ? erro.message : String(erro)
+    }));
+  }
+
+  return null;
+}
+
+function portalNormalizarPermissoesPortalCore_(permissoes) {
+  var base = portalPermissoesUsuarioVazias_();
+  var lista = Array.isArray(permissoes) ? permissoes : [];
+  var mapa = {};
+
+  lista.forEach(function guardarPermissao(permissao) {
+    mapa[String(permissao || '').trim().toLowerCase()] = true;
+  });
+
+  if (mapa['sistema:admin']) {
+    Object.keys(base).forEach(function liberar(chave) {
+      base[chave] = true;
+    });
+    return base;
+  }
+
+  if (mapa['atividades:gerir']) {
+    base.podeGerenciarAtividades = true;
+    base.podeEditarAtividade = true;
+  }
+
+  if (mapa['presencas:gerir']) {
+    base.podeRegistrarChamada = true;
+  }
+
+  if (mapa['desligamentos:analisar']) {
+    base.podeAnalisarJustificativas = true;
+  }
+
+  if (mapa['membros:ler'] || mapa['logs:ler'] || mapa['atividades:gerir']) {
+    base.podeVerAreaDiretoria = true;
+  }
+
+  return base;
+}
+
+function portalMesclarPermissoesUsuario_(atual, extra) {
+  var base = portalNormalizarPermissoesUsuario_(atual);
+  var adicional = portalNormalizarPermissoesUsuario_(extra);
+
+  Object.keys(base).forEach(function mesclar(chave) {
+    base[chave] = base[chave] === true || adicional[chave] === true;
+  });
 
   return base;
 }

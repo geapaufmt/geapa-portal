@@ -88,7 +88,9 @@
   }
 
   function isAdminTecnico() {
-    return hasPerfil('ADMIN_TECNICO') || hasPermissao('podeGerenciarConfiguracoes');
+    return hasPerfil('ADMIN') ||
+      hasPerfil('ADMIN_TECNICO') ||
+      hasPermissao('podeGerenciarConfiguracoes');
   }
 
   function canViewActivityDetails(atividade) {
@@ -108,8 +110,21 @@
   }
 
   function canRegisterAttendance(atividade) {
-    return Boolean(atividade && atividade.podeRegistrarChamada) &&
-      (hasPermissao('podeRegistrarChamada') || isSecretario() || isDiretoria() || isAdminTecnico());
+    var usuarioPodeRegistrar = hasPermissao('podeRegistrarChamada') ||
+      hasPermissao('podeGerenciarAtividades') ||
+      isSecretario() ||
+      isDiretoria() ||
+      isAdminTecnico();
+    var atividadeAceitaChamada = Boolean(
+      atividade &&
+      (
+        atividade.podeRegistrarChamada ||
+        atividade.contaPresenca ||
+        atividade.contaFalta
+      )
+    );
+
+    return usuarioPodeRegistrar && atividadeAceitaChamada;
   }
 
   function canJustifyAbsence(atividade) {

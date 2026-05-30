@@ -435,7 +435,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesBundle.v2.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesBundle.v3.' + hashCurto(token + ':' + usuarioId);
   }
 
   function hashCurto(valor) {

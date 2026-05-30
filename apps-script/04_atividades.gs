@@ -368,7 +368,11 @@ function portalResolverPerfilAtividades_(usuario) {
   var perfis = Array.isArray(dados.perfis) ? dados.perfis : [];
   var permissoes = dados.permissoes || {};
 
-  if (portalUsuarioTemPerfil_(perfis, 'ADMIN_TECNICO') || permissoes.podeGerenciarConfiguracoes === true) {
+  if (
+    portalUsuarioTemPerfil_(perfis, 'ADMIN') ||
+    portalUsuarioTemPerfil_(perfis, 'ADMIN_TECNICO') ||
+    permissoes.podeGerenciarConfiguracoes === true
+  ) {
     return 'ADMIN_TECNICO';
   }
 

@@ -468,6 +468,7 @@ function normalizarPerfil(perfil) {
     'COMUNICACAO',
     'CONSELHO',
     'ASSESSORIA',
+    'ADMIN',
     'ADMIN_TECNICO'
   ];
 
@@ -1050,6 +1051,7 @@ function formatarPerfil(valor) {
     COMUNICACAO: 'Comunicação',
     CONSELHO: 'Conselho',
     ASSESSORIA: 'Assessoria',
+    ADMIN: 'Administração do portal',
     ADMIN_TECNICO: 'Administração técnica',
     PRESIDENTE: 'Presidente',
     VICE_PRESIDENTE: 'Vice-presidente',

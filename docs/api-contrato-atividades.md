@@ -197,9 +197,11 @@ token=sessao-temporaria
 payload={...json...}
 ```
 
-O front-end exibe o botao "Registrar chamada" apenas quando o contrato de
-atividades indicar `podeRegistrarChamada = true` e o perfil visual permitir. A
-autorizacao real continua no Apps Script e no modulo `geapa-atividades`.
+O front-end exibe o botao "Registrar chamada" quando o perfil visual permitir
+e a atividade for elegivel para chamada (`podeRegistrarChamada`, `contaPresenca`
+ou `contaFalta`). Essa regra e apenas de interface. A autorizacao real continua
+no Apps Script e no modulo `geapa-atividades`, usando a sessao e as permissoes
+do usuario.
 
 O payload de salvamento e enviado em lote, com `registros` para membros e
 `externos` para convidados/externos ja presentes na chamada retornada pelo
