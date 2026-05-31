@@ -81,3 +81,4 @@ O ID Token completo nao deve ser salvo em `localStorage`, planilha ou logs.
 - Decidir se o workflow antigo de GitHub Pages sera mantido ou removido.
 - Revisar se "Atividades" continuara protegida por login ou tera endpoint
   publico separado.
+- Validar o PWA leve descrito em `docs/PWA.md`.

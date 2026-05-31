@@ -60,6 +60,10 @@
           Nesta etapa, apenas e-mails autorizados para teste recebem código.
         </p>
 
+        <button class="secondary-button install-button" type="button" data-install-app hidden>
+          Instalar app
+        </button>
+
       </section>
 
       <section class="situation-panel" id="tela-situacao" aria-labelledby="situacao-title" hidden>
@@ -75,6 +79,9 @@
             </button>
             <button class="secondary-button" type="button" data-area-diretoria hidden disabled>
               Diretoria
+            </button>
+            <button class="secondary-button" type="button" data-install-app hidden>
+              Instalar app
             </button>
             <button id="sair" class="secondary-button" type="button">Sair</button>
           </div>
@@ -151,6 +158,7 @@
     <script src="assets/js/ui.js"></script>
     <script src="assets/js/atividades.js"></script>
     <script type="module" src="assets/js/firebase-auth.js"></script>
+    <script src="assets/js/pwa.js"></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>

@@ -191,6 +191,7 @@ maquina.
 - [Contrato da API](docs/API.md)
 - [Contrato inicial de atividades](docs/api-contrato-atividades.md)
 - [Migracao Firebase](docs/FIREBASE_MIGRATION.md)
+- [PWA](docs/PWA.md)
 - [Matriz de dados](docs/DATA_MATRIX.md)
 - [Checklist de piloto](docs/PILOT_CHECKLIST.md)
 - [Diagnostico do portal](docs/diagnostico-portal.md)

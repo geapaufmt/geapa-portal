@@ -23,6 +23,8 @@ Validar, com poucos membros, se o portal:
 - [ ] Configurar `GEAPA_FIREBASE_WEB_API_KEY` nas propriedades do Apps Script.
 - [ ] Configurar `FIREBASE_SERVICE_ACCOUNT_PORTAL_GEAPA` nos secrets do GitHub.
 - [ ] Liberar os dominios do portal no Firebase Authentication.
+- [ ] Confirmar que o manifesto PWA carrega em `https://portal-geapa.web.app/manifest.json`.
+- [ ] Confirmar que o service worker carrega em `https://portal-geapa.web.app/service-worker.js`.
 - [ ] Confirmar que o Apps Script está executando como a conta institucional adequada.
 - [ ] Confirmar que `GEAPA_CORE` está configurado como biblioteca.
 - [ ] Confirmar se `GEAPA_CORE` ainda está em `developmentMode` ou se já usa versão fixa.
@@ -63,6 +65,8 @@ Para cada membro-piloto:
 - [ ] Confirmar que elegibilidade para Diretoria aparece como informação orientativa.
 - [ ] Atualizar a página e verificar se a sessão é restaurada.
 - [ ] Clicar em "Sair" e confirmar que a sessão local é encerrada.
+- [ ] Instalar o portal como app no celular, quando o navegador oferecer.
+- [ ] Confirmar que dados de "Minha situação" não aparecem offline depois de sair.
 - [ ] Testar código incorreto e verificar mensagem.
 - [ ] Aguardar expiração da sessão, quando possível, e confirmar novo login.
 

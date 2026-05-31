@@ -1,0 +1,113 @@
+const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v1';
+
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/app.js',
+  '/manifest.json',
+  '/assets/js/config.js',
+  '/assets/js/api.js',
+  '/assets/js/auth.js',
+  '/assets/js/ui.js',
+  '/assets/js/atividades.js',
+  '/assets/js/firebase-auth.js',
+  '/assets/js/pwa.js',
+  '/assets/icons/icon-192.png',
+  '/assets/icons/icon-512.png',
+  '/assets/icons/icon-maskable-192.png',
+  '/assets/icons/icon-maskable-512.png'
+];
+
+self.addEventListener('install', function instalarServiceWorker(evento) {
+  evento.waitUntil(
+    caches.open(GEAPA_CACHE_VERSION)
+      .then(function abrirCache(cache) {
+        return cache.addAll(STATIC_ASSETS);
+      })
+      .then(function ativarRapido() {
+        return self.skipWaiting();
+      })
+  );
+});
+
+self.addEventListener('activate', function ativarServiceWorker(evento) {
+  evento.waitUntil(
+    caches.keys()
+      .then(function listarCaches(chaves) {
+        return Promise.all(chaves.map(function removerCacheAntigo(chave) {
+          if (chave !== GEAPA_CACHE_VERSION) {
+            return caches.delete(chave);
+          }
+
+          return Promise.resolve();
+        }));
+      })
+      .then(function assumirClientes() {
+        return self.clients.claim();
+      })
+  );
+});
+
+self.addEventListener('fetch', function aoBuscar(evento) {
+  var requisicao = evento.request;
+  var url = new URL(requisicao.url);
+
+  if (requisicao.method !== 'GET') {
+    return;
+  }
+
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  if (url.pathname.indexOf('/__/auth') === 0) {
+    return;
+  }
+
+  if (requisicao.mode === 'navigate') {
+    evento.respondWith(networkFirstIndex(requisicao));
+    return;
+  }
+
+  if (STATIC_ASSETS.indexOf(url.pathname) >= 0) {
+    evento.respondWith(cacheFirst(requisicao));
+  }
+});
+
+function cacheFirst(requisicao) {
+  return caches.match(requisicao)
+    .then(function usarCache(respostaCache) {
+      if (respostaCache) {
+        return respostaCache;
+      }
+
+      return fetch(requisicao).then(function guardarResposta(respostaRede) {
+        if (respostaRede && respostaRede.ok) {
+          var copia = respostaRede.clone();
+          caches.open(GEAPA_CACHE_VERSION).then(function abrirCache(cache) {
+            cache.put(requisicao, copia);
+          });
+        }
+
+        return respostaRede;
+      });
+    });
+}
+
+function networkFirstIndex(requisicao) {
+  return fetch(requisicao)
+    .then(function guardarHtml(respostaRede) {
+      if (respostaRede && respostaRede.ok) {
+        var copia = respostaRede.clone();
+        caches.open(GEAPA_CACHE_VERSION).then(function abrirCache(cache) {
+          cache.put('/index.html', copia);
+        });
+      }
+
+      return respostaRede;
+    })
+    .catch(function usarHtmlCache() {
+      return caches.match('/index.html');
+    });
+}

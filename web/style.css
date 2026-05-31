@@ -236,6 +236,10 @@ button:disabled:hover {
   line-height: 1.5;
 }
 
+.install-button {
+  margin-top: 18px;
+}
+
 .section-heading {
   margin-bottom: 14px;
 }
