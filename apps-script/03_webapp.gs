@@ -19,6 +19,7 @@ function doGet(e) {
       acoesDisponiveis: [
         'solicitarCodigo',
         'validarCodigo',
+        'portalLogin',
         'minhaSituacao',
         'atividadesBundle',
         'atividadesListar',
@@ -106,6 +107,10 @@ function portalExecutarAcao_(requisicao) {
       requisicao.emailOuRga || '',
       requisicao.codigo || ''
     );
+  }
+
+  if (acao === 'portalLogin') {
+    return portalLoginFirebase(requisicao.idToken || '');
   }
 
   if (acao === 'minhaSituacao') {

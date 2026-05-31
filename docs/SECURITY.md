@@ -24,6 +24,9 @@ Nao salvar no repositorio:
 O GitHub Pages e publico. Portanto, tudo que estiver em `web/` deve ser tratado
 como informacao publica.
 
+Durante a migracao, o mesmo vale para Firebase Hosting: tudo em `web/` e
+publico por definicao.
+
 Pode ficar no front-end:
 
 - layout;
@@ -40,6 +43,13 @@ Nao pode ficar no front-end:
 - IDs sensiveis;
 - autorizacoes definitivas;
 - filtros que substituam validacao do backend.
+
+O `firebaseConfig` do app web, incluindo `apiKey`, e publico por design no
+Firebase. Ele nao deve ser tratado como senha, mas a chave deve ser restringida
+no Google Cloud/Firebase para reduzir abuso fora dos dominios e APIs esperados.
+
+Nunca versionar service account JSON, refresh tokens da Firebase CLI ou secrets
+de GitHub Actions.
 
 ## Apps Script como barreira de seguranca
 

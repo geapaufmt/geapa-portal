@@ -17,8 +17,12 @@ Validar, com poucos membros, se o portal:
 ## Antes de liberar membros-piloto
 
 - [ ] Confirmar que o GitHub Pages publica apenas a pasta `web/`.
+- [ ] Confirmar que o Firebase Hosting publica apenas a pasta `web/`.
 - [ ] Confirmar que o front-end não contém dados reais, tokens ou IDs sensíveis.
 - [ ] Confirmar que `API_URL` aponta para a implantação correta do Apps Script.
+- [ ] Configurar `GEAPA_FIREBASE_WEB_API_KEY` nas propriedades do Apps Script.
+- [ ] Configurar `FIREBASE_SERVICE_ACCOUNT_PORTAL_GEAPA` nos secrets do GitHub.
+- [ ] Liberar os dominios do portal no Firebase Authentication.
 - [ ] Confirmar que o Apps Script está executando como a conta institucional adequada.
 - [ ] Confirmar que `GEAPA_CORE` está configurado como biblioteca.
 - [ ] Confirmar se `GEAPA_CORE` ainda está em `developmentMode` ou se já usa versão fixa.
@@ -36,6 +40,7 @@ Configurar no projeto Apps Script do portal:
 PORTAL_ENVIO_EMAIL_HABILITADO=true
 PORTAL_EMAILS_TESTE=email1@exemplo.org,email2@exemplo.org
 PORTAL_CODIGO_SALT=valor-aleatorio-longo
+GEAPA_FIREBASE_WEB_API_KEY=api-key-publica-do-firebase-web
 PORTAL_DIAGNOSTICO_IDENTIFICADOR=email-ou-rga-para-teste
 ```
 
@@ -46,6 +51,8 @@ PORTAL_DIAGNOSTICO_IDENTIFICADOR=email-ou-rga-para-teste
 Para cada membro-piloto:
 
 - [ ] Solicitar código usando e-mail cadastrado.
+- [ ] Entrar com Google usando o mesmo e-mail cadastrado.
+- [ ] Confirmar que um Google não cadastrado recebe acesso negado.
 - [ ] Solicitar código usando RGA.
 - [ ] Confirmar que o código chega no e-mail cadastrado correto.
 - [ ] Validar o código dentro do prazo.

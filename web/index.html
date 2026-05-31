@@ -22,6 +22,12 @@
           informações individuais, com dados protegidos pelo backend do GEAPA.
         </p>
 
+        <button id="entrar-google" type="button">Entrar com Google</button>
+
+        <div class="access-divider" aria-hidden="true">
+          <span>ou</span>
+        </div>
+
         <form id="acesso-form" class="access-form">
           <label for="email-ou-rga">E-mail ou RGA</label>
           <div class="field-row">
@@ -144,6 +150,7 @@
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/ui.js"></script>
     <script src="assets/js/atividades.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="assets/js/firebase-auth.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

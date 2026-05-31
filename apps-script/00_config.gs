@@ -62,7 +62,8 @@ var PORTAL_CONFIG = {
     emailsTeste: 'PORTAL_EMAILS_TESTE',
     membrosTeste: 'PORTAL_MEMBROS_TESTE_JSON',
     codigoSalt: 'PORTAL_CODIGO_SALT',
-    diagnosticoIdentificador: 'PORTAL_DIAGNOSTICO_IDENTIFICADOR'
+    diagnosticoIdentificador: 'PORTAL_DIAGNOSTICO_IDENTIFICADOR',
+    firebaseWebApiKey: 'GEAPA_FIREBASE_WEB_API_KEY'
   }
 };
 

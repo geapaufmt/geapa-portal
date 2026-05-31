@@ -8,6 +8,9 @@
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec';
 const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
+const FIREBASE_LOGIN_STATE = {
+  loginEmAndamento: false
+};
 
 (function iniciarPortalGeapa() {
   if (typeof document === 'undefined') {
@@ -21,6 +24,7 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
   const emailOuRga = document.getElementById('email-ou-rga');
   const codigo = document.getElementById('codigo-acesso');
   const botaoSolicitar = document.getElementById('solicitar-codigo');
+  const botaoEntrarGoogle = document.getElementById('entrar-google');
   const botaoSair = document.getElementById('sair');
   const status = document.getElementById('mensagem-status');
   const situacao = document.getElementById('minha-situacao');
@@ -52,6 +56,40 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
       botaoSolicitar.disabled = false;
     }
   });
+
+  if (botaoEntrarGoogle) {
+    botaoEntrarGoogle.addEventListener('click', async function aoEntrarComGoogle() {
+      const firebaseAuth = window.PortalGeapaFirebaseAuth;
+
+      if (!firebaseAuth || !firebaseAuth.isAvailable()) {
+        atualizarStatus(status, 'Login com Google ainda nao esta disponivel neste ambiente.');
+        return;
+      }
+
+      botaoEntrarGoogle.disabled = true;
+      atualizarStatus(status, 'Abrindo login com Google...');
+
+      try {
+        const usuarioFirebase = await firebaseAuth.signInWithGoogle();
+
+        if (usuarioFirebase) {
+          await autenticarFirebaseNoPortal(
+            usuarioFirebase,
+            app,
+            telaAcesso,
+            telaSituacao,
+            situacao,
+            status,
+            usuarioContexto
+          );
+        }
+      } catch (erro) {
+        atualizarStatus(status, erro.message || 'Nao foi possivel entrar com Google.');
+      } finally {
+        botaoEntrarGoogle.disabled = false;
+      }
+    });
+  }
 
   form.addEventListener('submit', async function aoEntrar(event) {
     event.preventDefault();
@@ -103,10 +141,11 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
     }
   });
 
-  botaoSair.addEventListener('click', function aoSair() {
+  botaoSair.addEventListener('click', async function aoSair() {
     limparSessaoLocal();
     limparUsuarioAtual();
     atualizarContextoUsuario(usuarioContexto, null);
+    await sairFirebaseSeDisponivel();
     form.reset();
     situacao.innerHTML = [
       '<p class="empty-state">',
@@ -118,6 +157,14 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
     emailOuRga.focus();
   });
 
+  prepararFirebaseAuthPersistente(
+    app,
+    telaAcesso,
+    telaSituacao,
+    situacao,
+    status,
+    usuarioContexto
+  );
   restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto);
 })();
 
@@ -153,6 +200,18 @@ function validarCodigo(emailOuRga, codigo) {
 }
 
 /**
+ * Valida no backend o ID token emitido pelo Firebase Authentication.
+ *
+ * @param {string} idToken Token JWT emitido pelo Firebase Auth.
+ * @return {Promise<Object>} Resposta do login do portal.
+ */
+function portalLoginFirebase(idToken) {
+  return chamarApi('portalLogin', {
+    idToken: idToken
+  });
+}
+
+/**
  * Carrega a tela "Minha situacao" pelo Apps Script.
  *
  * Nesta etapa, o backend devolve dados cadastrais basicos e blocos
@@ -170,6 +229,129 @@ async function carregarMinhaSituacao(token) {
   situacao.desempenho.tempoClienteMs = Math.round(obterTempoAtual() - inicio);
 
   return situacao;
+}
+
+/**
+ * Faz o login do Firebase virar uma sessao curta do Portal GEAPA.
+ *
+ * O ID token fica apenas em memoria e e enviado ao Apps Script para validacao.
+ * O front-end continua usando a sessao curta existente para as demais telas.
+ *
+ * @param {Object} usuarioFirebase Usuario retornado pelo Firebase Auth.
+ * @param {HTMLElement} app Elemento raiz.
+ * @param {HTMLElement} telaAcesso Tela de acesso.
+ * @param {HTMLElement} telaSituacao Tela de situacao.
+ * @param {HTMLElement} situacao Container da tela Minha situacao.
+ * @param {HTMLElement} status Elemento de status.
+ * @param {HTMLElement} usuarioContexto Elemento de contexto do usuario.
+ */
+async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, telaSituacao, situacao, status, usuarioContexto) {
+  if (!usuarioFirebase || FIREBASE_LOGIN_STATE.loginEmAndamento) {
+    return;
+  }
+
+  FIREBASE_LOGIN_STATE.loginEmAndamento = true;
+  atualizarStatus(status, 'Validando acesso no GEAPA...');
+
+  try {
+    const idToken = await usuarioFirebase.getIdToken();
+    const login = await portalLoginFirebase(idToken);
+    const sessionToken = obterSessionToken(login);
+
+    if (!sessionToken) {
+      throw new Error('A API nao retornou uma sessao valida do portal.');
+    }
+
+    salvarSessaoLocal(sessionToken);
+    mostrarTelaSituacao(app, telaAcesso, telaSituacao);
+    renderizarCarregandoSituacao(situacao);
+
+    const minhaSituacao = await carregarMinhaSituacao(sessionToken);
+    aplicarUsuarioAtual(minhaSituacao);
+    atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
+    renderizarMinhaSituacao(situacao, minhaSituacao);
+    atualizarStatus(status, obterMensagem(login) || 'Entrada com Google concluida.');
+  } catch (erro) {
+    limparSessaoLocal();
+    limparUsuarioAtual();
+    atualizarContextoUsuario(usuarioContexto, null);
+    mostrarTelaAcesso(app, telaAcesso, telaSituacao);
+    throw erro;
+  } finally {
+    FIREBASE_LOGIN_STATE.loginEmAndamento = false;
+  }
+}
+
+/**
+ * Observa a sessao persistente do Firebase para restaurar o portal sem pedir
+ * novo login Google.
+ */
+function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto) {
+  const firebaseAuth = window.PortalGeapaFirebaseAuth;
+
+  if (!firebaseAuth || !firebaseAuth.isAvailable()) {
+    return;
+  }
+
+  firebaseAuth.observeAuthState(function aoMudarUsuarioFirebase(usuarioFirebase) {
+    if (!usuarioFirebase || lerSessaoLocal()) {
+      return;
+    }
+
+    autenticarFirebaseNoPortal(
+      usuarioFirebase,
+      app,
+      telaAcesso,
+      telaSituacao,
+      situacao,
+      status,
+      usuarioContexto
+    ).catch(function tratarErroFirebase(erro) {
+      atualizarStatus(status, erro.message || 'Nao foi possivel restaurar o login com Google.');
+    });
+  });
+}
+
+/**
+ * Usa a sessao persistente do Firebase para recriar a sessao curta do portal.
+ */
+function tentarRestaurarComFirebase(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto) {
+  const firebaseAuth = window.PortalGeapaFirebaseAuth;
+
+  if (!firebaseAuth || !firebaseAuth.isAvailable()) {
+    return Promise.resolve(false);
+  }
+
+  const usuarioFirebase = firebaseAuth.getCurrentUser();
+
+  if (!usuarioFirebase) {
+    return Promise.resolve(false);
+  }
+
+  return autenticarFirebaseNoPortal(
+    usuarioFirebase,
+    app,
+    telaAcesso,
+    telaSituacao,
+    situacao,
+    status,
+    usuarioContexto
+  ).then(function restaurado() {
+    return true;
+  });
+}
+
+/**
+ * Encerra tambem a sessao persistente do Firebase, quando ela existir.
+ */
+function sairFirebaseSeDisponivel() {
+  const firebaseAuth = window.PortalGeapaFirebaseAuth;
+
+  if (!firebaseAuth || !firebaseAuth.isAvailable()) {
+    return Promise.resolve();
+  }
+
+  return firebaseAuth.signOutFromGoogle().catch(function ignorarErroSaida() {});
 }
 
 /**
@@ -576,8 +758,16 @@ async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, sta
     limparSessaoLocal();
     limparUsuarioAtual();
     atualizarContextoUsuario(usuarioContexto, null);
-    mostrarTelaAcesso(app, telaAcesso, telaSituacao);
-    atualizarStatus(status, 'Sua sessão expirou. Entre novamente para continuar.');
+    tentarRestaurarComFirebase(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto)
+      .catch(function ignorarErroFirebase() {
+        return false;
+      })
+      .then(function tratarFallbackFirebase(restaurado) {
+        if (!restaurado) {
+          mostrarTelaAcesso(app, telaAcesso, telaSituacao);
+          atualizarStatus(status, 'Sua sessão expirou. Entre novamente para continuar.');
+        }
+      });
   }
 }
 

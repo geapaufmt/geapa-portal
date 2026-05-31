@@ -69,6 +69,45 @@ Campos:
 - `data`: dados especificos da acao.
 - `meta`: informações técnicas não sensíveis.
 
+## Acao: portalLogin
+
+Entrada:
+
+```text
+acao=portalLogin
+idToken=<FIREBASE_ID_TOKEN>
+```
+
+O backend valida o ID Token no Firebase e autoriza o e-mail autenticado pela
+base oficial do GEAPA/GEAPA-CORE. Se o acesso for autorizado, a API retorna uma
+sessao curta do Portal, mantendo compatibilidade com as telas ja existentes.
+
+Resposta esperada:
+
+```json
+{
+  "ok": true,
+  "code": "PORTAL_LOGIN_FIREBASE_OK",
+  "message": "Entrada com Google validada pelo GEAPA.",
+  "data": {
+    "sessionToken": "sessao-temporaria",
+    "validadeSessaoMinutos": 120,
+    "usuario": {
+      "uid": "firebase-uid",
+      "email": "me***@exemplo.org",
+      "nome": "Membro GEAPA",
+      "rga": "202311801000",
+      "status": "ATIVO",
+      "perfilPortal": "MEMBRO",
+      "permissoes": []
+    }
+  }
+}
+```
+
+O ID Token completo nao deve ser registrado em logs nem salvo em planilhas,
+`localStorage` ou `PropertiesService`.
+
 ## GET de saude
 
 Requisicao:
@@ -85,10 +124,11 @@ Resposta esperada:
   "code": "PORTAL_API_OK",
   "message": "API do Portal GEAPA ativa em modo placeholder.",
   "data": {
-    "acoesDisponiveis": [
-      "solicitarCodigo",
-      "validarCodigo",
-      "minhaSituacao",
+      "acoesDisponiveis": [
+        "solicitarCodigo",
+        "validarCodigo",
+        "portalLogin",
+        "minhaSituacao",
       "atividadesBundle",
       "atividadesListar",
       "atividadesDetalhesPreload",
@@ -552,6 +592,7 @@ Configurar em **Project Settings > Script properties**:
 PORTAL_ENVIO_EMAIL_HABILITADO=true
 PORTAL_EMAILS_TESTE=email1@exemplo.org,email2@exemplo.org
 PORTAL_CODIGO_SALT=valor-aleatorio-longo
+GEAPA_FIREBASE_WEB_API_KEY=api-key-publica-do-firebase-web
 PORTAL_MEMBROS_TESTE_JSON=[{"emailCadastrado":"email1@exemplo.org","rga":"RGA-TESTE","nomeExibicao":"Membro de Teste","situacaoGeral":"Em simulacao","vinculo":"Membro em acompanhamento"}]
 PORTAL_DIAGNOSTICO_IDENTIFICADOR=email-ou-rga-para-teste
 ```

@@ -1,11 +1,12 @@
 # Arquitetura do Portal GEAPA
 
-Este documento descreve a separacao entre o front-end publico hospedado no
-GitHub Pages e o backend privado mantido no ecossistema Google do GEAPA.
+Este documento descreve a separacao entre o front-end publico hospedado em
+Firebase Hosting/GitHub Pages e o backend privado mantido no ecossistema Google
+do GEAPA.
 
-## Papel do GitHub Pages
+## Papel do Firebase Hosting
 
-O GitHub Pages hospeda somente a interface estatica do portal:
+O Firebase Hosting hospeda somente a interface estatica do portal:
 
 - HTML;
 - CSS;
@@ -14,8 +15,11 @@ O GitHub Pages hospeda somente a interface estatica do portal:
 - textos institucionais;
 - imagens, icones e arquivos publicos.
 
-O GitHub Pages nao deve armazenar dados reais de membros, listas internas,
+O hosting publico nao deve armazenar dados reais de membros, listas internas,
 planilhas, tokens, chaves ou regras criticas de autorizacao.
+
+Durante a migracao, GitHub Pages pode continuar publicado como fallback
+operacional, com as mesmas restricoes de seguranca.
 
 ## Papel do Apps Script
 

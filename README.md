@@ -1,8 +1,8 @@
 # Portal GEAPA
 
-O **Portal GEAPA** e o portal web institucional para membros do GEAPA. Ele sera
-hospedado gratuitamente pelo **GitHub Pages**, mas o GitHub Pages sera usado
-somente para a interface visual publica.
+O **Portal GEAPA** e o portal web institucional para membros do GEAPA. A
+hospedagem principal esta em migracao para **Firebase Hosting**, mantendo o
+GitHub como fonte do codigo e o Apps Script como backend/API.
 
 Os dados reais do GEAPA devem permanecer no ecossistema Google da conta
 institucional, especialmente Google Apps Script, Google Sheets, Google Drive e
@@ -11,7 +11,7 @@ Gmail.
 ## Arquitetura decidida
 
 ```text
-GitHub Pages
+Firebase Hosting
   Hospeda apenas o front-end estatico: HTML, CSS, JavaScript, manifesto PWA,
   textos institucionais e arquivos publicos.
 
@@ -37,6 +37,7 @@ backend.
 ## Objetivo desta etapa
 
 - Preparar o portal para hospedagem estatica no GitHub Pages.
+- Iniciar a migracao para Firebase Hosting e Firebase Authentication.
 - Manter o backend separado em `apps-script/`.
 - Criar documentacao clara sobre arquitetura e seguranca.
 - Testar o fluxo de acesso por codigo enviado ao e-mail cadastrado.
@@ -51,6 +52,8 @@ backend.
 - Interface publica em `web/`.
 - Manifesto PWA inicial em `web/manifest.json`.
 - Cliente de API em `web/app.js`, sem segredos e sem acesso direto a planilhas.
+- Firebase Auth com Google Sign-In em migracao, sempre validado pelo Apps
+  Script antes de liberar a sessao do portal.
 - Backend em Google Apps Script com envio de codigo controlado por lista de
   teste.
 - Integracao inicial com `GEAPA_CORE` como biblioteca Apps Script.
@@ -76,9 +79,12 @@ backend.
 geapa-portal/
 |-- README.md
 |-- .clasp.example.json
+|-- .firebaserc
+|-- firebase.json
 |-- docs/
 |   |-- ARCHITECTURE.md
 |   |-- API.md
+|   |-- FIREBASE_MIGRATION.md
 |   |-- api-contrato-atividades.md
 |   |-- DATA_MATRIX.md
 |   |-- diagnostico-portal.md
@@ -120,6 +126,10 @@ A tela funciona apenas com HTML, CSS e JavaScript. O front-end chama a API
 publicada do Apps Script para solicitar codigo, validar codigo e carregar a
 primeira versao parcial de "Minha situacao".
 
+O login com Google usa Firebase Auth e precisa ser testado em um dominio
+autorizado no Firebase Authentication. Para testes locais, sirva a pasta `web/`
+por HTTP e libere o dominio correspondente no Firebase quando necessario.
+
 A tela **Atividades** pode ser aberta pelo botão "Atividades" depois do login.
 Em modo real, ela exige sessão válida e chama o Apps Script, que por sua vez
 consulta o contrato público somente leitura do módulo `geapa-atividades`.
@@ -132,7 +142,27 @@ calculado a partir das Vigências oficiais. Esse bloco informa perfis, funções
 vigentes do próprio usuário e permissões iniciais para organizar a navegação do
 front-end. Qualquer autorização real continua sendo validada no Apps Script.
 
-## Como publicar no GitHub Pages
+## Como publicar no Firebase Hosting
+
+O Firebase Hosting publica somente o conteudo publico da pasta `web/`.
+
+Deploy manual:
+
+```text
+firebase deploy --only hosting
+```
+
+O deploy automatico em `main` usa
+`.github/workflows/firebase-hosting-merge.yml`. Pull requests recebem preview
+por `.github/workflows/firebase-hosting-pull-request.yml`.
+
+Configure no GitHub Actions o secret:
+
+```text
+FIREBASE_SERVICE_ACCOUNT_PORTAL_GEAPA
+```
+
+## Publicacao legada no GitHub Pages
 
 1. Acesse o repositorio no GitHub.
 2. Entre em **Settings > Pages**.
@@ -142,6 +172,8 @@ front-end. Qualquer autorização real continua sendo validada no Apps Script.
    publica somente a pasta `web/`.
 
 O GitHub Pages deve publicar somente o conteudo publico da pasta `web/`.
+Durante a migracao, ele pode continuar como fallback ate o Firebase Hosting ser
+validado.
 
 ## Deploy do Apps Script
 
@@ -158,6 +190,7 @@ maquina.
 - [Seguranca](docs/SECURITY.md)
 - [Contrato da API](docs/API.md)
 - [Contrato inicial de atividades](docs/api-contrato-atividades.md)
+- [Migracao Firebase](docs/FIREBASE_MIGRATION.md)
 - [Matriz de dados](docs/DATA_MATRIX.md)
 - [Checklist de piloto](docs/PILOT_CHECKLIST.md)
 - [Diagnostico do portal](docs/diagnostico-portal.md)
