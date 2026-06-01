@@ -28,24 +28,24 @@
           <span aria-hidden="true"></span>
         </button>
         <div class="portal-brand">
-          <span class="brand-mark" aria-hidden="true">G</span>
           <div>
             <strong>Portal GEAPA</strong>
             <small>UFMT</small>
           </div>
         </div>
         <div class="header-session">
-          <div id="usuario-contexto" class="user-context" hidden></div>
           <button class="secondary-button install-button" type="button" data-install-app hidden>
             Instalar app
           </button>
-          <button id="sair" class="secondary-button" type="button">Sair</button>
         </div>
       </header>
 
       <div class="portal-body">
         <div class="sidebar-backdrop" data-close-sidebar hidden></div>
         <aside class="portal-sidebar" id="portal-sidebar" aria-label="Navegacao principal">
+          <div class="sidebar-user">
+            <div id="usuario-contexto" class="user-context" hidden></div>
+          </div>
           <nav class="portal-nav">
             <button class="nav-button" type="button" data-voltar-situacao>
               <span>Minha situacao</span>
@@ -57,6 +57,9 @@
               <span>Diretoria</span>
             </button>
           </nav>
+          <div class="sidebar-footer">
+            <button id="sair" class="danger-button" type="button">Sair</button>
+          </div>
         </aside>
 
         <main class="portal-shell view-login" id="portal-app">
