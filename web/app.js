@@ -6,7 +6,6 @@
  * autorizacao aqui. Toda validacao real devera acontecer no Apps Script.
  */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec';
 const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
 const FIREBASE_LOGIN_STATE = {
   loginEmAndamento: false
@@ -377,7 +376,7 @@ function sairFirebaseSeDisponivel() {
 }
 
 /**
- * Chama o Apps Script usando formulario simples.
+ * Chama o Apps Script pelo cliente central do Portal.
  *
  * Nao adicionar chaves, tokens fixos ou IDs sensiveis neste cliente publico.
  * A autorizacao real deve continuar no Apps Script.
@@ -388,23 +387,12 @@ function sairFirebaseSeDisponivel() {
  */
 async function chamarApi(acao, dados) {
   const inicio = obterTempoAtual();
-  const corpo = new URLSearchParams();
-  corpo.set('acao', acao);
-
-  Object.keys(dados || {}).forEach(function adicionarCampo(chave) {
-    corpo.set(chave, dados[chave]);
-  });
-
-  const resposta = await fetch(API_URL, {
-    method: 'POST',
-    body: corpo
-  });
-
-  if (!resposta.ok) {
-    throw new Error('Não foi possível falar com a API do Portal GEAPA.');
+  const api = window.PortalGeapaApi;
+  if (!api || typeof api.callAction !== 'function') {
+    throw new Error('Cliente de API do Portal GEAPA nao foi carregado.');
   }
 
-  const payload = await resposta.json();
+  const payload = await api.callAction(acao, dados || {});
 
   if (!payload.ok) {
     throw new Error(obterMensagem(payload) || 'A API retornou uma resposta inesperada.');
@@ -665,6 +653,8 @@ function normalizarUsuario(usuario, dadosSituacao) {
 function normalizarPerfil(perfil) {
   const normalizado = String(perfil || 'MEMBRO').trim().toUpperCase();
   const permitidos = [
+    'VISITANTE',
+    'PARTICIPANTE_EXTERNO',
     'MEMBRO',
     'DIRETORIA',
     'PRESIDENCIA',
@@ -1004,7 +994,7 @@ function limparUsuarioAtual() {
  * @param {Object|null} usuario Usuario atual.
  */
 function atualizarContextoUsuario(container, usuario) {
-  const botaoDiretoria = document.querySelector('[data-area-diretoria]');
+  const botoesDiretoria = document.querySelectorAll('[data-area-diretoria]');
 
   if (!container) {
     return;
@@ -1014,9 +1004,9 @@ function atualizarContextoUsuario(container, usuario) {
     container.hidden = true;
     container.innerHTML = '';
 
-    if (botaoDiretoria) {
-      botaoDiretoria.hidden = true;
-    }
+    Array.prototype.forEach.call(botoesDiretoria, function esconderBotao(botao) {
+      botao.hidden = true;
+    });
 
     return;
   }
@@ -1031,9 +1021,9 @@ function atualizarContextoUsuario(container, usuario) {
     '<small>' + escaparHtml(perfis) + '</small>'
   ].join('');
 
-  if (botaoDiretoria) {
-    botaoDiretoria.hidden = !(usuario.permissoes && usuario.permissoes.podeVerAreaDiretoria);
-  }
+  Array.prototype.forEach.call(botoesDiretoria, function alternarBotao(botao) {
+    botao.hidden = !(usuario.permissoes && usuario.permissoes.podeVerAreaDiretoria);
+  });
 }
 
 /**
@@ -1255,6 +1245,8 @@ function formatarRotuloCurto(valor) {
 function formatarPerfil(valor) {
   const normalizado = String(valor || '').trim().toUpperCase();
   const mapa = {
+    VISITANTE: 'Visitante',
+    PARTICIPANTE_EXTERNO: 'Participante externo',
     MEMBRO: 'Membro',
     DIRETORIA: 'Diretoria',
     PRESIDENCIA: 'Presidência',
@@ -1350,10 +1342,16 @@ function alternarFormularioOcupado(form, ocupado) {
  * @param {HTMLElement} telaSituacao Tela de situação.
  */
 function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
-  app.classList.remove('view-login');
+  const telaAtividades = document.getElementById('tela-atividades');
+
+  app.classList.remove('view-login', 'view-atividades');
   app.classList.add('view-situacao');
   telaAcesso.hidden = true;
   telaSituacao.hidden = false;
+
+  if (telaAtividades) {
+    telaAtividades.hidden = true;
+  }
 }
 
 /**
@@ -1364,10 +1362,16 @@ function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
  * @param {HTMLElement} telaSituacao Tela de situação.
  */
 function mostrarTelaAcesso(app, telaAcesso, telaSituacao) {
-  app.classList.remove('view-situacao');
+  const telaAtividades = document.getElementById('tela-atividades');
+
+  app.classList.remove('view-situacao', 'view-atividades');
   app.classList.add('view-login');
   telaSituacao.hidden = true;
   telaAcesso.hidden = false;
+
+  if (telaAtividades) {
+    telaAtividades.hidden = true;
+  }
 }
 
 /**

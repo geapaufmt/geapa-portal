@@ -166,9 +166,12 @@
     return chamarAppsScript(route, payload || {});
   }
 
+  function callAction(acao, params) {
+    return chamarAppsScriptAction(acao, params || {});
+  }
+
   function chamarAppsScript(route, params) {
     var acao = obterAcaoAppsScript(route);
-    var corpo = new URLSearchParams();
 
     if (!acao) {
       return Promise.resolve({
@@ -178,7 +181,30 @@
       });
     }
 
-    corpo.set('acao', acao);
+    return chamarAppsScriptAction(acao, params || {});
+  }
+
+  function chamarAppsScriptAction(acao, params) {
+    var acaoNormalizada = String(acao || '').trim();
+    var corpo = new URLSearchParams();
+
+    if (!acaoNormalizada) {
+      return Promise.resolve({
+        ok: false,
+        errorCode: 'ACAO_NAO_INFORMADA',
+        message: 'Acao nao informada para a API do Portal GEAPA.'
+      });
+    }
+
+    if (!config.GEAPA_API_BASE_URL) {
+      return Promise.resolve({
+        ok: false,
+        errorCode: 'API_BASE_URL_AUSENTE',
+        message: 'URL da API do Portal GEAPA nao configurada.'
+      });
+    }
+
+    corpo.set('acao', acaoNormalizada);
     Object.keys(params || {}).forEach(function adicionarCampo(chave) {
       if (params[chave] !== undefined && params[chave] !== null) {
         corpo.set(chave, params[chave]);
@@ -412,6 +438,7 @@
   global.PortalGeapaApi = {
     apiGet: apiGet,
     apiPost: apiPost,
+    callAction: callAction,
     handleApiError: handleApiError,
     buildQueryString: buildQueryString
   };

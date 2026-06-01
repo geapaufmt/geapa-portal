@@ -95,6 +95,20 @@ O perfil do usuário autenticado é calculado pelo GEAPA-CORE a partir das fonte
 oficiais do ecossistema, especialmente `Membros Atuais` e as abas de Vigências
 de diretores, assessores e conselheiros.
 
+No front-end, a navegacao e os estados visuais devem partir de uma matriz
+central simples:
+
+- `VISITANTE`: pessoa sem sessao ativa;
+- `PARTICIPANTE_EXTERNO`: pessoa autorizada para fluxos publicos ou atividades
+  abertas;
+- `MEMBRO`: membro autenticado com acesso aos proprios dados;
+- `DIRETORIA`: usuario com funcoes vigentes de gestao;
+- `ADMIN`: usuario com permissoes administrativas ou tecnicas.
+
+Essa matriz organiza a interface, mas nao substitui os perfis operacionais
+vindos do GEAPA-CORE, como `PRESIDENCIA`, `SECRETARIA`, `CONSELHO` e
+`ADMIN_TECNICO`.
+
 O portal recebe apenas o bloco seguro `usuario`, com:
 
 - `perfilPrincipal`;
