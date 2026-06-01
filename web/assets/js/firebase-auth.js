@@ -55,20 +55,11 @@ import {
     return inicializar();
   }
 
-  function deveUsarRedirect() {
-    return global.matchMedia && global.matchMedia('(max-width: 720px)').matches;
-  }
-
   async function signInWithGoogle() {
     inicializar();
 
     if (!auth || !provider) {
       throw new Error('Firebase Auth nao esta configurado para este portal.');
-    }
-
-    if (deveUsarRedirect()) {
-      await signInWithRedirect(auth, provider);
-      return null;
     }
 
     try {
