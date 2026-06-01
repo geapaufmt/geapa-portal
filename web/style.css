@@ -11,8 +11,12 @@
   --warning-bg: #fff7df;
   --warning-border: #ead38a;
   --white: #ffffff;
+  --geapa-brown: #8a6a3f;
   --shadow: 0 18px 45px rgba(18, 61, 42, 0.12);
-  --portal-header-height: 58px;
+  --shadow-soft: 0 8px 22px rgba(18, 61, 42, 0.09);
+  --shadow-strong: 0 16px 40px rgba(13, 47, 32, 0.26);
+  --portal-header-height: 72px;
+  --portal-sidebar-width: 320px;
 }
 
 * {
@@ -43,15 +47,15 @@ body {
   z-index: 30;
   display: flex;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
   flex-wrap: nowrap;
   min-height: var(--portal-header-height);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 12px max(20px, calc((100vw - 1180px) / 2));
+  border-bottom: 3px solid var(--geapa-brown);
+  padding: 0 max(24px, calc((100vw - 1180px) / 2));
   color: var(--white);
   background: var(--green-800);
-  box-shadow: 0 10px 28px rgba(13, 47, 32, 0.2);
+  box-shadow: var(--shadow-strong);
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
@@ -62,6 +66,7 @@ body {
 
 .portal-frame.sidebar-open .portal-header {
   transform: translateY(0);
+  box-shadow: var(--shadow-strong);
 }
 
 .menu-toggle {
@@ -69,20 +74,21 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  flex: 0 0 38px;
-  gap: 3px;
-  width: 38px;
-  height: 36px;
-  min-height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  flex: 0 0 44px;
+  gap: 4px;
+  width: 44px;
+  height: 42px;
+  min-height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
   border-radius: 8px;
   padding: 0;
   background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 18px rgba(13, 47, 32, 0.18);
 }
 
 .menu-toggle span {
   display: block;
-  width: 18px;
+  width: 22px;
   height: 2px;
   border-radius: 999px;
   background: var(--white);
@@ -108,13 +114,13 @@ body {
 
 .portal-brand strong {
   color: var(--white);
-  font-size: 1rem;
+  font-size: 1.12rem;
   line-height: 1.15;
 }
 
 .portal-brand small {
   color: rgba(255, 255, 255, 0.78);
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   line-height: 1.35;
 }
 
@@ -162,22 +168,28 @@ body {
 
 .portal-sidebar {
   position: fixed;
-  inset: var(--portal-header-height) auto 0 max(16px, calc((100vw - 1180px) / 2));
+  inset: var(--portal-header-height) auto 0 0;
   z-index: 25;
-  width: min(280px, calc(100vw - 32px));
+  width: min(var(--portal-sidebar-width), 88vw);
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0 8px 0 0;
-  padding: 10px 10px 72px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  padding: 14px 14px 82px;
   background: var(--white);
-  box-shadow: var(--shadow);
-  transform: translateX(calc(-100% - 28px));
-  transition: transform 180ms ease;
+  box-shadow: 18px 0 38px rgba(13, 47, 32, 0.18);
+  transform: translateX(calc(-100% - 2px));
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 200ms ease, visibility 0s linear 200ms;
 }
 
 .portal-frame.sidebar-open .portal-sidebar {
   transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition: transform 200ms ease;
 }
 
 .sidebar-backdrop {
@@ -202,9 +214,9 @@ body {
 
 .sidebar-footer {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  left: 10px;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
 }
 
 .nav-button {
@@ -467,14 +479,14 @@ button:disabled:hover {
 }
 
 .portal-header .menu-toggle {
-  flex: 0 0 38px;
-  width: 38px;
-  min-width: 38px;
-  max-width: 38px;
-  height: 36px;
-  min-height: 36px;
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 42px;
+  min-height: 42px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.36);
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -484,7 +496,7 @@ button:disabled:hover {
 }
 
 .portal-header .menu-toggle span {
-  width: 18px;
+  width: 22px;
   height: 2px;
   margin: 0;
 }
@@ -530,6 +542,7 @@ button:disabled:hover {
   border-radius: 8px;
   padding: 20px;
   background: var(--green-050);
+  box-shadow: var(--shadow-soft);
 }
 
 .empty-state {
@@ -637,6 +650,7 @@ button:disabled:hover {
   border-radius: 8px;
   padding: 12px;
   background: var(--white);
+  box-shadow: 0 4px 14px rgba(18, 61, 42, 0.06);
 }
 
 .summary-item dt {
@@ -712,6 +726,7 @@ button:disabled:hover {
   border-radius: 8px;
   padding: 10px 12px;
   background: var(--white);
+  box-shadow: 0 4px 14px rgba(18, 61, 42, 0.06);
 }
 
 .role-card span,
@@ -738,6 +753,7 @@ button:disabled:hover {
   border-radius: 8px;
   padding: 10px 12px;
   background: var(--white);
+  box-shadow: 0 4px 14px rgba(18, 61, 42, 0.06);
 }
 
 .presentation-list {
@@ -864,6 +880,7 @@ button:disabled:hover {
   border-radius: 8px;
   padding: 16px;
   background: var(--green-050);
+  box-shadow: var(--shadow-soft);
 }
 
 .activity-card-main {
@@ -1078,12 +1095,13 @@ button:disabled:hover {
 
 @media (max-width: 820px) {
   :root {
-    --portal-header-height: 56px;
+    --portal-header-height: 76px;
+    --portal-sidebar-width: 320px;
   }
 
   .portal-header {
     height: var(--portal-header-height);
-    padding: 0 16px;
+    padding: 0 18px;
   }
 
   .portal-body {
@@ -1092,7 +1110,8 @@ button:disabled:hover {
   }
 
   .portal-sidebar {
-    inset: var(--portal-header-height) auto 0 12px;
+    inset: var(--portal-header-height) auto 0 0;
+    width: min(var(--portal-sidebar-width), 88vw);
   }
 
   .sidebar-backdrop {
@@ -1115,7 +1134,7 @@ button:disabled:hover {
   }
 
   .portal-header {
-    gap: 10px;
+    gap: 12px;
     flex-wrap: nowrap;
     align-items: center;
   }
@@ -1137,20 +1156,32 @@ button:disabled:hover {
   }
 
   .portal-header .menu-toggle {
-    flex: 0 0 38px;
-    width: 38px;
-    min-width: 38px;
-    max-width: 38px;
-    height: 36px;
-    min-height: 36px;
+    flex: 0 0 46px;
+    width: 46px;
+    min-width: 46px;
+    max-width: 46px;
+    height: 44px;
+    min-height: 44px;
     padding: 0;
-    gap: 3px;
+    gap: 4px;
+  }
+
+  .portal-header .menu-toggle span {
+    width: 23px;
+  }
+
+  .portal-brand strong {
+    font-size: 1.08rem;
+  }
+
+  .portal-brand small {
+    font-size: 0.84rem;
   }
 
   .portal-sidebar {
     inset: var(--portal-header-height) auto 0 0;
-    width: min(280px, calc(100vw - 40px));
-    border-radius: 0 0 8px 0;
+    width: min(var(--portal-sidebar-width), 88vw);
+    border-radius: 0;
   }
 
   .sidebar-backdrop {

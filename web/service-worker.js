@@ -1,4 +1,4 @@
-const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v5';
+const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v6';
 
 const STATIC_ASSETS = [
   '/',
@@ -70,10 +70,21 @@ self.addEventListener('fetch', function aoBuscar(evento) {
     return;
   }
 
+  if (isAssetCritico(url.pathname)) {
+    evento.respondWith(networkFirstAsset(requisicao));
+    return;
+  }
+
   if (STATIC_ASSETS.indexOf(url.pathname) >= 0) {
     evento.respondWith(cacheFirst(requisicao));
   }
 });
+
+function isAssetCritico(caminho) {
+  return caminho === '/style.css'
+    || caminho === '/app.js'
+    || caminho.indexOf('/assets/js/') === 0;
+}
 
 function cacheFirst(requisicao) {
   return caches.match(requisicao)
@@ -109,5 +120,30 @@ function networkFirstIndex(requisicao) {
     })
     .catch(function usarHtmlCache() {
       return caches.match('/index.html');
+    });
+}
+
+function networkFirstAsset(requisicao) {
+  return fetch(requisicao)
+    .then(function guardarAsset(respostaRede) {
+      if (respostaRede && respostaRede.ok) {
+        var copia = respostaRede.clone();
+        caches.open(GEAPA_CACHE_VERSION).then(function abrirCache(cache) {
+          cache.put(requisicao, copia);
+        });
+      }
+
+      return respostaRede;
+    })
+    .catch(function usarAssetCache() {
+      return caches.match(requisicao)
+        .then(function tentarSemQuery(respostaCache) {
+          if (respostaCache) {
+            return respostaCache;
+          }
+
+          var url = new URL(requisicao.url);
+          return caches.match(url.pathname);
+        });
     });
 }
