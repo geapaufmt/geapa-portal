@@ -15,6 +15,18 @@
   <body>
     <div class="portal-frame">
       <header class="portal-header">
+        <button
+          class="menu-toggle"
+          id="menu-toggle"
+          type="button"
+          aria-label="Abrir menu"
+          aria-controls="portal-sidebar"
+          aria-expanded="false"
+        >
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </button>
         <div class="portal-brand">
           <span class="brand-mark" aria-hidden="true">G</span>
           <div>
@@ -32,7 +44,8 @@
       </header>
 
       <div class="portal-body">
-        <aside class="portal-sidebar" aria-label="Navegacao principal">
+        <div class="sidebar-backdrop" data-close-sidebar hidden></div>
+        <aside class="portal-sidebar" id="portal-sidebar" aria-label="Navegacao principal">
           <nav class="portal-nav">
             <button class="nav-button" type="button" data-voltar-situacao>
               <span>Minha situacao</span>

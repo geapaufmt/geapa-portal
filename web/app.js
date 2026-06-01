@@ -33,6 +33,9 @@ const FIREBASE_LOGIN_STATE = {
     return;
   }
 
+  configurarMenuGlobal();
+  configurarCabecalhoRecolhivel();
+
   botaoSolicitar.addEventListener('click', async function aoSolicitarCodigo() {
     const identificador = emailOuRga.value.trim();
 
@@ -1335,6 +1338,104 @@ function alternarFormularioOcupado(form, ocupado) {
 }
 
 /**
+ * Controla a gaveta de navegacao lateral do portal.
+ */
+function configurarMenuGlobal() {
+  const frame = document.querySelector('.portal-frame');
+  const botaoMenu = document.getElementById('menu-toggle');
+  const backdrop = document.querySelector('[data-close-sidebar]');
+  const sidebar = document.getElementById('portal-sidebar');
+
+  if (!frame || !botaoMenu || !sidebar) {
+    return;
+  }
+
+  botaoMenu.addEventListener('click', function alternarMenu() {
+    const aberto = frame.classList.contains('sidebar-open');
+    definirMenuAberto(!aberto);
+  });
+
+  if (backdrop) {
+    backdrop.addEventListener('click', function fecharAoClicarFora() {
+      definirMenuAberto(false);
+    });
+  }
+
+  Array.prototype.forEach.call(sidebar.querySelectorAll('button'), function registrarItem(botao) {
+    botao.addEventListener('click', function fecharAposNavegar() {
+      definirMenuAberto(false);
+    });
+  });
+
+  document.addEventListener('keydown', function fecharComEsc(event) {
+    if (event.key === 'Escape') {
+      definirMenuAberto(false);
+    }
+  });
+}
+
+/**
+ * Recolhe o cabecalho ao rolar para baixo e mostra ao voltar.
+ */
+function configurarCabecalhoRecolhivel() {
+  const header = document.querySelector('.portal-header');
+  const frame = document.querySelector('.portal-frame');
+
+  if (!header || !frame) {
+    return;
+  }
+
+  let ultimoScroll = window.scrollY || 0;
+  let aguardandoFrame = false;
+
+  window.addEventListener('scroll', function aoRolar() {
+    if (aguardandoFrame) {
+      return;
+    }
+
+    aguardandoFrame = true;
+    window.requestAnimationFrame(function atualizarCabecalho() {
+      const atual = window.scrollY || 0;
+      const descendo = atual > ultimoScroll;
+      const longeDoTopo = atual > 90;
+      const menuAberto = frame.classList.contains('sidebar-open');
+
+      header.classList.toggle('header-collapsed', descendo && longeDoTopo && !menuAberto);
+      ultimoScroll = atual;
+      aguardandoFrame = false;
+    });
+  }, { passive: true });
+}
+
+/**
+ * Abre ou fecha a gaveta lateral.
+ *
+ * @param {boolean} aberto Estado desejado.
+ */
+function definirMenuAberto(aberto) {
+  const frame = document.querySelector('.portal-frame');
+  const botaoMenu = document.getElementById('menu-toggle');
+  const backdrop = document.querySelector('[data-close-sidebar]');
+  const header = document.querySelector('.portal-header');
+
+  if (!frame || !botaoMenu) {
+    return;
+  }
+
+  frame.classList.toggle('sidebar-open', aberto);
+  botaoMenu.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+  botaoMenu.setAttribute('aria-label', aberto ? 'Fechar menu' : 'Abrir menu');
+
+  if (backdrop) {
+    backdrop.hidden = !aberto;
+  }
+
+  if (header && aberto) {
+    header.classList.remove('header-collapsed');
+  }
+}
+
+/**
  * Mostra a tela de situação após a entrada.
  *
  * @param {HTMLElement} app Elemento raiz.
@@ -1344,6 +1445,7 @@ function alternarFormularioOcupado(form, ocupado) {
 function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
   const telaAtividades = document.getElementById('tela-atividades');
 
+  definirMenuAberto(false);
   app.classList.remove('view-login', 'view-atividades');
   app.classList.add('view-situacao');
   telaAcesso.hidden = true;
@@ -1364,6 +1466,7 @@ function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
 function mostrarTelaAcesso(app, telaAcesso, telaSituacao) {
   const telaAtividades = document.getElementById('tela-atividades');
 
+  definirMenuAberto(false);
   app.classList.remove('view-situacao', 'view-atividades');
   app.classList.add('view-login');
   telaSituacao.hidden = true;
