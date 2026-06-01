@@ -342,6 +342,19 @@ button:disabled:hover {
   white-space: nowrap;
 }
 
+.status-pill-muted {
+  color: var(--muted);
+  background: var(--green-050);
+  font-weight: 600;
+}
+
+.activity-status-stack {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .summary-grid {
   margin: 0 0 20px;
   display: grid;
@@ -695,6 +708,19 @@ button:disabled:hover {
   margin: 0;
 }
 
+.attendance-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.attendance-state small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .attendance-summary div {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -771,6 +797,13 @@ button:disabled:hover {
   justify-content: space-between;
   gap: 12px;
   align-items: center;
+}
+
+.attendance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 820px) {

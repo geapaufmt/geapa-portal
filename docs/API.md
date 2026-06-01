@@ -523,7 +523,12 @@ Resposta esperada:
     "atividade": {},
     "participantes": [],
     "resumo": {},
+    "statusChamada": "SALVA",
+    "statusChamadaRotulo": "Chamada salva",
+    "chamadaFinalizada": false,
     "podeSalvar": true,
+    "podeFinalizar": true,
+    "podeReabrir": false,
     "modo": "DEV"
   }
 }
@@ -549,15 +554,25 @@ O campo `payload` contem JSON serializado com:
 ```json
 {
   "idAtividade": "ATV-2026-1-0005",
+  "operacao": "SALVAR",
   "registros": [],
   "externos": []
 }
 ```
 
+Operacoes aceitas:
+
+- `SALVAR`: grava ou atualiza a chamada;
+- `FINALIZAR`: grava, valida que todos os participantes estejam marcados e muda
+  o estado para chamada finalizada;
+- `REABRIR`: reabre uma chamada finalizada para ajustes autorizados.
+
 O salvamento ocorre somente pela API do Apps Script e pelo modulo
 `geapa-atividades`, usando a base v2 DEV. O front-end nao escreve diretamente em
 planilhas. O modulo revalida permissao, atividade, membros aplicaveis, status
-de presenca, `LockService` e logs.
+de presenca, `LockService` e logs. Registros de presenca ficam em
+`Atividades_Presencas_Registros`; o estado da chamada fica auditado em
+`Portal_Acoes`.
 
 ## Codigos de erro previstos
 
@@ -583,6 +598,9 @@ de presenca, `LockService` e logs.
 - `ID_ATIVIDADE_OBRIGATORIO`: detalhe de atividade foi solicitado sem ID.
 - `ATIVIDADE_NAO_ENCONTRADA`: atividade nao encontrada ou indisponivel para o
   perfil atual.
+- `CHAMADA_INCOMPLETA`: tentativa de finalizar chamada com participante sem
+  marcacao.
+- `CHAMADA_FINALIZADA`: tentativa de alterar chamada ja finalizada sem reabrir.
 
 ## Propriedades privadas do Apps Script
 

@@ -207,6 +207,17 @@ O payload de salvamento e enviado em lote, com `registros` para membros e
 `externos` para convidados/externos ja presentes na chamada retornada pelo
 backend. O Portal nao escreve diretamente em planilhas.
 
+O campo `operacao` controla o estado operacional:
+
+- `SALVAR`: grava ou atualiza registros e deixa a chamada como salva;
+- `FINALIZAR`: grava registros e marca a chamada como finalizada;
+- `REABRIR`: reabre uma chamada finalizada para ajustes autorizados.
+
+Quando a chamada esta finalizada, o front-end troca o botao da lista para
+"Visualizar chamada" e abre a tela em modo somente leitura. O status operacional
+fica registrado em `Portal_Acoes`; os registros de presenca continuam em
+`Atividades_Presencas_Registros`.
+
 ## Integração atual do portal
 
 O Apps Script do portal chama o módulo `geapa-atividades` como biblioteca

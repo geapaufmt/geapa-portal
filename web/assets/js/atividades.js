@@ -435,7 +435,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesBundle.v3.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesBundle.v4.' + hashCurto(token + ':' + usuarioId);
   }
 
   function hashCurto(valor) {
@@ -501,7 +501,12 @@
         '<h3>' + ui.escaparHtml(atividade.tituloPublico) + '</h3>',
         '<p class="activity-meta">' + ui.escaparHtml(atividade.horarioInicio + ' às ' + atividade.horarioFim) + ' · ' + ui.escaparHtml(atividade.local) + '</p>',
         '</div>',
+        '<div class="activity-status-stack">',
         '<span class="status-pill">' + ui.escaparHtml(ui.formatarRotulo(atividade.statusPublico)) + '</span>',
+        atividade.statusChamadaRotulo
+          ? '<span class="status-pill status-pill-muted">' + ui.escaparHtml(atividade.statusChamadaRotulo) + '</span>'
+          : '',
+        '</div>',
         '</div>',
         '<dl class="activity-facts">',
         montarFato('Tipo', atividade.tipoPublico),
@@ -566,10 +571,12 @@
       return '';
     }
 
+    var rotulo = atividade.chamadaFinalizada ? 'Visualizar chamada' : 'Registrar chamada';
+
     return [
       '<button class="secondary-button compact-button" type="button" data-activity-attendance="',
       ui.escaparHtml(atividade.idAtividade),
-      '">Registrar chamada</button>'
+      '">' + ui.escaparHtml(rotulo) + '</button>'
     ].join('');
   }
 
@@ -687,6 +694,14 @@
       }),
       resumo: origem.resumo || {},
       podeSalvar: origem.podeSalvar === true,
+      podeFinalizar: origem.podeFinalizar === true,
+      podeReabrir: origem.podeReabrir === true,
+      statusChamada: origem.statusChamada || 'RASCUNHO',
+      statusChamadaRotulo: origem.statusChamadaRotulo || 'Chamada pendente',
+      chamadaFinalizada: origem.chamadaFinalizada === true,
+      statusChamadaAtualizadoEm: origem.statusChamadaAtualizadoEm || '',
+      statusChamadaAtualizadoPor: origem.statusChamadaAtualizadoPor || '',
+      resumoSalvo: origem.resumoSalvo || {},
       modo: origem.modo || 'DEV',
       ultimaAtualizacao: origem.ultimaAtualizacao || ''
     };
@@ -696,7 +711,7 @@
     var conteudo = document.getElementById('atividade-modal-content');
     var atividade = chamada.atividade || {};
 
-    definirTituloModal('Registrar chamada');
+    definirTituloModal(chamada.chamadaFinalizada ? 'Visualizar chamada' : 'Registrar chamada');
     conteudo.innerHTML = [
       '<div class="attendance-shell">',
       '<p class="eyebrow">' + ui.escaparHtml(atividade.idAtividade || 'Atividade') + '</p>',
@@ -709,6 +724,7 @@
       ].filter(Boolean).join(' · ')),
       '</p>',
       '<p class="simulation-warning">Registro em modo ' + ui.escaparHtml(chamada.modo || 'DEV') + '. A chamada é salva somente pela API do Apps Script.</p>',
+      montarEstadoChamada(chamada),
       montarResumoChamada(calcularResumoChamada(chamada.participantes)),
       '<div class="attendance-list">',
       chamada.participantes.length
@@ -717,15 +733,49 @@
       '</div>',
       '<div class="attendance-footer">',
       '<p id="chamada-status" class="section-note" role="status" aria-live="polite"></p>',
-      '<button class="secondary-button compact-button" type="button" data-save-attendance ' +
-        (chamada.podeSalvar ? '' : 'disabled') +
-        '>Salvar chamada</button>',
+      '<div class="attendance-actions">',
+      chamada.chamadaFinalizada && chamada.podeReabrir
+        ? '<button class="secondary-button compact-button" type="button" data-reopen-attendance>Reabrir chamada</button>'
+        : '',
+      !chamada.chamadaFinalizada
+        ? '<button class="secondary-button compact-button" type="button" data-save-attendance ' +
+          (chamada.podeSalvar ? '' : 'disabled') +
+          '>Salvar chamada</button>'
+        : '',
+      !chamada.chamadaFinalizada
+        ? '<button class="primary-button compact-button" type="button" data-finalize-attendance ' +
+          (chamada.podeFinalizar ? '' : 'disabled') +
+          '>Finalizar chamada</button>'
+        : '',
+      '</div>',
       '</div>',
       '</div>'
     ].join('');
 
     registrarEventosChamada(conteudo);
     atualizarResumoChamada();
+  }
+
+  function montarEstadoChamada(chamada) {
+    var partes = [
+      '<div class="attendance-state">',
+      '<span class="status-pill">' + ui.escaparHtml(chamada.statusChamadaRotulo || 'Chamada pendente') + '</span>'
+    ];
+
+    if (chamada.statusChamadaAtualizadoEm) {
+      partes.push('<small>Atualizada em ' + ui.escaparHtml(formatarDataHoraCurta(chamada.statusChamadaAtualizadoEm)) + '</small>');
+    }
+
+    if (chamada.statusChamadaAtualizadoPor) {
+      partes.push('<small>Por ' + ui.escaparHtml(chamada.statusChamadaAtualizadoPor) + '</small>');
+    }
+
+    if (chamada.chamadaFinalizada) {
+      partes.push('<small>Esta chamada está finalizada e aberta apenas para consulta.</small>');
+    }
+
+    partes.push('</div>');
+    return partes.join('');
   }
 
   function montarResumoChamada(resumo) {
@@ -742,6 +792,8 @@
 
   function montarParticipanteChamada(participante) {
     var bloqueado = participante.bloqueado || participante.aplicavelNaData === false;
+    var somenteLeitura = chamadaAtual && chamadaAtual.chamadaFinalizada;
+    var desabilitado = bloqueado || somenteLeitura;
 
     return [
       '<article class="attendance-row" data-attendance-row data-index="' + participante.indice + '">',
@@ -754,7 +806,7 @@
       '</div>',
       '<label class="attendance-field">',
       '<span>Presença</span>',
-      '<select data-attendance-status ' + (bloqueado ? 'disabled' : '') + '>',
+      '<select data-attendance-status ' + (desabilitado ? 'disabled' : '') + '>',
       STATUS_CHAMADA.map(function montarOpcao(opcao) {
         return '<option value="' + ui.escaparHtml(opcao.valor) + '" ' +
           (opcao.valor === participante.statusPresenca ? 'selected' : '') +
@@ -765,7 +817,7 @@
       '<label class="attendance-field attendance-note">',
       '<span>Observação</span>',
       '<input data-attendance-note type="text" maxlength="300" value="' + ui.escaparHtml(participante.observacoes) + '" ' +
-        (bloqueado ? 'disabled' : '') +
+        (desabilitado ? 'disabled' : '') +
         '>',
       '</label>',
       '</article>'
@@ -793,7 +845,21 @@
 
     var botaoSalvar = container.querySelector('[data-save-attendance]');
     if (botaoSalvar) {
-      botaoSalvar.addEventListener('click', salvarChamadaAtual);
+      botaoSalvar.addEventListener('click', function salvar() {
+        salvarChamadaAtual('SALVAR');
+      });
+    }
+
+    var botaoFinalizar = container.querySelector('[data-finalize-attendance]');
+    if (botaoFinalizar) {
+      botaoFinalizar.addEventListener('click', function finalizar() {
+        salvarChamadaAtual('FINALIZAR');
+      });
+    }
+
+    var botaoReabrir = container.querySelector('[data-reopen-attendance]');
+    if (botaoReabrir) {
+      botaoReabrir.addEventListener('click', reabrirChamadaAtual);
     }
   }
 
@@ -862,32 +928,56 @@
     return encontrado ? encontrado.codigo : '';
   }
 
-  function salvarChamadaAtual() {
+  function formatarDataHoraCurta(valor) {
+    var data = new Date(valor);
+
+    if (Number.isNaN(data.getTime())) {
+      return valor || '';
+    }
+
+    return data.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  function salvarChamadaAtual(operacao) {
     if (!chamadaAtual || !chamadaAtual.atividade) {
       return;
     }
 
+    var operacaoNormalizada = operacao === 'FINALIZAR' ? 'FINALIZAR' : 'SALVAR';
     var participantes = lerParticipantesChamadaDoModal();
     var resumo = calcularResumoChamada(participantes);
     var status = document.getElementById('chamada-status');
-    var botao = document.querySelector('[data-save-attendance]');
+    var botao = document.querySelector(operacaoNormalizada === 'FINALIZAR'
+      ? '[data-finalize-attendance]'
+      : '[data-save-attendance]');
 
     if (resumo.totalSemMarcacao > 0) {
       if (status) {
-        status.textContent = 'Marque todos os participantes antes de salvar a chamada.';
+        status.textContent = 'Marque todos os participantes antes de ' +
+          (operacaoNormalizada === 'FINALIZAR' ? 'finalizar' : 'salvar') +
+          ' a chamada.';
       }
       return;
     }
 
     var payload = montarPayloadSalvarChamada(chamadaAtual.atividade.idAtividade, participantes);
+    payload.operacao = operacaoNormalizada;
     var inicio = obterTempoAtual();
 
     if (botao) {
       botao.disabled = true;
-      botao.textContent = 'Salvando...';
+      botao.textContent = operacaoNormalizada === 'FINALIZAR' ? 'Finalizando...' : 'Salvando...';
     }
     if (status) {
-      status.textContent = 'Salvando chamada na base DEV.';
+      status.textContent = operacaoNormalizada === 'FINALIZAR'
+        ? 'Finalizando chamada na base DEV.'
+        : 'Salvando chamada na base DEV.';
     }
 
     api.apiPost('/atividades/chamada/salvar', {
@@ -898,12 +988,16 @@
       }
 
       chamadaAtual.participantes = participantes;
+      aplicarStatusChamadaAtual(resposta.data || {});
+      sincronizarStatusChamadaNaLista(chamadaAtual.atividade.idAtividade, chamadaAtual);
       if (status) {
         status.textContent = resposta.message || 'Chamada salva com sucesso.';
       }
+      renderizarChamada(chamadaAtual);
       registrarPerfAtividades('atividades.chamada.salva', inicio, {
         idAtividade: payload.idAtividade,
         totalRegistros: payload.registros.length + payload.externos.length,
+        operacao: operacaoNormalizada,
         payloadBytes: estimarPayloadBytes(payload)
       });
     }).catch(function tratarErro(erro) {
@@ -913,9 +1007,92 @@
     }).then(function finalizar() {
       if (botao) {
         botao.disabled = false;
-        botao.textContent = 'Salvar chamada';
+        botao.textContent = operacaoNormalizada === 'FINALIZAR' ? 'Finalizar chamada' : 'Salvar chamada';
       }
     });
+  }
+
+  function reabrirChamadaAtual() {
+    if (!chamadaAtual || !chamadaAtual.atividade) {
+      return;
+    }
+
+    var status = document.getElementById('chamada-status');
+    var botao = document.querySelector('[data-reopen-attendance]');
+    var payload = {
+      idAtividade: chamadaAtual.atividade.idAtividade,
+      operacao: 'REABRIR',
+      registros: [],
+      externos: []
+    };
+
+    if (botao) {
+      botao.disabled = true;
+      botao.textContent = 'Reabrindo...';
+    }
+    if (status) {
+      status.textContent = 'Reabrindo chamada para ajustes.';
+    }
+
+    api.apiPost('/atividades/chamada/salvar', {
+      payload: JSON.stringify(payload)
+    }).then(function tratarResposta(resposta) {
+      if (!resposta.ok) {
+        throw new Error(resposta.message || 'Não foi possível reabrir a chamada.');
+      }
+
+      aplicarStatusChamadaAtual(resposta.data || {});
+      sincronizarStatusChamadaNaLista(chamadaAtual.atividade.idAtividade, chamadaAtual);
+      renderizarChamada(chamadaAtual);
+    }).catch(function tratarErro(erro) {
+      if (status) {
+        status.textContent = erro.message;
+      }
+    }).then(function finalizar() {
+      if (botao) {
+        botao.disabled = false;
+        botao.textContent = 'Reabrir chamada';
+      }
+    });
+  }
+
+  function aplicarStatusChamadaAtual(dados) {
+    chamadaAtual.statusChamada = dados.statusChamada || chamadaAtual.statusChamada;
+    chamadaAtual.statusChamadaRotulo = dados.statusChamadaRotulo || chamadaAtual.statusChamadaRotulo;
+    chamadaAtual.chamadaFinalizada = dados.chamadaFinalizada === true;
+    chamadaAtual.statusChamadaAtualizadoEm = dados.statusChamadaAtualizadoEm || new Date().toISOString();
+    chamadaAtual.statusChamadaAtualizadoPor = dados.statusChamadaAtualizadoPor || chamadaAtual.statusChamadaAtualizadoPor;
+    chamadaAtual.podeSalvar = !chamadaAtual.chamadaFinalizada;
+    chamadaAtual.podeFinalizar = !chamadaAtual.chamadaFinalizada;
+    chamadaAtual.podeReabrir = chamadaAtual.chamadaFinalizada;
+  }
+
+  function sincronizarStatusChamadaNaLista(idAtividade, chamada) {
+    var resumo = atividadesResumoCache[idAtividade];
+    var lista = document.getElementById('atividades-lista');
+
+    if (resumo) {
+      resumo.statusChamada = chamada.statusChamada;
+      resumo.statusChamadaRotulo = chamada.statusChamadaRotulo;
+      resumo.chamadaFinalizada = chamada.chamadaFinalizada;
+      resumo.statusChamadaAtualizadoEm = chamada.statusChamadaAtualizadoEm;
+    }
+
+    if (atividadesBundleCache && Array.isArray(atividadesBundleCache.calendario)) {
+      atividadesBundleCache.calendario.forEach(function atualizarItem(item) {
+        if (item && item.idAtividade === idAtividade) {
+          item.statusChamada = chamada.statusChamada;
+          item.statusChamadaRotulo = chamada.statusChamadaRotulo;
+          item.chamadaFinalizada = chamada.chamadaFinalizada;
+          item.statusChamadaAtualizadoEm = chamada.statusChamadaAtualizadoEm;
+        }
+      });
+      salvarBundleAtividadesCache(atividadesBundleCache);
+    }
+
+    if (lista && atividadesBundleCache && Array.isArray(atividadesBundleCache.calendario)) {
+      renderizarAtividades(lista, atividadesBundleCache.calendario);
+    }
   }
 
   function montarPayloadSalvarChamada(idAtividade, participantes) {
