@@ -17,6 +17,7 @@ import {
   var app = null;
   var auth = null;
   var provider = null;
+  var redirectResultPromise = null;
 
   function possuiConfigBasica(dados) {
     return Boolean(dados && dados.apiKey && dados.authDomain && dados.projectId && dados.appId);
@@ -42,10 +43,14 @@ import {
       // Se o navegador bloquear storage, o Firebase mantem o comportamento padrao possivel.
     });
 
-    getRedirectResult(auth).catch(function registrarErroRedirect(erro) {
+    redirectResultPromise = getRedirectResult(auth).then(function obterUsuarioRedirect(credencial) {
+      return credencial && credencial.user ? credencial.user : null;
+    }).catch(function registrarErroRedirect(erro) {
       if (global.console && typeof global.console.warn === 'function') {
         global.console.warn('[Portal GEAPA] firebase.redirect', erro && erro.code ? erro.code : erro);
       }
+
+      throw erro;
     });
 
     return true;
@@ -96,6 +101,11 @@ import {
     return auth ? auth.currentUser : null;
   }
 
+  function getRedirectUser() {
+    inicializar();
+    return redirectResultPromise || Promise.resolve(null);
+  }
+
   function signOutFromGoogle() {
     inicializar();
     return auth ? signOut(auth) : Promise.resolve();
@@ -106,6 +116,7 @@ import {
     signInWithGoogle: signInWithGoogle,
     observeAuthState: observeAuthState,
     getCurrentUser: getCurrentUser,
+    getRedirectUser: getRedirectUser,
     signOutFromGoogle: signOutFromGoogle
   };
 

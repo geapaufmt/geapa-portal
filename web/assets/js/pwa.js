@@ -6,6 +6,7 @@
  */
 (function configurarPwaPortal(global) {
   var installPromptEvent = null;
+  var reloadingForUpdate = false;
 
   function registrarServiceWorker() {
     if (!('serviceWorker' in navigator)) {
@@ -13,11 +14,24 @@
     }
 
     global.addEventListener('load', function aoCarregarPagina() {
-      navigator.serviceWorker.register('/service-worker.js').catch(function registrarErro(erro) {
-        if (global.console && typeof global.console.warn === 'function') {
-          global.console.warn('[Portal GEAPA] service-worker', erro);
-        }
-      });
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(function atualizarRegistro(registro) {
+          return registro.update();
+        })
+        .catch(function registrarErro(erro) {
+          if (global.console && typeof global.console.warn === 'function') {
+            global.console.warn('[Portal GEAPA] service-worker', erro);
+          }
+        });
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange', function aoAtualizarControle() {
+      if (reloadingForUpdate) {
+        return;
+      }
+
+      reloadingForUpdate = true;
+      global.location.reload();
     });
   }
 

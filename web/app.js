@@ -293,6 +293,28 @@ function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao
     return;
   }
 
+  if (typeof firebaseAuth.getRedirectUser === 'function') {
+    firebaseAuth.getRedirectUser()
+      .then(function aoRetornarDoGoogle(usuarioFirebase) {
+        if (!usuarioFirebase || lerSessaoLocal()) {
+          return;
+        }
+
+        return autenticarFirebaseNoPortal(
+          usuarioFirebase,
+          app,
+          telaAcesso,
+          telaSituacao,
+          situacao,
+          status,
+          usuarioContexto
+        );
+      })
+      .catch(function tratarErroRedirect(erro) {
+        atualizarStatus(status, erro.message || 'Nao foi possivel concluir o login com Google.');
+      });
+  }
+
   firebaseAuth.observeAuthState(function aoMudarUsuarioFirebase(usuarioFirebase) {
     if (!usuarioFirebase || lerSessaoLocal()) {
       return;
