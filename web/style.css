@@ -249,6 +249,7 @@ body {
   background: #841b1b !important;
 }
 
+.nav-button.active,
 .portal-body:has(.view-situacao) [data-voltar-situacao],
 .portal-body:has(.view-atividades) [data-open-atividades] {
   color: var(--white);

@@ -35,6 +35,7 @@ const FIREBASE_LOGIN_STATE = {
 
   configurarMenuGlobal();
   configurarCabecalhoRecolhivel();
+  sincronizarNavegacaoPortal();
 
   botaoSolicitar.addEventListener('click', async function aoSolicitarCodigo() {
     const identificador = emailOuRga.value.trim();
@@ -1011,6 +1012,7 @@ function atualizarContextoUsuario(container, usuario) {
       botao.hidden = true;
     });
 
+    sincronizarNavegacaoPortal();
     return;
   }
 
@@ -1027,6 +1029,19 @@ function atualizarContextoUsuario(container, usuario) {
   Array.prototype.forEach.call(botoesDiretoria, function alternarBotao(botao) {
     botao.hidden = !(usuario.permissoes && usuario.permissoes.podeVerAreaDiretoria);
   });
+
+  sincronizarNavegacaoPortal();
+}
+
+/**
+ * Recalcula itens e estado ativo da navegacao centralizada, quando disponivel.
+ */
+function sincronizarNavegacaoPortal() {
+  const navegacao = window.PortalGeapaNavigation;
+
+  if (navegacao && typeof navegacao.atualizarMenu === 'function') {
+    navegacao.atualizarMenu();
+  }
 }
 
 /**
@@ -1443,7 +1458,13 @@ function definirMenuAberto(aberto) {
  * @param {HTMLElement} telaSituacao Tela de situação.
  */
 function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
+  const navegacao = window.PortalGeapaNavigation;
   const telaAtividades = document.getElementById('tela-atividades');
+
+  if (navegacao && typeof navegacao.irPara === 'function') {
+    navegacao.irPara('situacao');
+    return;
+  }
 
   definirMenuAberto(false);
   app.classList.remove('view-login', 'view-atividades');
@@ -1464,7 +1485,13 @@ function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
  * @param {HTMLElement} telaSituacao Tela de situação.
  */
 function mostrarTelaAcesso(app, telaAcesso, telaSituacao) {
+  const navegacao = window.PortalGeapaNavigation;
   const telaAtividades = document.getElementById('tela-atividades');
+
+  if (navegacao && typeof navegacao.irPara === 'function') {
+    navegacao.irPara('login');
+    return;
+  }
 
   definirMenuAberto(false);
   app.classList.remove('view-situacao', 'view-atividades');

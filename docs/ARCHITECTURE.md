@@ -120,6 +120,23 @@ O GitHub Pages usa esses dados apenas para montar navegação e esconder ou
 exibir áreas. A autorização real continua no Apps Script/backend, que deve
 validar sessão, identidade, perfil e permissão antes de qualquer ação sensível.
 
+## Navegacao interna
+
+A navegacao do portal e centralizada em `web/assets/js/navigation.js`. Esse
+arquivo registra as rotas visuais atuais (`login`, `situacao`, `atividades` e
+`diretoria` em preparacao), aplica a classe `view-*` no shell principal,
+mostra/esconde as secoes HTML correspondentes, fecha a gaveta lateral no mobile
+e recalcula o estado dos botoes de menu.
+
+O arquivo consome `PortalGeapaAuth` para decidir se um item visual pode aparecer
+ou ser acessado. Essa decisao e apenas ergonomica: endpoints e operacoes reais
+devem continuar revalidando sessao e permissao no Apps Script.
+
+Modulos funcionais devem reagir ao evento `portal:navigationchange` quando
+precisarem carregar dados ao abrir uma tela. A aba `Atividades`, por exemplo,
+mantem seu cache e suas chamadas de API em `web/assets/js/atividades.js`, mas a
+troca de tela passa pelo roteador central.
+
 Para o módulo de Atividades, o Apps Script converte os perfis ricos do Core para
 o contrato operacional do módulo:
 

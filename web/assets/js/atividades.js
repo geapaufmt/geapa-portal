@@ -8,6 +8,7 @@
 (function configurarAtividadesPortal(global) {
   var api = global.PortalGeapaApi;
   var auth = global.PortalGeapaAuth;
+  var navigation = global.PortalGeapaNavigation;
   var ui = global.PortalGeapaUi;
   var ATIVIDADES_CACHE_TTL_MS = 5 * 60 * 1000;
   var detalhesCache = {};
@@ -39,17 +40,35 @@
       return;
     }
 
-    Array.prototype.forEach.call(botoesAbrir, function registrarBotao(botao) {
-      botao.addEventListener('click', function abrirAtividades() {
-        mostrarTelaAtividades();
+    if (navigation) {
+      document.addEventListener('portal:navigationchange', function carregarAoNavegar(evento) {
+        var rota = evento.detail && evento.detail.rota;
+
+        if (!rota || rota.id !== 'atividades') {
+          return;
+        }
+
         atualizarAcoesDaTela(botaoCriar);
         carregarAtividades(lista, status);
       });
-    });
 
-    Array.prototype.forEach.call(botoesVoltar, function registrarBotao(botao) {
-      botao.addEventListener('click', mostrarTelaSituacaoOuAcesso);
-    });
+      if (typeof navigation.getRotaAtual === 'function' && navigation.getRotaAtual() === 'atividades') {
+        atualizarAcoesDaTela(botaoCriar);
+        carregarAtividades(lista, status);
+      }
+    } else {
+      Array.prototype.forEach.call(botoesAbrir, function registrarBotao(botao) {
+        botao.addEventListener('click', function abrirAtividades() {
+          mostrarTelaAtividades();
+          atualizarAcoesDaTela(botaoCriar);
+          carregarAtividades(lista, status);
+        });
+      });
+
+      Array.prototype.forEach.call(botoesVoltar, function registrarBotao(botao) {
+        botao.addEventListener('click', mostrarTelaSituacaoOuAcesso);
+      });
+    }
 
     botaoFecharModal.addEventListener('click', fecharModal);
     modal.addEventListener('click', function fecharAoClicarFora(event) {
