@@ -68,7 +68,7 @@
       sectionId: 'tela-placeholder',
       grupoMenu: 'publico-geral',
       perfisPermitidos: TODOS_PERFIS,
-      permissoesNecessarias: ['portal:acessar'],
+      permissoesNecessarias: [],
       requerLogin: false,
       mostrarNoMenu: true,
       ordem: 1,
@@ -323,6 +323,16 @@
 
     acesso = resolveRouteAccess(sessao, rota);
 
+    if (!acesso.ok && acesso.reason === MOTIVOS_ACESSO.PORTAL_INATIVO && rota.id !== 'inicio') {
+      rota = resolverRota('inicio');
+      acesso = resolveRouteAccess(sessao, rota);
+      detalhes = Object.assign({}, detalhes, {
+        atualizarHash: true,
+        motivo: 'portal-inativo-redirecionado',
+        substituirHash: true
+      });
+    }
+
     if (!acesso.ok) {
       renderAccessDenied(rota, acesso.reason);
       aplicarViewAcessoNegado();
@@ -420,7 +430,7 @@
       return { ok: false, reason: MOTIVOS_ACESSO.NOT_AUTHENTICATED };
     }
 
-    if (sessao.autenticado && sessao.portalAtivo === false) {
+    if (rota.requerLogin && sessao.autenticado && sessao.portalAtivo === false) {
       return { ok: false, reason: MOTIVOS_ACESSO.PORTAL_INATIVO };
     }
 
@@ -546,12 +556,13 @@
 
   function renderPlaceholderRoute(rota, sessao) {
     var container = document.getElementById('placeholder-content');
+    var conteudo;
 
     if (!container) {
       return;
     }
 
-    container.innerHTML = [
+    conteudo = [
       '<p class="eyebrow">',
       escaparHtml(obterLabelGrupo(rota.grupoMenu)),
       '</p>',
@@ -560,17 +571,30 @@
       '</h2>',
       '<p class="intro">',
       escaparHtml(rota.descricao),
-      '</p>',
-      '<div class="route-policy-card">',
-      '<h3>Politica visual desta rota</h3>',
-      '<dl class="route-policy-list">',
-      montarLinhaPolitica('Status', rota.status === 'placeholder' ? 'Tela futura / placeholder' : rota.status),
-      montarLinhaPolitica('Perfil atual', sessao.perfilPortalEfetivo || 'VISITANTE'),
-      montarLinhaPolitica('Perfis permitidos', (rota.perfisPermitidos || []).join(', ')),
-      montarLinhaPolitica('Permissoes da rota', (rota.permissoesNecessarias || []).join(', ') || 'Nenhuma'),
-      '</dl>',
-      '</div>'
-    ].join('');
+      '</p>'
+    ];
+
+    if (deveMostrarPoliticaVisual()) {
+      conteudo = conteudo.concat([
+        '<div class="route-policy-card">',
+        '<h3>Politica visual desta rota</h3>',
+        '<dl class="route-policy-list">',
+        montarLinhaPolitica('Status', rota.status === 'placeholder' ? 'Tela futura / placeholder' : rota.status),
+        montarLinhaPolitica('Perfil atual', sessao.perfilPortalEfetivo || 'VISITANTE'),
+        montarLinhaPolitica('Perfis permitidos', (rota.perfisPermitidos || []).join(', ')),
+        montarLinhaPolitica('Permissoes da rota', (rota.permissoesNecessarias || []).join(', ') || 'Nenhuma'),
+        '</dl>',
+        '</div>'
+      ]);
+    }
+
+    container.innerHTML = conteudo.join('');
+  }
+
+  function deveMostrarPoliticaVisual() {
+    var config = global.PortalGeapaConfig || {};
+
+    return config.SHOW_ROUTE_POLICY === true || config.ROUTE_DEBUG === true;
   }
 
   function renderAccessDenied(rota, reason) {
@@ -672,6 +696,11 @@
     var novoHash = '#/' + rota.path;
 
     if (global.location.hash !== novoHash) {
+      if (opcoes && opcoes.substituirHash === true && global.history && typeof global.history.replaceState === 'function') {
+        global.history.replaceState(null, '', global.location.pathname + global.location.search + novoHash);
+        return;
+      }
+
       ignorarProximoHash = true;
       global.location.hash = novoHash;
     }
