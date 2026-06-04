@@ -10,8 +10,9 @@ Qualquer autorizacao real continua obrigatoriamente no Apps Script/backend.
 
 ## Objeto canonico
 
-O CORE deve retornar a sessao resolvida em `data.sessao` sempre que uma acao
-precisar atualizar a navegacao do Portal.
+O backend Apps Script do Portal chama `corePortalResolverUsuarioAtual(entrada,
+opts)` no GEAPA-CORE e deve retornar a sessao resolvida em `data.sessao` sempre
+que uma acao precisar atualizar a navegacao do Portal.
 
 ```json
 {
@@ -85,17 +86,31 @@ O Portal nao pode:
 `ADMIN` deve vir de autorizacao explicita do CORE. Cargo de diretoria,
 secretaria, comunicacao ou conselho nao concede `ADMIN` automaticamente.
 
-## Funcoes futuras do CORE
+## Funcao oficial do CORE
 
-Quando disponivel, o Portal deve consumir uma funcao publica equivalente a:
+O Portal consome a funcao publica:
 
 ```text
-corePortalResolverUsuarioAtual(sessionToken)
+corePortalResolverUsuarioAtual(entrada, opts)
 ```
 
-Essa funcao deve devolver a sessao canonica ja filtrada e pronta para o Portal.
+`entrada` pode ser e-mail, RGA, ID_PESSOA ou objeto com
+`email`/`rga`/`idPessoa`/`identificador`/`emailOuRga`, conforme contrato do
+CORE. Essa funcao deve devolver a sessao canonica ja filtrada e pronta para o
+Portal.
+
+O Apps Script do Portal prioriza esse resolvedor e mantem fallbacks temporarios
+para `geapaCoreBuscarMembroParaPortal`, `geapaCoreBuscarMinhaSituacaoParaPortal`
+e `corePortalAuthorizeEmail`.
+
 Se o nome definitivo mudar, a troca deve ficar isolada no Apps Script/API e no
 adapter de sessao do front-end, sem alterar a matriz de rotas.
+
+## Acoes que retornam data.sessao
+
+- `validarCodigo`, quando o acesso por codigo for concluido.
+- `portalLogin`, quando o login Firebase for autorizado.
+- `minhaSituacao`, incluindo respostas vindas do CORE e respostas em cache.
 
 ## Relacao com rotas protegidas
 

@@ -9,7 +9,12 @@ primeira versao parcial da tela "Minha situacao". Nome, RGA, vinculo e situacao
 geral podem vir do backend; frequencia, pendencias, certificados e historico
 ainda ficam em preparacao.
 
-O backend possui dois pontos de integracao com GEAPA-CORE:
+O backend prioriza o resolvedor oficial de sessao do GEAPA-CORE:
+
+- `corePortalResolverUsuarioAtual(entrada, opts)`, usado para obter a sessao
+  canonica do usuario atual, incluindo perfil efetivo e permissoes.
+
+Tambem existem pontos de integracao legados mantidos por compatibilidade:
 
 - `geapaCoreBuscarMembroParaPortal(emailOuRga)`, usado no fluxo de codigo para
   localizar o e-mail cadastrado do membro;
@@ -72,8 +77,9 @@ Campos:
 ## Sessao resolvida do Portal
 
 Quando uma acao precisar atualizar navegacao, rotas protegidas ou contexto do
-usuario, o backend deve retornar a sessao resolvida pelo GEAPA-CORE em
-`data.sessao`.
+usuario, o backend retorna a sessao resolvida pelo GEAPA-CORE em `data.sessao`.
+Isso vale para `validarCodigo`, `portalLogin` e `minhaSituacao` quando o CORE
+estiver disponivel.
 
 Contrato canonico:
 
@@ -237,6 +243,20 @@ Resposta em modo de teste:
   "data": {
     "sessionToken": "sessao-temporaria",
     "validadeSessaoMinutos": 120,
+    "sessao": {
+      "autenticado": true,
+      "idPessoa": "PES-0001",
+      "nomeExibicao": "Membro GEAPA",
+      "email": "membro@example.org",
+      "perfilPortalEfetivo": "MEMBRO",
+      "perfisPortal": ["MEMBRO"],
+      "permissoes": ["portal:acessar", "situacao:ver_propria"],
+      "portalAtivo": true,
+      "tipoVinculoAtual": "MEMBRO",
+      "statusVinculoAtual": "ATIVO",
+      "cargoFuncaoAtual": "",
+      "cargosAtuais": []
+    },
     "identificadorRecebido": "valor-informado-pelo-membro"
   },
   "meta": {

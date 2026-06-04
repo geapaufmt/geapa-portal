@@ -97,3 +97,63 @@ function portalDiagnosticarCadastro(emailOuRga) {
   Logger.log(JSON.stringify(resultado, null, 2));
   return resultado;
 }
+
+/**
+ * Diagnostica a sessao oficial retornada pelo GEAPA-CORE para o Portal.
+ *
+ * Para usar pelo botao Executar do Apps Script, configure
+ * `PORTAL_DIAGNOSTICO_IDENTIFICADOR` nas propriedades privadas. Esta funcao nao
+ * deve ser exposta ao front-end.
+ *
+ * Cenarios manuais a validar com identificadores reais ou controlados:
+ * MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, EGRESSO,
+ * COLABORADOR, EXTERNO e ADMIN explicito.
+ *
+ * @return {Object} Diagnostico seguro da sessao.
+ */
+function portalRunDiagnosticoSessaoCore() {
+  var propriedades = PropertiesService.getScriptProperties();
+  var identificador = propriedades.getProperty(
+    PORTAL_CONFIG.propriedades.diagnosticoIdentificador
+  );
+  var sessao = portalResolverSessaoAtualViaGeapaCore_(identificador, {
+    origem: 'diagnostico-sessao'
+  });
+  var resultado = {
+    ok: Boolean(sessao),
+    identificadorInformado: portalMascararIdentificador_(identificador || ''),
+    contrato: sessao ? {
+      ok: sessao.ok,
+      autenticado: sessao.autenticado,
+      idPessoaPresente: Boolean(sessao.idPessoa),
+      nomeExibicaoPresente: Boolean(sessao.nomeExibicao),
+      emailPresente: Boolean(sessao.email),
+      rgaPresente: Boolean(sessao.rga),
+      perfilPortalEfetivo: sessao.perfilPortalEfetivo,
+      perfisPortal: sessao.perfisPortal,
+      permissoes: sessao.permissoes,
+      portalAtivo: sessao.portalAtivo,
+      tipoVinculoAtual: sessao.tipoVinculoAtual,
+      statusVinculoAtual: sessao.statusVinculoAtual,
+      cargoFuncaoAtual: sessao.cargoFuncaoAtual,
+      quantidadeCargosAtuais: Array.isArray(sessao.cargosAtuais)
+        ? sessao.cargosAtuais.length
+        : 0,
+      motivoBloqueio: sessao.motivoBloqueio
+    } : null,
+    cenariosManuais: [
+      'MEMBRO',
+      'DIRETORIA',
+      'SECRETARIA',
+      'COMUNICACAO',
+      'CONSELHO',
+      'EGRESSO',
+      'COLABORADOR',
+      'EXTERNO',
+      'ADMIN explicito'
+    ]
+  };
+
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}

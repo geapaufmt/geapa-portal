@@ -71,11 +71,13 @@ Fluxo atual e previsto:
 1. O front-end envia ao Apps Script a sessao temporaria do membro.
 2. O Apps Script valida a sessao.
 3. O Apps Script identifica o membro associado a sessao.
-4. O Apps Script tenta consultar `geapaCoreBuscarMinhaSituacaoParaPortal` no
-   GEAPA-CORE.
-5. O Apps Script filtra os dados no backend.
-6. O Apps Script retorna somente dados do proprio membro.
-7. O front-end renderiza a tela "Minha situacao".
+4. O Apps Script resolve `data.sessao` via
+   `corePortalResolverUsuarioAtual(entrada, opts)`.
+5. O Apps Script consulta `geapaCoreBuscarMinhaSituacaoParaPortal` quando
+   precisa do bloco especifico da tela.
+6. O Apps Script filtra os dados no backend.
+7. O Apps Script retorna somente dados do proprio membro.
+8. O front-end renderiza a tela "Minha situacao".
 
 Na fase atual, o portal ja tenta usar o contrato oficial do GEAPA-CORE para a
 tela "Minha situacao". Esse contrato pode retornar pendencias cadastrais,
@@ -109,12 +111,17 @@ Essa matriz organiza a interface, mas nao substitui os perfis operacionais
 vindos do GEAPA-CORE, como `PRESIDENCIA`, `SECRETARIA`, `CONSELHO` e
 `ADMIN_TECNICO`.
 
-O portal recebe apenas o bloco seguro `usuario`, com:
+O portal recebe preferencialmente o bloco seguro `sessao`, com:
 
-- `perfilPrincipal`;
-- `perfis`;
+- `perfilPortalEfetivo`;
+- `perfisPortal`;
+- `permissoes` canonicas;
+- `portalAtivo`;
 - `cargosAtuais` do próprio usuário;
-- `permissoes` iniciais.
+- vinculo/status atuais seguros.
+
+O bloco legado `usuario` ainda pode aparecer para compatibilidade visual, mas
+deve ser derivado da sessao oficial ou de contratos antigos do CORE.
 
 O GitHub Pages usa esses dados apenas para montar navegação e esconder ou
 exibir áreas. A autorização real continua no Apps Script/backend, que deve
@@ -127,10 +134,10 @@ arquivo registra a matriz visual de rotas, grupos de menu, perfis permitidos,
 permissoes esperadas, status da tela e placeholders. A matriz completa esta
 documentada em `docs/ROTAS_PROTEGIDAS.md`.
 
-O arquivo consome a sessao de `web/assets/js/auth-adapter.js`, que por enquanto
-encapsula `PortalGeapaAuth.getUsuarioAtual()`. Essa decisao e apenas
-ergonomica: endpoints e operacoes reais devem continuar revalidando sessao e
-permissao no Apps Script/GEAPA-CORE.
+O arquivo consome a sessao de `web/assets/js/auth-adapter.js`, que prioriza
+`data.sessao` e mantem `PortalGeapaAuth.getUsuarioAtual()` como compatibilidade
+temporaria. Essa decisao e apenas ergonomica: endpoints e operacoes reais devem
+continuar revalidando sessao e permissao no Apps Script/GEAPA-CORE.
 
 Modulos funcionais devem reagir ao evento `portal:navigationchange` quando
 precisarem carregar dados ao abrir uma tela. A aba `Atividades`, por exemplo,
@@ -169,31 +176,41 @@ O Portal GEAPA possui uma camada de adaptação em `apps-script/03_membros.gs`.
 Essa camada tenta usar as funcoes publicas do GEAPA-CORE antes de recorrer ao
 cadastro privado de teste ou ao contrato parcial local.
 
-Contrato esperado da função futura:
+Contrato oficial priorizado:
+
+```js
+corePortalResolverUsuarioAtual(entrada, opts)
+```
+
+Contratos legados mantidos por compatibilidade:
 
 ```js
 geapaCoreBuscarMembroParaPortal(emailOuRga)
 geapaCoreBuscarMinhaSituacaoParaPortal(emailOuRga)
 ```
 
-Retorno esperado:
+Retorno esperado da sessao:
 
 ```json
 {
-  "id": "identificador-interno",
+  "autenticado": true,
+  "idPessoa": "identificador-interno",
   "nomeExibicao": "Nome do membro",
-  "emailCadastrado": "email-cadastrado",
+  "email": "email-cadastrado",
   "rga": "rga-do-membro",
-  "situacaoGeral": "situação resumida",
-  "vinculo": "descrição do vínculo"
+  "perfilPortalEfetivo": "MEMBRO",
+  "perfisPortal": ["MEMBRO"],
+  "permissoes": ["portal:acessar"],
+  "portalAtivo": true
 }
 ```
 
 O Apps Script do portal deve continuar filtrando os dados no backend e enviando
 ao navegador somente os dados do próprio membro.
 
-Na fase atual, o portal aceita três formas de integração:
+Na fase atual, o portal aceita quatro formas de integração:
 
+- função `corePortalResolverUsuarioAtual(entrada, opts)` copiada no mesmo projeto Apps Script;
 - função `geapaCoreBuscarMembroParaPortal(emailOuRga)` copiada no mesmo projeto Apps Script;
 - biblioteca Apps Script com identificador `GEAPA_CORE`, `GEAPACORE` ou `GEAPA_CORE_LIB`;
 - fallback privado `PORTAL_MEMBROS_TESTE_JSON`.

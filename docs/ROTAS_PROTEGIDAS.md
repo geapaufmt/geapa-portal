@@ -88,10 +88,11 @@ pelo mesmo guard.
 | `logs` | Administracao | ADMIN, DIRETORIA | `logs:ler` | Placeholder |
 | `historico-apresentacoes` | Publico / Geral | Todos | `apresentacoes:ver_publicas`, `apresentacoes:ver_ate_saida` | Placeholder |
 
-Enquanto o CORE ainda nao devolver permissoes canonicas no formato
-`dominio:acao`, a politica visual usa perfis permitidos para nao bloquear a V1
-do Portal. Assim que a sessao passar a trazer permissoes canonicas, o guard
-passa a exigir que a rota tenha ao menos uma permissao efetiva correspondente.
+O contrato oficial agora espera permissoes canonicas no formato `dominio:acao`
+em `data.sessao.permissoes`. Para respostas legadas que ainda nao tragam
+permissoes canonicas, a politica visual tolera perfis permitidos para nao
+bloquear a V1 do Portal. Quando a sessao traz permissoes canonicas, o guard
+exige que a rota tenha ao menos uma permissao efetiva correspondente.
 
 ## Motivos de bloqueio
 

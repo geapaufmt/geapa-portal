@@ -47,13 +47,14 @@
 
   function normalizarSessaoResolvida(sessao) {
     var dados = sessao || {};
-    var autenticado = dados.autenticado !== false && Boolean(lerTokenSessao());
+    var ok = dados.ok !== false;
+    var autenticado = ok && dados.autenticado !== false && Boolean(lerTokenSessao());
     var perfilPrincipal = dados.perfilPortalEfetivo || dados.perfilPrincipal || dados.perfilPortal || '';
     var permissoes = normalizarPermissoes(dados.permissoes || dados.permissoesEfetivas);
 
     return {
       autenticado: autenticado,
-      usuarioResolvido: true,
+      usuarioResolvido: ok,
       idPessoa: dados.idPessoa || dados.id || '',
       nomeExibicao: dados.nomeExibicao || (autenticado ? 'Usuario GEAPA' : 'Visitante'),
       email: dados.email || '',
@@ -61,7 +62,7 @@
       perfisPortal: normalizarPerfis(dados.perfisPortal || dados.perfis, perfilPrincipal, autenticado),
       permissoes: permissoes.lista,
       permissoesMapa: permissoes.mapa,
-      portalAtivo: autenticado ? dados.portalAtivo !== false : true,
+      portalAtivo: autenticado ? dados.portalAtivo !== false : false,
       tipoVinculoAtual: dados.tipoVinculoAtual || '',
       statusVinculoAtual: dados.statusVinculoAtual || '',
       cargoFuncaoAtual: dados.cargoFuncaoAtual || '',

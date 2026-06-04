@@ -57,6 +57,8 @@ backend.
 - Backend em Google Apps Script com envio de codigo controlado por lista de
   teste.
 - Integracao inicial com `GEAPA_CORE` como biblioteca Apps Script.
+- Sessao oficial do Portal resolvida preferencialmente por
+  `corePortalResolverUsuarioAtual`.
 - Tela inicial de Atividades com leitura segura via Apps Script e fallback de
   mock para desenvolvimento, sem escrita real.
 - Diagnostico interno de cadastro para testes no editor do Apps Script.

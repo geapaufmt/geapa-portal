@@ -43,11 +43,21 @@ function portalMinhaSituacao(token) {
   var situacaoCache = portalLerMinhaSituacaoCache_(identificadorSessao);
 
   if (situacaoCache) {
+    var sessaoCache = portalExtrairSessaoMinhaSituacao_(situacaoCache) ||
+      portalResolverSessaoAtualViaGeapaCore_(identificadorSessao, {
+        origem: 'minhaSituacao-cache'
+      });
+
+    if (sessaoCache && !situacaoCache.sessao) {
+      situacaoCache.sessao = sessaoCache;
+    }
+
     return portalRespostaOk_(
       'MINHA_SITUACAO_CACHE',
       'Minha situação carregada em cache temporário.',
       {
         tokenRecebido: token || '',
+        sessao: sessaoCache,
         situacao: situacaoCache
       },
       portalMetaDesempenho_('cache', inicio)
@@ -63,6 +73,7 @@ function portalMinhaSituacao(token) {
       'Minha situação carregada pelo GEAPA-CORE.',
       {
         tokenRecebido: token || '',
+        sessao: portalExtrairSessaoMinhaSituacao_(situacaoCore),
         situacao: situacaoCore
       },
       portalMetaDesempenho_('geapa-core', inicio)
@@ -70,6 +81,9 @@ function portalMinhaSituacao(token) {
   }
 
   var membro = portalBuscarMembroPorIdentificadorSessao_(identificadorSessao);
+  var sessaoFallback = portalResolverSessaoAtualViaGeapaCore_(identificadorSessao, {
+    origem: 'minhaSituacao-fallback'
+  });
 
   if (!membro) {
     return portalRespostaErro_(
@@ -79,7 +93,7 @@ function portalMinhaSituacao(token) {
     );
   }
 
-  var situacaoParcial = portalMontarMinhaSituacaoParcial_(membro);
+  var situacaoParcial = portalMontarMinhaSituacaoParcial_(membro, sessaoFallback);
   portalSalvarMinhaSituacaoCache_(identificadorSessao, situacaoParcial);
 
   return portalRespostaOk_(
@@ -87,6 +101,7 @@ function portalMinhaSituacao(token) {
     'Dados cadastrais carregados. Os demais blocos ainda estão em preparação.',
     {
       tokenRecebido: token || '',
+      sessao: portalExtrairSessaoMinhaSituacao_(situacaoParcial),
       situacao: situacaoParcial
     },
     portalMetaDesempenho_('fallback-local', inicio)
@@ -119,16 +134,19 @@ function portalDebugMinhaSituacaoPorRga(rga) {
  * contrato definitivo.
  *
  * @param {Object} membro Membro normalizado.
+ * @param {Object=} sessao Sessao oficial resolvida pelo GEAPA-CORE.
  * @return {Object} Dados parciais da situacao.
  */
-function portalMontarMinhaSituacaoParcial_(membro) {
-  var usuario = portalMontarUsuarioBasico_(membro);
+function portalMontarMinhaSituacaoParcial_(membro, sessao) {
+  var usuario = portalMontarUsuarioDeSessao_(sessao, membro) ||
+    portalMontarUsuarioBasico_(membro);
 
   return {
     rga: membro.rga || 'RGA-SIMULADO',
     nomeExibicao: membro.nomeExibicao || 'Membro GEAPA',
     situacaoGeral: membro.situacaoGeral || 'Cadastro localizado',
     vinculo: membro.vinculo || 'Membro em acompanhamento',
+    sessao: sessao || null,
     usuario: usuario,
     dadosCadastraisReais: membro.origem !== 'teste',
     blocosComplementares: 'em-preparacao',
@@ -160,17 +178,26 @@ function portalMontarMinhaSituacaoParcial_(membro) {
  * repassar e-mail cadastrado nem detalhes tecnicos.
  *
  * @param {Object} resposta Resposta da funcao do GEAPA-CORE.
+ * @param {Object=} sessaoResolvida Sessao oficial ja resolvida pelo CORE.
  * @return {Object|null} Situacao normalizada ou nulo.
  */
-function portalNormalizarMinhaSituacaoCore_(resposta) {
+function portalNormalizarMinhaSituacaoCore_(resposta, sessaoResolvida) {
   if (!resposta || resposta.ok !== true || !resposta.membro) {
     return null;
   }
 
   var membro = portalNormalizarMembro_(resposta.membro, 'GEAPA_CORE');
-  var usuario = portalNormalizarUsuarioCore_(resposta.usuario) ||
+  var sessao = portalNormalizarSessaoPortalCore_(resposta.sessao) ||
+    sessaoResolvida ||
+    null;
+  var usuario = portalMontarUsuarioDeSessao_(sessao, membro) ||
+    portalNormalizarUsuarioCore_(resposta.usuario) ||
     portalMontarUsuarioBasico_(membro);
-  usuario = portalAplicarAutorizacaoPortalCore_(usuario, membro);
+
+  if (!sessao) {
+    usuario = portalAplicarAutorizacaoPortalCore_(usuario, membro);
+  }
+
   var situacao = resposta.minhaSituacao || {};
   var resumo = situacao.resumo || {};
   var participacao = situacao.participacao || {};
@@ -189,6 +216,7 @@ function portalNormalizarMinhaSituacaoCore_(resposta) {
     nomeExibicao: membro.nomeExibicao,
     situacaoGeral: membro.situacaoGeral || 'Cadastro localizado',
     vinculo: membro.vinculo || 'Membro em acompanhamento',
+    sessao: sessao,
     usuario: usuario,
     dadosCadastraisReais: true,
     blocosComplementares: 'geapa-core',
@@ -226,12 +254,60 @@ function portalMontarUsuarioBasico_(membro) {
 
   return {
     id: String(dados.id || dados.rga || dados.emailCadastrado || '').trim(),
+    idPessoa: String(dados.idPessoa || dados.id || '').trim(),
     nomeExibicao: String(dados.nomeExibicao || 'Membro GEAPA').trim(),
+    email: String(dados.emailCadastrado || dados.email || '').trim(),
     rga: String(dados.rga || '').trim(),
     perfilPrincipal: 'MEMBRO',
     perfis: ['MEMBRO'],
+    perfisPortal: ['MEMBRO'],
+    portalAtivo: true,
+    tipoVinculoAtual: '',
+    statusVinculoAtual: '',
+    cargoFuncaoAtual: '',
     cargosAtuais: [],
     permissoes: portalPermissoesUsuarioVazias_()
+  };
+}
+
+/**
+ * Adapta a sessao oficial para o bloco legado `usuario`.
+ *
+ * Este bloco existe para compatibilidade visual. Ele nao decide perfil nem
+ * permissao: apenas reapresenta o que veio de `data.sessao`.
+ *
+ * @param {Object|null} sessao Sessao canonica do CORE.
+ * @param {Object=} membro Membro legado usado como fallback de identidade.
+ * @return {Object|null} Usuario legado seguro.
+ */
+function portalMontarUsuarioDeSessao_(sessao, membro) {
+  if (!sessao) {
+    return null;
+  }
+
+  var dadosMembro = membro || {};
+  var perfis = Array.isArray(sessao.perfisPortal) && sessao.perfisPortal.length
+    ? sessao.perfisPortal
+    : [sessao.perfilPortalEfetivo || 'MEMBRO'];
+
+  return {
+    id: String(sessao.idPessoa || dadosMembro.id || dadosMembro.rga || '').trim(),
+    idPessoa: String(sessao.idPessoa || dadosMembro.id || '').trim(),
+    nomeExibicao: String(sessao.nomeExibicao || dadosMembro.nomeExibicao || 'Membro GEAPA').trim(),
+    email: String(sessao.email || dadosMembro.emailCadastrado || '').trim(),
+    rga: String(sessao.rga || dadosMembro.rga || '').trim(),
+    perfilPrincipal: portalNormalizarPerfilUsuario_(sessao.perfilPortalEfetivo || perfis[0] || 'MEMBRO'),
+    perfilPortalEfetivo: portalNormalizarPerfilUsuario_(sessao.perfilPortalEfetivo || perfis[0] || 'MEMBRO'),
+    perfis: portalUnicos_(perfis.map(portalNormalizarPerfilUsuario_)),
+    perfisPortal: portalUnicos_(perfis.map(portalNormalizarPerfilUsuario_)),
+    portalAtivo: sessao.portalAtivo !== false,
+    tipoVinculoAtual: String(sessao.tipoVinculoAtual || '').trim(),
+    statusVinculoAtual: String(sessao.statusVinculoAtual || '').trim(),
+    cargoFuncaoAtual: String(sessao.cargoFuncaoAtual || '').trim(),
+    cargosAtuais: Array.isArray(sessao.cargosAtuais)
+      ? sessao.cargosAtuais.map(portalNormalizarCargoUsuario_)
+      : [],
+    permissoes: portalMontarPermissoesUsuarioDeSessao_(sessao)
   };
 }
 
@@ -259,10 +335,17 @@ function portalNormalizarUsuarioCore_(usuario) {
 
   return {
     id: String(usuario.id || usuario.rga || '').trim(),
+    idPessoa: String(usuario.idPessoa || usuario.id || '').trim(),
     nomeExibicao: String(usuario.nomeExibicao || 'Membro GEAPA').trim(),
+    email: String(usuario.email || '').trim(),
     rga: String(usuario.rga || '').trim(),
     perfilPrincipal: portalNormalizarPerfilUsuario_(usuario.perfilPrincipal || perfis[0] || 'MEMBRO'),
     perfis: portalUnicos_(perfis),
+    perfisPortal: portalUnicos_(perfis),
+    portalAtivo: usuario.portalAtivo !== false,
+    tipoVinculoAtual: String(usuario.tipoVinculoAtual || '').trim(),
+    statusVinculoAtual: String(usuario.statusVinculoAtual || '').trim(),
+    cargoFuncaoAtual: String(usuario.cargoFuncaoAtual || '').trim(),
     cargosAtuais: cargos,
     permissoes: portalNormalizarPermissoesUsuario_(usuario.permissoes)
   };
@@ -279,6 +362,11 @@ function portalNormalizarPerfilUsuario_(perfil) {
     .trim()
     .toUpperCase();
   var permitidos = [
+    'VISITANTE',
+    'PARTICIPANTE_EXTERNO',
+    'EXTERNO',
+    'COLABORADOR',
+    'EGRESSO',
     'MEMBRO',
     'DIRETORIA',
     'PRESIDENCIA',
@@ -342,11 +430,48 @@ function portalNormalizarPermissoesUsuario_(permissoes) {
   var dados = permissoes || {};
   var chaves = Object.keys(base);
 
+  if (Array.isArray(permissoes)) {
+    permissoes.forEach(function guardarPermissaoCanonica(permissao) {
+      var chave = String(permissao || '').trim();
+      if (chave) {
+        base[chave] = true;
+      }
+    });
+
+    return base;
+  }
+
   for (var i = 0; i < chaves.length; i++) {
     base[chaves[i]] = dados[chaves[i]] === true;
   }
 
+  Object.keys(dados).forEach(function copiarPermissaoCanonica(chave) {
+    if (chaves.indexOf(chave) < 0) {
+      base[chave] = dados[chave] === true;
+    }
+  });
+
   return base;
+}
+
+/**
+ * Monta permissoes legadas e canonicas a partir da sessao oficial.
+ *
+ * @param {Object} sessao Sessao canonica do CORE.
+ * @return {Object} Mapa de permissoes para compatibilidade visual.
+ */
+function portalMontarPermissoesUsuarioDeSessao_(sessao) {
+  var lista = Array.isArray(sessao && sessao.permissoes) ? sessao.permissoes : [];
+  var permissoes = portalNormalizarPermissoesPortalCore_(lista);
+
+  lista.forEach(function copiarCanonica(permissao) {
+    var chave = String(permissao || '').trim();
+    if (chave) {
+      permissoes[chave] = true;
+    }
+  });
+
+  return permissoes;
 }
 
 /**
@@ -387,12 +512,19 @@ function portalAplicarAutorizacaoPortalCore_(usuario, membro) {
 
   return {
     id: dados.id,
+    idPessoa: dados.idPessoa || dados.id || '',
     nomeExibicao: dados.nomeExibicao,
+    email: dados.email || '',
     rga: dados.rga,
     perfilPrincipal: perfilPortal && perfilPortal !== 'MEMBRO'
       ? perfilPortal
       : dados.perfilPrincipal,
     perfis: portalUnicos_(perfis),
+    perfisPortal: portalUnicos_(perfis),
+    portalAtivo: dados.portalAtivo !== false,
+    tipoVinculoAtual: dados.tipoVinculoAtual || '',
+    statusVinculoAtual: dados.statusVinculoAtual || '',
+    cargoFuncaoAtual: dados.cargoFuncaoAtual || '',
     cargosAtuais: dados.cargosAtuais || [],
     permissoes: portalMesclarPermissoesUsuario_(dados.permissoes, permissoes)
   };
@@ -479,6 +611,23 @@ function portalMesclarPermissoesUsuario_(atual, extra) {
   });
 
   return base;
+}
+
+/**
+ * Extrai a sessao oficial de uma resposta normalizada de "Minha situacao".
+ *
+ * @param {Object} situacao Situacao normalizada ou payload legado.
+ * @return {Object|null} Sessao canonica segura.
+ */
+function portalExtrairSessaoMinhaSituacao_(situacao) {
+  var dados = situacao || {};
+
+  return portalNormalizarSessaoPortalCore_(
+    dados.sessao ||
+    dados.session ||
+    dados.usuarioAtual ||
+    null
+  );
 }
 
 /**

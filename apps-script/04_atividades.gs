@@ -326,19 +326,30 @@ function portalMontarContextoAtividades_(token) {
 
   var identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
   var situacao = portalLerMinhaSituacaoCache_(identificadorSessao);
+  var sessao = situacao ? portalExtrairSessaoMinhaSituacao_(situacao) : null;
 
   if (!situacao) {
     situacao = portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao);
 
     if (situacao) {
       portalSalvarMinhaSituacaoCache_(identificadorSessao, situacao);
+      sessao = portalExtrairSessaoMinhaSituacao_(situacao);
     }
   }
 
-  var membro = portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) || {};
+  if (!sessao) {
+    sessao = portalResolverSessaoAtualViaGeapaCore_(identificadorSessao, {
+      origem: 'atividades'
+    });
+  }
+
+  var membro = portalMontarMembroDeSessaoPortal_(sessao, 'GEAPA_CORE.session') ||
+    portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) ||
+    {};
   var usuario = situacao && situacao.usuario
     ? situacao.usuario
-    : portalMontarUsuarioBasico_(membro);
+    : portalMontarUsuarioDeSessao_(sessao, membro) ||
+      portalMontarUsuarioBasico_(membro);
   var perfilAtividades = portalResolverPerfilAtividades_(usuario);
 
   return {
@@ -371,6 +382,7 @@ function portalResolverPerfilAtividades_(usuario) {
   if (
     portalUsuarioTemPerfil_(perfis, 'ADMIN') ||
     portalUsuarioTemPerfil_(perfis, 'ADMIN_TECNICO') ||
+    permissoes['sistema:admin'] === true ||
     permissoes.podeGerenciarConfiguracoes === true
   ) {
     return 'ADMIN_TECNICO';
@@ -383,6 +395,7 @@ function portalResolverPerfilAtividades_(usuario) {
   if (
     portalUsuarioTemPerfil_(perfis, 'DIRETORIA') ||
     portalUsuarioTemPerfil_(perfis, 'PRESIDENCIA') ||
+    permissoes['atividades:gerir'] === true ||
     permissoes.podeGerenciarAtividades === true
   ) {
     return 'DIRETORIA';

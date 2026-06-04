@@ -40,6 +40,7 @@ function portalLoginFirebase(idToken) {
     {
       sessionToken: sessionToken,
       validadeSessaoMinutos: PORTAL_CONFIG.validadeSessaoMinutos,
+      sessao: autorizacao.sessao || null,
       usuario: {
         uid: autorizacao.uid,
         email: portalMascararEmail_(autorizacao.email),
@@ -239,6 +240,54 @@ function corePortalAuthorizeUser(idToken) {
 }
 
 function portalAutorizarFirebaseViaGeapaCore_(usuario) {
+  var sessao = portalResolverSessaoAtualViaGeapaCore_(
+    {
+      email: usuario.email,
+      identificador: usuario.email,
+      emailOuRga: usuario.email
+    },
+    {
+      uid: usuario.uid,
+      provider: 'firebase'
+    }
+  );
+
+  if (sessao) {
+    if (sessao.ok === false || sessao.autenticado === false || sessao.portalAtivo === false) {
+      portalRegistrarLogAuthFirebase_({
+        email: usuario.email,
+        uid: usuario.uid,
+        perfilPortal: sessao.perfilPortalEfetivo || '',
+        resultado: 'RECUSADO',
+        motivo: sessao.motivoBloqueio || 'CORE_NAO_AUTORIZOU'
+      });
+
+      return {
+        authorized: false,
+        code: sessao.motivoBloqueio || 'MEMBRO_NAO_AUTORIZADO_PORTAL',
+        message: 'E-mail autenticado nao autorizado para o portal.',
+        email: usuario.email,
+        uid: usuario.uid,
+        sessao: sessao
+      };
+    }
+
+    return {
+      authorized: true,
+      uid: usuario.uid,
+      email: usuario.email,
+      emailVerified: usuario.emailVerified,
+      displayName: usuario.displayName,
+      nome: sessao.nomeExibicao || usuario.displayName,
+      rga: sessao.rga || '',
+      status: sessao.statusVinculoAtual || '',
+      perfilPortal: sessao.perfilPortalEfetivo || 'MEMBRO',
+      permissoes: sessao.permissoes || [],
+      sessao: sessao,
+      timestampLogin: new Date().toISOString()
+    };
+  }
+
   var resposta = null;
 
   try {
@@ -306,6 +355,7 @@ function portalAutorizarFirebaseViaGeapaCore_(usuario) {
     status: resposta.status || '',
     perfilPortal: resposta.perfilPortal || resposta.perfil || 'MEMBRO',
     permissoes: resposta.permissoes || resposta.permissions || [],
+    sessao: portalNormalizarSessaoPortalCore_(resposta.sessao) || null,
     timestampLogin: new Date().toISOString()
   };
 }

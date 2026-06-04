@@ -174,6 +174,24 @@ function portalValidarCodigo(emailOuRga, codigo) {
   cache.remove(chaveCodigo);
   cache.remove(chaveTentativas);
 
+  var sessaoResolvida = portalResolverSessaoAtualViaGeapaCore_(identificadorSessao, {
+    origem: 'validarCodigo'
+  });
+
+  if (sessaoResolvida && (
+    sessaoResolvida.ok === false ||
+    sessaoResolvida.autenticado === false ||
+    sessaoResolvida.portalAtivo === false
+  )) {
+    return portalRespostaErro_(
+      sessaoResolvida.motivoBloqueio || 'PORTAL_INATIVO',
+      'Seu acesso ao Portal GEAPA nao esta ativo no momento.',
+      {
+        sessao: sessaoResolvida
+      }
+    );
+  }
+
   var sessionToken = portalCriarSessaoTemporaria_(identificadorSessao);
 
   return portalRespostaOk_(
@@ -183,6 +201,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
       sessionToken: sessionToken,
       validadeSessaoMinutos: PORTAL_CONFIG.validadeSessaoMinutos,
       identificadorRecebido: identificador,
+      sessao: sessaoResolvida,
       membro: {
         nomeExibicao: membro.nomeExibicao,
         rga: membro.rga

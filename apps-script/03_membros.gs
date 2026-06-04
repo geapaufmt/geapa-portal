@@ -99,6 +99,37 @@ function portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) {
 }
 
 /**
+ * Resolve a sessao oficial do usuario atual no GEAPA-CORE.
+ *
+ * O Portal apenas consome o resultado: vinculo, cargo, perfil e permissoes sao
+ * decididos pelo CORE. Se o resolvedor ainda nao estiver disponivel, retorna
+ * nulo para manter os fallbacks atuais.
+ *
+ * @param {string|Object} entrada E-mail, RGA, ID_PESSOA ou objeto aceito pelo CORE.
+ * @param {Object=} opts Opcoes tecnicas nao sensiveis.
+ * @return {Object|null} Sessao canonica segura.
+ */
+function portalResolverSessaoAtualViaGeapaCore_(entrada, opts) {
+  var resposta = null;
+
+  try {
+    resposta = portalChamarResolverSessaoGeapaCoreGlobal_(entrada, opts);
+
+    if (!resposta) {
+      resposta = portalChamarResolverSessaoGeapaCoreLibrary_(entrada, opts);
+    }
+  } catch (erro) {
+    Logger.log('GEAPA-PORTAL-SESSAO-CORE ' + JSON.stringify({
+      etapa: 'corePortalResolverUsuarioAtual',
+      erro: erro && erro.message ? erro.message : String(erro)
+    }));
+    return null;
+  }
+
+  return portalNormalizarSessaoPortalCore_(resposta);
+}
+
+/**
  * Busca a tela "Minha situacao" usando o contrato oficial do GEAPA-CORE.
  *
  * Se a funcao ainda nao existir no core ou se o membro nao for encontrado por
@@ -114,13 +145,31 @@ function portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao) {
     return null;
   }
 
+  var sessao = portalResolverSessaoAtualViaGeapaCore_(identificador, {
+    origem: 'minhaSituacao'
+  });
   var resposta = portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador);
 
   if (!resposta) {
     resposta = portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador);
   }
 
-  return portalNormalizarMinhaSituacaoCore_(resposta);
+  return portalNormalizarMinhaSituacaoCore_(resposta, sessao);
+}
+
+/**
+ * Tenta chamar o resolvedor de sessao quando ele estiver copiado no projeto.
+ *
+ * @param {string|Object} entrada Entrada aceita pelo GEAPA-CORE.
+ * @param {Object=} opts Opcoes tecnicas.
+ * @return {Object|null} Resposta bruta do CORE.
+ */
+function portalChamarResolverSessaoGeapaCoreGlobal_(entrada, opts) {
+  if (typeof corePortalResolverUsuarioAtual !== 'function') {
+    return null;
+  }
+
+  return corePortalResolverUsuarioAtual(entrada, opts || {});
 }
 
 /**
@@ -159,13 +208,34 @@ function portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador) {
 }
 
 /**
- * Ponto de integracao previsto com GEAPA-CORE.
+ * Tenta chamar o resolvedor de sessao quando o GEAPA-CORE estiver como Library.
  *
- * Quando o GEAPA-CORE estiver disponivel no mesmo projeto ou como biblioteca
- * Apps Script, o portal passara a usa-lo automaticamente. Enquanto ele nao
- * existir, o retorno fica nulo e o fluxo segue para o cadastro de teste.
+ * @param {string|Object} entrada Entrada aceita pelo GEAPA-CORE.
+ * @param {Object=} opts Opcoes tecnicas.
+ * @return {Object|null} Resposta bruta do CORE.
+ */
+function portalChamarResolverSessaoGeapaCoreLibrary_(entrada, opts) {
+  var libs = portalListarBibliotecasGeapaCore_();
+
+  for (var i = 0; i < libs.length; i++) {
+    var resposta = portalChamarResolverSessaoCoreLibrary_(libs[i].api, entrada, opts);
+
+    if (resposta) {
+      return resposta;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Ponto de integracao legado com GEAPA-CORE.
  *
- * Contrato esperado da funcao futura:
+ * O resolvedor oficial `corePortalResolverUsuarioAtual` e tentado primeiro.
+ * Este contrato antigo continua como compatibilidade enquanto as telas ainda
+ * dependem de e-mail/RGA para fluxos legados.
+ *
+ * Contrato legado:
  * geapaCoreBuscarMembroParaPortal(emailOuRga) => {
  *   id: string,
  *   nomeExibicao: string,
@@ -179,6 +249,22 @@ function portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador) {
  * @return {Object|null} Membro normalizado ou nulo.
  */
 function portalBuscarMembroViaGeapaCore_(identificador) {
+  var sessao = portalResolverSessaoAtualViaGeapaCore_(identificador, {
+    origem: 'buscarMembro'
+  });
+
+  if (sessao && sessao.ok !== false && sessao.portalAtivo !== false) {
+    return portalMontarMembroDeSessaoPortal_(sessao, 'GEAPA_CORE.session');
+  }
+
+  if (sessao && (
+    sessao.ok === false ||
+    sessao.autenticado === false ||
+    sessao.portalAtivo === false
+  )) {
+    return null;
+  }
+
   if (typeof geapaCoreBuscarMembroParaPortal !== 'function') {
     return portalBuscarMembroViaGeapaCoreLibrary_(identificador);
   }
@@ -303,6 +389,33 @@ function portalChamarMinhaSituacaoCoreLibrary_(api, identificador) {
 }
 
 /**
+ * Chama os formatos aceitos do resolvedor de sessao no GEAPA-CORE.
+ *
+ * @param {Object} api Objeto global da biblioteca.
+ * @param {string|Object} entrada Entrada aceita pelo GEAPA-CORE.
+ * @param {Object=} opts Opcoes tecnicas.
+ * @return {Object|null} Resposta retornada pela biblioteca.
+ */
+function portalChamarResolverSessaoCoreLibrary_(api, entrada, opts) {
+  if (!api) {
+    return null;
+  }
+
+  if (typeof api.corePortalResolverUsuarioAtual === 'function') {
+    return api.corePortalResolverUsuarioAtual(entrada, opts || {});
+  }
+
+  if (
+    api.portal &&
+    typeof api.portal.resolverUsuarioAtual === 'function'
+  ) {
+    return api.portal.resolverUsuarioAtual(entrada, opts || {});
+  }
+
+  return null;
+}
+
+/**
  * Busca membro no cadastro privado de teste.
  *
  * @param {string} identificador Identificador normalizado.
@@ -369,4 +482,128 @@ function portalNormalizarMembro_(membro, origem) {
     situacaoGeral: String(membro.situacaoGeral || 'Em simulação'),
     vinculo: String(membro.vinculo || 'Membro em acompanhamento')
   };
+}
+
+/**
+ * Normaliza a sessao canonica retornada pelo GEAPA-CORE.
+ *
+ * @param {Object} sessao Sessao bruta retornada pelo CORE.
+ * @return {Object|null} Sessao segura para retornar em data.sessao.
+ */
+function portalNormalizarSessaoPortalCore_(sessao) {
+  if (!sessao) {
+    return null;
+  }
+
+  var ok = sessao.ok !== false;
+  var autenticado = ok && sessao.autenticado !== false;
+  var perfilBruto = sessao.perfilPortalEfetivo ||
+    sessao.perfilPrincipal ||
+    sessao.perfilPortal ||
+    (autenticado ? 'MEMBRO' : 'VISITANTE');
+  var perfilPrincipal = portalNormalizarPerfilUsuario_(
+    perfilBruto
+  );
+  var perfis = portalNormalizarPerfisSessaoPortal_(
+    sessao.perfisPortal ||
+    sessao.perfis ||
+    [perfilPrincipal]
+  );
+  var permissoes = portalNormalizarListaPermissoesSessaoPortal_(
+    sessao.permissoes ||
+    sessao.permissions ||
+    sessao.permissoesEfetivas
+  );
+
+  return {
+    ok: ok,
+    autenticado: autenticado,
+    idPessoa: String(sessao.idPessoa || sessao.id || '').trim(),
+    nomeExibicao: String(sessao.nomeExibicao || sessao.nome || 'Membro GEAPA').trim(),
+    email: portalNormalizarIdentificador_(sessao.email || sessao.emailCadastrado || ''),
+    rga: String(sessao.rga || '').trim(),
+    perfilPortalEfetivo: perfilPrincipal,
+    perfisPortal: perfis,
+    permissoes: permissoes,
+    portalAtivo: ok && sessao.portalAtivo !== false,
+    tipoVinculoAtual: String(sessao.tipoVinculoAtual || '').trim(),
+    statusVinculoAtual: String(sessao.statusVinculoAtual || '').trim(),
+    cargoFuncaoAtual: String(sessao.cargoFuncaoAtual || '').trim(),
+    cargosAtuais: Array.isArray(sessao.cargosAtuais)
+      ? sessao.cargosAtuais.map(portalNormalizarCargoUsuario_)
+      : [],
+    motivoBloqueio: String(sessao.motivoBloqueio || '').trim()
+  };
+}
+
+/**
+ * Monta um membro legado a partir da sessao oficial.
+ *
+ * Isto nao recalcula regra institucional; apenas adapta identidade segura do
+ * CORE para fluxos antigos que ainda esperam e-mail/RGA.
+ *
+ * @param {Object} sessao Sessao canonica.
+ * @param {string} origem Origem tecnica.
+ * @return {Object|null} Membro normalizado.
+ */
+function portalMontarMembroDeSessaoPortal_(sessao, origem) {
+  if (!sessao || (!sessao.email && !sessao.rga && !sessao.idPessoa)) {
+    return null;
+  }
+
+  return portalNormalizarMembro_(
+    {
+      id: sessao.idPessoa || sessao.rga || sessao.email,
+      nomeExibicao: sessao.nomeExibicao,
+      emailCadastrado: sessao.email,
+      rga: sessao.rga,
+      situacaoGeral: sessao.statusVinculoAtual || '',
+      vinculo: sessao.tipoVinculoAtual || ''
+    },
+    origem || 'GEAPA_CORE.session'
+  );
+}
+
+/**
+ * Normaliza lista de perfis da sessao sem inferir perfil institucional.
+ *
+ * @param {*} perfis Lista bruta.
+ * @return {string[]} Perfis seguros.
+ */
+function portalNormalizarPerfisSessaoPortal_(perfis) {
+  var lista = Array.isArray(perfis) ? perfis : [];
+  var normalizados = [];
+
+  for (var i = 0; i < lista.length; i++) {
+    normalizados.push(portalNormalizarPerfilUsuario_(lista[i]));
+  }
+
+  return portalUnicos_(normalizados);
+}
+
+/**
+ * Normaliza permissoes canonicas vindas do CORE.
+ *
+ * @param {*} permissoes Lista ou mapa de permissoes.
+ * @return {string[]} Lista canonica segura.
+ */
+function portalNormalizarListaPermissoesSessaoPortal_(permissoes) {
+  var mapa = {};
+
+  if (Array.isArray(permissoes)) {
+    permissoes.forEach(function guardarPermissao(permissao) {
+      var chave = String(permissao || '').trim();
+      if (chave) {
+        mapa[chave] = true;
+      }
+    });
+  } else {
+    Object.keys(permissoes || {}).forEach(function copiarPermissao(chave) {
+      if (permissoes[chave] === true && String(chave || '').trim()) {
+        mapa[String(chave).trim()] = true;
+      }
+    });
+  }
+
+  return Object.keys(mapa);
 }
