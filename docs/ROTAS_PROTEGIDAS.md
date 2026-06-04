@@ -29,10 +29,11 @@ administrativo deve vir de autorizacao explicita do CORE.
 - Placeholders protegidos: secao reutilizavel `#tela-placeholder`.
 - Acesso negado: secao reutilizavel `#tela-acesso-negado`.
 
-O adapter atual usa `PortalGeapaAuth.getUsuarioAtual()` e o token em
-`sessionStorage` enquanto o resolvedor real do CORE nao estiver exposto ao
-Portal. Quando existir uma funcao como `corePortalResolverUsuarioAtual`, a troca
-deve acontecer no adapter, nao espalhada pelo app.
+O adapter atual aceita a sessao resolvida em `data.sessao` e tambem usa
+`PortalGeapaAuth.getUsuarioAtual()` com o token em `sessionStorage` como
+compatibilidade temporaria. Quando existir uma funcao como
+`corePortalResolverUsuarioAtual`, a troca deve acontecer no adapter, nao
+espalhada pelo app. O contrato detalhado esta em `docs/SESSAO_PORTAL_CORE.md`.
 
 ## Perfis previstos
 

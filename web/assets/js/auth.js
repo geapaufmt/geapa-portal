@@ -62,9 +62,13 @@
   function setUsuarioAtual(usuario) {
     var dados = usuario || {};
     var padrao = montarUsuarioPadrao();
-    var perfisNormalizados = Array.isArray(dados.perfis) && dados.perfis.length
-      ? removerDuplicados(dados.perfis.map(normalizarPerfilPortal))
+    var perfisBrutos = Array.isArray(dados.perfisPortal) && dados.perfisPortal.length
+      ? dados.perfisPortal
+      : dados.perfis;
+    var perfisNormalizados = Array.isArray(perfisBrutos) && perfisBrutos.length
+      ? removerDuplicados(perfisBrutos.map(normalizarPerfilPortal))
       : padrao.perfis;
+    var perfilPrincipal = dados.perfilPortalEfetivo || dados.perfilPrincipal || dados.perfilPortal;
 
     usuarioAtual = {
       id: dados.id || '',
@@ -72,8 +76,9 @@
       nomeExibicao: dados.nomeExibicao || padrao.nomeExibicao,
       email: dados.email || '',
       rga: dados.rga || '',
-      perfilPrincipal: normalizarPerfilPortal(dados.perfilPrincipal || perfisNormalizados[0] || padrao.perfilPrincipal),
+      perfilPrincipal: normalizarPerfilPortal(perfilPrincipal || perfisNormalizados[0] || padrao.perfilPrincipal),
       perfis: perfisNormalizados,
+      perfisPortal: perfisNormalizados.slice(),
       cargosAtuais: Array.isArray(dados.cargosAtuais)
         ? dados.cargosAtuais.slice()
         : [],
@@ -81,7 +86,7 @@
       tipoVinculoAtual: dados.tipoVinculoAtual || '',
       statusVinculoAtual: dados.statusVinculoAtual || '',
       cargoFuncaoAtual: dados.cargoFuncaoAtual || '',
-      permissoes: normalizarPermissoesUsuario(dados.permissoes)
+      permissoes: normalizarPermissoesUsuario(dados.permissoes || dados.permissoesEfetivas)
     };
 
     return usuarioAtual;

@@ -7,8 +7,13 @@
  */
 (function configurarPortalAuthAdapter(global) {
   var SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
+  var sessaoResolvida = null;
 
   function getCurrentSession() {
+    if (sessaoResolvida) {
+      return normalizarSessaoResolvida(sessaoResolvida);
+    }
+
     var usuario = obterUsuarioAtual();
     var autenticado = Boolean(lerTokenSessao());
     var permissoes = normalizarPermissoes(usuario.permissoes);
@@ -29,6 +34,38 @@
       statusVinculoAtual: usuario.statusVinculoAtual || '',
       cargoFuncaoAtual: usuario.cargoFuncaoAtual || '',
       cargosAtuais: Array.isArray(usuario.cargosAtuais) ? usuario.cargosAtuais.slice() : []
+    };
+  }
+
+  function setResolvedSession(sessao) {
+    sessaoResolvida = sessao || null;
+  }
+
+  function clearResolvedSession() {
+    sessaoResolvida = null;
+  }
+
+  function normalizarSessaoResolvida(sessao) {
+    var dados = sessao || {};
+    var autenticado = dados.autenticado !== false && Boolean(lerTokenSessao());
+    var perfilPrincipal = dados.perfilPortalEfetivo || dados.perfilPrincipal || dados.perfilPortal || '';
+    var permissoes = normalizarPermissoes(dados.permissoes || dados.permissoesEfetivas);
+
+    return {
+      autenticado: autenticado,
+      usuarioResolvido: true,
+      idPessoa: dados.idPessoa || dados.id || '',
+      nomeExibicao: dados.nomeExibicao || (autenticado ? 'Usuario GEAPA' : 'Visitante'),
+      email: dados.email || '',
+      perfilPortalEfetivo: perfilPrincipal || (autenticado ? 'MEMBRO' : 'VISITANTE'),
+      perfisPortal: normalizarPerfis(dados.perfisPortal || dados.perfis, perfilPrincipal, autenticado),
+      permissoes: permissoes.lista,
+      permissoesMapa: permissoes.mapa,
+      portalAtivo: autenticado ? dados.portalAtivo !== false : true,
+      tipoVinculoAtual: dados.tipoVinculoAtual || '',
+      statusVinculoAtual: dados.statusVinculoAtual || '',
+      cargoFuncaoAtual: dados.cargoFuncaoAtual || '',
+      cargosAtuais: Array.isArray(dados.cargosAtuais) ? dados.cargosAtuais.slice() : []
     };
   }
 
@@ -116,6 +153,8 @@
   }
 
   global.PortalGeapaAuthAdapter = {
-    getCurrentSession: getCurrentSession
+    getCurrentSession: getCurrentSession,
+    setResolvedSession: setResolvedSession,
+    clearResolvedSession: clearResolvedSession
   };
 })(window);

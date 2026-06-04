@@ -69,6 +69,35 @@ Campos:
 - `data`: dados especificos da acao.
 - `meta`: informações técnicas não sensíveis.
 
+## Sessao resolvida do Portal
+
+Quando uma acao precisar atualizar navegacao, rotas protegidas ou contexto do
+usuario, o backend deve retornar a sessao resolvida pelo GEAPA-CORE em
+`data.sessao`.
+
+Contrato canonico:
+
+```json
+{
+  "autenticado": true,
+  "idPessoa": "PES-0001",
+  "nomeExibicao": "Membro GEAPA",
+  "email": "membro@example.org",
+  "perfilPortalEfetivo": "MEMBRO",
+  "perfisPortal": ["MEMBRO"],
+  "permissoes": ["portal:acessar", "situacao:ver_propria"],
+  "portalAtivo": true,
+  "tipoVinculoAtual": "MEMBRO",
+  "statusVinculoAtual": "ATIVO",
+  "cargoFuncaoAtual": "",
+  "cargosAtuais": []
+}
+```
+
+O contrato detalhado esta em `docs/SESSAO_PORTAL_CORE.md`. O Portal nao calcula
+perfil, vinculo, cargo ou permissao; ele apenas consome a sessao ja resolvida
+pelo CORE.
+
 ## Acao: portalLogin
 
 Entrada:
@@ -92,6 +121,20 @@ Resposta esperada:
   "data": {
     "sessionToken": "sessao-temporaria",
     "validadeSessaoMinutos": 120,
+    "sessao": {
+      "autenticado": true,
+      "idPessoa": "PES-0001",
+      "nomeExibicao": "Membro GEAPA",
+      "email": "membro@example.org",
+      "perfilPortalEfetivo": "MEMBRO",
+      "perfisPortal": ["MEMBRO"],
+      "permissoes": ["portal:acessar", "situacao:ver_propria"],
+      "portalAtivo": true,
+      "tipoVinculoAtual": "MEMBRO",
+      "statusVinculoAtual": "ATIVO",
+      "cargoFuncaoAtual": "",
+      "cargosAtuais": []
+    },
     "usuario": {
       "uid": "firebase-uid",
       "email": "me***@exemplo.org",
@@ -221,6 +264,26 @@ Resposta quando a situacao vem do GEAPA-CORE:
   "code": "MINHA_SITUACAO_CORE",
   "message": "Minha situação carregada pelo GEAPA-CORE.",
   "data": {
+    "sessao": {
+      "autenticado": true,
+      "idPessoa": "PES-0001",
+      "nomeExibicao": "Membro GEAPA",
+      "email": "membro@example.org",
+      "perfilPortalEfetivo": "DIRETORIA",
+      "perfisPortal": ["MEMBRO", "DIRETORIA", "SECRETARIA"],
+      "permissoes": [
+        "portal:acessar",
+        "situacao:ver_propria",
+        "atividades:gerir",
+        "membros:ler",
+        "presencas:gerir"
+      ],
+      "portalAtivo": true,
+      "tipoVinculoAtual": "MEMBRO",
+      "statusVinculoAtual": "ATIVO",
+      "cargoFuncaoAtual": "Secretario(a) Geral",
+      "cargosAtuais": []
+    },
     "situacao": {
       "nomeExibicao": "Membro GEAPA",
       "situacaoGeral": "Cadastro localizado",
@@ -320,10 +383,12 @@ apresentacoes. A coluna `QTD_APRESENTACOES_REALIZADAS` ja inclui a base legado,
 entao o portal nao soma campos separados de legado. Ele nao inclui frequencia
 detalhada nem lista de presenca.
 
-O bloco `usuario` vem do GEAPA-CORE e usa Vigencias como fonte oficial de cargos
-atuais. O front-end usa `perfis`, `cargosAtuais` e `permissoes` apenas para
-montar navegacao e esconder ou mostrar areas. A autorizacao real de qualquer
-acao sensivel continua obrigatoriamente no Apps Script/backend.
+O bloco `sessao` e o contrato preferencial para navegacao protegida. O bloco
+legado `situacao.usuario` continua aceito temporariamente para compatibilidade.
+Ambos devem vir do GEAPA-CORE e usar Vigencias como fonte oficial de cargos
+atuais. O front-end usa perfis, cargos e permissoes apenas para montar
+navegacao e esconder ou mostrar areas. A autorizacao real de qualquer acao
+sensivel continua obrigatoriamente no Apps Script/backend.
 
 O bloco `diretoria` e orientativo e usa apenas campos objetivos da aba
 `Membros Atuais`: status de elegibilidade, dias computados, limite, saldo e data

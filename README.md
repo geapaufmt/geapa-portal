@@ -90,6 +90,8 @@ geapa-portal/
 |   |-- diagnostico-portal.md
 |   |-- fases-portal.md
 |   |-- PILOT_CHECKLIST.md
+|   |-- ROTAS_PROTEGIDAS.md
+|   |-- SESSAO_PORTAL_CORE.md
 |   `-- SECURITY.md
 |-- apps-script/
 |   |-- appsscript.json
@@ -137,10 +139,11 @@ Nesta etapa, a leitura real aponta para a base **ATIVIDADES INTERNAS GEAPA v2 -
 DEV**, pela key `ATIVIDADES_V2_DB`, usando `ID_ATIVIDADE` no padrão
 `ATV-AAAA-S-NNNN`.
 
-Depois do login, o portal também recebe do GEAPA-CORE o bloco seguro `usuario`,
-calculado a partir das Vigências oficiais. Esse bloco informa perfis, funções
-vigentes do próprio usuário e permissões iniciais para organizar a navegação do
-front-end. Qualquer autorização real continua sendo validada no Apps Script.
+Depois do login, o portal tambem pode receber do GEAPA-CORE o bloco seguro
+`sessao`, documentado em `docs/SESSAO_PORTAL_CORE.md`. Esse bloco informa perfil
+efetivo, perfis, permissoes e estado de acesso ja resolvidos pelo backend. O
+front-end usa esses dados apenas para organizar navegacao e rotas protegidas;
+qualquer autorizacao real continua sendo validada no Apps Script.
 
 ## Como publicar no Firebase Hosting
 

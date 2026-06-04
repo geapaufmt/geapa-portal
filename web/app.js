@@ -423,6 +423,7 @@ function normalizarMinhaSituacao(resposta) {
   const participacao = dados.participacao || {};
   const diretoria = dados.diretoria || {};
   const usuario = dados.usuario || {};
+  const sessao = extrairSessaoPortal(resposta, dados);
   const desempenho = (resposta.meta && resposta.meta.desempenho) || {};
 
   return {
@@ -431,7 +432,8 @@ function normalizarMinhaSituacao(resposta) {
     situacaoGeral: dados.situacaoGeral || 'Simulada',
     vinculo: dados.vinculo || 'Vínculo em preparação',
     rga: dados.rga || 'RGA-SIMULADO',
-    usuario: normalizarUsuario(usuario, dados),
+    usuario: normalizarUsuario(usuario, dados, sessao),
+    sessao: sessao,
     dadosCadastraisReais: Boolean(dados.dadosCadastraisReais),
     blocosComplementares: dados.blocosComplementares || 'em-preparacao',
     ultimaAtualizacao: dados.ultimaAtualizacao || dados.atualizadoEm || '',
@@ -477,6 +479,25 @@ function obterMensagem(resposta) {
  */
 function obterSessionToken(resposta) {
   return (resposta.data && resposta.data.sessionToken) || resposta.token || '';
+}
+
+/**
+ * Extrai a sessao resolvida do contrato novo do CORE, quando disponivel.
+ *
+ * @param {Object} resposta Resposta completa da API.
+ * @param {Object=} dadosSituacao Bloco situacao, quando a acao for minhaSituacao.
+ * @return {Object|null} Sessao resolvida do portal.
+ */
+function extrairSessaoPortal(resposta, dadosSituacao) {
+  const data = resposta && resposta.data ? resposta.data : {};
+  const dados = dadosSituacao || {};
+
+  return data.sessao ||
+    data.session ||
+    data.usuarioAtual ||
+    dados.sessao ||
+    dados.session ||
+    null;
 }
 
 /**
@@ -626,25 +647,55 @@ function normalizarDiretoria(diretoria) {
  *
  * @param {Object} usuario Dados de perfil vindos do Apps Script/Core.
  * @param {Object} dadosSituacao Dados principais da tela Minha situacao.
+ * @param {Object|null} sessao Sessao resolvida pelo CORE, quando disponivel.
  * @return {Object} Usuario seguro para controlar a interface.
  */
-function normalizarUsuario(usuario, dadosSituacao) {
+function normalizarUsuario(usuario, dadosSituacao, sessao) {
   const dados = usuario || {};
   const situacao = dadosSituacao || {};
-  const perfis = Array.isArray(dados.perfis) && dados.perfis.length
-    ? dados.perfis.map(normalizarPerfil)
+  const dadosSessao = sessao || {};
+  let perfisBrutos = dados.perfisPortal || dados.perfis;
+
+  if (Array.isArray(dadosSessao.perfis) && dadosSessao.perfis.length) {
+    perfisBrutos = dadosSessao.perfis;
+  }
+
+  if (Array.isArray(dadosSessao.perfisPortal) && dadosSessao.perfisPortal.length) {
+    perfisBrutos = dadosSessao.perfisPortal;
+  }
+
+  const perfis = Array.isArray(perfisBrutos) && perfisBrutos.length
+    ? perfisBrutos.map(normalizarPerfil)
     : ['MEMBRO'];
+  const perfilPrincipal = dadosSessao.perfilPortalEfetivo ||
+    dados.perfilPortalEfetivo ||
+    dados.perfilPrincipal ||
+    dados.perfilPortal;
 
   return {
-    id: String(dados.id || situacao.rga || '').trim(),
-    nomeExibicao: String(dados.nomeExibicao || situacao.nomeExibicao || 'Membro GEAPA').trim(),
+    id: String(dados.id || dadosSessao.idPessoa || situacao.rga || '').trim(),
+    idPessoa: String(dados.idPessoa || dadosSessao.idPessoa || dados.id || situacao.rga || '').trim(),
+    nomeExibicao: String(dados.nomeExibicao || dadosSessao.nomeExibicao || situacao.nomeExibicao || 'Membro GEAPA').trim(),
+    email: String(dados.email || dadosSessao.email || '').trim(),
     rga: String(dados.rga || situacao.rga || '').trim(),
-    perfilPrincipal: normalizarPerfil(dados.perfilPrincipal || perfis[0] || 'MEMBRO'),
+    perfilPrincipal: normalizarPerfil(perfilPrincipal || perfis[0] || 'MEMBRO'),
     perfis: removerDuplicados(perfis),
+    perfisPortal: removerDuplicados(perfis),
     cargosAtuais: Array.isArray(dados.cargosAtuais)
       ? dados.cargosAtuais.map(normalizarCargoUsuario)
-      : [],
-    permissoes: normalizarPermissoesUsuario(dados.permissoes)
+      : Array.isArray(dadosSessao.cargosAtuais)
+        ? dadosSessao.cargosAtuais.map(normalizarCargoUsuario)
+        : [],
+    portalAtivo: dados.portalAtivo !== false && dadosSessao.portalAtivo !== false,
+    tipoVinculoAtual: String(dados.tipoVinculoAtual || dadosSessao.tipoVinculoAtual || '').trim(),
+    statusVinculoAtual: String(dados.statusVinculoAtual || dadosSessao.statusVinculoAtual || '').trim(),
+    cargoFuncaoAtual: String(dados.cargoFuncaoAtual || dadosSessao.cargoFuncaoAtual || '').trim(),
+    permissoes: normalizarPermissoesUsuario(
+      dadosSessao.permissoes ||
+      dadosSessao.permissoesEfetivas ||
+      dados.permissoes ||
+      dados.permissoesEfetivas
+    )
   };
 }
 
@@ -659,6 +710,9 @@ function normalizarPerfil(perfil) {
   const permitidos = [
     'VISITANTE',
     'PARTICIPANTE_EXTERNO',
+    'EXTERNO',
+    'COLABORADOR',
+    'EGRESSO',
     'MEMBRO',
     'DIRETORIA',
     'PRESIDENCIA',
@@ -713,8 +767,30 @@ function normalizarPermissoesUsuario(permissoes) {
   ];
   const saida = {};
 
+  if (Array.isArray(permissoes)) {
+    permissoes.forEach(function guardarPermissao(permissao) {
+      if (permissao) {
+        saida[String(permissao).trim()] = true;
+      }
+    });
+
+    chaves.forEach(function garantirLegado(chave) {
+      if (saida[chave] !== true) {
+        saida[chave] = false;
+      }
+    });
+
+    return saida;
+  }
+
   chaves.forEach(function normalizarPermissao(chave) {
     saida[chave] = dados[chave] === true;
+  });
+
+  Object.keys(dados).forEach(function copiarPermissaoCanonica(chave) {
+    if (chaves.indexOf(chave) < 0) {
+      saida[chave] = dados[chave] === true;
+    }
   });
 
   return saida;
@@ -980,6 +1056,14 @@ function aplicarUsuarioAtual(dados) {
   if (window.PortalGeapaAuth && typeof window.PortalGeapaAuth.setUsuarioAtual === 'function') {
     window.PortalGeapaAuth.setUsuarioAtual(dados.usuario);
   }
+
+  if (window.PortalGeapaAuthAdapter && typeof window.PortalGeapaAuthAdapter.setResolvedSession === 'function') {
+    if (dados.sessao) {
+      window.PortalGeapaAuthAdapter.setResolvedSession(dados.sessao);
+    } else if (typeof window.PortalGeapaAuthAdapter.clearResolvedSession === 'function') {
+      window.PortalGeapaAuthAdapter.clearResolvedSession();
+    }
+  }
 }
 
 /**
@@ -988,6 +1072,10 @@ function aplicarUsuarioAtual(dados) {
 function limparUsuarioAtual() {
   if (window.PortalGeapaAuth && typeof window.PortalGeapaAuth.limparUsuarioAtual === 'function') {
     window.PortalGeapaAuth.limparUsuarioAtual();
+  }
+
+  if (window.PortalGeapaAuthAdapter && typeof window.PortalGeapaAuthAdapter.clearResolvedSession === 'function') {
+    window.PortalGeapaAuthAdapter.clearResolvedSession();
   }
 }
 
