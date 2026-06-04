@@ -998,8 +998,6 @@ function limparUsuarioAtual() {
  * @param {Object|null} usuario Usuario atual.
  */
 function atualizarContextoUsuario(container, usuario) {
-  const botoesDiretoria = document.querySelectorAll('[data-area-diretoria]');
-
   if (!container) {
     return;
   }
@@ -1007,10 +1005,6 @@ function atualizarContextoUsuario(container, usuario) {
   if (!usuario) {
     container.hidden = true;
     container.innerHTML = '';
-
-    Array.prototype.forEach.call(botoesDiretoria, function esconderBotao(botao) {
-      botao.hidden = true;
-    });
 
     sincronizarNavegacaoPortal();
     return;
@@ -1025,10 +1019,6 @@ function atualizarContextoUsuario(container, usuario) {
     '<span>' + escaparHtml(formatarPerfil(usuario.perfilPrincipal || 'MEMBRO')) + '</span>',
     '<small>' + escaparHtml(perfis) + '</small>'
   ].join('');
-
-  Array.prototype.forEach.call(botoesDiretoria, function alternarBotao(botao) {
-    botao.hidden = !(usuario.permissoes && usuario.permissoes.podeVerAreaDiretoria);
-  });
 
   sincronizarNavegacaoPortal();
 }
@@ -1462,7 +1452,7 @@ function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
   const telaAtividades = document.getElementById('tela-atividades');
 
   if (navegacao && typeof navegacao.irPara === 'function') {
-    navegacao.irPara('situacao');
+    navegacao.irPara('minha-situacao');
     return;
   }
 

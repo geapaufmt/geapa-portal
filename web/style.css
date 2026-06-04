@@ -209,7 +209,30 @@ body {
 
 .portal-nav {
   display: grid;
-  gap: 6px;
+  gap: 12px;
+  align-content: start;
+  overflow: auto;
+  padding-bottom: 4px;
+}
+
+.nav-group {
+  display: grid;
+  gap: 5px;
+}
+
+.nav-group-title {
+  margin: 6px 4px 2px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nav-empty {
+  margin: 6px 4px;
+  color: var(--muted);
+  line-height: 1.4;
 }
 
 .sidebar-footer {
@@ -535,6 +558,57 @@ button:disabled:hover {
   color: #5d4a12;
   background: var(--warning-bg);
   line-height: 1.45;
+}
+
+.route-placeholder h2,
+.access-denied-panel h2 {
+  margin: 0 0 10px;
+  color: var(--green-950);
+  font-size: 1.55rem;
+  letter-spacing: 0;
+}
+
+.route-placeholder .intro,
+.access-denied-panel .intro {
+  max-width: 760px;
+}
+
+.route-policy-card {
+  margin-top: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  background: var(--green-050);
+  box-shadow: var(--shadow-soft);
+}
+
+.route-policy-card h3 {
+  margin: 0 0 12px;
+  color: var(--green-950);
+  font-size: 1rem;
+}
+
+.route-policy-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.route-policy-list div {
+  display: grid;
+  gap: 3px;
+}
+
+.route-policy-list dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.route-policy-list dd {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.4;
 }
 
 .situation-card {

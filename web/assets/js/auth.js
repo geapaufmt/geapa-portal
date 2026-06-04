@@ -9,20 +9,29 @@
   var PERFIS_PORTAL = {
     VISITANTE: 'VISITANTE',
     PARTICIPANTE_EXTERNO: 'PARTICIPANTE_EXTERNO',
+    EXTERNO: 'EXTERNO',
+    COLABORADOR: 'COLABORADOR',
+    EGRESSO: 'EGRESSO',
     MEMBRO: 'MEMBRO',
     DIRETORIA: 'DIRETORIA',
+    SECRETARIA: 'SECRETARIA',
+    COMUNICACAO: 'COMUNICACAO',
+    CONSELHO: 'CONSELHO',
     ADMIN: 'ADMIN'
   };
   var PERFIS_SUPORTADOS = [
     PERFIS_PORTAL.VISITANTE,
     PERFIS_PORTAL.PARTICIPANTE_EXTERNO,
+    PERFIS_PORTAL.EXTERNO,
+    PERFIS_PORTAL.COLABORADOR,
+    PERFIS_PORTAL.EGRESSO,
     PERFIS_PORTAL.MEMBRO,
     PERFIS_PORTAL.DIRETORIA,
     'PRESIDENCIA',
-    'SECRETARIA',
+    PERFIS_PORTAL.SECRETARIA,
     'SECRETARIO',
-    'COMUNICACAO',
-    'CONSELHO',
+    PERFIS_PORTAL.COMUNICACAO,
+    PERFIS_PORTAL.CONSELHO,
     'ASSESSORIA',
     PERFIS_PORTAL.ADMIN,
     'ADMIN_TECNICO'
@@ -45,6 +54,7 @@
       perfilPrincipal: PERFIS_PORTAL.VISITANTE,
       perfis: [PERFIS_PORTAL.VISITANTE],
       cargosAtuais: [],
+      portalAtivo: false,
       permissoes: Object.assign({}, PERMISSOES_PADRAO)
     };
   }
@@ -58,14 +68,20 @@
 
     usuarioAtual = {
       id: dados.id || '',
+      idPessoa: dados.idPessoa || dados.id || '',
       nomeExibicao: dados.nomeExibicao || padrao.nomeExibicao,
+      email: dados.email || '',
       rga: dados.rga || '',
       perfilPrincipal: normalizarPerfilPortal(dados.perfilPrincipal || perfisNormalizados[0] || padrao.perfilPrincipal),
       perfis: perfisNormalizados,
       cargosAtuais: Array.isArray(dados.cargosAtuais)
         ? dados.cargosAtuais.slice()
         : [],
-      permissoes: Object.assign({}, PERMISSOES_PADRAO, dados.permissoes || {})
+      portalAtivo: dados.portalAtivo !== false,
+      tipoVinculoAtual: dados.tipoVinculoAtual || '',
+      statusVinculoAtual: dados.statusVinculoAtual || '',
+      cargoFuncaoAtual: dados.cargoFuncaoAtual || '',
+      permissoes: normalizarPermissoesUsuario(dados.permissoes)
     };
 
     return usuarioAtual;
@@ -126,6 +142,26 @@
     var permissoes = getUsuarioAtual().permissoes || {};
 
     return permissoes[permissao] === true;
+  }
+
+  function normalizarPermissoesUsuario(permissoes) {
+    var normalizadas = Object.assign({}, PERMISSOES_PADRAO);
+
+    if (Array.isArray(permissoes)) {
+      permissoes.forEach(function guardarPermissao(permissao) {
+        if (permissao) {
+          normalizadas[String(permissao).trim()] = true;
+        }
+      });
+
+      return normalizadas;
+    }
+
+    Object.keys(permissoes || {}).forEach(function copiarPermissao(chave) {
+      normalizadas[chave] = permissoes[chave] === true;
+    });
+
+    return normalizadas;
   }
 
   function isMembro() {

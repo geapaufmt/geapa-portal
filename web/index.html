@@ -10,7 +10,7 @@
     >
     <meta name="theme-color" content="#1f6b45">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
   </head>
   <body>
     <div class="portal-frame">
@@ -46,17 +46,7 @@
           <div class="sidebar-user">
             <div id="usuario-contexto" class="user-context" hidden></div>
           </div>
-          <nav class="portal-nav">
-            <button class="nav-button" type="button" data-voltar-situacao>
-              <span>Minha situacao</span>
-            </button>
-            <button class="nav-button" type="button" data-open-atividades>
-              <span>Atividades</span>
-            </button>
-            <button class="nav-button" type="button" data-area-diretoria hidden disabled>
-              <span>Diretoria</span>
-            </button>
-          </nav>
+          <nav class="portal-nav" data-portal-nav aria-label="Navegacao do portal"></nav>
           <div class="sidebar-footer">
             <button id="sair" class="danger-button" type="button">Sair</button>
           </div>
@@ -117,7 +107,7 @@
                 <h2 id="situacao-title">Minha situacao</h2>
               </div>
               <div class="topbar-actions">
-                <button class="secondary-button" type="button" data-open-atividades>
+                <button class="secondary-button" type="button" data-open-atividades data-route-target="atividades">
                   Atividades
                 </button>
               </div>
@@ -142,7 +132,7 @@
                 <p class="eyebrow">Operacao do portal</p>
                 <h2 id="atividades-title">Atividades</h2>
               </div>
-              <button class="secondary-button" type="button" data-voltar-situacao>
+              <button class="secondary-button" type="button" data-voltar-situacao data-route-target="minha-situacao">
                 Voltar
               </button>
             </div>
@@ -165,9 +155,17 @@
               </button>
             </div>
 
-            <div id="atividades-lista" class="activities-list">
+          <div id="atividades-lista" class="activities-list">
               <p class="empty-state">Abra a tela para carregar atividades disponiveis.</p>
             </div>
+          </section>
+
+          <section class="situation-panel route-placeholder" id="tela-placeholder" hidden>
+            <div id="placeholder-content"></div>
+          </section>
+
+          <section class="situation-panel access-denied-panel" id="tela-acesso-negado" hidden>
+            <div id="access-denied-content"></div>
           </section>
 
           <div class="modal-backdrop" id="atividade-modal" hidden>
@@ -198,11 +196,12 @@
     <script src="assets/js/config.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/auth.js"></script>
-    <script src="assets/js/navigation.js?v=7"></script>
+    <script src="assets/js/auth-adapter.js?v=8"></script>
+    <script src="assets/js/navigation.js?v=8"></script>
     <script src="assets/js/ui.js"></script>
     <script src="assets/js/atividades.js"></script>
     <script type="module" src="assets/js/firebase-auth.js"></script>
     <script src="assets/js/pwa.js"></script>
-    <script type="module" src="app.js?v=7"></script>
+    <script type="module" src="app.js?v=8"></script>
   </body>
 </html>

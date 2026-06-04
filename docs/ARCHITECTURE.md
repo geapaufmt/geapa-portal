@@ -123,14 +123,14 @@ validar sessão, identidade, perfil e permissão antes de qualquer ação sensí
 ## Navegacao interna
 
 A navegacao do portal e centralizada em `web/assets/js/navigation.js`. Esse
-arquivo registra as rotas visuais atuais (`login`, `situacao`, `atividades` e
-`diretoria` em preparacao), aplica a classe `view-*` no shell principal,
-mostra/esconde as secoes HTML correspondentes, fecha a gaveta lateral no mobile
-e recalcula o estado dos botoes de menu.
+arquivo registra a matriz visual de rotas, grupos de menu, perfis permitidos,
+permissoes esperadas, status da tela e placeholders. A matriz completa esta
+documentada em `docs/ROTAS_PROTEGIDAS.md`.
 
-O arquivo consome `PortalGeapaAuth` para decidir se um item visual pode aparecer
-ou ser acessado. Essa decisao e apenas ergonomica: endpoints e operacoes reais
-devem continuar revalidando sessao e permissao no Apps Script.
+O arquivo consome a sessao de `web/assets/js/auth-adapter.js`, que por enquanto
+encapsula `PortalGeapaAuth.getUsuarioAtual()`. Essa decisao e apenas
+ergonomica: endpoints e operacoes reais devem continuar revalidando sessao e
+permissao no Apps Script/GEAPA-CORE.
 
 Modulos funcionais devem reagir ao evento `portal:navigationchange` quando
 precisarem carregar dados ao abrir uma tela. A aba `Atividades`, por exemplo,
