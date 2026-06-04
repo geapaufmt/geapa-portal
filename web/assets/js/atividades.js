@@ -179,17 +179,13 @@
     lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
     status.textContent = 'Buscando atividades no Portal GEAPA.';
 
-    api.apiGet('/atividades/listar', {})
+    api.apiGet('/atividades/bundle', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Nao foi possivel carregar atividades.');
         }
 
-        var bundle = normalizarBundleAtividades({
-          calendario: resposta.data || [],
-          detalhesPorId: {},
-          ultimaAtualizacao: new Date().toISOString()
-        });
+        var bundle = normalizarBundleAtividades(resposta.data || {});
         aplicarBundleAtividades(bundle);
         salvarBundleAtividadesCache(bundle);
         renderizarAtividades(lista, bundle.calendario);
@@ -198,7 +194,8 @@
           : 'Atividades carregadas. Detalhes sendo preparados em segundo plano.';
         registrarPerfAtividades('atividades.lista.renderizada', inicio, {
           total: bundle.calendario.length,
-          payloadBytes: estimarPayloadBytes(resposta.data || [])
+          payloadBytes: estimarPayloadBytes(resposta.data || {}),
+          detalhesPreCarregados: Object.keys(bundle.detalhesPorId).length
         });
         iniciarPreloadDetalhesAtividades(bundle, status);
       })
@@ -206,8 +203,7 @@
         registrarPerfAtividades('atividades.lista.falhou', inicio, {
           erro: erro.message
         });
-        lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
-        status.textContent = 'Falha ao carregar atividades.';
+        carregarAtividadesFallback(lista, status, inicio);
       });
   }
 

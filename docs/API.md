@@ -723,6 +723,11 @@ A tela "Minha situacao" possui cache curto no Apps Script, definido por
 `PORTAL_CONFIG.cacheMinhaSituacaoSegundos`. Na configuracao atual, o cache dura
 120 segundos.
 
+A sessao oficial resolvida pelo GEAPA-CORE tambem possui cache curto no Apps
+Script, definido por `PORTAL_CONFIG.cacheSessaoCoreSegundos`. Na configuracao
+atual, o cache dura 180 segundos e evita chamadas repetidas a
+`corePortalResolverUsuarioAtual` dentro do mesmo fluxo.
+
 Esse cache reduz chamadas repetidas ao GEAPA-CORE quando o membro atualiza a
 pagina ou quando o portal recarrega a mesma tela em seguida. Ele nao substitui a
 validacao de sessao: antes de ler o cache, o Apps Script valida o token
@@ -733,6 +738,10 @@ O backend tambem pode enviar `meta.desempenho` com:
 - `origemDados`: `geapa-core`, `fallback-local` ou `cache`;
 - `tempoMs`: tempo aproximado de processamento no Apps Script;
 - `cacheMinhaSituacaoSegundos`: duracao configurada para o cache.
+
+Nas acoes `validarCodigo` e `portalLogin`, o backend tambem retorna
+`meta.desempenho` para medir a resolucao da sessao inicial. O front-end aplica
+`data.sessao` imediatamente e carrega "Minha situacao" em uma etapa seguinte.
 
 O front-end registra esses tempos no console do navegador apenas para
 diagnostico local, sem exibir informacoes tecnicas ao membro.

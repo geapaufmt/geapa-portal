@@ -12,6 +12,7 @@
  * @return {Object} Resposta padronizada com sessao curta do portal.
  */
 function portalLoginFirebase(idToken) {
+  var inicio = portalAgoraMs_();
   var autorizacao = corePortalAuthorizeUser(idToken);
 
   if (!autorizacao.authorized) {
@@ -20,7 +21,8 @@ function portalLoginFirebase(idToken) {
       autorizacao.message || 'Acesso nao autorizado para este e-mail.',
       {
         email: autorizacao.email ? portalMascararEmail_(autorizacao.email) : ''
-      }
+      },
+      portalMetaDesempenho_('login-recusado', inicio)
     );
   }
 
@@ -50,7 +52,8 @@ function portalLoginFirebase(idToken) {
         perfilPortal: autorizacao.perfilPortal || 'MEMBRO',
         permissoes: autorizacao.permissoes || []
       }
-    }
+    },
+    portalMetaDesempenho_(autorizacao.sessao ? 'sessao-core' : 'fallback-local', inicio)
   );
 }
 

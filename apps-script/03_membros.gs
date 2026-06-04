@@ -110,6 +110,12 @@ function portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) {
  * @return {Object|null} Sessao canonica segura.
  */
 function portalResolverSessaoAtualViaGeapaCore_(entrada, opts) {
+  var cache = portalLerSessaoCoreCache_(entrada);
+
+  if (cache) {
+    return cache;
+  }
+
   var resposta = null;
 
   try {
@@ -126,7 +132,92 @@ function portalResolverSessaoAtualViaGeapaCore_(entrada, opts) {
     return null;
   }
 
-  return portalNormalizarSessaoPortalCore_(resposta);
+  var sessao = portalNormalizarSessaoPortalCore_(resposta);
+
+  if (sessao && sessao.ok !== false && sessao.autenticado !== false) {
+    portalSalvarSessaoCoreCache_(entrada, sessao);
+  }
+
+  return sessao;
+}
+
+/**
+ * Le sessao resolvida do cache curto do Apps Script.
+ *
+ * @param {string|Object} entrada Entrada aceita pelo resolvedor.
+ * @return {Object|null} Sessao em cache.
+ */
+function portalLerSessaoCoreCache_(entrada) {
+  var chave = portalMontarChaveSessaoCoreCache_(entrada);
+  var bruto = chave ? CacheService.getScriptCache().get(chave) : '';
+
+  if (!bruto) {
+    return null;
+  }
+
+  try {
+    return portalNormalizarSessaoPortalCore_(JSON.parse(bruto));
+  } catch (erro) {
+    return null;
+  }
+}
+
+/**
+ * Salva sessao resolvida em cache curto.
+ *
+ * @param {string|Object} entrada Entrada aceita pelo resolvedor.
+ * @param {Object} sessao Sessao canonica segura.
+ */
+function portalSalvarSessaoCoreCache_(entrada, sessao) {
+  var chave = portalMontarChaveSessaoCoreCache_(entrada);
+  var segundos = PORTAL_CONFIG.cacheSessaoCoreSegundos || 0;
+
+  if (!chave || !segundos || !sessao) {
+    return;
+  }
+
+  try {
+    CacheService.getScriptCache().put(chave, JSON.stringify(sessao), segundos);
+  } catch (erro) {
+    // Cache e melhoria de desempenho, nao requisito funcional.
+  }
+}
+
+/**
+ * Monta chave opaca para cache da sessao CORE.
+ *
+ * @param {string|Object} entrada Entrada aceita pelo resolvedor.
+ * @return {string} Chave de cache.
+ */
+function portalMontarChaveSessaoCoreCache_(entrada) {
+  var identificador = portalExtrairIdentificadorSessaoCore_(entrada);
+
+  if (!identificador) {
+    return '';
+  }
+
+  return portalCacheKey_('sessaoCoreV2', identificador);
+}
+
+/**
+ * Extrai identificador seguro de entrada simples ou objeto.
+ *
+ * @param {string|Object} entrada Entrada aceita pelo resolvedor.
+ * @return {string} Identificador normalizado.
+ */
+function portalExtrairIdentificadorSessaoCore_(entrada) {
+  if (!entrada || typeof entrada !== 'object') {
+    return portalNormalizarIdentificador_(entrada);
+  }
+
+  return portalNormalizarIdentificador_(
+    entrada.email ||
+    entrada.rga ||
+    entrada.idPessoa ||
+    entrada.identificador ||
+    entrada.emailOuRga ||
+    ''
+  );
 }
 
 /**

@@ -106,6 +106,7 @@ function portalSolicitarCodigo(emailOuRga) {
  * @return {Object} Resultado simulado da validacao.
  */
 function portalValidarCodigo(emailOuRga, codigo) {
+  var inicio = portalAgoraMs_();
   var identificador = portalNormalizarIdentificador_(emailOuRga);
   var codigoNormalizado = String(codigo || '').trim();
 
@@ -188,7 +189,8 @@ function portalValidarCodigo(emailOuRga, codigo) {
       'Seu acesso ao Portal GEAPA nao esta ativo no momento.',
       {
         sessao: sessaoResolvida
-      }
+      },
+      portalMetaDesempenho_('sessao-core-bloqueada', inicio)
     );
   }
 
@@ -206,7 +208,8 @@ function portalValidarCodigo(emailOuRga, codigo) {
         nomeExibicao: membro.nomeExibicao,
         rga: membro.rga
       }
-    }
+    },
+    portalMetaDesempenho_(sessaoResolvida ? 'sessao-core' : 'fallback-local', inicio)
   );
 }
 

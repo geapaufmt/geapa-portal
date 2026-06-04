@@ -696,32 +696,15 @@ function portalMontarBundleAtividadesFallback_(token) {
   }
 
   var calendario = Array.isArray(lista.data) ? lista.data : [];
-  var detalhesPorId = {};
-
-  calendario.forEach(function carregarDetalhe(atividade) {
-    var idAtividade = atividade && atividade.idAtividade
-      ? String(atividade.idAtividade).trim()
-      : '';
-
-    if (!idAtividade || atividade.podeVerDetalhes === false) {
-      return;
-    }
-
-    var detalhe = portalDetalheAtividade(token, idAtividade);
-
-    if (detalhe && detalhe.ok === true && detalhe.data) {
-      detalhesPorId[idAtividade] = detalhe.data;
-    }
-  });
 
   return {
     ok: true,
     code: 'ATIVIDADES_BUNDLE_FALLBACK',
-    message: 'Atividades carregadas por fallback de lista e detalhes.',
-    origem: 'fallback-lista-detalhe',
+    message: 'Atividades carregadas por fallback de lista.',
+    origem: 'fallback-lista',
     data: {
       calendario: calendario,
-      detalhesPorId: detalhesPorId,
+      detalhesPorId: {},
       ultimaAtualizacao: new Date().toISOString()
     }
   };

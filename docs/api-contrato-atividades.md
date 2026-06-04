@@ -232,6 +232,10 @@ Web App são:
 - `atividadeSalvarChamada`
 
 Ambas validam a sessão temporária do portal antes de consultar atividades.
+Para melhorar a primeira renderização, o Portal chama `atividadesBundle` como
+preferência. Se o bundle V2 ainda não existir no módulo de atividades, o backend
+retorna um fallback leve com a lista e `detalhesPorId` vazio; detalhes devem ser
+carregados por preload posterior ou sob demanda ao abrir uma atividade.
 
 ## Validações obrigatórias no backend futuro
 

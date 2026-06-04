@@ -162,8 +162,24 @@ resposta ja filtrada do proprio membro. Antes de usar esse cache, o backend
 continua validando a sessao temporaria. O cache nao fica no GitHub Pages e nao
 substitui regras de autorizacao.
 
-O tempo atual de cache e definido em `PORTAL_CONFIG.cacheMinhaSituacaoSegundos`.
-Na configuracao inicial, ele e de 120 segundos.
+O backend tambem usa cache curto da sessao oficial resolvida pelo GEAPA-CORE,
+definido em `PORTAL_CONFIG.cacheSessaoCoreSegundos`. Esse cache evita chamar
+`corePortalResolverUsuarioAtual` varias vezes no mesmo fluxo de login,
+restauracao, Minha situacao e Atividades.
+
+O tempo atual de cache da tela e definido em
+`PORTAL_CONFIG.cacheMinhaSituacaoSegundos`. Na configuracao inicial, ele e de
+120 segundos. O cache de sessao CORE e de 180 segundos.
+
+Depois de `validarCodigo` ou `portalLogin`, o front-end aplica `data.sessao`
+imediatamente para liberar menu e contexto visual, enquanto a tela "Minha
+situacao" carrega em seguida.
+
+Na aba Atividades, o front-end chama `atividadesBundle` primeiro. Se o bundle V2
+do modulo de Atividades ainda nao existir, o backend retorna um fallback leve
+com apenas a lista, e os detalhes ficam para carregamento sob demanda ou preload
+posterior. A primeira renderizacao da lista nao deve aguardar detalhes de cada
+atividade.
 
 O front-end registra tempos de resposta no console do navegador para ajudar a
 acompanhar se novos blocos da tela estao deixando o portal lento. Esses logs

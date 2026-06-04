@@ -37,6 +37,13 @@ var PORTAL_CONFIG = {
   cacheMinhaSituacaoSegundos: 120,
 
   /**
+   * Cache curto da sessao resolvida pelo GEAPA-CORE, em segundos.
+   * Evita repetir a resolucao de perfil/permissoes no mesmo fluxo de login,
+   * Minha situacao e Atividades.
+   */
+  cacheSessaoCoreSegundos: 180,
+
+  /**
    * Cache curto da leitura de atividades, em segundos.
    * A lista e os detalhes sao somente leitura, mas ainda passam pela validacao
    * da sessao antes de usar cache.

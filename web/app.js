@@ -122,6 +122,7 @@ const FIREBASE_LOGIN_STATE = {
       if (validacao.ok) {
         const sessionToken = obterSessionToken(validacao);
         salvarSessaoLocal(sessionToken);
+        aplicarContextoSessaoInicial(validacao, usuarioContexto);
         mostrarTelaSituacao(app, telaAcesso, telaSituacao);
         renderizarCarregandoSituacao(situacao);
 
@@ -266,6 +267,7 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     }
 
     salvarSessaoLocal(sessionToken);
+    aplicarContextoSessaoInicial(login, usuarioContexto);
     mostrarTelaSituacao(app, telaAcesso, telaSituacao);
     renderizarCarregandoSituacao(situacao);
 
@@ -459,6 +461,29 @@ function normalizarMinhaSituacao(resposta) {
       'Frequência, pendências, certificados e histórico ainda serão integrados.'
     ]
   };
+}
+
+/**
+ * Aplica sessao retornada por login/validacao antes de carregar Minha situacao.
+ *
+ * @param {Object} resposta Resposta de validarCodigo ou portalLogin.
+ * @param {HTMLElement} usuarioContexto Elemento de contexto do usuario.
+ */
+function aplicarContextoSessaoInicial(resposta, usuarioContexto) {
+  const dados = resposta && resposta.data ? resposta.data : {};
+  const sessao = extrairSessaoPortal(resposta, {});
+
+  if (!sessao) {
+    return;
+  }
+
+  const usuario = normalizarUsuario(dados.usuario || {}, {}, sessao);
+
+  aplicarUsuarioAtual({
+    usuario: usuario,
+    sessao: sessao
+  });
+  atualizarContextoUsuario(usuarioContexto, usuario);
 }
 
 /**
