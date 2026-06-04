@@ -11,12 +11,19 @@
   var navigation = global.PortalGeapaNavigation;
   var ui = global.PortalGeapaUi;
   var ATIVIDADES_CACHE_TTL_MS = 5 * 60 * 1000;
+  var CHAMADA_ANTECEDENCIA_PADRAO_MINUTOS = 60;
+  var CHAMADA_TOLERANCIA_PADRAO_MINUTOS = 240;
+  var PRELOAD_DETALHES_LIMITE_PADRAO = 5;
   var detalhesCache = {};
   var atividadesResumoCache = {};
   var atividadesBundleCache = null;
   var atividadesBundleCacheSalvoEm = 0;
   var detalhesPreloadPromise = null;
   var detalhesPreloadTimer = null;
+  var detalhesPreloadFila = [];
+  var detalhesPreloadIds = {};
+  var detalhesPreloadEmExecucao = false;
+  var detalhesIntersectionObserver = null;
   var chamadaAtual = null;
   var STATUS_CHAMADA = [
     { valor: '', rotulo: 'Sem marcação', codigo: '' },
@@ -135,8 +142,27 @@
   }
 
   function carregarAtividades(lista, status) {
-    carregarAtividadesComBundle(lista, status);
-    return;
+    carregarAtividadesComLista(lista, status);
+  }
+
+  function carregarAtividadesComLista(lista, status) {
+    var inicio = obterTempoAtual();
+    var bundleCache = lerBundleAtividadesCacheValido();
+
+    if (bundleCache && bundleCache.calendario.length) {
+      aplicarBundleAtividades(bundleCache);
+      renderizarAtividades(lista, bundleCache.calendario);
+      status.textContent = configEmModoMock()
+        ? 'Dados simulados. Nenhuma atividade real foi consultada.'
+        : 'Agenda carregada em cache local.';
+      registrarPerfAtividades('atividades.aba.cache', inicio, {
+        total: bundleCache.calendario.length,
+        detalhesCache: Object.keys(bundleCache.detalhesPorId || {}).length,
+        payloadBytes: estimarPayloadBytes(bundleCache.calendario)
+      });
+      iniciarPreloadDetalhesAtividades(bundleCache, status);
+      return;
+    }
 
     lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
     status.textContent = 'Buscando atividades no Portal GEAPA.';
@@ -147,10 +173,24 @@
           throw new Error(resposta.message || 'Não foi possível carregar atividades.');
         }
 
-        renderizarAtividades(lista, resposta.data || []);
+        var bundle = normalizarBundleAtividades({
+          calendario: resposta.data || [],
+          detalhesPorId: {},
+          ultimaAtualizacao: new Date().toISOString()
+        });
+
+        aplicarBundleAtividades(bundle);
+        salvarBundleAtividadesCache(bundle);
+        renderizarAtividades(lista, bundle.calendario);
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-          : 'Leitura segura carregada pelo backend do Portal GEAPA.';
+          : 'Agenda carregada. Detalhes serão preparados em segundo plano.';
+        registrarPerfAtividades('atividades.lista.renderizada', inicio, mesclarMetaPerfAtividades(resposta, {
+          total: bundle.calendario.length,
+          payloadBytes: estimarPayloadBytes(resposta.data || {}),
+          detalhesPreCarregados: 0
+        }));
+        iniciarPreloadDetalhesAtividades(bundle, status);
       })
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
@@ -255,8 +295,138 @@
 
     detalhesPreloadTimer = global.setTimeout(function iniciarDepoisDaPintura() {
       detalhesPreloadTimer = null;
-      executarPreloadDetalhesAtividades(status);
-    }, 700);
+      planejarPreloadDetalhesPrioritarios(dados, status);
+    }, 900);
+  }
+
+  function planejarPreloadDetalhesPrioritarios(bundle, status) {
+    var dados = normalizarBundleAtividades(bundle);
+    var prioridade = obterAtividadesParaPreload(dados.calendario);
+
+    prioridade.forEach(function enfileirar(atividade) {
+      if (atividade && atividade.idAtividade) {
+        enfileirarPreloadDetalhe(atividade.idAtividade, 'prioridade');
+      }
+    });
+
+    if (status && prioridade.length && !configEmModoMock()) {
+      status.textContent = 'Agenda carregada. Detalhes prioritários sendo preparados.';
+    }
+  }
+
+  function obterAtividadesParaPreload(atividades) {
+    var lista = Array.isArray(atividades) ? atividades.slice() : [];
+    var proxima = obterProximaAtividade(lista);
+    var selecionadas = [];
+    var usados = {};
+
+    if (proxima && proxima.idAtividade) {
+      selecionadas.push(proxima);
+      usados[proxima.idAtividade] = true;
+    }
+
+    lista
+      .filter(function filtrarPreload(atividade) {
+        return atividade &&
+          atividade.idAtividade &&
+          !usados[atividade.idAtividade] &&
+          obterInicioAtividadeMs(atividade) >= obterTempoCacheAtual();
+      })
+      .sort(compararAtividadesPorInicio)
+      .slice(0, Math.max(PRELOAD_DETALHES_LIMITE_PADRAO - selecionadas.length, 0))
+      .forEach(function adicionar(atividade) {
+        selecionadas.push(atividade);
+        usados[atividade.idAtividade] = true;
+      });
+
+    return selecionadas;
+  }
+
+  function observarPreloadDetalhes(container) {
+    if (detalhesIntersectionObserver && typeof detalhesIntersectionObserver.disconnect === 'function') {
+      detalhesIntersectionObserver.disconnect();
+    }
+
+    if (!global.IntersectionObserver) {
+      return;
+    }
+
+    detalhesIntersectionObserver = new global.IntersectionObserver(function tratarEntradas(entradas) {
+      entradas.forEach(function tratarEntrada(entrada) {
+        var idAtividade = entrada.target && entrada.target.getAttribute('data-id-atividade');
+
+        if (!entrada.isIntersecting || !idAtividade) {
+          return;
+        }
+
+        enfileirarPreloadDetalhe(idAtividade, 'viewport');
+        detalhesIntersectionObserver.unobserve(entrada.target);
+      });
+    }, {
+      root: null,
+      rootMargin: '420px 0px',
+      threshold: 0.01
+    });
+
+    Array.prototype.forEach.call(
+      container.querySelectorAll('[data-id-atividade]'),
+      function observarCard(card) {
+        detalhesIntersectionObserver.observe(card);
+      }
+    );
+  }
+
+  function enfileirarPreloadDetalhe(idAtividade, origem) {
+    var id = String(idAtividade || '').trim();
+
+    if (!id || detalhesCache[id] || detalhesPreloadIds[id]) {
+      return;
+    }
+
+    detalhesPreloadIds[id] = true;
+    detalhesPreloadFila.push({
+      idAtividade: id,
+      origem: origem || 'background'
+    });
+    processarFilaPreloadDetalhes();
+  }
+
+  function processarFilaPreloadDetalhes() {
+    var item;
+    var inicio;
+
+    if (detalhesPreloadEmExecucao || !detalhesPreloadFila.length) {
+      return;
+    }
+
+    item = detalhesPreloadFila.shift();
+    detalhesPreloadEmExecucao = true;
+    inicio = obterTempoAtual();
+
+    api.apiGet('/atividades/detalhe', {
+      idAtividade: item.idAtividade
+    }).then(function tratarResposta(resposta) {
+      if (!resposta.ok) {
+        throw new Error(resposta.message || 'Nao foi possivel preparar detalhe.');
+      }
+
+      detalhesCache[item.idAtividade] = resposta.data;
+      atualizarDetalheNoBundleCache(item.idAtividade, resposta.data);
+      registrarPerfAtividades('atividades.detalhe.preload_unitario', inicio, mesclarMetaPerfAtividades(resposta, {
+        idAtividade: item.idAtividade,
+        origemPreload: item.origem,
+        payloadBytes: estimarPayloadBytes(resposta.data || {})
+      }));
+    }).catch(function tratarErro(erro) {
+      registrarPerfAtividades('atividades.detalhe.preload_unitario_falhou', inicio, {
+        idAtividade: item.idAtividade,
+        origemPreload: item.origem,
+        erro: erro.message
+      });
+    }).then(function finalizarPreload() {
+      detalhesPreloadEmExecucao = false;
+      global.setTimeout(processarFilaPreloadDetalhes, 350);
+    });
   }
 
   function executarPreloadDetalhesAtividades(status) {
@@ -450,7 +620,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesBundle.v4.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesLista.v5.' + hashCurto(token + ':' + usuarioId);
   }
 
   function hashCurto(valor) {
@@ -515,50 +685,39 @@
   }
 
   function renderizarAtividades(container, atividades) {
-    if (!atividades.length) {
+    var dados = Array.isArray(atividades) ? atividades.slice() : [];
+    var proxima = obterProximaAtividade(dados);
+
+    if (!dados.length) {
       container.innerHTML = '<p class="empty-state">Nenhuma atividade disponível nesta etapa.</p>';
       return;
     }
 
-    atividades.forEach(function guardarResumo(atividade) {
+    dados.forEach(function guardarResumo(atividade) {
       if (atividade && atividade.idAtividade) {
         atividadesResumoCache[atividade.idAtividade] = atividade;
       }
     });
 
-    container.innerHTML = atividades.map(function montarAtividade(atividade) {
-      return [
-        '<article class="activity-card" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '">',
-        '<div class="activity-card-main">',
-        '<div>',
-        '<p class="activity-date">' + ui.escaparHtml(ui.formatarData(atividade.dataAtividade)) + ' · ' + ui.escaparHtml(atividade.diaSemana) + '</p>',
-        '<h3>' + ui.escaparHtml(atividade.tituloPublico) + '</h3>',
-        '<p class="activity-meta">' + ui.escaparHtml(atividade.horarioInicio + ' às ' + atividade.horarioFim) + ' · ' + ui.escaparHtml(atividade.local) + '</p>',
-        '</div>',
-        '<div class="activity-status-stack">',
-        '<span class="status-pill">' + ui.escaparHtml(ui.formatarRotulo(atividade.statusPublico)) + '</span>',
-        atividade.statusChamadaRotulo
-          ? '<span class="status-pill status-pill-muted">' + ui.escaparHtml(atividade.statusChamadaRotulo) + '</span>'
-          : '',
-        '</div>',
-        '</div>',
-        '<dl class="activity-facts">',
-        montarFato('Tipo', atividade.tipoPublico),
-        montarFato('Formato', ui.formatarRotulo(atividade.formato)),
-        montarFato('Presença', ui.formatarBooleano(atividade.contaPresenca)),
-        montarFato('Falta', ui.formatarBooleano(atividade.contaFalta)),
-        montarFato('Certificado', ui.formatarBooleano(atividade.geraCertificado)),
-        montarFato('Carga horária', atividade.cargaHoraria + ' h'),
-        '</dl>',
-        '<div class="activity-actions">',
-        montarBotaoDetalhes(atividade),
-        montarBotaoChamada(atividade),
-        montarBotaoMock('Editar', auth.canEditActivity(atividade)),
-        montarBotaoMock('Justificar falta', auth.canJustifyAbsence(atividade)),
-        '</div>',
-        '</article>'
-      ].join('');
-    }).join('');
+    container.innerHTML = [
+      proxima
+        ? [
+          '<section class="next-activity-section" aria-labelledby="proxima-atividade-title">',
+          '<div class="activity-section-heading">',
+          '<p class="eyebrow">Próxima atividade</p>',
+          '<h3 id="proxima-atividade-title">' + ui.escaparHtml(proxima.tituloPublico || 'Atividade') + '</h3>',
+          '</div>',
+          montarCardAtividade(proxima, true),
+          '</section>'
+        ].join('')
+        : '',
+      '<section class="activities-list-section" aria-label="Lista geral de atividades">',
+      proxima ? '<h3 class="activity-list-title">Todas as atividades</h3>' : '',
+      dados.map(function montarAtividade(atividade) {
+        return montarCardAtividade(atividade, false);
+      }).join(''),
+      '</section>'
+    ].join('');
 
     Array.prototype.forEach.call(
       container.querySelectorAll('[data-activity-details]'),
@@ -577,6 +736,140 @@
         });
       }
     );
+
+    observarPreloadDetalhes(container);
+  }
+
+  function montarCardAtividade(atividade, destaque) {
+    return [
+      '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') + '" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '">',
+      '<div class="activity-card-main">',
+      '<div>',
+      '<p class="activity-date">' + ui.escaparHtml(ui.formatarData(atividade.dataAtividade)) + ' · ' + ui.escaparHtml(atividade.diaSemana) + '</p>',
+      '<h3>' + ui.escaparHtml(atividade.tituloPublico) + '</h3>',
+      '<p class="activity-meta">' + ui.escaparHtml(montarMetaAtividade(atividade)) + '</p>',
+      '</div>',
+      '<div class="activity-status-stack">',
+      '<span class="status-pill">' + ui.escaparHtml(ui.formatarRotulo(atividade.statusPublico)) + '</span>',
+      atividade.statusChamadaRotulo
+        ? '<span class="status-pill status-pill-muted">' + ui.escaparHtml(atividade.statusChamadaRotulo) + '</span>'
+        : '',
+      '</div>',
+      '</div>',
+      '<dl class="activity-facts">',
+      montarFato('Tipo', atividade.tipoPublico),
+      montarFato('Formato', ui.formatarRotulo(atividade.formato)),
+      montarFato('Presença', ui.formatarBooleano(atividade.contaPresenca)),
+      montarFato('Falta', ui.formatarBooleano(atividade.contaFalta)),
+      montarFato('Certificado', ui.formatarBooleano(atividade.geraCertificado)),
+      montarFato('Carga horária', atividade.cargaHoraria + ' h'),
+      '</dl>',
+      montarAvisoChamada(atividade, destaque),
+      '<div class="activity-actions">',
+      montarBotaoDetalhes(atividade),
+      montarBotaoChamada(atividade),
+      montarBotaoMock('Editar', auth.canEditActivity(atividade)),
+      montarBotaoMock('Justificar falta', auth.canJustifyAbsence(atividade)),
+      '</div>',
+      '</article>'
+    ].join('');
+  }
+
+  function montarMetaAtividade(atividade) {
+    var horarios = [
+      atividade.horarioInicio,
+      atividade.horarioFim
+    ].filter(Boolean).join(' às ');
+    var partes = [
+      horarios || atividade.horarioCompleto,
+      atividade.local
+    ].filter(Boolean);
+
+    return partes.join(' · ');
+  }
+
+  function obterProximaAtividade(atividades) {
+    var agora = obterTempoCacheAtual();
+
+    return (Array.isArray(atividades) ? atividades : [])
+      .filter(function filtrarFuturas(atividade) {
+        var inicio = obterInicioAtividadeMs(atividade);
+        return inicio && inicio > agora;
+      })
+      .sort(compararAtividadesPorInicio)[0] || null;
+  }
+
+  function compararAtividadesPorInicio(a, b) {
+    return obterInicioAtividadeMs(a) - obterInicioAtividadeMs(b);
+  }
+
+  function obterInicioAtividadeMs(atividade) {
+    return obterTimestampAtividade(atividade, [
+      'dataHoraInicio',
+      'inicioEm',
+      'inicio',
+      'horarioInicio'
+    ]);
+  }
+
+  function obterFimAtividadeMs(atividade) {
+    return obterTimestampAtividade(atividade, [
+      'dataHoraFim',
+      'fimEm',
+      'fim',
+      'horarioFim'
+    ]);
+  }
+
+  function obterTimestampAtividade(atividade, campos) {
+    var dados = atividade || {};
+    var direto = campos
+      .map(function obterCampo(campo) {
+        return dados[campo];
+      })
+      .filter(Boolean)[0];
+    var data = String(dados.dataAtividade || dados.data || '').trim();
+    var dataHora;
+
+    if (direto && String(direto).indexOf('-') >= 0) {
+      dataHora = new Date(direto);
+      return Number.isNaN(dataHora.getTime()) ? 0 : dataHora.getTime();
+    }
+
+    if (!data || !direto) {
+      return 0;
+    }
+
+    dataHora = new Date(data + 'T' + normalizarHorario(direto));
+    return Number.isNaN(dataHora.getTime()) ? 0 : dataHora.getTime();
+  }
+
+  function normalizarHorario(valor) {
+    var texto = String(valor || '').trim().toLowerCase();
+    var match = texto.match(/(\d{1,2})(?:h|:)?(\d{2})?/);
+    var hora;
+    var minuto;
+
+    if (!match) {
+      return '00:00:00';
+    }
+
+    hora = Math.max(Math.min(Number(match[1]) || 0, 23), 0);
+    minuto = Math.max(Math.min(Number(match[2]) || 0, 59), 0);
+
+    return String(hora).padStart(2, '0') + ':' + String(minuto).padStart(2, '0') + ':00';
+  }
+
+  function montarAvisoChamada(atividade, destaque) {
+    var acao = avaliarAcaoChamada(atividade);
+
+    if (!destaque || acao.visivel || !acao.disponivelEm) {
+      return '';
+    }
+
+    return '<p class="activity-attendance-note">' +
+      ui.escaparHtml('Chamada disponível a partir de ' + formatarDataHoraCurta(acao.disponivelEm) + '.') +
+      '</p>';
   }
 
   function montarFato(rotulo, valor) {
@@ -601,17 +894,150 @@
   }
 
   function montarBotaoChamada(atividade) {
-    if (!auth.canRegisterAttendance(atividade)) {
+    var acao = avaliarAcaoChamada(atividade);
+
+    if (!acao.visivel) {
       return '';
     }
-
-    var rotulo = atividade.chamadaFinalizada ? 'Visualizar chamada' : 'Registrar chamada';
 
     return [
       '<button class="secondary-button compact-button" type="button" data-activity-attendance="',
       ui.escaparHtml(atividade.idAtividade),
-      '">' + ui.escaparHtml(rotulo) + '</button>'
+      '"',
+      acao.desabilitado ? ' disabled' : '',
+      acao.motivo ? ' title="' + ui.escaparHtml(acao.motivo) + '"' : '',
+      '>' + ui.escaparHtml(acao.rotulo) + '</button>'
     ].join('');
+  }
+
+  function avaliarAcaoChamada(atividade) {
+    var janela;
+
+    if (!auth.canRegisterAttendance(atividade)) {
+      return { visivel: false };
+    }
+
+    if (podeVisualizarChamada(atividade)) {
+      return {
+        visivel: true,
+        desabilitado: false,
+        rotulo: 'Visualizar chamada'
+      };
+    }
+
+    if (atividade && atividade.podeRegistrarChamadaAgora === true) {
+      return {
+        visivel: true,
+        desabilitado: false,
+        rotulo: 'Registrar chamada'
+      };
+    }
+
+    janela = avaliarJanelaChamada(atividade);
+
+    if (janela.dentro) {
+      return {
+        visivel: true,
+        desabilitado: false,
+        rotulo: 'Registrar chamada'
+      };
+    }
+
+    return {
+      visivel: false,
+      disponivelEm: janela.disponivelEm,
+      motivo: janela.motivo
+    };
+  }
+
+  function podeVisualizarChamada(atividade) {
+    var status = String((atividade && atividade.statusChamada) || '').trim().toUpperCase();
+
+    return Boolean(
+      atividade &&
+      (
+        atividade.podeVisualizarChamada === true ||
+        atividade.chamadaFinalizada === true ||
+        status === 'SALVA' ||
+        status === 'FINALIZADA' ||
+        status === 'ENCERRADA'
+      )
+    );
+  }
+
+  function avaliarJanelaChamada(atividade) {
+    var inicio = obterInicioAtividadeMs(atividade);
+    var fim = obterFimAtividadeMs(atividade) || inicio;
+    var agora = obterTempoCacheAtual();
+    var antecedencia = obterNumeroConfigAtividade(
+      atividade,
+      ['chamadaAntecedenciaMinutos', 'janelaChamadaMinutos', 'atividadesChamadaAntecedenciaMinutos'],
+      CHAMADA_ANTECEDENCIA_PADRAO_MINUTOS
+    );
+    var tolerancia = obterNumeroConfigAtividade(
+      atividade,
+      ['chamadaToleranciaPosMinutos', 'atividadesChamadaToleranciaPosMinutos'],
+      CHAMADA_TOLERANCIA_PADRAO_MINUTOS
+    );
+    var disponivelEm = obterTimestampDireto(atividade && atividade.chamadaDisponivelEm) ||
+      (inicio ? inicio - antecedencia * 60 * 1000 : 0);
+    var encerraEm = fim ? fim + tolerancia * 60 * 1000 : 0;
+
+    if (!inicio || !disponivelEm) {
+      return {
+        dentro: atividade && atividade.podeRegistrarChamada === true,
+        disponivelEm: 0,
+        motivo: ''
+      };
+    }
+
+    if (agora >= disponivelEm && (!encerraEm || agora <= encerraEm)) {
+      return {
+        dentro: true,
+        disponivelEm: disponivelEm,
+        motivo: ''
+      };
+    }
+
+    return {
+      dentro: false,
+      disponivelEm: disponivelEm,
+      motivo: agora < disponivelEm
+        ? 'Chamada ainda fora da janela operacional.'
+        : 'Janela operacional da chamada encerrada.'
+    };
+  }
+
+  function obterNumeroConfigAtividade(atividade, chaves, padrao) {
+    var dados = atividade || {};
+    var config = dados.portalConfig || dados.config || {};
+    var valor;
+
+    for (var i = 0; i < chaves.length; i++) {
+      valor = dados[chaves[i]];
+
+      if (valor === undefined && config) {
+        valor = config[chaves[i]];
+      }
+
+      if (valor !== undefined && valor !== null && valor !== '') {
+        valor = Number(valor);
+        return Number.isFinite(valor) && valor >= 0 ? valor : padrao;
+      }
+    }
+
+    return padrao;
+  }
+
+  function obterTimestampDireto(valor) {
+    var data;
+
+    if (!valor) {
+      return 0;
+    }
+
+    data = new Date(valor);
+    return Number.isNaN(data.getTime()) ? 0 : data.getTime();
   }
 
   function montarBotaoMock(rotulo, permitido) {

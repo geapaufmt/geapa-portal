@@ -438,19 +438,19 @@ Resposta esperada:
 }
 ```
 
-Essa e a acao preferencial da aba Atividades. O backend do portal tenta chamar
-`atividadesV2_portalGetAtividadesBundle(contexto)` no modulo
-`geapa-atividades`. Se o contrato nao existir, mantem fallback para
-`atividadesListar` e `atividadeDetalhe`.
+Essa acao fica disponivel como contrato de apoio, mas nao deve ser a primeira
+chamada da aba Atividades quando o pacote completo incluir detalhes de todas as
+atividades. A primeira renderizacao deve usar `atividadesListar`, que retorna
+somente o calendario/resumo leve.
 
 O front-end guarda esse pacote em `sessionStorage` por 5 minutos, com chave
 derivada da sessao atual. Para medir a melhoria, abrir o console do navegador e
 filtrar por `GEAPA-PORTAL-PERF`.
 
-Observacao de performance: a aba Atividades chama `atividadesBundle` como fonte
-preferencial. Quando o bundle do modulo nao estiver disponivel, o backend monta
-um pacote leve por fallback de lista, sem carregar detalhes de todas as
-atividades antes da primeira renderizacao.
+Observacao de performance: a aba Atividades chama `atividadesListar` primeiro,
+renderiza a lista e a proxima atividade em destaque, e so depois prepara
+detalhes em segundo plano. O bundle completo nao deve bloquear a primeira
+renderizacao.
 
 As respostas de Atividades podem incluir `meta.desempenho` com:
 
@@ -482,9 +482,11 @@ Resposta esperada:
 }
 ```
 
-Essa acao aquece o cache de detalhes depois que a lista ja apareceu na tela.
-Se um detalhe ainda nao estiver em cache quando o usuario clicar, o portal usa
-`atividadeDetalhe` apenas para aquele `ID_ATIVIDADE`.
+Essa acao aquece o cache de detalhes depois que a lista ja apareceu na tela,
+quando existir uma versao leve no backend. O Portal tambem pode carregar
+detalhes individualmente em segundo plano conforme prioridade e rolagem da
+tela. Se um detalhe ainda nao estiver em cache quando o usuario clicar, o portal
+usa `atividadeDetalhe` apenas para aquele `ID_ATIVIDADE`.
 
 Importante: esta acao nao deve cair para `atividadesBundle` como fallback,
 porque o bundle tambem le calendario e detalhes e pode atrasar o primeiro uso

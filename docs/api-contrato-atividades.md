@@ -65,17 +65,13 @@ acao=atividadesListar
 token=sessao-temporaria
 ```
 
-Depois que a lista aparecer, o Portal dispara preload assÃ­ncrono de detalhes:
-
-```text
-acao=atividadesDetalhesPreload
-token=sessao-temporaria
-```
-
-O bundle continua existindo como contrato de apoio, mas nao deve bloquear a
-primeira renderizacao da aba Atividades. Se um detalhe ainda nao estiver em
-cache quando o usuario clicar, o Portal chama `atividadeDetalhe` somente para
-aquele `ID_ATIVIDADE`.
+Depois que a lista aparecer, o Portal destaca a proxima atividade e prepara
+detalhes em segundo plano de forma progressiva: primeiro itens prioritarios e
+depois cards que entram perto da area visivel durante a rolagem. O bundle
+continua existindo como contrato de apoio, mas nao deve bloquear a primeira
+renderizacao da aba Atividades. Se um detalhe ainda nao estiver em cache quando
+o usuario clicar, o Portal chama `atividadeDetalhe` somente para aquele
+`ID_ATIVIDADE`.
 
 Contrato lógico:
 
@@ -249,13 +245,14 @@ carregados por preload posterior ou sob demanda ao abrir uma atividade.
 - retorno estruturado e sem dados desnecessários.
 ## Cache e medicao de performance
 
-O front-end guarda o bundle de atividades em `sessionStorage` por TTL curto
-de 5 minutos, usando uma chave derivada da sessao atual. Dentro desse periodo:
+O front-end guarda a lista leve e os detalhes ja carregados em `sessionStorage`
+por TTL curto de 5 minutos, usando uma chave derivada da sessao atual. Dentro
+desse periodo:
 
 - abrir a aba Atividades novamente nao deve chamar o backend;
-- clicar em uma atividade que ja veio no bundle nao deve chamar
+- clicar em uma atividade com detalhe ja carregado nao deve chamar
   `/atividades/detalhe`;
-- se um detalhe nao veio no bundle, o portal ainda usa
+- se um detalhe nao veio no cache, o portal ainda usa
   `/atividades/detalhe` como fallback e atualiza o cache local.
 
 Para medir antes/depois, abrir o console do navegador e filtrar por:
@@ -269,6 +266,8 @@ Eventos principais:
 - `atividades.lista.renderizada`: tempo ate a primeira renderizacao da lista;
 - `atividades.aba.cache`: tempo ao reabrir a aba usando cache local;
 - `atividades.detalhes.preload`: tempo de preload dos detalhes;
+- `atividades.detalhe.preload_unitario`: detalhe carregado em segundo plano por
+  prioridade ou rolagem;
 - `atividades.lista.falhou`: erro ao carregar o calendario inicial;
 - `atividades.detalhe.cache`: abertura de detalhe sem nova chamada;
 - `atividades.detalhe.fallback_backend`: detalhe carregado pelo endpoint antigo;
