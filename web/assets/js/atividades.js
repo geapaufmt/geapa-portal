@@ -192,11 +192,11 @@
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
           : 'Atividades carregadas. Detalhes sendo preparados em segundo plano.';
-        registrarPerfAtividades('atividades.lista.renderizada', inicio, {
+        registrarPerfAtividades('atividades.lista.renderizada', inicio, mesclarMetaPerfAtividades(resposta, {
           total: bundle.calendario.length,
           payloadBytes: estimarPayloadBytes(resposta.data || {}),
           detalhesPreCarregados: Object.keys(bundle.detalhesPorId).length
-        });
+        }));
         iniciarPreloadDetalhesAtividades(bundle, status);
       })
       .catch(function tratarErro(erro) {
@@ -270,10 +270,10 @@
 
         var detalhes = normalizarDetalhesPorId((resposta.data || {}).detalhesPorId);
         mesclarDetalhesNoCache(detalhes, (resposta.data || {}).ultimaAtualizacao);
-        registrarPerfAtividades('atividades.detalhes.preload', inicio, {
+        registrarPerfAtividades('atividades.detalhes.preload', inicio, mesclarMetaPerfAtividades(resposta, {
           totalDetalhes: Object.keys(detalhes).length,
           payloadBytes: estimarPayloadBytes(resposta.data || {})
-        });
+        }));
 
         if (status && !configEmModoMock()) {
           status.textContent = 'Atividades e detalhes preparados para consulta rápida.';
@@ -487,6 +487,25 @@
     }, detalhes || {}));
   }
 
+  function mesclarMetaPerfAtividades(resposta, detalhes) {
+    var meta = resposta && resposta.meta ? resposta.meta : {};
+    var desempenho = meta.desempenho || {};
+    var atividades = meta.atividades || {};
+    var dados = Object.assign({}, detalhes || {});
+    var tempoBackend = Number(desempenho.tempoMs);
+    var origemBackend = desempenho.origemDados || atividades.origemDados || '';
+
+    if (!Number.isNaN(tempoBackend) && tempoBackend >= 0) {
+      dados.tempoBackendMs = Math.round(tempoBackend);
+    }
+
+    if (origemBackend) {
+      dados.origemBackend = origemBackend;
+    }
+
+    return dados;
+  }
+
   function estimarPayloadBytes(valor) {
     try {
       return JSON.stringify(valor || {}).length;
@@ -633,10 +652,10 @@
       detalhesCache[idAtividade] = resposta.data;
       atualizarDetalheNoBundleCache(idAtividade, resposta.data);
       abrirModal(resposta.data);
-      registrarPerfAtividades('atividades.detalhe.fallback_backend', inicio, {
+      registrarPerfAtividades('atividades.detalhe.fallback_backend', inicio, mesclarMetaPerfAtividades(resposta, {
         idAtividade: idAtividade,
         payloadBytes: estimarPayloadBytes(resposta.data)
-      });
+      }));
     }).catch(function tratarErro(erro) {
       abrirModal({
         idAtividade: idAtividade,
@@ -666,11 +685,11 @@
 
       chamadaAtual = normalizarChamada(resposta.data);
       renderizarChamada(chamadaAtual);
-      registrarPerfAtividades('atividades.chamada.carregada', inicio, {
+      registrarPerfAtividades('atividades.chamada.carregada', inicio, mesclarMetaPerfAtividades(resposta, {
         idAtividade: idAtividade,
         totalParticipantes: chamadaAtual.participantes.length,
         payloadBytes: estimarPayloadBytes(resposta.data || {})
-      });
+      }));
     }).catch(function tratarErro(erro) {
       definirTituloModal('Registrar chamada');
       abrirModal({
@@ -1009,12 +1028,12 @@
         status.textContent = resposta.message || 'Chamada salva com sucesso.';
       }
       renderizarChamada(chamadaAtual);
-      registrarPerfAtividades('atividades.chamada.salva', inicio, {
+      registrarPerfAtividades('atividades.chamada.salva', inicio, mesclarMetaPerfAtividades(resposta, {
         idAtividade: payload.idAtividade,
         totalRegistros: payload.registros.length + payload.externos.length,
         operacao: operacaoNormalizada,
         payloadBytes: estimarPayloadBytes(payload)
-      });
+      }));
     }).catch(function tratarErro(erro) {
       if (status) {
         status.textContent = erro.message;

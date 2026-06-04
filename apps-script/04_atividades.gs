@@ -13,6 +13,7 @@
  * @return {Object} Resposta padronizada da API.
  */
 function portalListarAtividades(token) {
+  var inicio = portalAgoraAtividadesMs_();
   var contexto = portalMontarContextoAtividades_(token);
 
   if (!contexto.ok) {
@@ -30,7 +31,7 @@ function portalListarAtividades(token) {
       'ATIVIDADES_CACHE',
       'Atividades carregadas em cache temporário.',
       cache,
-      portalMetaAtividades_('cache')
+      portalMetaAtividades_('cache', inicio)
     );
   }
 
@@ -47,7 +48,7 @@ function portalListarAtividades(token) {
     'ATIVIDADES_CARREGADAS',
     'Atividades carregadas pelo módulo GEAPA Atividades.',
     normalizada.data,
-    portalMetaAtividades_('geapa-atividades')
+    portalMetaAtividades_('geapa-atividades', inicio)
   );
 }
 
@@ -62,6 +63,7 @@ function portalListarAtividades(token) {
  * @return {Object} Resposta padronizada da API.
  */
 function portalAtividadesBundle(token) {
+  var inicio = portalAgoraAtividadesMs_();
   var contexto = portalMontarContextoAtividades_(token);
 
   if (!contexto.ok) {
@@ -79,7 +81,7 @@ function portalAtividadesBundle(token) {
       'ATIVIDADES_BUNDLE_CACHE',
       'Atividades carregadas em cache temporario.',
       cache,
-      portalMetaAtividades_('cache')
+      portalMetaAtividades_('cache', inicio)
     );
   }
 
@@ -100,7 +102,7 @@ function portalAtividadesBundle(token) {
     normalizada.code || 'ATIVIDADES_BUNDLE_CARREGADO',
     normalizada.message || 'Atividades carregadas em pacote unico.',
     normalizada.data,
-    portalMetaAtividades_(normalizada.origem || 'geapa-atividades-bundle')
+    portalMetaAtividades_(normalizada.origem || 'geapa-atividades-bundle', inicio)
   );
 }
 
@@ -115,6 +117,7 @@ function portalAtividadesBundle(token) {
  * @return {Object} Resposta padronizada da API.
  */
 function portalPrecarregarDetalhesAtividades(token) {
+  var inicio = portalAgoraAtividadesMs_();
   var contexto = portalMontarContextoAtividades_(token);
 
   if (!contexto.ok) {
@@ -132,7 +135,7 @@ function portalPrecarregarDetalhesAtividades(token) {
       'ATIVIDADES_DETALHES_PRELOAD_CACHE',
       'Detalhes de atividades carregados em cache temporario.',
       cache,
-      portalMetaAtividades_('cache')
+      portalMetaAtividades_('cache', inicio)
     );
   }
 
@@ -153,7 +156,7 @@ function portalPrecarregarDetalhesAtividades(token) {
     'ATIVIDADES_DETALHES_PRELOAD_CARREGADO',
     'Detalhes de atividades carregados para preload.',
     normalizada.data,
-    portalMetaAtividades_(normalizada.origem || 'geapa-atividades-detalhes')
+    portalMetaAtividades_(normalizada.origem || 'geapa-atividades-detalhes', inicio)
   );
 }
 
@@ -165,6 +168,7 @@ function portalPrecarregarDetalhesAtividades(token) {
  * @return {Object} Resposta padronizada da API.
  */
 function portalDetalheAtividade(token, idAtividade) {
+  var inicio = portalAgoraAtividadesMs_();
   var atividadeId = String(idAtividade || '').trim();
 
   if (!atividadeId) {
@@ -192,7 +196,7 @@ function portalDetalheAtividade(token, idAtividade) {
       'ATIVIDADE_DETALHE_CACHE',
       'Detalhes da atividade carregados em cache temporário.',
       cache,
-      portalMetaAtividades_('cache')
+      portalMetaAtividades_('cache', inicio)
     );
   }
 
@@ -212,7 +216,7 @@ function portalDetalheAtividade(token, idAtividade) {
     'ATIVIDADE_DETALHE_CARREGADO',
     'Detalhes da atividade carregados pelo módulo GEAPA Atividades.',
     normalizada.data,
-    portalMetaAtividades_('geapa-atividades')
+    portalMetaAtividades_('geapa-atividades', inicio)
   );
 }
 
@@ -227,6 +231,7 @@ function portalDetalheAtividade(token, idAtividade) {
  * @return {Object} Resposta padronizada da API.
  */
 function portalBuscarChamadaAtividade(token, idAtividade) {
+  var inicio = portalAgoraAtividadesMs_();
   var atividadeId = String(idAtividade || '').trim();
 
   if (!atividadeId) {
@@ -257,7 +262,7 @@ function portalBuscarChamadaAtividade(token, idAtividade) {
     'ATIVIDADE_CHAMADA_CARREGADA',
     'Chamada carregada pelo modulo GEAPA Atividades.',
     normalizada.data,
-    portalMetaAtividades_('geapa-atividades-chamada')
+    portalMetaAtividades_('geapa-atividades-chamada', inicio)
   );
 }
 
@@ -269,6 +274,7 @@ function portalBuscarChamadaAtividade(token, idAtividade) {
  * @return {Object} Resposta padronizada da API.
  */
 function portalSalvarChamadaAtividade(token, payloadJson) {
+  var inicio = portalAgoraAtividadesMs_();
   var contexto = portalMontarContextoAtividades_(token);
 
   if (!contexto.ok) {
@@ -295,7 +301,7 @@ function portalSalvarChamadaAtividade(token, payloadJson) {
     'ATIVIDADE_CHAMADA_SALVA',
     normalizada.message || 'Chamada salva com sucesso na base DEV.',
     normalizada.data,
-    portalMetaAtividades_('geapa-atividades-chamada')
+    portalMetaAtividades_('geapa-atividades-chamada', inicio)
   );
 }
 
@@ -736,11 +742,22 @@ function portalSalvarJsonCache_(chave, valor, segundos) {
   }
 }
 
-function portalMetaAtividades_(origem) {
+function portalMetaAtividades_(origem, inicioMs) {
+  var inicio = Number(inicioMs) || portalAgoraAtividadesMs_();
+
   return {
+    desempenho: {
+      origemDados: origem,
+      tempoMs: Math.max(portalAgoraAtividadesMs_() - inicio, 0),
+      cacheAtividadesSegundos: PORTAL_CONFIG.cacheAtividadesSegundos
+    },
     atividades: {
       origemDados: origem,
       cacheSegundos: PORTAL_CONFIG.cacheAtividadesSegundos
     }
   };
+}
+
+function portalAgoraAtividadesMs_() {
+  return new Date().getTime();
 }

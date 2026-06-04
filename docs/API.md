@@ -447,10 +447,17 @@ O front-end guarda esse pacote em `sessionStorage` por 5 minutos, com chave
 derivada da sessao atual. Para medir a melhoria, abrir o console do navegador e
 filtrar por `GEAPA-PORTAL-PERF`.
 
-Observacao de performance: a aba Atividades nao deve aguardar este pacote para
-renderizar a lista. O primeiro carregamento usa `atividadesListar` para exibir
-`PORTAL_ATIVIDADES_CALENDARIO` rapidamente e dispara o preload de detalhes em
-segundo plano.
+Observacao de performance: a aba Atividades chama `atividadesBundle` como fonte
+preferencial. Quando o bundle do modulo nao estiver disponivel, o backend monta
+um pacote leve por fallback de lista, sem carregar detalhes de todas as
+atividades antes da primeira renderizacao.
+
+As respostas de Atividades podem incluir `meta.desempenho` com:
+
+- `origemDados`: `geapa-atividades-bundle`, `fallback-lista`,
+  `geapa-atividades-chamada` ou `cache`;
+- `tempoMs`: tempo aproximado de processamento no Apps Script;
+- `cacheAtividadesSegundos`: duracao configurada para o cache do backend.
 
 ## Acao: atividadesDetalhesPreload
 

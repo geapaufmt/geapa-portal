@@ -271,4 +271,12 @@ Eventos principais:
 - `atividades.detalhes.preload`: tempo de preload dos detalhes;
 - `atividades.lista.falhou`: erro ao carregar o calendario inicial;
 - `atividades.detalhe.cache`: abertura de detalhe sem nova chamada;
-- `atividades.detalhe.fallback_backend`: detalhe carregado pelo endpoint antigo.
+- `atividades.detalhe.fallback_backend`: detalhe carregado pelo endpoint antigo;
+- `atividades.chamada.carregada`: abertura da tela de registro de chamada;
+- `atividades.chamada.salva`: salvamento ou finalizacao da chamada.
+
+Quando a API retornar `meta.desempenho`, os eventos tambem registram:
+
+- `tempoBackendMs`: tempo informado pelo Apps Script;
+- `origemBackend`: origem informada pelo backend, como `geapa-atividades-bundle`,
+  `fallback-lista`, `geapa-atividades-chamada` ou `cache`.
