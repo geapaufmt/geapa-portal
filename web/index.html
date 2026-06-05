@@ -6,11 +6,11 @@
     <title>Portal GEAPA</title>
     <meta
       name="description"
-      content="Portal institucional do GEAPA para acesso futuro de membros."
+      content="Portal institucional do GEAPA com acesso publico, vinculos, atividades, apresentacoes e gestao."
     >
     <meta name="theme-color" content="#1f6b45">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=10">
   </head>
   <body>
     <div class="portal-frame">
@@ -34,6 +34,12 @@
           </div>
         </div>
         <div class="header-session">
+          <button class="secondary-button compact-button" type="button" data-route-target="login">
+            Entrar
+          </button>
+          <button class="secondary-button compact-button" type="button" data-route-target="interesse">
+            Tenho interesse
+          </button>
           <button class="secondary-button install-button" type="button" data-install-app hidden>
             Instalar app
           </button>
@@ -52,13 +58,50 @@
           </div>
         </aside>
 
-        <main class="portal-shell view-login" id="portal-app">
-          <section class="access-panel" id="tela-acesso" aria-labelledby="portal-title">
+        <main class="portal-shell view-inicio" id="portal-app">
+          <section class="public-home-panel" id="tela-inicio" aria-labelledby="portal-title">
             <p class="eyebrow">GEAPA</p>
             <h1 id="portal-title">Portal GEAPA</h1>
             <p class="intro">
-              Portal institucional do grupo para acesso futuro de membros a
-              informacoes individuais, com dados protegidos pelo backend do GEAPA.
+              Espaco institucional para conhecer o GEAPA, acompanhar atividades
+              abertas e acessar, com login, vinculos, apresentacoes e rotinas de
+              gestao autorizadas.
+            </p>
+            <div class="home-actions">
+              <button type="button" data-route-target="login">Entrar</button>
+              <button class="secondary-button" type="button" data-route-target="interesse">
+                Tenho interesse
+              </button>
+              <button class="secondary-button" type="button" data-route-target="processo-seletivo">
+                Processo seletivo
+              </button>
+            </div>
+            <div class="public-home-grid">
+              <article>
+                <span>Area publica</span>
+                <strong>Conheca o grupo, normas, diretoria, parceiros e agenda aberta.</strong>
+              </article>
+              <article>
+                <span>Meu vinculo</span>
+                <strong>Acompanhe cadastro, situacao, frequencia, apresentacoes e certificados.</strong>
+              </article>
+              <article>
+                <span>Atividades e apresentacoes</span>
+                <strong>Consulte calendario, historico publico e materiais liberados.</strong>
+              </article>
+              <article>
+                <span>Gestao do GEAPA</span>
+                <strong>Acesso restrito para comunicacao, secretaria, diretoria e admin.</strong>
+              </article>
+            </div>
+          </section>
+
+          <section class="access-panel" id="tela-acesso" aria-labelledby="login-title" hidden>
+            <p class="eyebrow">Entrada</p>
+            <h1 id="login-title">Entrar no Portal</h1>
+            <p class="intro">
+              Use sua conta Google ou codigo temporario para acessar dados
+              proprios, criar vinculo ou atuar em areas autorizadas.
             </p>
 
             <button id="entrar-google" type="button">Entrar com Google</button>
@@ -195,13 +238,14 @@
 
     <script src="assets/js/config.js"></script>
     <script src="assets/js/api.js"></script>
+    <script src="assets/js/portal-model.js?v=1"></script>
     <script src="assets/js/auth.js"></script>
-    <script src="assets/js/auth-adapter.js?v=9"></script>
-    <script src="assets/js/navigation.js?v=9"></script>
+    <script src="assets/js/auth-adapter.js?v=10"></script>
+    <script src="assets/js/navigation.js?v=10"></script>
     <script src="assets/js/ui.js"></script>
     <script src="assets/js/atividades.js"></script>
     <script type="module" src="assets/js/firebase-auth.js"></script>
     <script src="assets/js/pwa.js"></script>
-    <script type="module" src="app.js?v=9"></script>
+    <script type="module" src="app.js?v=10"></script>
   </body>
 </html>

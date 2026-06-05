@@ -218,15 +218,43 @@ body {
 .nav-group {
   display: grid;
   gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  background: var(--green-050);
 }
 
 .nav-group-title {
-  margin: 6px 4px 2px;
-  color: var(--muted);
-  font-size: 0.72rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+  border-radius: 6px;
+  padding: 8px 9px;
+  color: var(--green-950);
+  font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.nav-group-title::-webkit-details-marker {
+  display: none;
+}
+
+.nav-group-arrow {
+  transition: transform 160ms ease;
+}
+
+.nav-group:not([open]) .nav-group-arrow {
+  transform: rotate(-90deg);
+}
+
+.nav-group-items {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
 }
 
 .nav-empty {
@@ -279,17 +307,6 @@ body {
   background: var(--green-700);
 }
 
-.portal-body:has(.view-login) {
-  display: block;
-}
-
-.portal-body:has(.view-login) .portal-sidebar,
-.portal-body:has(.view-login) .sidebar-backdrop,
-.portal-frame:has(.view-login) .header-session,
-.portal-frame:has(.view-login) .menu-toggle {
-  display: none;
-}
-
 .portal-footer {
   display: flex;
   justify-content: space-between;
@@ -309,6 +326,7 @@ body {
   padding: 0;
 }
 
+.view-inicio,
 .view-login {
   max-width: 760px;
   margin: 40px auto;
@@ -324,6 +342,7 @@ body {
   margin: 0;
 }
 
+.public-home-panel,
 .access-panel,
 .situation-panel {
   background: var(--white);
@@ -332,8 +351,43 @@ body {
   box-shadow: var(--shadow);
 }
 
+.public-home-panel,
 .access-panel {
   padding: 36px;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.public-home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.public-home-grid article {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--green-050);
+}
+
+.public-home-grid span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--green-700);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.public-home-grid strong {
+  color: var(--green-950);
+  line-height: 1.35;
 }
 
 .situation-panel {
@@ -1237,6 +1291,7 @@ button:disabled:hover {
     padding: 0;
   }
 
+  .public-home-panel,
   .access-panel,
   .situation-panel {
     padding: 24px;
@@ -1319,6 +1374,7 @@ button:disabled:hover {
     grid-template-columns: 1fr;
   }
 
+  .public-home-grid,
   .board-grid,
   .activity-facts,
   .activity-detail-grid,

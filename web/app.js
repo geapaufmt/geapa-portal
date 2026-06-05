@@ -275,6 +275,7 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     aplicarUsuarioAtual(minhaSituacao);
     atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
     renderizarMinhaSituacao(situacao, minhaSituacao);
+    sincronizarNavegacaoPortal();
     atualizarStatus(status, obterMensagem(login) || 'Entrada com Google concluida.');
   } catch (erro) {
     limparSessaoLocal();
@@ -691,7 +692,7 @@ function normalizarUsuario(usuario, dadosSituacao, sessao) {
 
   const perfis = Array.isArray(perfisBrutos) && perfisBrutos.length
     ? perfisBrutos.map(normalizarPerfil)
-    : ['MEMBRO'];
+    : ['VISITANTE'];
   const perfilPrincipal = dadosSessao.perfilPortalEfetivo ||
     dados.perfilPortalEfetivo ||
     dados.perfilPrincipal ||
@@ -700,10 +701,10 @@ function normalizarUsuario(usuario, dadosSituacao, sessao) {
   return {
     id: String(dados.id || dadosSessao.idPessoa || situacao.rga || '').trim(),
     idPessoa: String(dados.idPessoa || dadosSessao.idPessoa || dados.id || situacao.rga || '').trim(),
-    nomeExibicao: String(dados.nomeExibicao || dadosSessao.nomeExibicao || situacao.nomeExibicao || 'Membro GEAPA').trim(),
+    nomeExibicao: String(dados.nomeExibicao || dadosSessao.nomeExibicao || situacao.nomeExibicao || 'Usuario GEAPA').trim(),
     email: String(dados.email || dadosSessao.email || '').trim(),
     rga: String(dados.rga || situacao.rga || '').trim(),
-    perfilPrincipal: normalizarPerfil(perfilPrincipal || perfis[0] || 'MEMBRO'),
+    perfilPrincipal: normalizarPerfil(perfilPrincipal || perfis[0] || 'VISITANTE'),
     perfis: removerDuplicados(perfis),
     perfisPortal: removerDuplicados(perfis),
     cargosAtuais: Array.isArray(dados.cargosAtuais)
@@ -731,7 +732,7 @@ function normalizarUsuario(usuario, dadosSituacao, sessao) {
  * @return {string} Perfil normalizado.
  */
 function normalizarPerfil(perfil) {
-  const normalizado = String(perfil || 'MEMBRO').trim().toUpperCase();
+  const normalizado = String(perfil || 'VISITANTE').trim().toUpperCase();
   const permitidos = [
     'VISITANTE',
     'PARTICIPANTE_EXTERNO',
@@ -862,7 +863,6 @@ async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, sta
     return;
   }
 
-  mostrarTelaSituacao(app, telaAcesso, telaSituacao);
   renderizarCarregandoSituacao(situacao);
 
   try {
@@ -881,7 +881,6 @@ async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, sta
       })
       .then(function tratarFallbackFirebase(restaurado) {
         if (!restaurado) {
-          mostrarTelaAcesso(app, telaAcesso, telaSituacao);
           atualizarStatus(status, 'Sua sessão expirou. Entre novamente para continuar.');
         }
       });

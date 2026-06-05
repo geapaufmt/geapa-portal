@@ -131,8 +131,9 @@ validar sessão, identidade, perfil e permissão antes de qualquer ação sensí
 
 A navegacao do portal e centralizada em `web/assets/js/navigation.js`. Esse
 arquivo registra a matriz visual de rotas, grupos de menu, perfis permitidos,
-permissoes esperadas, status da tela e placeholders. A matriz completa esta
-documentada em `docs/ROTAS_PROTEGIDAS.md`.
+permissoes esperadas, status da tela e placeholders. A matriz protegida esta
+documentada em `docs/ROTAS_PROTEGIDAS.md`; a separacao entre area publica,
+vinculo, agenda e gestao esta documentada em `docs/NAVEGACAO_PUBLICA.md`.
 
 O arquivo consome a sessao de `web/assets/js/auth-adapter.js`, que prioriza
 `data.sessao` e mantem `PortalGeapaAuth.getUsuarioAtual()` como compatibilidade

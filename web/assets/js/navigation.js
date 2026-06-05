@@ -6,6 +6,7 @@
  * permissao administrativa.
  */
 (function configurarNavegacaoPortal(global) {
+  var MODELO = global.PortalGeapaModel || {};
   var PERFIS = {
     ADMIN: 'ADMIN',
     DIRETORIA: 'DIRETORIA',
@@ -30,12 +31,14 @@
     PERFIS.EXTERNO,
     PERFIS.VISITANTE
   ];
+  var PUBLICO = [];
+  var OPERACIONAIS = [PERFIS.ADMIN, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO];
+  var LOGADOS = TODOS_PERFIS;
   var GRUPOS_MENU = [
-    { id: 'area-membro', label: 'Area do membro', ordem: 10 },
-    { id: 'atividades', label: 'Atividades', ordem: 20 },
-    { id: 'gestao', label: 'Gestao', ordem: 30 },
-    { id: 'administracao', label: 'Administracao', ordem: 40 },
-    { id: 'publico-geral', label: 'Publico / Geral', ordem: 50 }
+    { id: 'publico', label: 'Area Publica', ordem: 10, abertoPadrao: true },
+    { id: 'meu-vinculo', label: 'Meu Vinculo', ordem: 20, abertoPadrao: true },
+    { id: 'agenda', label: 'Atividades e Apresentacoes', ordem: 30, abertoPadrao: true },
+    { id: 'gestao-geapa', label: 'Gestao do GEAPA', ordem: 40, abertoPadrao: false }
   ];
   var MOTIVOS_ACESSO = {
     NOT_AUTHENTICATED: 'NOT_AUTHENTICATED',
@@ -45,223 +48,59 @@
     ROTA_INEXISTENTE: 'ROTA_INEXISTENTE'
   };
   var ROTAS_PORTAL = [
-    {
-      id: 'login',
-      label: 'Login',
-      path: 'login',
-      viewClass: 'view-login',
-      sectionId: 'tela-acesso',
-      grupoMenu: 'sistema',
-      perfisPermitidos: [PERFIS.VISITANTE],
-      permissoesNecessarias: [],
-      requerLogin: false,
-      mostrarNoMenu: false,
-      ordem: 0,
-      descricao: 'Tela de entrada do Portal GEAPA.',
-      status: 'implementado'
-    },
-    {
-      id: 'inicio',
-      label: 'Inicio',
-      path: 'inicio',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'publico-geral',
-      perfisPermitidos: TODOS_PERFIS,
-      permissoesNecessarias: [],
-      requerLogin: false,
-      mostrarNoMenu: true,
-      ordem: 1,
-      descricao: 'Tela inicial do Portal GEAPA, preparada para apresentar atalhos e avisos gerais.',
-      status: 'placeholder'
-    },
-    {
-      id: 'minha-situacao',
-      label: 'Minha situacao',
-      path: 'minha-situacao',
-      viewClass: 'view-situacao',
-      sectionId: 'tela-situacao',
-      grupoMenu: 'area-membro',
-      perfisPermitidos: [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN],
-      permissoesNecessarias: ['situacao:ver_propria'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 10,
-      descricao: 'Tela individual do usuario logado.',
-      status: 'implementado'
-    },
-    {
-      id: 'minhas-apresentacoes',
-      label: 'Minhas apresentacoes',
-      path: 'minhas-apresentacoes',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'area-membro',
-      perfisPermitidos: [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.EGRESSO, PERFIS.ADMIN],
-      permissoesNecessarias: ['apresentacoes:ver_propria', 'apresentacoes:ver_ate_saida'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 20,
-      descricao: 'Futuro acesso a apresentacoes proprias ou permitidas pelo CORE.',
-      status: 'placeholder'
-    },
-    {
-      id: 'frequencia',
-      label: 'Frequencia',
-      path: 'frequencia',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'area-membro',
-      perfisPermitidos: [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN],
-      permissoesNecessarias: ['situacao:ver_propria', 'presencas:ler', 'presencas:gerir'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 30,
-      descricao: 'Futuro acesso a frequencia propria ou administrativa conforme permissao efetiva.',
-      status: 'placeholder'
-    },
-    {
-      id: 'atividades',
-      label: 'Atividades',
-      path: 'atividades',
-      viewClass: 'view-atividades',
-      sectionId: 'tela-atividades',
-      grupoMenu: 'atividades',
-      perfisPermitidos: TODOS_PERFIS,
-      permissoesNecessarias: ['atividades:ver'],
-      requerLogin: false,
-      mostrarNoMenu: true,
-      ordem: 10,
-      descricao: 'Visualizacao de atividades permitidas conforme perfil efetivo.',
-      status: 'implementado'
-    },
-    {
-      id: 'gestao-atividades',
-      label: 'Gestao de atividades',
-      path: 'gestao-atividades',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'atividades',
-      perfisPermitidos: [PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.ADMIN],
-      permissoesNecessarias: ['atividades:gerir'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 20,
-      descricao: 'Placeholder para futura area de gestao de atividades.',
-      status: 'placeholder'
-    },
-    {
-      id: 'diretoria',
-      label: 'Diretoria',
-      path: 'diretoria',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'gestao',
-      perfisPermitidos: [PERFIS.DIRETORIA, PERFIS.ADMIN],
-      permissoesNecessarias: ['membros:ler', 'atividades:gerir'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 10,
-      descricao: 'Area institucional para rotinas internas da diretoria do GEAPA.',
-      status: 'placeholder'
-    },
-    {
-      id: 'secretaria',
-      label: 'Secretaria',
-      path: 'secretaria',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'gestao',
-      perfisPermitidos: [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN],
-      permissoesNecessarias: ['membros:ler', 'presencas:gerir', 'apresentacoes:gerir'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 20,
-      descricao: 'Placeholder para rotinas de secretaria, frequencia e apresentacoes.',
-      status: 'placeholder'
-    },
-    {
-      id: 'comunicacao',
-      label: 'Comunicacao',
-      path: 'comunicacao',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'gestao',
-      perfisPermitidos: [PERFIS.COMUNICACAO, PERFIS.DIRETORIA, PERFIS.ADMIN],
-      permissoesNecessarias: ['atividades:gerir', 'mensageria:ler'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 30,
-      descricao: 'Placeholder para comunicacao, divulgacao e mensagens permitidas.',
-      status: 'placeholder'
-    },
-    {
-      id: 'conselho',
-      label: 'Conselho',
-      path: 'conselho',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'gestao',
-      perfisPermitidos: [PERFIS.CONSELHO, PERFIS.DIRETORIA, PERFIS.ADMIN],
-      permissoesNecessarias: ['portal:acessar'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 40,
-      descricao: 'Area consultiva futura. Conselho nao recebe permissoes administrativas por padrao.',
-      status: 'placeholder'
-    },
-    {
-      id: 'administracao',
-      label: 'Administracao',
-      path: 'administracao',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'administracao',
-      perfisPermitidos: [PERFIS.ADMIN],
-      permissoesNecessarias: ['sistema:admin'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 10,
-      descricao: 'Area tecnica e administrativa maxima, reservada a autorizacao explicita do CORE.',
-      status: 'placeholder'
-    },
-    {
-      id: 'logs',
-      label: 'Logs',
-      path: 'logs',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'administracao',
-      perfisPermitidos: [PERFIS.ADMIN, PERFIS.DIRETORIA],
-      permissoesNecessarias: ['logs:ler'],
-      requerLogin: true,
-      mostrarNoMenu: true,
-      ordem: 20,
-      descricao: 'Placeholder para logs operacionais permitidos.',
-      status: 'placeholder'
-    },
-    {
-      id: 'historico-apresentacoes',
-      label: 'Historico de apresentacoes',
-      path: 'historico-apresentacoes',
-      viewClass: 'view-placeholder',
-      sectionId: 'tela-placeholder',
-      grupoMenu: 'publico-geral',
-      perfisPermitidos: TODOS_PERFIS,
-      permissoesNecessarias: ['apresentacoes:ver_publicas', 'apresentacoes:ver_ate_saida'],
-      requerLogin: false,
-      mostrarNoMenu: true,
-      ordem: 20,
-      descricao: 'Futuro historico publico ou permitido de apresentacoes.',
-      status: 'placeholder'
-    }
+    rota('inicio', 'Inicio', 'inicio', 'publico', 10, 'tela-inicio', 'view-inicio', false, PUBLICO, [], 'Home publica do Portal GEAPA.', 'implementado'),
+    rota('sobre', 'Sobre o GEAPA', 'sobre', 'publico', 20, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Apresentacao institucional publica do GEAPA.', 'placeholder'),
+    rota('historia', 'Historia', 'historia', 'publico', 30, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Historico publico do grupo e marcos institucionais.', 'placeholder'),
+    rota('diretoria-publica', 'Diretoria', 'diretoria', 'publico', 40, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Composicao publica da diretoria, sem dados privados.', 'placeholder'),
+    rota('normas', 'Normas', 'normas', 'publico', 50, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Normas publicas e documentos orientativos do GEAPA.', 'placeholder'),
+    rota('parceiros', 'Parceiros', 'parceiros', 'publico', 60, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Instituicoes e parceiros publicos do GEAPA.', 'placeholder'),
+    rota('atividades-abertas', 'Atividades abertas', 'atividades', 'publico', 70, 'tela-atividades', 'view-atividades', false, PUBLICO, [], 'Atividades abertas ao publico ou permitidas conforme contexto.', 'implementado'),
+    rota('apresentacoes-publicas', 'Apresentacoes publicas', 'apresentacoes', 'publico', 80, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Apresentacoes publicas e historico liberado.', 'placeholder'),
+    rota('processo-seletivo', 'Processo seletivo', 'processo-seletivo', 'publico', 90, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Informacoes publicas sobre ingresso e processo seletivo.', 'placeholder'),
+    rota('contato', 'Contato', 'contato', 'publico', 100, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Canais publicos de contato do GEAPA.', 'placeholder'),
+    rota('login', 'Entrar', 'login', 'publico', 110, 'tela-acesso', 'view-login', false, PUBLICO, [], 'Entrada por Google ou codigo temporario.', 'implementado', false),
+    rota('interesse', 'Tenho interesse', 'interesse', 'publico', 120, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Formulario futuro para cadastro de interesse sem conceder acesso interno automaticamente.', 'placeholder'),
+
+    rota('app', 'Resumo do vinculo', 'app', 'meu-vinculo', 10, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['portal:acessar'], 'Resumo personalizado do vinculo da pessoa com o GEAPA.', 'placeholder'),
+    rota('meu-cadastro', 'Meu cadastro', 'app/meu-cadastro', 'meu-vinculo', 20, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['cadastro:ver_proprio'], 'Dados cadastrais proprios e classificacao de vinculo.', 'placeholder'),
+    rota('minha-situacao', 'Minha situacao', 'app/minha-situacao', 'meu-vinculo', 30, 'tela-situacao', 'view-situacao', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], ['situacao:ver_propria'], 'Tela individual do usuario logado.', 'implementado'),
+    rota('frequencia', 'Minha frequencia', 'app/frequencia', 'meu-vinculo', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['situacao:ver_propria', 'presencas:ler'], 'Frequencia propria de membro efetivo ou acesso operacional permitido.', 'placeholder'),
+    rota('justificativas', 'Minhas justificativas', 'app/justificativas', 'meu-vinculo', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['justificativas:ver_proprias'], 'Justificativas proprias de faltas quando aplicavel ao vinculo.', 'placeholder'),
+    rota('minhas-apresentacoes', 'Minhas apresentacoes', 'app/minhas-apresentacoes', 'meu-vinculo', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.EGRESSO, PERFIS.ADMIN], ['apresentacoes:ver_propria', 'apresentacoes:ver_ate_saida'], 'Apresentacoes proprias ou historico permitido pelo backend.', 'placeholder'),
+    rota('certificados', 'Meus certificados', 'app/certificados', 'meu-vinculo', 70, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['certificados:ver_proprios'], 'Certificados proprios emitidos ou liberados.', 'placeholder'),
+    rota('inscricoes', 'Minhas inscricoes', 'app/inscricoes', 'meu-vinculo', 80, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['inscricoes:ver_proprias'], 'Inscricoes proprias em atividades e processo seletivo.', 'placeholder'),
+    rota('participacoes', 'Minhas participacoes', 'app/participacoes', 'meu-vinculo', 90, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['participacoes:ver_proprias'], 'Participacoes proprias em atividades permitidas.', 'placeholder'),
+    rota('preferencias', 'Preferencias de comunicacao', 'app/preferencias', 'meu-vinculo', 100, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['comunicacoes:preferencias_proprias'], 'Preferencias de comunicacao e consentimentos.', 'placeholder'),
+
+    rota('agenda', 'Proximas atividades', 'agenda', 'agenda', 10, 'tela-atividades', 'view-atividades', false, PUBLICO, [], 'Agenda permitida ao publico ou ao usuario logado.', 'implementado'),
+    rota('agenda-atividades', 'Calendario', 'agenda/atividades', 'agenda', 20, 'tela-atividades', 'view-atividades', false, PUBLICO, [], 'Calendario de atividades abertas, internas ou permitidas.', 'implementado'),
+    rota('atividades-internas', 'Atividades internas', 'agenda/internas', 'agenda', 30, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.ADMIN], ['atividades:ver_internas'], 'Atividades internas liberadas a membros e perfis autorizados.', 'placeholder'),
+    rota('agenda-apresentacoes', 'Proximas apresentacoes', 'agenda/apresentacoes', 'agenda', 40, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Proximas apresentacoes publicas ou permitidas.', 'placeholder'),
+    rota('historico-apresentacoes', 'Historico de apresentacoes', 'agenda/historico', 'agenda', 50, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Historico publico ou permitido de apresentacoes.', 'placeholder'),
+    rota('materiais', 'Materiais disponiveis', 'agenda/materiais', 'agenda', 60, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['materiais:ver_liberados'], 'Materiais liberados conforme vinculo, inscricao ou participacao.', 'placeholder'),
+
+    rota('admin', 'Painel administrativo', 'admin', 'gestao-geapa', 10, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['gestao:acessar'], 'Painel operacional conforme perfil e permissoes.', 'placeholder'),
+    rota('admin-membros', 'Membros', 'admin/membros', 'gestao-geapa', 20, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta e operacao cotidiana de membros autorizada ao backend.', 'placeholder'),
+    rota('admin-atividades', 'Atividades', 'admin/atividades', 'gestao-geapa', 30, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['atividades:gerir'], 'Criacao, edicao e operacao de atividades.', 'placeholder'),
+    rota('admin-chamadas', 'Chamadas', 'admin/chamadas', 'gestao-geapa', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['presencas:gerir'], 'Registro e acompanhamento de chamadas/presencas.', 'placeholder'),
+    rota('admin-justificativas', 'Justificativas', 'admin/justificativas', 'gestao-geapa', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['justificativas:analisar'], 'Analise operacional e decisao de justificativas conforme permissao.', 'placeholder'),
+    rota('admin-apresentacoes', 'Apresentacoes', 'admin/apresentacoes', 'gestao-geapa', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['apresentacoes:gerir'], 'Gestao operacional de apresentacoes e materiais.', 'placeholder'),
+    rota('admin-comunicacao', 'Comunicacao', 'admin/comunicacao', 'gestao-geapa', 70, 'tela-placeholder', 'view-placeholder', true, [PERFIS.COMUNICACAO, PERFIS.DIRETORIA, PERFIS.ADMIN], ['comunicacoes:gerir', 'mensageria:ler'], 'Conteudo publico, divulgacao e materiais de comunicacao.', 'placeholder'),
+    rota('admin-processo-seletivo', 'Processo seletivo', 'admin/processo-seletivo', 'gestao-geapa', 80, 'tela-placeholder', 'view-placeholder', true, [PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['processo_seletivo:gerir'], 'Gestao de processo seletivo e classificacoes autorizadas.', 'placeholder'),
+    rota('admin-normas-parametros', 'Normas e parametros', 'admin/normas-parametros', 'gestao-geapa', 90, 'tela-placeholder', 'view-placeholder', true, [PERFIS.DIRETORIA, PERFIS.ADMIN], ['parametros:gerir'], 'Normas e parametros operacionais sujeitos a autorizacao.', 'placeholder'),
+    rota('admin-configuracoes', 'Configuracoes', 'admin/configuracoes', 'gestao-geapa', 100, 'tela-placeholder', 'view-placeholder', true, [PERFIS.ADMIN], ['sistema:admin'], 'Configuracoes tecnicas, integracoes, usuarios, seguranca e logs.', 'placeholder')
   ];
   var ALIASES_ROTAS = {
     situacao: 'minha-situacao',
     'minha_situacao': 'minha-situacao',
-    apresentacoes: 'minhas-apresentacoes'
+    apresentacoes: 'apresentacoes-publicas',
+    atividades: 'atividades-abertas',
+    gestao: 'admin',
+    diretoria: 'diretoria-publica',
+    administracao: 'admin-configuracoes',
+    logs: 'admin-configuracoes'
   };
-  var rotaAtual = 'login';
+  var rotaAtual = 'inicio';
   var inicializado = false;
   var ignorarProximoHash = false;
 
@@ -274,7 +113,28 @@
     renderizarMenu();
     registrarEventos();
     sincronizarRotaComHash();
+    if (!obterRotaPorHash()) {
+      irPara('inicio', { atualizarHash: false, origem: 'inicial' });
+    }
     atualizarMenu();
+  }
+
+  function rota(id, label, path, grupoMenu, ordem, sectionId, viewClass, requerLogin, perfisPermitidos, permissoesNecessarias, descricao, status, mostrarNoMenu) {
+    return {
+      id: id,
+      label: label,
+      path: path,
+      viewClass: viewClass,
+      sectionId: sectionId,
+      grupoMenu: grupoMenu,
+      perfisPermitidos: perfisPermitidos || [],
+      permissoesNecessarias: permissoesNecessarias || [],
+      requerLogin: requerLogin === true,
+      mostrarNoMenu: mostrarNoMenu !== false,
+      ordem: ordem,
+      descricao: descricao || '',
+      status: status || 'placeholder'
+    };
   }
 
   function registrarEventos() {
@@ -477,7 +337,9 @@
     }
 
     if (!sessao || !Array.isArray(sessao.permissoes) || !sessao.permissoes.length) {
-      return true;
+      return !rota.requerLogin ||
+        !ehVisitanteTecnico(sessao) ||
+        permiteFallbackVisitanteTecnico(rota);
     }
 
     if (!sessao.permissoes.some(ehPermissaoCanonica)) {
@@ -487,6 +349,26 @@
     return necessarias.some(function verificarPermissao(permissao) {
       return hasPermission(sessao, permissao);
     });
+  }
+
+  function ehVisitanteTecnico(sessao) {
+    var perfis = sessao && Array.isArray(sessao.perfisPortal)
+      ? sessao.perfisPortal
+      : [];
+
+    return sessao &&
+      sessao.autenticado === true &&
+      perfis.indexOf(PERFIS.VISITANTE) >= 0 &&
+      perfis.length === 1;
+  }
+
+  function permiteFallbackVisitanteTecnico(rota) {
+    return [
+      'app',
+      'meu-cadastro',
+      'inscricoes',
+      'preferencias'
+    ].indexOf(rota.id) >= 0;
   }
 
   function ehPermissaoCanonica(permissao) {
@@ -501,6 +383,7 @@
 
   function renderizarMenu() {
     var nav = document.querySelector('[data-portal-nav]');
+    var botaoSair = document.getElementById('sair');
     var sessao = getSessaoAtual();
     var rotasPermitidas = getAllowedRoutes(sessao);
     var gruposHtml = GRUPOS_MENU.sort(ordenarGrupos).map(function montarGrupo(grupo) {
@@ -513,10 +396,17 @@
       }
 
       return [
-        '<section class="nav-group">',
-        '<p class="nav-group-title">' + escaparHtml(grupo.label) + '</p>',
+        '<details class="nav-group" ',
+        grupo.abertoPadrao === false ? '' : 'open',
+        '>',
+        '<summary class="nav-group-title">',
+        '<span>' + escaparHtml(grupo.label) + '</span>',
+        '<span class="nav-group-arrow" aria-hidden="true">▾</span>',
+        '</summary>',
+        '<div class="nav-group-items">',
         rotasDoGrupo.map(montarBotaoMenu).join(''),
-        '</section>'
+        '</div>',
+        '</details>'
       ].join('');
     }).join('');
 
@@ -525,6 +415,9 @@
     }
 
     nav.innerHTML = gruposHtml || '<p class="nav-empty">Nenhuma area disponivel.</p>';
+    if (botaoSair) {
+      botaoSair.hidden = !sessao.autenticado;
+    }
     destacarRotaAtual();
   }
 

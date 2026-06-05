@@ -25,7 +25,7 @@
       idPessoa: usuario.idPessoa || usuario.id || '',
       nomeExibicao: usuario.nomeExibicao || (autenticado ? 'Usuario GEAPA' : 'Visitante'),
       email: usuario.email || '',
-      perfilPortalEfetivo: usuario.perfilPrincipal || (autenticado ? 'MEMBRO' : 'VISITANTE'),
+      perfilPortalEfetivo: usuario.perfilPrincipal || 'VISITANTE',
       perfisPortal: perfis,
       permissoes: permissoes.lista,
       permissoesMapa: permissoes.mapa,
@@ -58,7 +58,7 @@
       idPessoa: dados.idPessoa || dados.id || '',
       nomeExibicao: dados.nomeExibicao || (autenticado ? 'Usuario GEAPA' : 'Visitante'),
       email: dados.email || '',
-      perfilPortalEfetivo: perfilPrincipal || (autenticado ? 'MEMBRO' : 'VISITANTE'),
+      perfilPortalEfetivo: perfilPrincipal || 'VISITANTE',
       perfisPortal: normalizarPerfis(dados.perfisPortal || dados.perfis, perfilPrincipal, autenticado),
       permissoes: permissoes.lista,
       permissoesMapa: permissoes.mapa,
@@ -124,7 +124,7 @@
     }
 
     if (!saida.length) {
-      saida.push(autenticado ? 'MEMBRO' : 'VISITANTE');
+      saida.push('VISITANTE');
     }
 
     return saida;
