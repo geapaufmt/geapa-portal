@@ -176,7 +176,7 @@ body {
   border: 0;
   border-right: 1px solid var(--border);
   border-radius: 0;
-  padding: 14px 14px 82px;
+  padding: 14px;
   background: var(--white);
   box-shadow: 18px 0 38px rgba(13, 47, 32, 0.18);
   transform: translateX(calc(-100% - 2px));
@@ -214,21 +214,20 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding-bottom: 88px;
+  padding-bottom: 14px;
 }
 
 .nav-group {
-  display: grid;
-  gap: 5px;
+  display: block;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px;
   background: var(--green-050);
-  overflow: hidden;
+  overflow: visible;
   transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.nav-group.is-open {
+.nav-group[open] {
   background: var(--white);
   box-shadow: 0 10px 22px rgba(18, 61, 42, 0.08);
 }
@@ -256,22 +255,16 @@ body {
   transition: transform 160ms ease;
 }
 
-.nav-group:not(.is-open) .nav-group-arrow {
+.nav-group:not([open]) .nav-group-arrow {
   transform: rotate(-90deg);
 }
 
 .nav-group-items {
   display: grid;
   gap: 4px;
-  margin-top: 4px;
+  margin-top: 8px;
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 160ms ease, transform 160ms ease;
-}
-
-.nav-group:not(.is-open) .nav-group-items {
-  opacity: 0;
-  transform: translateY(-4px);
+  transition: opacity 160ms ease;
 }
 
 .nav-empty {
@@ -281,10 +274,9 @@ body {
 }
 
 .sidebar-footer {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  left: 14px;
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 14px;
 }
 
 .nav-button {

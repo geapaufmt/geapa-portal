@@ -149,23 +149,6 @@
       irPara(alvo.getAttribute('data-route-target'));
     });
 
-    document.addEventListener('click', function alternarGrupoMenu(evento) {
-      var resumo = evento.target.closest('.nav-group-title');
-      var grupo;
-
-      if (!resumo) {
-        return;
-      }
-
-      grupo = resumo.closest('.nav-group');
-      if (!grupo) {
-        return;
-      }
-
-      evento.preventDefault();
-      alternarGrupoNavegacao(grupo);
-    });
-
     global.addEventListener('hashchange', function navegarPorHash() {
       if (ignorarProximoHash) {
         ignorarProximoHash = false;
@@ -413,9 +396,7 @@
       }
 
       return [
-        '<details class="nav-group',
-        grupo.abertoPadrao === false ? '' : ' is-open',
-        '" ',
+        '<details class="nav-group" ',
         grupo.abertoPadrao === false ? '' : 'open',
         '>',
         '<summary class="nav-group-title">',
@@ -439,25 +420,6 @@
     }
     atualizarAcoesCabecalho(sessao);
     destacarRotaAtual();
-  }
-
-  function alternarGrupoNavegacao(grupo) {
-    var aberto = grupo.classList.contains('is-open');
-
-    if (aberto) {
-      grupo.classList.remove('is-open');
-      global.setTimeout(function fecharGrupoDepoisDaAnimacao() {
-        if (!grupo.classList.contains('is-open')) {
-          grupo.removeAttribute('open');
-        }
-      }, 170);
-      return;
-    }
-
-    grupo.setAttribute('open', '');
-    global.requestAnimationFrame(function abrirGrupoAnimado() {
-      grupo.classList.add('is-open');
-    });
   }
 
   function atualizarAcoesCabecalho(sessao) {
