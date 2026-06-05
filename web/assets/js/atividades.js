@@ -14,6 +14,9 @@
   var CHAMADA_ANTECEDENCIA_PADRAO_MINUTOS = 60;
   var CHAMADA_TOLERANCIA_PADRAO_MINUTOS = 240;
   var PRELOAD_DETALHES_LIMITE_PADRAO = 5;
+  var MODO_ATIVIDADES_PROXIMAS = 'proximas';
+  var MODO_ATIVIDADES_HISTORICO = 'historico';
+  var HISTORICO_ATIVIDADES_INICIO = '2026-04-09';
   var detalhesCache = {};
   var atividadesResumoCache = {};
   var atividadesBundleCache = null;
@@ -50,25 +53,30 @@
     if (navigation) {
       document.addEventListener('portal:navigationchange', function carregarAoNavegar(evento) {
         var rota = evento.detail && evento.detail.rota;
+        var modo;
 
-        if (!rota || rota.id !== 'atividades') {
+        if (!rota || !ehRotaDaTelaAtividades(rota.id)) {
           return;
         }
 
-        atualizarAcoesDaTela(botaoCriar);
-        carregarAtividades(lista, status);
+        modo = obterModoAtividadesPorRota(rota);
+        configurarTelaAtividades(modo);
+        atualizarAcoesDaTela(botaoCriar, modo);
+        carregarAtividades(lista, status, modo);
       });
 
-      if (typeof navigation.getRotaAtual === 'function' && navigation.getRotaAtual() === 'atividades') {
-        atualizarAcoesDaTela(botaoCriar);
-        carregarAtividades(lista, status);
+      if (typeof navigation.getRotaAtual === 'function' && ehRotaDaTelaAtividades(navigation.getRotaAtual())) {
+        configurarTelaAtividades(obterModoAtividadesAtual());
+        atualizarAcoesDaTela(botaoCriar, obterModoAtividadesAtual());
+        carregarAtividades(lista, status, obterModoAtividadesAtual());
       }
     } else {
       Array.prototype.forEach.call(botoesAbrir, function registrarBotao(botao) {
         botao.addEventListener('click', function abrirAtividades() {
           mostrarTelaAtividades();
-          atualizarAcoesDaTela(botaoCriar);
-          carregarAtividades(lista, status);
+          configurarTelaAtividades(MODO_ATIVIDADES_PROXIMAS);
+          atualizarAcoesDaTela(botaoCriar, MODO_ATIVIDADES_PROXIMAS);
+          carregarAtividades(lista, status, MODO_ATIVIDADES_PROXIMAS);
         });
       });
 
@@ -90,12 +98,58 @@
     });
   }
 
-  function atualizarAcoesDaTela(botaoCriar) {
+  function ehRotaDaTelaAtividades(idRota) {
+    return ['atividades', 'historico-atividades'].indexOf(idRota) >= 0;
+  }
+
+  function obterModoAtividadesAtual() {
+    var idRota = navigation && typeof navigation.getRotaAtual === 'function'
+      ? navigation.getRotaAtual()
+      : '';
+
+    return obterModoAtividadesPorRota({ id: idRota });
+  }
+
+  function obterModoAtividadesPorRota(rota) {
+    return rota && rota.id === 'historico-atividades'
+      ? MODO_ATIVIDADES_HISTORICO
+      : MODO_ATIVIDADES_PROXIMAS;
+  }
+
+  function configurarTelaAtividades(modo) {
+    var titulo = document.getElementById('atividades-title');
+    var descricao = document.getElementById('atividades-descricao');
+    var tituloToolbar = document.getElementById('atividades-toolbar-title');
+    var status = document.getElementById('atividades-status');
+    var historico = modo === MODO_ATIVIDADES_HISTORICO;
+
+    if (titulo) {
+      titulo.textContent = historico ? 'Histórico de atividades' : 'Próximas atividades';
+    }
+
+    if (descricao) {
+      descricao.textContent = historico
+        ? 'Esta tela reúne atividades realizadas já disponíveis para consulta interna. Os detalhes continuam sendo carregados sob demanda.'
+        : 'Esta tela usa a base Atividades v2 DEV e mostra apenas atividades futuras ou em andamento. Apresentações de membros também serão tratadas a partir de geapa-atividades.';
+    }
+
+    if (tituloToolbar) {
+      tituloToolbar.textContent = historico ? 'Atividades realizadas' : 'Agenda futura';
+    }
+
+    if (status && !status.textContent.trim()) {
+      status.textContent = historico
+        ? 'Pronta para carregar o histórico de atividades.'
+        : 'Pronta para carregar próximas atividades.';
+    }
+  }
+
+  function atualizarAcoesDaTela(botaoCriar, modo) {
     if (!botaoCriar) {
       return;
     }
 
-    botaoCriar.hidden = !auth.canCreateActivity();
+    botaoCriar.hidden = modo === MODO_ATIVIDADES_HISTORICO || !auth.canCreateActivity();
     botaoCriar.disabled = true;
     botaoCriar.title = 'Criação de atividades ainda não está disponível pelo portal.';
   }
@@ -141,20 +195,21 @@
     telaSituacao.hidden = true;
   }
 
-  function carregarAtividades(lista, status) {
-    carregarAtividadesComLista(lista, status);
+  function carregarAtividades(lista, status, modo) {
+    carregarAtividadesComLista(lista, status, modo || MODO_ATIVIDADES_PROXIMAS);
   }
 
-  function carregarAtividadesComLista(lista, status) {
+  function carregarAtividadesComLista(lista, status, modo) {
     var inicio = obterTempoAtual();
     var bundleCache = lerBundleAtividadesCacheValido();
+    var rotulos = obterRotulosAtividades(modo);
 
     if (bundleCache && bundleCache.calendario.length) {
       aplicarBundleAtividades(bundleCache);
-      renderizarAtividades(lista, bundleCache.calendario);
+      renderizarAtividades(lista, bundleCache.calendario, modo);
       status.textContent = configEmModoMock()
         ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-        : 'Próximas atividades carregadas em cache local.';
+        : rotulos.cache;
       registrarPerfAtividades('atividades.aba.cache', inicio, {
         total: bundleCache.calendario.length,
         detalhesCache: Object.keys(bundleCache.detalhesPorId || {}).length,
@@ -164,9 +219,9 @@
       return;
     }
 
-    lista.innerHTML = '<p class="empty-state">Carregando próximas atividades...</p>';
-    status.textContent = 'Buscando próximas atividades no Portal GEAPA.';
-    ui.mostrarLoading('Carregando próximas atividades...');
+    lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(rotulos.carregando) + '</p>';
+    status.textContent = rotulos.buscando;
+    ui.mostrarLoading(rotulos.carregando);
 
     return api.apiGet('/atividades/listar', {})
       .then(function tratarResposta(resposta) {
@@ -182,10 +237,10 @@
 
         aplicarBundleAtividades(bundle);
         salvarBundleAtividadesCache(bundle);
-        renderizarAtividades(lista, bundle.calendario);
+        renderizarAtividades(lista, bundle.calendario, modo);
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-          : 'Próximas atividades carregadas. Detalhes serão preparados em segundo plano.';
+          : rotulos.carregado;
         registrarPerfAtividades('atividades.lista.renderizada', inicio, mesclarMetaPerfAtividades(resposta, {
           total: bundle.calendario.length,
           payloadBytes: estimarPayloadBytes(resposta.data || {}),
@@ -195,23 +250,24 @@
       })
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
-        status.textContent = 'Falha ao carregar próximas atividades.';
+        status.textContent = rotulos.falha;
       })
       .finally(function finalizarLoadingAtividades() {
         ui.ocultarLoading();
       });
   }
 
-  function carregarAtividadesComBundle(lista, status) {
+  function carregarAtividadesComBundle(lista, status, modo) {
     var inicio = obterTempoAtual();
     var bundleCache = lerBundleAtividadesCacheValido();
+    var rotulos = obterRotulosAtividades(modo);
 
     if (bundleCache) {
       aplicarBundleAtividades(bundleCache);
-      renderizarAtividades(lista, bundleCache.calendario);
+      renderizarAtividades(lista, bundleCache.calendario, modo);
       status.textContent = configEmModoMock()
         ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-        : 'Próximas atividades carregadas em cache local.';
+        : rotulos.cache;
       registrarPerfAtividades('atividades.aba.cache', inicio, {
         total: bundleCache.calendario.length,
         payloadBytes: estimarPayloadBytes(bundleCache.calendario)
@@ -220,9 +276,9 @@
       return;
     }
 
-    lista.innerHTML = '<p class="empty-state">Carregando próximas atividades...</p>';
-    status.textContent = 'Buscando próximas atividades no Portal GEAPA.';
-    ui.mostrarLoading('Carregando próximas atividades...');
+    lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(rotulos.carregando) + '</p>';
+    status.textContent = rotulos.buscando;
+    ui.mostrarLoading(rotulos.carregando);
 
     return api.apiGet('/atividades/bundle', {})
       .then(function tratarResposta(resposta) {
@@ -233,10 +289,10 @@
         var bundle = normalizarBundleAtividades(resposta.data || {});
         aplicarBundleAtividades(bundle);
         salvarBundleAtividadesCache(bundle);
-        renderizarAtividades(lista, bundle.calendario);
+        renderizarAtividades(lista, bundle.calendario, modo);
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-          : 'Próximas atividades carregadas. Detalhes sendo preparados em segundo plano.';
+          : rotulos.carregado;
         registrarPerfAtividades('atividades.lista.renderizada', inicio, mesclarMetaPerfAtividades(resposta, {
           total: bundle.calendario.length,
           payloadBytes: estimarPayloadBytes(resposta.data || {}),
@@ -248,18 +304,19 @@
         registrarPerfAtividades('atividades.lista.falhou', inicio, {
           erro: erro.message
         });
-        return carregarAtividadesFallback(lista, status, inicio, true);
+        return carregarAtividadesFallback(lista, status, inicio, true, modo);
       })
       .finally(function finalizarLoadingAtividades() {
         ui.ocultarLoading();
       });
   }
 
-  function carregarAtividadesFallback(lista, status, inicioOriginal, manterLoadingAtual) {
+  function carregarAtividadesFallback(lista, status, inicioOriginal, manterLoadingAtual, modo) {
     var inicio = obterTempoAtual();
+    var rotulos = obterRotulosAtividades(modo);
 
     if (!manterLoadingAtual) {
-      ui.mostrarLoading('Carregando próximas atividades...');
+      ui.mostrarLoading(rotulos.carregando);
     }
 
     return api.apiGet('/atividades/listar', {})
@@ -275,10 +332,10 @@
         });
         aplicarBundleAtividades(bundle);
         salvarBundleAtividadesCache(bundle);
-        renderizarAtividades(lista, bundle.calendario);
+        renderizarAtividades(lista, bundle.calendario, modo);
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-          : 'Próximas atividades carregadas pelo backend do Portal GEAPA.';
+          : rotulos.carregadoFallback;
         registrarPerfAtividades('atividades.aba.fallback_lista', inicioOriginal || inicio, {
           total: bundle.calendario.length,
           tempoFallbackMs: Math.round(obterTempoAtual() - inicio)
@@ -286,7 +343,7 @@
       })
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
-        status.textContent = 'Falha ao carregar próximas atividades.';
+        status.textContent = rotulos.falha;
       })
       .finally(function finalizarLoadingFallback() {
         if (!manterLoadingAtual) {
@@ -701,16 +758,45 @@
     }
   }
 
-  function renderizarAtividades(container, atividades) {
+  function obterRotulosAtividades(modo) {
+    var historico = modo === MODO_ATIVIDADES_HISTORICO;
+
+    return historico
+      ? {
+        carregando: 'Carregando histórico de atividades...',
+        buscando: 'Buscando histórico de atividades no Portal GEAPA.',
+        cache: 'Histórico de atividades carregado em cache local.',
+        carregado: 'Histórico de atividades carregado. Detalhes serão preparados em segundo plano.',
+        carregadoFallback: 'Histórico de atividades carregado pelo backend do Portal GEAPA.',
+        falha: 'Falha ao carregar o histórico de atividades.',
+        vazio: 'Nenhuma atividade realizada disponível no histórico nesta etapa.'
+      }
+      : {
+        carregando: 'Carregando próximas atividades...',
+        buscando: 'Buscando próximas atividades no Portal GEAPA.',
+        cache: 'Próximas atividades carregadas em cache local.',
+        carregado: 'Próximas atividades carregadas. Detalhes serão preparados em segundo plano.',
+        carregadoFallback: 'Próximas atividades carregadas pelo backend do Portal GEAPA.',
+        falha: 'Falha ao carregar próximas atividades.',
+        vazio: 'Nenhuma próxima atividade disponível nesta etapa.'
+      };
+  }
+
+  function renderizarAtividades(container, atividades, modo) {
     var todas = Array.isArray(atividades) ? atividades.slice() : [];
-    var dados = obterProximasAtividades(todas);
-    var proxima = obterProximaAtividade(dados);
+    var historico = modo === MODO_ATIVIDADES_HISTORICO;
+    var dados = historico ? obterHistoricoAtividades(todas) : obterProximasAtividades(todas);
+    var proxima = historico ? null : obterProximaAtividade(dados);
+    var rotulos = obterRotulosAtividades(modo);
+    var avisoHistorico = historico ? montarAvisoEscopoHistoricoAtividades() : '';
 
     if (!dados.length) {
-      container.innerHTML = '<p class="empty-state">' +
+      container.innerHTML = avisoHistorico + '<p class="empty-state">' +
         ui.escaparHtml(todas.length
-          ? 'Nenhuma próxima atividade disponível. Atividades já realizadas ficarão no histórico de atividades.'
-          : 'Nenhuma próxima atividade disponível nesta etapa.') +
+          ? (historico
+            ? 'Nenhuma atividade realizada a partir do Ciclo 2026 está disponível nesta aba.'
+            : 'Nenhuma próxima atividade disponível. Atividades já realizadas ficarão no histórico de atividades.')
+          : rotulos.vazio) +
         '</p>';
       return;
     }
@@ -722,6 +808,7 @@
     });
 
     container.innerHTML = [
+      avisoHistorico,
       proxima
         ? [
           '<section class="next-activity-section" aria-labelledby="proxima-atividade-title">',
@@ -729,14 +816,14 @@
           '<p class="eyebrow">Próxima atividade</p>',
           '<h3 id="proxima-atividade-title">' + ui.escaparHtml(proxima.tituloPublico || 'Atividade') + '</h3>',
           '</div>',
-          montarCardAtividade(proxima, true),
+          montarCardAtividade(proxima, true, modo),
           '</section>'
         ].join('')
         : '',
-      '<section class="activities-list-section" aria-label="Lista de próximas atividades">',
-      proxima ? '<h3 class="activity-list-title">Agenda futura</h3>' : '',
+      '<section class="activities-list-section" aria-label="' + ui.escaparHtml(historico ? 'Histórico de atividades' : 'Lista de próximas atividades') + '">',
+      historico ? '<h3 class="activity-list-title">Atividades realizadas</h3>' : (proxima ? '<h3 class="activity-list-title">Agenda futura</h3>' : ''),
       dados.map(function montarAtividade(atividade) {
-        return montarCardAtividade(atividade, false);
+        return montarCardAtividade(atividade, false, modo);
       }).join(''),
       '</section>'
     ].join('');
@@ -760,6 +847,14 @@
     );
 
     observarPreloadDetalhes(container);
+  }
+
+  function montarAvisoEscopoHistoricoAtividades() {
+    return [
+      '<p class="simulation-warning">',
+      ui.escaparHtml('Apenas as atividades a partir da primeira atividade do Ciclo 2026 em diante, realizada em 09/04/2026, estarão disponíveis nesta aba.'),
+      '</p>'
+    ].join('');
   }
 
   function obterProximasAtividades(atividades) {
@@ -787,19 +882,58 @@
       .sort(compararAtividadesPorInicio);
   }
 
+  function obterHistoricoAtividades(atividades) {
+    var inicioHistorico = new Date(HISTORICO_ATIVIDADES_INICIO + 'T00:00:00').getTime();
+    var agora = obterTempoCacheAtual();
+
+    return (Array.isArray(atividades) ? atividades : [])
+      .filter(function filtrarHistorico(atividade) {
+        var inicio = obterInicioAtividadeMs(atividade) || obterDataAtividadeMs(atividade);
+        var fim = obterFimAtividadeMs(atividade);
+
+        if (!inicio || inicio < inicioHistorico) {
+          return false;
+        }
+
+        if (ehAtividadeCancelada(atividade)) {
+          return false;
+        }
+
+        if (ehAtividadeRealizadaOuEncerrada(atividade)) {
+          return true;
+        }
+
+        return fim ? fim < agora : inicio < agora;
+      })
+      .sort(compararAtividadesPorInicioDesc);
+  }
+
   function ehAtividadeRealizadaOuCancelada(atividade) {
+    return ehAtividadeRealizadaOuEncerrada(atividade) || ehAtividadeCancelada(atividade);
+  }
+
+  function ehAtividadeRealizadaOuEncerrada(atividade) {
     var status = String((atividade && (atividade.statusPublico || atividade.status)) || '').trim().toUpperCase();
 
     return [
       'REALIZADA',
       'ENCERRADA',
-      'FINALIZADA',
+      'FINALIZADA'
+    ].indexOf(status) >= 0;
+  }
+
+  function ehAtividadeCancelada(atividade) {
+    var status = String((atividade && (atividade.statusPublico || atividade.status)) || '').trim().toUpperCase();
+
+    return [
       'CANCELADA',
       'CANCELADO'
     ].indexOf(status) >= 0;
   }
 
-  function montarCardAtividade(atividade, destaque) {
+  function montarCardAtividade(atividade, destaque, modo) {
+    var historico = modo === MODO_ATIVIDADES_HISTORICO;
+
     return [
       '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') + '" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '">',
       '<div class="activity-card-main">',
@@ -823,12 +957,12 @@
       montarFato('Certificado', ui.formatarBooleano(atividade.geraCertificado)),
       montarFato('Carga horária', atividade.cargaHoraria + ' h'),
       '</dl>',
-      montarAvisoChamada(atividade, destaque),
+      historico ? '' : montarAvisoChamada(atividade, destaque),
       '<div class="activity-actions">',
       montarBotaoDetalhes(atividade),
-      montarBotaoChamada(atividade),
-      montarBotaoMock('Editar', auth.canEditActivity(atividade)),
-      montarBotaoMock('Justificar falta', auth.canJustifyAbsence(atividade)),
+      montarBotaoChamada(atividade, modo),
+      historico ? '' : montarBotaoMock('Editar', auth.canEditActivity(atividade)),
+      historico ? '' : montarBotaoMock('Justificar falta', auth.canJustifyAbsence(atividade)),
       '</div>',
       '</article>'
     ].join('');
@@ -871,6 +1005,13 @@
     return inicioA - inicioB;
   }
 
+  function compararAtividadesPorInicioDesc(a, b) {
+    var inicioA = obterInicioAtividadeMs(a) || obterDataAtividadeMs(a) || 0;
+    var inicioB = obterInicioAtividadeMs(b) || obterDataAtividadeMs(b) || 0;
+
+    return inicioB - inicioA;
+  }
+
   function obterInicioAtividadeMs(atividade) {
     return obterTimestampAtividade(atividade, [
       'dataHoraInicio',
@@ -887,6 +1028,18 @@
       'fim',
       'horarioFim'
     ]);
+  }
+
+  function obterDataAtividadeMs(atividade) {
+    var data = String((atividade && (atividade.dataAtividade || atividade.data)) || '').trim();
+    var dataHora;
+
+    if (!data) {
+      return 0;
+    }
+
+    dataHora = new Date(data + 'T00:00:00');
+    return Number.isNaN(dataHora.getTime()) ? 0 : dataHora.getTime();
   }
 
   function obterTimestampAtividade(atividade, campos) {
@@ -961,8 +1114,10 @@
     ].join('');
   }
 
-  function montarBotaoChamada(atividade) {
-    var acao = avaliarAcaoChamada(atividade);
+  function montarBotaoChamada(atividade, modo) {
+    var acao = modo === MODO_ATIVIDADES_HISTORICO
+      ? avaliarVisualizacaoChamadaHistorica(atividade)
+      : avaliarAcaoChamada(atividade);
 
     if (!acao.visivel) {
       return '';
@@ -976,6 +1131,18 @@
       acao.motivo ? ' title="' + ui.escaparHtml(acao.motivo) + '"' : '',
       '>' + ui.escaparHtml(acao.rotulo) + '</button>'
     ].join('');
+  }
+
+  function avaliarVisualizacaoChamadaHistorica(atividade) {
+    if (!auth.canRegisterAttendance(atividade) || !podeVisualizarChamada(atividade)) {
+      return { visivel: false };
+    }
+
+    return {
+      visivel: true,
+      desabilitado: false,
+      rotulo: 'Visualizar chamada'
+    };
   }
 
   function avaliarAcaoChamada(atividade) {
@@ -1619,7 +1786,7 @@
     }
 
     if (lista && atividadesBundleCache && Array.isArray(atividadesBundleCache.calendario)) {
-      renderizarAtividades(lista, atividadesBundleCache.calendario);
+      renderizarAtividades(lista, atividadesBundleCache.calendario, obterModoAtividadesAtual());
     }
   }
 

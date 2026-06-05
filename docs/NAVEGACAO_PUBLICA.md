@@ -67,8 +67,10 @@ Modelo atual:
   resolvida pelo backend.
 - Calendario: placeholder para visao futura de agenda mensal, eventos,
   reunioes, simposios, confraternizacoes e apresentacoes.
-- Historico de atividades: placeholder restrito a internos do GEAPA. Externos
-  devem consultar participacoes proprias em Meu Vinculo.
+- Historico de atividades: tela implementada e restrita a internos do GEAPA.
+  A aba lista atividades realizadas a partir da primeira atividade do Ciclo
+  2026, realizada em 09/04/2026. Externos devem consultar participacoes
+  proprias em Meu Vinculo.
 - Proximas apresentacoes e Historico de apresentacoes: placeholders. A fonte de
   apresentacoes de membros passa a ser `geapa-atividades` e suas planilhas
   relacionadas, nao um modulo `geapa-apresentacoes` separado.
