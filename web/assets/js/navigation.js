@@ -103,7 +103,6 @@
   var rotaAtual = 'inicio';
   var inicializado = false;
   var ignorarProximoHash = false;
-  var sequenciaAnimacaoMenu = 0;
 
   function iniciar() {
     if (inicializado || typeof document === 'undefined') {
@@ -151,7 +150,7 @@
     });
 
     document.addEventListener('click', function alternarGrupoMenu(evento) {
-      var resumo = evento.target.closest('.nav-group-title');
+      var resumo = evento.target.closest('[data-nav-group-toggle]');
       var grupo;
 
       if (!resumo) {
@@ -164,7 +163,7 @@
       }
 
       evento.preventDefault();
-      alternarGrupoNavegacao(grupo);
+      alternarGrupoNavegacao(grupo, resumo);
     });
 
     global.addEventListener('hashchange', function navegarPorHash() {
@@ -414,17 +413,21 @@
       }
 
       return [
-        '<details class="nav-group" ',
-        grupo.abertoPadrao === false ? '' : 'open',
-        '>',
-        '<summary class="nav-group-title">',
+        '<section class="nav-group',
+        grupo.abertoPadrao === false ? '' : ' is-open',
+        '">',
+        '<button class="nav-group-title" type="button" data-nav-group-toggle aria-expanded="',
+        grupo.abertoPadrao === false ? 'false' : 'true',
+        '">',
         '<span>' + escaparHtml(grupo.label) + '</span>',
         '<span class="nav-group-arrow" aria-hidden="true">&#9662;</span>',
-        '</summary>',
+        '</button>',
+        '<div class="nav-group-panel">',
         '<div class="nav-group-items">',
         rotasDoGrupo.map(montarBotaoMenu).join(''),
         '</div>',
-        '</details>'
+        '</div>',
+        '</section>'
       ].join('');
     }).join('');
 
@@ -440,97 +443,11 @@
     destacarRotaAtual();
   }
 
-  function alternarGrupoNavegacao(grupo) {
-    if (grupo.open) {
-      fecharGrupoNavegacao(grupo);
-      return;
-    }
+  function alternarGrupoNavegacao(grupo, resumo) {
+    var aberto = !grupo.classList.contains('is-open');
 
-    abrirGrupoNavegacao(grupo);
-  }
-
-  function abrirGrupoNavegacao(grupo) {
-    var itens = grupo.querySelector('.nav-group-items');
-    var idAnimacao = String(++sequenciaAnimacaoMenu);
-
-    grupo.setAttribute('data-menu-animation', idAnimacao);
-    grupo.open = true;
-
-    if (!itens) {
-      return;
-    }
-
-    itens.style.height = '0px';
-    itens.style.opacity = '0';
-    itens.style.overflow = 'hidden';
-
-    global.requestAnimationFrame(function animarAbertura() {
-      if (grupo.getAttribute('data-menu-animation') !== idAnimacao) {
-        return;
-      }
-
-      itens.style.height = itens.scrollHeight + 'px';
-      itens.style.opacity = '1';
-    });
-
-    finalizarAnimacaoGrupo(itens, function finalizarAbertura() {
-      if (grupo.open && grupo.getAttribute('data-menu-animation') === idAnimacao) {
-        itens.style.height = 'auto';
-        itens.style.overflow = '';
-        grupo.removeAttribute('data-menu-animation');
-      }
-    });
-  }
-
-  function fecharGrupoNavegacao(grupo) {
-    var itens = grupo.querySelector('.nav-group-items');
-    var idAnimacao = String(++sequenciaAnimacaoMenu);
-
-    grupo.setAttribute('data-menu-animation', idAnimacao);
-    if (!itens) {
-      grupo.open = false;
-      return;
-    }
-
-    itens.style.height = itens.scrollHeight + 'px';
-    itens.style.opacity = '1';
-    itens.style.overflow = 'hidden';
-    itens.offsetHeight;
-
-    global.requestAnimationFrame(function animarFechamento() {
-      if (grupo.getAttribute('data-menu-animation') !== idAnimacao) {
-        return;
-      }
-
-      itens.style.height = '0px';
-      itens.style.opacity = '0';
-    });
-
-    finalizarAnimacaoGrupo(itens, function finalizarFechamento() {
-      if (grupo.getAttribute('data-menu-animation') !== idAnimacao) {
-        return;
-      }
-
-      grupo.open = false;
-      itens.style.height = '';
-      itens.style.opacity = '';
-      itens.style.overflow = '';
-      grupo.removeAttribute('data-menu-animation');
-    });
-  }
-
-  function finalizarAnimacaoGrupo(itens, callback) {
-    function aoTerminar(evento) {
-      if (evento.target !== itens || evento.propertyName !== 'height') {
-        return;
-      }
-
-      itens.removeEventListener('transitionend', aoTerminar);
-      callback();
-    }
-
-    itens.removeEventListener('transitionend', aoTerminar);
-    itens.addEventListener('transitionend', aoTerminar);
+    grupo.classList.toggle('is-open', aberto);
+    resumo.setAttribute('aria-expanded', aberto ? 'true' : 'false');
   }
 
   function atualizarAcoesCabecalho(sessao) {

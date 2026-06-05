@@ -218,16 +218,18 @@ body {
 }
 
 .nav-group {
-  display: block;
+  display: grid;
+  grid-template-rows: auto 0fr;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px;
   background: var(--green-050);
-  overflow: visible;
-  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  overflow: hidden;
+  transition: grid-template-rows 240ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.nav-group[open] {
+.nav-group.is-open {
+  grid-template-rows: auto 1fr;
   background: var(--white);
   box-shadow: 0 10px 22px rgba(18, 61, 42, 0.08);
 }
@@ -238,6 +240,7 @@ body {
   gap: 10px;
   align-items: center;
   margin: 0;
+  border: 0;
   border-radius: 6px;
   padding: 8px 9px;
   color: var(--green-950);
@@ -245,27 +248,40 @@ body {
   font-weight: 700;
   letter-spacing: 0;
   cursor: pointer;
+  background: transparent;
+  text-align: left;
 }
 
-.nav-group-title::-webkit-details-marker {
-  display: none;
+.nav-group-title:hover,
+.nav-group-title:focus-visible {
+  background: rgba(31, 107, 69, 0.08);
 }
 
 .nav-group-arrow {
   transition: transform 160ms ease;
 }
 
-.nav-group:not([open]) .nav-group-arrow {
+.nav-group:not(.is-open) .nav-group-arrow {
   transform: rotate(-90deg);
+}
+
+.nav-group-panel {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .nav-group-items {
   display: grid;
   gap: 4px;
   margin-top: 8px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.nav-group.is-open .nav-group-items {
   opacity: 1;
-  overflow: hidden;
-  transition: height 220ms ease, opacity 160ms ease;
+  transform: translateY(0);
 }
 
 .nav-empty {
