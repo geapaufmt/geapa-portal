@@ -154,7 +154,7 @@
       renderizarAtividades(lista, bundleCache.calendario);
       status.textContent = configEmModoMock()
         ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-        : 'Agenda carregada em cache local.';
+        : 'Próximas atividades carregadas em cache local.';
       registrarPerfAtividades('atividades.aba.cache', inicio, {
         total: bundleCache.calendario.length,
         detalhesCache: Object.keys(bundleCache.detalhesPorId || {}).length,
@@ -164,9 +164,9 @@
       return;
     }
 
-    lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
-    status.textContent = 'Buscando atividades no Portal GEAPA.';
-    ui.mostrarLoading('Carregando atividades...');
+    lista.innerHTML = '<p class="empty-state">Carregando próximas atividades...</p>';
+    status.textContent = 'Buscando próximas atividades no Portal GEAPA.';
+    ui.mostrarLoading('Carregando próximas atividades...');
 
     return api.apiGet('/atividades/listar', {})
       .then(function tratarResposta(resposta) {
@@ -185,7 +185,7 @@
         renderizarAtividades(lista, bundle.calendario);
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-          : 'Agenda carregada. Detalhes serão preparados em segundo plano.';
+          : 'Próximas atividades carregadas. Detalhes serão preparados em segundo plano.';
         registrarPerfAtividades('atividades.lista.renderizada', inicio, mesclarMetaPerfAtividades(resposta, {
           total: bundle.calendario.length,
           payloadBytes: estimarPayloadBytes(resposta.data || {}),
@@ -195,7 +195,7 @@
       })
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
-        status.textContent = 'Falha ao carregar atividades.';
+        status.textContent = 'Falha ao carregar próximas atividades.';
       })
       .finally(function finalizarLoadingAtividades() {
         ui.ocultarLoading();
@@ -211,7 +211,7 @@
       renderizarAtividades(lista, bundleCache.calendario);
       status.textContent = configEmModoMock()
         ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-        : 'Leitura segura carregada em cache local.';
+        : 'Próximas atividades carregadas em cache local.';
       registrarPerfAtividades('atividades.aba.cache', inicio, {
         total: bundleCache.calendario.length,
         payloadBytes: estimarPayloadBytes(bundleCache.calendario)
@@ -220,9 +220,9 @@
       return;
     }
 
-    lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
-    status.textContent = 'Buscando atividades no Portal GEAPA.';
-    ui.mostrarLoading('Carregando atividades...');
+    lista.innerHTML = '<p class="empty-state">Carregando próximas atividades...</p>';
+    status.textContent = 'Buscando próximas atividades no Portal GEAPA.';
+    ui.mostrarLoading('Carregando próximas atividades...');
 
     return api.apiGet('/atividades/bundle', {})
       .then(function tratarResposta(resposta) {
@@ -236,7 +236,7 @@
         renderizarAtividades(lista, bundle.calendario);
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-          : 'Atividades carregadas. Detalhes sendo preparados em segundo plano.';
+          : 'Próximas atividades carregadas. Detalhes sendo preparados em segundo plano.';
         registrarPerfAtividades('atividades.lista.renderizada', inicio, mesclarMetaPerfAtividades(resposta, {
           total: bundle.calendario.length,
           payloadBytes: estimarPayloadBytes(resposta.data || {}),
@@ -259,7 +259,7 @@
     var inicio = obterTempoAtual();
 
     if (!manterLoadingAtual) {
-      ui.mostrarLoading('Carregando atividades...');
+      ui.mostrarLoading('Carregando próximas atividades...');
     }
 
     return api.apiGet('/atividades/listar', {})
@@ -278,7 +278,7 @@
         renderizarAtividades(lista, bundle.calendario);
         status.textContent = configEmModoMock()
           ? 'Dados simulados. Nenhuma atividade real foi consultada.'
-          : 'Leitura segura carregada pelo backend do Portal GEAPA.';
+          : 'Próximas atividades carregadas pelo backend do Portal GEAPA.';
         registrarPerfAtividades('atividades.aba.fallback_lista', inicioOriginal || inicio, {
           total: bundle.calendario.length,
           tempoFallbackMs: Math.round(obterTempoAtual() - inicio)
@@ -286,7 +286,7 @@
       })
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
-        status.textContent = 'Falha ao carregar atividades.';
+        status.textContent = 'Falha ao carregar próximas atividades.';
       })
       .finally(function finalizarLoadingFallback() {
         if (!manterLoadingAtual) {
@@ -702,11 +702,16 @@
   }
 
   function renderizarAtividades(container, atividades) {
-    var dados = Array.isArray(atividades) ? atividades.slice() : [];
+    var todas = Array.isArray(atividades) ? atividades.slice() : [];
+    var dados = obterProximasAtividades(todas);
     var proxima = obterProximaAtividade(dados);
 
     if (!dados.length) {
-      container.innerHTML = '<p class="empty-state">Nenhuma atividade disponível nesta etapa.</p>';
+      container.innerHTML = '<p class="empty-state">' +
+        ui.escaparHtml(todas.length
+          ? 'Nenhuma próxima atividade disponível. Atividades já realizadas ficarão no histórico de atividades.'
+          : 'Nenhuma próxima atividade disponível nesta etapa.') +
+        '</p>';
       return;
     }
 
@@ -728,8 +733,8 @@
           '</section>'
         ].join('')
         : '',
-      '<section class="activities-list-section" aria-label="Lista geral de atividades">',
-      proxima ? '<h3 class="activity-list-title">Todas as atividades</h3>' : '',
+      '<section class="activities-list-section" aria-label="Lista de próximas atividades">',
+      proxima ? '<h3 class="activity-list-title">Agenda futura</h3>' : '',
       dados.map(function montarAtividade(atividade) {
         return montarCardAtividade(atividade, false);
       }).join(''),
@@ -755,6 +760,43 @@
     );
 
     observarPreloadDetalhes(container);
+  }
+
+  function obterProximasAtividades(atividades) {
+    var agora = obterTempoCacheAtual();
+
+    return (Array.isArray(atividades) ? atividades : [])
+      .filter(function filtrarAtividadeFuturaOuAtual(atividade) {
+        var inicio = obterInicioAtividadeMs(atividade);
+        var fim = obterFimAtividadeMs(atividade);
+
+        if (ehAtividadeRealizadaOuCancelada(atividade)) {
+          return false;
+        }
+
+        if (fim) {
+          return fim >= agora;
+        }
+
+        if (inicio) {
+          return inicio >= agora;
+        }
+
+        return true;
+      })
+      .sort(compararAtividadesPorInicio);
+  }
+
+  function ehAtividadeRealizadaOuCancelada(atividade) {
+    var status = String((atividade && (atividade.statusPublico || atividade.status)) || '').trim().toUpperCase();
+
+    return [
+      'REALIZADA',
+      'ENCERRADA',
+      'FINALIZADA',
+      'CANCELADA',
+      'CANCELADO'
+    ].indexOf(status) >= 0;
   }
 
   function montarCardAtividade(atividade, destaque) {
@@ -811,13 +853,22 @@
     return (Array.isArray(atividades) ? atividades : [])
       .filter(function filtrarFuturas(atividade) {
         var inicio = obterInicioAtividadeMs(atividade);
+        var fim = obterFimAtividadeMs(atividade);
+
+        if (fim) {
+          return fim >= agora;
+        }
+
         return inicio && inicio > agora;
       })
       .sort(compararAtividadesPorInicio)[0] || null;
   }
 
   function compararAtividadesPorInicio(a, b) {
-    return obterInicioAtividadeMs(a) - obterInicioAtividadeMs(b);
+    var inicioA = obterInicioAtividadeMs(a) || Number.MAX_SAFE_INTEGER;
+    var inicioB = obterInicioAtividadeMs(b) || Number.MAX_SAFE_INTEGER;
+
+    return inicioA - inicioB;
   }
 
   function obterInicioAtividadeMs(atividade) {

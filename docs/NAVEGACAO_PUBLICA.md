@@ -53,3 +53,25 @@ O incremento inicial entrega:
 
 As acoes sensiveis continuam dependendo de validacao no Apps Script, GEAPA-CORE
 e modulos especializados.
+
+## Atividades E Apresentacoes
+
+Atividades e apresentacoes devem ficar em um unico grupo funcional, sem duplicar
+paginas na Area Publica. A home publica pode exibir chamadas e atalhos, mas a
+consulta oficial fica em `Atividades e Apresentacoes`.
+
+Modelo atual:
+
+- Proximas atividades: tela implementada a partir da antiga aba Atividades.
+  Mostra apenas atividades futuras ou em andamento, conforme visibilidade
+  resolvida pelo backend.
+- Calendario: placeholder para visao futura de agenda mensal, eventos,
+  reunioes, simposios, confraternizacoes e apresentacoes.
+- Historico de atividades: placeholder restrito a internos do GEAPA. Externos
+  devem consultar participacoes proprias em Meu Vinculo.
+- Proximas apresentacoes e Historico de apresentacoes: placeholders. A fonte de
+  apresentacoes de membros passa a ser `geapa-atividades` e suas planilhas
+  relacionadas, nao um modulo `geapa-apresentacoes` separado.
+
+Materiais devem aparecer dentro da atividade ou apresentacao relacionada, em vez
+de uma aba solta de materiais.

@@ -10,7 +10,7 @@
     >
     <meta name="theme-color" content="#1f6b45">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css?v=15">
+    <link rel="stylesheet" href="style.css?v=16">
   </head>
   <body>
     <div class="portal-frame">
@@ -79,7 +79,7 @@
             <div class="public-home-grid">
               <article>
                 <span>Área pública</span>
-                <strong>Conheça o grupo, normas, diretoria, parceiros e agenda aberta.</strong>
+                <strong>Conheça o grupo, normas, diretoria, parceiros e processo seletivo.</strong>
               </article>
               <article>
                 <span>Meu vínculo</span>
@@ -87,7 +87,7 @@
               </article>
               <article>
                 <span>Atividades e apresentações</span>
-                <strong>Consulte calendário, histórico público e materiais liberados.</strong>
+                <strong>Acompanhe próximas atividades, apresentações e históricos permitidos.</strong>
               </article>
               <article>
                 <span>Gestão do GEAPA</span>
@@ -151,7 +151,7 @@
               </div>
               <div class="topbar-actions">
                 <button class="secondary-button" type="button" data-open-atividades data-route-target="atividades">
-                  Atividades
+                  Próximas atividades
                 </button>
               </div>
             </div>
@@ -172,8 +172,8 @@
           <section class="situation-panel" id="tela-atividades" aria-labelledby="atividades-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
-                <p class="eyebrow">Operação do portal</p>
-                <h2 id="atividades-title">Atividades</h2>
+                <p class="eyebrow">Atividades e apresentações</p>
+                <h2 id="atividades-title">Próximas atividades</h2>
               </div>
               <button class="secondary-button" type="button" data-voltar-situacao data-route-target="minha-situacao">
                 Voltar
@@ -181,16 +181,16 @@
             </div>
 
             <p class="simulation-warning">
-              Esta tela usa a base Atividades v2 DEV. A chamada pode ser registrada
-              por perfis autorizados; criar, editar e justificar falta ainda não
-              estão disponíveis.
+              Esta tela usa a base Atividades v2 DEV e mostra apenas atividades
+              futuras ou em andamento. Apresentações de membros também serão
+              tratadas a partir de geapa-atividades.
             </p>
 
             <div class="activities-toolbar">
               <div>
-                <p class="simulation-title">Agenda inicial</p>
+                <p class="simulation-title">Agenda futura</p>
                 <p id="atividades-status" class="section-note" role="status" aria-live="polite">
-                  Pronta para carregar atividades.
+                  Pronta para carregar próximas atividades.
                 </p>
               </div>
               <button class="secondary-button compact-button" type="button" data-create-activity hidden disabled>
@@ -199,7 +199,7 @@
             </div>
 
           <div id="atividades-lista" class="activities-list">
-              <p class="empty-state">Abra a tela para carregar atividades disponíveis.</p>
+              <p class="empty-state">Abra a tela para carregar próximas atividades.</p>
             </div>
           </section>
 
@@ -257,9 +257,9 @@
     <script src="assets/js/portal-model.js?v=1"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/auth-adapter.js?v=11"></script>
-    <script src="assets/js/navigation.js?v=15"></script>
+    <script src="assets/js/navigation.js?v=16"></script>
     <script src="assets/js/ui.js?v=2"></script>
-    <script src="assets/js/atividades.js?v=12"></script>
+    <script src="assets/js/atividades.js?v=13"></script>
     <script type="module" src="assets/js/firebase-auth.js"></script>
     <script src="assets/js/pwa.js"></script>
     <script type="module" src="app.js?v=13"></script>
