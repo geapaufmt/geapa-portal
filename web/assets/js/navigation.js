@@ -149,23 +149,6 @@
       irPara(alvo.getAttribute('data-route-target'));
     });
 
-    document.addEventListener('click', function alternarGrupoMenu(evento) {
-      var resumo = evento.target.closest('[data-nav-group-toggle]');
-      var grupo;
-
-      if (!resumo) {
-        return;
-      }
-
-      grupo = resumo.closest('.nav-group');
-      if (!grupo) {
-        return;
-      }
-
-      evento.preventDefault();
-      alternarGrupoNavegacao(grupo, resumo);
-    });
-
     global.addEventListener('hashchange', function navegarPorHash() {
       if (ignorarProximoHash) {
         ignorarProximoHash = false;
@@ -413,21 +396,17 @@
       }
 
       return [
-        '<section class="nav-group',
-        grupo.abertoPadrao === false ? '' : ' is-open',
-        '">',
-        '<button class="nav-group-title" type="button" data-nav-group-toggle aria-expanded="',
-        grupo.abertoPadrao === false ? 'false' : 'true',
-        '">',
+        '<details class="nav-group" ',
+        grupo.abertoPadrao === false ? '' : 'open',
+        '>',
+        '<summary class="nav-group-title">',
         '<span>' + escaparHtml(grupo.label) + '</span>',
         '<span class="nav-group-arrow" aria-hidden="true">&#9662;</span>',
-        '</button>',
-        '<div class="nav-group-panel">',
+        '</summary>',
         '<div class="nav-group-items">',
         rotasDoGrupo.map(montarBotaoMenu).join(''),
         '</div>',
-        '</div>',
-        '</section>'
+        '</details>'
       ].join('');
     }).join('');
 
@@ -441,13 +420,6 @@
     }
     atualizarAcoesCabecalho(sessao);
     destacarRotaAtual();
-  }
-
-  function alternarGrupoNavegacao(grupo, resumo) {
-    var aberto = !grupo.classList.contains('is-open');
-
-    grupo.classList.toggle('is-open', aberto);
-    resumo.setAttribute('aria-expanded', aberto ? 'true' : 'false');
   }
 
   function atualizarAcoesCabecalho(sessao) {
