@@ -123,20 +123,7 @@ const FIREBASE_LOGIN_STATE = {
         const sessionToken = obterSessionToken(validacao);
         salvarSessaoLocal(sessionToken);
         aplicarContextoSessaoInicial(validacao, usuarioContexto);
-        mostrarTelaSituacao(app, telaAcesso, telaSituacao);
-        renderizarCarregandoSituacao(situacao);
-
-        try {
-          const minhaSituacao = await carregarMinhaSituacao(sessionToken);
-          aplicarUsuarioAtual(minhaSituacao);
-          atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
-          renderizarMinhaSituacao(situacao, minhaSituacao);
-        } catch (erroSituacao) {
-          limparSessaoLocal();
-          limparUsuarioAtual();
-          atualizarContextoUsuario(usuarioContexto, null);
-          renderizarErroSituacao(situacao, erroSituacao.message);
-        }
+        mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
       }
     } catch (erro) {
       atualizarStatus(status, erro.message);
@@ -268,13 +255,7 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
 
     salvarSessaoLocal(sessionToken);
     aplicarContextoSessaoInicial(login, usuarioContexto);
-    mostrarTelaSituacao(app, telaAcesso, telaSituacao);
-    renderizarCarregandoSituacao(situacao);
-
-    const minhaSituacao = await carregarMinhaSituacao(sessionToken);
-    aplicarUsuarioAtual(minhaSituacao);
-    atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
-    renderizarMinhaSituacao(situacao, minhaSituacao);
+    mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
     sincronizarNavegacaoPortal();
     atualizarStatus(status, obterMensagem(login) || 'Entrada com Google concluída.');
   } catch (erro) {
@@ -1549,6 +1530,35 @@ function definirMenuAberto(aberto) {
 
   if (header && aberto) {
     header.classList.remove('header-collapsed');
+  }
+}
+
+/**
+ * Retorna à tela inicial pública após autenticar o usuário.
+ *
+ * @param {HTMLElement} app Elemento raiz.
+ * @param {HTMLElement} telaAcesso Tela de acesso.
+ * @param {HTMLElement} telaSituacao Tela de situação.
+ */
+function mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao) {
+  const navegacao = window.PortalGeapaNavigation;
+  const telaAtividades = document.getElementById('tela-atividades');
+
+  sincronizarNavegacaoPortal();
+
+  if (navegacao && typeof navegacao.irPara === 'function') {
+    navegacao.irPara('inicio');
+    return;
+  }
+
+  definirMenuAberto(false);
+  app.classList.remove('view-login', 'view-situacao', 'view-atividades');
+  app.classList.add('view-inicio');
+  telaAcesso.hidden = true;
+  telaSituacao.hidden = true;
+
+  if (telaAtividades) {
+    telaAtividades.hidden = true;
   }
 }
 
