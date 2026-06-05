@@ -450,7 +450,7 @@
         if (!grupo.classList.contains('is-open')) {
           grupo.removeAttribute('open');
         }
-      }, 240);
+      }, 170);
       return;
     }
 
