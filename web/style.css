@@ -619,18 +619,16 @@ button:disabled:hover {
 .global-loading-panel {
   display: grid;
   justify-items: center;
-  gap: 14px;
-  width: min(240px, 78vw);
-  border: 1px solid rgba(200, 222, 209, 0.86);
-  border-radius: 8px;
-  padding: 22px 20px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: var(--shadow);
+  gap: 12px;
+  width: min(150px, 68vw);
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .global-loading-brain {
-  width: 96px;
-  height: 124px;
+  width: 78px;
+  height: 100px;
 }
 
 .global-loading-brain img,
@@ -708,10 +706,11 @@ button:disabled:hover {
 .global-loading p {
   margin: 0;
   color: var(--green-950);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
   line-height: 1.35;
   text-align: center;
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
 }
 
 @keyframes geapa-loader-part {
