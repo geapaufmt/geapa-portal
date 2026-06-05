@@ -103,6 +103,7 @@
   var rotaAtual = 'inicio';
   var inicializado = false;
   var ignorarProximoHash = false;
+  var sequenciaAnimacaoMenu = 0;
 
   function iniciar() {
     if (inicializado || typeof document === 'undefined') {
@@ -147,6 +148,23 @@
 
       evento.preventDefault();
       irPara(alvo.getAttribute('data-route-target'));
+    });
+
+    document.addEventListener('click', function alternarGrupoMenu(evento) {
+      var resumo = evento.target.closest('.nav-group-title');
+      var grupo;
+
+      if (!resumo) {
+        return;
+      }
+
+      grupo = resumo.closest('.nav-group');
+      if (!grupo) {
+        return;
+      }
+
+      evento.preventDefault();
+      alternarGrupoNavegacao(grupo);
     });
 
     global.addEventListener('hashchange', function navegarPorHash() {
@@ -420,6 +438,99 @@
     }
     atualizarAcoesCabecalho(sessao);
     destacarRotaAtual();
+  }
+
+  function alternarGrupoNavegacao(grupo) {
+    if (grupo.open) {
+      fecharGrupoNavegacao(grupo);
+      return;
+    }
+
+    abrirGrupoNavegacao(grupo);
+  }
+
+  function abrirGrupoNavegacao(grupo) {
+    var itens = grupo.querySelector('.nav-group-items');
+    var idAnimacao = String(++sequenciaAnimacaoMenu);
+
+    grupo.setAttribute('data-menu-animation', idAnimacao);
+    grupo.open = true;
+
+    if (!itens) {
+      return;
+    }
+
+    itens.style.height = '0px';
+    itens.style.opacity = '0';
+    itens.style.overflow = 'hidden';
+
+    global.requestAnimationFrame(function animarAbertura() {
+      if (grupo.getAttribute('data-menu-animation') !== idAnimacao) {
+        return;
+      }
+
+      itens.style.height = itens.scrollHeight + 'px';
+      itens.style.opacity = '1';
+    });
+
+    finalizarAnimacaoGrupo(itens, function finalizarAbertura() {
+      if (grupo.open && grupo.getAttribute('data-menu-animation') === idAnimacao) {
+        itens.style.height = 'auto';
+        itens.style.overflow = '';
+        grupo.removeAttribute('data-menu-animation');
+      }
+    });
+  }
+
+  function fecharGrupoNavegacao(grupo) {
+    var itens = grupo.querySelector('.nav-group-items');
+    var idAnimacao = String(++sequenciaAnimacaoMenu);
+
+    grupo.setAttribute('data-menu-animation', idAnimacao);
+    if (!itens) {
+      grupo.open = false;
+      return;
+    }
+
+    itens.style.height = itens.scrollHeight + 'px';
+    itens.style.opacity = '1';
+    itens.style.overflow = 'hidden';
+    itens.offsetHeight;
+
+    global.requestAnimationFrame(function animarFechamento() {
+      if (grupo.getAttribute('data-menu-animation') !== idAnimacao) {
+        return;
+      }
+
+      itens.style.height = '0px';
+      itens.style.opacity = '0';
+    });
+
+    finalizarAnimacaoGrupo(itens, function finalizarFechamento() {
+      if (grupo.getAttribute('data-menu-animation') !== idAnimacao) {
+        return;
+      }
+
+      grupo.open = false;
+      itens.style.height = '';
+      itens.style.opacity = '';
+      itens.style.overflow = '';
+      grupo.removeAttribute('data-menu-animation');
+    });
+  }
+
+  function finalizarAnimacaoGrupo(itens, callback) {
+    function aoTerminar(evento) {
+      if (evento.target !== itens || evento.propertyName !== 'height') {
+        return;
+      }
+
+      itens.removeEventListener('transitionend', aoTerminar);
+      callback();
+    }
+
+    itens.removeEventListener('transitionend', aoTerminar);
+    itens.addEventListener('transitionend', aoTerminar);
   }
 
   function atualizarAcoesCabecalho(sessao) {
