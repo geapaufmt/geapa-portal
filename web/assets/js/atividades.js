@@ -166,8 +166,9 @@
 
     lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
     status.textContent = 'Buscando atividades no Portal GEAPA.';
+    ui.mostrarLoading('Carregando atividades...');
 
-    api.apiGet('/atividades/listar', {})
+    return api.apiGet('/atividades/listar', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Não foi possível carregar atividades.');
@@ -195,6 +196,9 @@
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
         status.textContent = 'Falha ao carregar atividades.';
+      })
+      .finally(function finalizarLoadingAtividades() {
+        ui.ocultarLoading();
       });
   }
 
@@ -218,8 +222,9 @@
 
     lista.innerHTML = '<p class="empty-state">Carregando atividades...</p>';
     status.textContent = 'Buscando atividades no Portal GEAPA.';
+    ui.mostrarLoading('Carregando atividades...');
 
-    api.apiGet('/atividades/bundle', {})
+    return api.apiGet('/atividades/bundle', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Não foi possível carregar atividades.');
@@ -243,14 +248,21 @@
         registrarPerfAtividades('atividades.lista.falhou', inicio, {
           erro: erro.message
         });
-        carregarAtividadesFallback(lista, status, inicio);
+        return carregarAtividadesFallback(lista, status, inicio, true);
+      })
+      .finally(function finalizarLoadingAtividades() {
+        ui.ocultarLoading();
       });
   }
 
-  function carregarAtividadesFallback(lista, status, inicioOriginal) {
+  function carregarAtividadesFallback(lista, status, inicioOriginal, manterLoadingAtual) {
     var inicio = obterTempoAtual();
 
-    api.apiGet('/atividades/listar', {})
+    if (!manterLoadingAtual) {
+      ui.mostrarLoading('Carregando atividades...');
+    }
+
+    return api.apiGet('/atividades/listar', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Não foi possível carregar atividades.');
@@ -275,6 +287,11 @@
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
         status.textContent = 'Falha ao carregar atividades.';
+      })
+      .finally(function finalizarLoadingFallback() {
+        if (!manterLoadingAtual) {
+          ui.ocultarLoading();
+        }
       });
   }
 

@@ -236,16 +236,32 @@
       </footer>
     </div>
 
+    <div
+      id="portal-global-loading"
+      class="global-loading"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      hidden
+    >
+      <div class="global-loading-panel">
+        <div class="global-loading-brain" data-loader-svg aria-hidden="true">
+          <img src="assets/img/geapa-loader-brain.svg" alt="" loading="eager">
+        </div>
+        <p id="portal-global-loading-message">Carregando...</p>
+      </div>
+    </div>
+
     <script src="assets/js/config.js"></script>
     <script src="assets/js/api.js?v=11"></script>
     <script src="assets/js/portal-model.js?v=1"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/auth-adapter.js?v=11"></script>
     <script src="assets/js/navigation.js?v=15"></script>
-    <script src="assets/js/ui.js"></script>
-    <script src="assets/js/atividades.js?v=11"></script>
+    <script src="assets/js/ui.js?v=2"></script>
+    <script src="assets/js/atividades.js?v=12"></script>
     <script type="module" src="assets/js/firebase-auth.js"></script>
     <script src="assets/js/pwa.js"></script>
-    <script type="module" src="app.js?v=12"></script>
+    <script type="module" src="app.js?v=13"></script>
   </body>
 </html>

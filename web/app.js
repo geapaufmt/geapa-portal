@@ -47,6 +47,7 @@ const FIREBASE_LOGIN_STATE = {
     }
 
     botaoSolicitar.disabled = true;
+    mostrarLoadingGlobal('Solicitando codigo...');
     atualizarStatus(status, 'Solicitando código...');
 
     try {
@@ -57,6 +58,7 @@ const FIREBASE_LOGIN_STATE = {
       atualizarStatus(status, erro.message);
     } finally {
       botaoSolicitar.disabled = false;
+      ocultarLoadingGlobal();
     }
   });
 
@@ -70,12 +72,14 @@ const FIREBASE_LOGIN_STATE = {
       }
 
       botaoEntrarGoogle.disabled = true;
+      mostrarLoadingGlobal('Abrindo login com Google...');
       atualizarStatus(status, 'Abrindo login com Google...');
 
       try {
         const usuarioFirebase = await firebaseAuth.signInWithGoogle();
 
         if (usuarioFirebase) {
+          atualizarMensagemLoadingGlobal('Validando acesso no GEAPA...');
           await autenticarFirebaseNoPortal(
             usuarioFirebase,
             app,
@@ -90,6 +94,7 @@ const FIREBASE_LOGIN_STATE = {
         atualizarStatus(status, erro.message || 'Não foi possível entrar com Google.');
       } finally {
         botaoEntrarGoogle.disabled = false;
+        ocultarLoadingGlobal();
       }
     });
   }
@@ -114,6 +119,7 @@ const FIREBASE_LOGIN_STATE = {
 
     atualizarStatus(status, 'Validando código...');
     alternarFormularioOcupado(form, true);
+    mostrarLoadingGlobal('Validando codigo...');
 
     try {
       const validacao = await validarCodigo(identificador, codigoInformado);
@@ -129,6 +135,7 @@ const FIREBASE_LOGIN_STATE = {
       atualizarStatus(status, erro.message);
     } finally {
       alternarFormularioOcupado(form, false);
+      ocultarLoadingGlobal();
     }
   });
 
@@ -213,11 +220,20 @@ function portalLoginFirebase(idToken) {
  */
 async function carregarMinhaSituacao(token) {
   const inicio = obterTempoAtual();
-  const resposta = await chamarApi('minhaSituacao', {
-    token: token
-  });
-  const situacao = normalizarMinhaSituacao(resposta);
-  situacao.desempenho.tempoClienteMs = Math.round(obterTempoAtual() - inicio);
+  let resposta;
+  let situacao;
+
+  mostrarLoadingGlobal('Carregando Minha situacao...');
+
+  try {
+    resposta = await chamarApi('minhaSituacao', {
+      token: token
+    });
+    situacao = normalizarMinhaSituacao(resposta);
+    situacao.desempenho.tempoClienteMs = Math.round(obterTempoAtual() - inicio);
+  } finally {
+    ocultarLoadingGlobal();
+  }
 
   return situacao;
 }
@@ -1421,6 +1437,30 @@ function formatarDataCurta(valor) {
  */
 function atualizarStatus(status, mensagem) {
   status.textContent = mensagem;
+}
+
+function mostrarLoadingGlobal(mensagem) {
+  const ui = window.PortalGeapaUi;
+
+  if (ui && typeof ui.mostrarLoading === 'function') {
+    ui.mostrarLoading(mensagem);
+  }
+}
+
+function ocultarLoadingGlobal() {
+  const ui = window.PortalGeapaUi;
+
+  if (ui && typeof ui.ocultarLoading === 'function') {
+    ui.ocultarLoading();
+  }
+}
+
+function atualizarMensagemLoadingGlobal(mensagem) {
+  const ui = window.PortalGeapaUi;
+
+  if (ui && typeof ui.atualizarMensagemLoading === 'function') {
+    ui.atualizarMensagemLoading(mensagem);
+  }
 }
 
 /**
