@@ -222,7 +222,7 @@
     api.apiGet('/atividades/bundle', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
-          throw new Error(resposta.message || 'Nao foi possivel carregar atividades.');
+          throw new Error(resposta.message || 'Não foi possível carregar atividades.');
         }
 
         var bundle = normalizarBundleAtividades(resposta.data || {});
@@ -253,7 +253,7 @@
     api.apiGet('/atividades/listar', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
-          throw new Error(resposta.message || 'Nao foi possivel carregar atividades.');
+          throw new Error(resposta.message || 'Não foi possível carregar atividades.');
         }
 
         var bundle = normalizarBundleAtividades({
@@ -407,7 +407,7 @@
       idAtividade: item.idAtividade
     }).then(function tratarResposta(resposta) {
       if (!resposta.ok) {
-        throw new Error(resposta.message || 'Nao foi possivel preparar detalhe.');
+        throw new Error(resposta.message || 'Não foi possível preparar o detalhe.');
       }
 
       detalhesCache[item.idAtividade] = resposta.data;
@@ -435,7 +435,7 @@
     detalhesPreloadPromise = api.apiGet('/atividades/detalhes-preload', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
-          throw new Error(resposta.message || 'Nao foi possivel preparar detalhes.');
+          throw new Error(resposta.message || 'Não foi possível preparar os detalhes.');
         }
 
         var detalhes = normalizarDetalhesPorId((resposta.data || {}).detalhesPorId);

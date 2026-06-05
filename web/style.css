@@ -222,6 +222,13 @@ body {
   border-radius: 8px;
   padding: 6px;
   background: var(--green-050);
+  overflow: hidden;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.nav-group.is-open {
+  background: var(--white);
+  box-shadow: 0 10px 22px rgba(18, 61, 42, 0.08);
 }
 
 .nav-group-title {
@@ -247,7 +254,7 @@ body {
   transition: transform 160ms ease;
 }
 
-.nav-group:not([open]) .nav-group-arrow {
+.nav-group:not(.is-open) .nav-group-arrow {
   transform: rotate(-90deg);
 }
 
@@ -255,6 +262,17 @@ body {
   display: grid;
   gap: 4px;
   margin-top: 4px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height 220ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+.nav-group.is-open .nav-group-items {
+  max-height: 620px;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .nav-empty {

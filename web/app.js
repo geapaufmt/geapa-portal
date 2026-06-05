@@ -65,7 +65,7 @@ const FIREBASE_LOGIN_STATE = {
       const firebaseAuth = window.PortalGeapaFirebaseAuth;
 
       if (!firebaseAuth || !firebaseAuth.isAvailable()) {
-        atualizarStatus(status, 'Login com Google ainda nao esta disponivel neste ambiente.');
+        atualizarStatus(status, 'Login com Google ainda não está disponível neste ambiente.');
         return;
       }
 
@@ -87,7 +87,7 @@ const FIREBASE_LOGIN_STATE = {
           );
         }
       } catch (erro) {
-        atualizarStatus(status, erro.message || 'Nao foi possivel entrar com Google.');
+        atualizarStatus(status, erro.message || 'Não foi possível entrar com Google.');
       } finally {
         botaoEntrarGoogle.disabled = false;
       }
@@ -263,7 +263,7 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     const sessionToken = obterSessionToken(login);
 
     if (!sessionToken) {
-      throw new Error('A API nao retornou uma sessao valida do portal.');
+      throw new Error('A API não retornou uma sessão válida do portal.');
     }
 
     salvarSessaoLocal(sessionToken);
@@ -276,7 +276,7 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
     renderizarMinhaSituacao(situacao, minhaSituacao);
     sincronizarNavegacaoPortal();
-    atualizarStatus(status, obterMensagem(login) || 'Entrada com Google concluida.');
+    atualizarStatus(status, obterMensagem(login) || 'Entrada com Google concluída.');
   } catch (erro) {
     limparSessaoLocal();
     limparUsuarioAtual();
@@ -317,7 +317,7 @@ function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao
         );
       })
       .catch(function tratarErroRedirect(erro) {
-        atualizarStatus(status, erro.message || 'Nao foi possivel concluir o login com Google.');
+        atualizarStatus(status, erro.message || 'Não foi possível concluir o login com Google.');
       });
   }
 
@@ -335,7 +335,7 @@ function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao
       status,
       usuarioContexto
     ).catch(function tratarErroFirebase(erro) {
-      atualizarStatus(status, erro.message || 'Nao foi possivel restaurar o login com Google.');
+      atualizarStatus(status, erro.message || 'Não foi possível restaurar o login com Google.');
     });
   });
 }
@@ -396,7 +396,7 @@ async function chamarApi(acao, dados) {
   const inicio = obterTempoAtual();
   const api = window.PortalGeapaApi;
   if (!api || typeof api.callAction !== 'function') {
-    throw new Error('Cliente de API do Portal GEAPA nao foi carregado.');
+    throw new Error('Cliente de API do Portal GEAPA não foi carregado.');
   }
 
   const payload = await api.callAction(acao, dados || {});
@@ -601,7 +601,7 @@ function renderizarMinhaSituacao(container, dados) {
  */
 function renderizarCarregandoSituacao(container) {
   container.innerHTML = [
-    '<p class="simulation-title">Carregando Minha situação</p>',
+    '<p class="simulation-title">Carregando minha situação</p>',
     '<p class="empty-state">Buscando dados no backend do Portal GEAPA.</p>'
   ].join('');
 }
@@ -614,7 +614,7 @@ function renderizarCarregandoSituacao(container) {
  */
 function renderizarErroSituacao(container, mensagem) {
   container.innerHTML = [
-    '<p class="simulation-title">Não foi possível carregar Minha situação</p>',
+    '<p class="simulation-title">Não foi possível carregar minha situação</p>',
     '<p class="empty-state">' + escaparHtml(mensagem || 'Tente sair e entrar novamente.') + '</p>'
   ].join('');
 }
@@ -701,7 +701,7 @@ function normalizarUsuario(usuario, dadosSituacao, sessao) {
   return {
     id: String(dados.id || dadosSessao.idPessoa || situacao.rga || '').trim(),
     idPessoa: String(dados.idPessoa || dadosSessao.idPessoa || dados.id || situacao.rga || '').trim(),
-    nomeExibicao: String(dados.nomeExibicao || dadosSessao.nomeExibicao || situacao.nomeExibicao || 'Usuario GEAPA').trim(),
+    nomeExibicao: String(dados.nomeExibicao || dadosSessao.nomeExibicao || situacao.nomeExibicao || 'Usuário GEAPA').trim(),
     email: String(dados.email || dadosSessao.email || '').trim(),
     rga: String(dados.rga || situacao.rga || '').trim(),
     perfilPrincipal: normalizarPerfil(perfilPrincipal || perfis[0] || 'VISITANTE'),

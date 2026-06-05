@@ -192,7 +192,7 @@
       return Promise.resolve({
         ok: false,
         errorCode: 'ACAO_NAO_INFORMADA',
-        message: 'Acao nao informada para a API do Portal GEAPA.'
+        message: 'Ação não informada para a API do Portal GEAPA.'
       });
     }
 
@@ -200,7 +200,7 @@
       return Promise.resolve({
         ok: false,
         errorCode: 'API_BASE_URL_AUSENTE',
-        message: 'URL da API do Portal GEAPA nao configurada.'
+        message: 'URL da API do Portal GEAPA não configurada.'
       });
     }
 
