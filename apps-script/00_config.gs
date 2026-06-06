@@ -51,6 +51,14 @@ var PORTAL_CONFIG = {
   cacheAtividadesSegundos: 120,
 
   /**
+   * Cache curto do conteudo editorial publico ja sanitizado pelo GEAPA-CORE.
+   * Esse cache nao substitui o futuro espelho publico no Firestore; apenas
+   * evita chamadas repetidas ao CORE enquanto a publicacao definitiva nao
+   * estiver implementada.
+   */
+  cacheConteudoPublicoSegundos: 300,
+
+  /**
    * Limite de tentativas para validar um codigo antes de bloquear a sessao
    * temporaria. Usado apenas no fluxo de teste inicial.
    */

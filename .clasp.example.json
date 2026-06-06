@@ -17,6 +17,9 @@
     "02_minha_situacao.gs",
     "03_membros.gs",
     "03_webapp.gs",
+    "04_atividades.gs",
+    "05_auth_firebase.gs",
+    "06_public_content_consumer.gs",
     "99_tests.gs",
     "appsscript.json"
   ],

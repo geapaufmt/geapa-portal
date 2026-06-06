@@ -87,6 +87,7 @@ geapa-portal/
 |   |-- ARCHITECTURE.md
 |   |-- API.md
 |   |-- FIREBASE_MIGRATION.md
+|   |-- PUBLIC_CONTENT.md
 |   |-- api-contrato-atividades.md
 |   |-- DATA_MATRIX.md
 |   |-- diagnostico-portal.md
@@ -196,6 +197,7 @@ maquina.
 - [Contrato da API](docs/API.md)
 - [Contrato inicial de atividades](docs/api-contrato-atividades.md)
 - [Migracao Firebase](docs/FIREBASE_MIGRATION.md)
+- [Conteudo publico editorial](docs/PUBLIC_CONTENT.md)
 - [PWA](docs/PWA.md)
 - [Matriz de dados](docs/DATA_MATRIX.md)
 - [Checklist de piloto](docs/PILOT_CHECKLIST.md)

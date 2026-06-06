@@ -203,6 +203,24 @@ O payload de salvamento e enviado em lote, com `registros` para membros e
 `externos` para convidados/externos ja presentes na chamada retornada pelo
 backend. O Portal nao escreve diretamente em planilhas.
 
+Cada participante retornado pelo backend deve priorizar `idPessoa` como chave
+tecnica da pessoa. O campo `rga` continua aceito como apoio legado e para
+conferencia humana, mas nao deve ser a chave estrutural de novas rotinas. O
+Portal preserva os dois campos no payload de salvamento para manter
+compatibilidade durante a migracao:
+
+```json
+{
+  "tipoParticipante": "MEMBRO",
+  "idPessoa": "PES-0001",
+  "rga": "202311801000",
+  "nome": "Nome do membro",
+  "statusPresenca": "PRESENTE_PRESENCIAL",
+  "codigoPresenca": "P",
+  "observacoes": ""
+}
+```
+
 O campo `operacao` controla o estado operacional:
 
 - `SALVAR`: grava ou atualiza registros e deixa a chamada como salva;

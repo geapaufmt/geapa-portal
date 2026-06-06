@@ -237,7 +237,8 @@
       '/atividades/detalhes-preload': 'atividadesDetalhesPreload',
       '/atividades/detalhe': 'atividadeDetalhe',
       '/atividades/chamada': 'atividadeChamada',
-      '/atividades/chamada/salvar': 'atividadeSalvarChamada'
+      '/atividades/chamada/salvar': 'atividadeSalvarChamada',
+      '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot'
     };
 
     return rotas[route] || '';
@@ -368,6 +369,7 @@
         participantes: [
           {
             tipoParticipante: 'MEMBRO',
+            idPessoa: 'PES-TESTE-1',
             rga: 'RGA-TESTE-1',
             nome: 'Membro de Teste 1',
             statusPresenca: '',
@@ -381,6 +383,7 @@
           },
           {
             tipoParticipante: 'MEMBRO',
+            idPessoa: 'PES-TESTE-2',
             rga: 'RGA-TESTE-2',
             nome: 'Membro de Teste 2',
             statusPresenca: 'PRESENTE_PRESENCIAL',

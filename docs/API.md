@@ -173,11 +173,12 @@ Resposta esperada:
   "code": "PORTAL_API_OK",
   "message": "API do Portal GEAPA ativa em modo placeholder.",
   "data": {
-      "acoesDisponiveis": [
-        "solicitarCodigo",
-        "validarCodigo",
-        "portalLogin",
-        "minhaSituacao",
+    "acoesDisponiveis": [
+      "solicitarCodigo",
+      "validarCodigo",
+      "portalLogin",
+      "conteudoPublicoSnapshot",
+      "minhaSituacao",
       "atividadesBundle",
       "atividadesListar",
       "atividadesDetalhesPreload",
@@ -193,6 +194,74 @@ Resposta esperada:
   }
 }
 ```
+
+## Acao: conteudoPublicoSnapshot
+
+Entrada:
+
+```text
+acao=conteudoPublicoSnapshot
+forceRefresh=true|false
+```
+
+`forceRefresh` e opcional e deve ser usado apenas em testes ou manutencao para
+ignorar o cache curto do backend.
+
+Resposta esperada:
+
+```json
+{
+  "ok": true,
+  "code": "CONTEUDO_PUBLICO_CORE",
+  "message": "Conteudo publico carregado pelo GEAPA-CORE.",
+  "data": {
+    "pages": {
+      "home": {
+        "blocos": [],
+        "atualizadoEm": ""
+      },
+      "sobre": {
+        "blocos": [],
+        "atualizadoEm": ""
+      },
+      "historia": {
+        "marcos": [],
+        "atualizadoEm": ""
+      },
+      "parceiros": {
+        "itens": [],
+        "atualizadoEm": ""
+      }
+    },
+    "documents": [],
+    "media": [],
+    "config": {},
+    "boardComplements": []
+  },
+  "meta": {
+    "app": "Portal GEAPA",
+    "modo": "placeholder",
+    "versaoContrato": "v1-placeholder",
+    "desempenho": {
+      "origemDados": "geapa-core",
+      "tempoMs": 0,
+      "cacheConteudoPublicoSegundos": 300
+    }
+  }
+}
+```
+
+Essa acao consome `GEAPA_CORE.corePortalPublicContentBuildPublicSnapshot()` e
+nao acessa planilhas diretamente pelo front-end. O CORE resolve o Registry, le
+por cabecalho, filtra apenas linhas publicaveis e retorna dados sanitizados.
+
+`PORTAL_CONTEUDO_PUBLICO` e CMS editorial publico. Nao e fonte oficial de
+atividades, apresentacoes, membros, diretoria oficial, frequencia ou permissoes.
+Proximas atividades e proximas apresentacoes continuam pertencendo ao modulo
+`geapa-atividades` e suas views/contratos `PORTAL_*`.
+
+O portal aplica cache curto ao snapshot sanitizado. Quando o cache e usado, o
+codigo da resposta passa a ser `CONTEUDO_PUBLICO_CACHE`.
 
 ## Acao: solicitarCodigo
 
@@ -649,10 +718,26 @@ O campo `payload` contem JSON serializado com:
 {
   "idAtividade": "ATV-2026-1-0005",
   "operacao": "SALVAR",
-  "registros": [],
+  "registros": [
+    {
+      "tipoParticipante": "MEMBRO",
+      "idPessoa": "PES-0001",
+      "rga": "202311801000",
+      "nome": "Nome do membro",
+      "statusPresenca": "PRESENTE_PRESENCIAL",
+      "codigoPresenca": "P",
+      "observacoes": ""
+    }
+  ],
   "externos": []
 }
 ```
+
+`idPessoa` e a chave tecnica preferencial para participantes, membros,
+apresentadores, justificativas e presencas. `rga` permanece no contrato como
+campo legado e de conferencia, principalmente para dados historicos e membros
+discentes, mas novas rotinas nao devem depender dele como identificador
+estrutural.
 
 Operacoes aceitas:
 

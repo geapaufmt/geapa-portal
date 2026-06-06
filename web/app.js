@@ -36,6 +36,7 @@ const FIREBASE_LOGIN_STATE = {
   configurarMenuGlobal();
   configurarCabecalhoRecolhivel();
   sincronizarNavegacaoPortal();
+  carregarHomePublicaEditorial();
 
   botaoSolicitar.addEventListener('click', async function aoSolicitarCodigo() {
     const identificador = emailOuRga.value.trim();
@@ -1654,6 +1655,136 @@ function mostrarTelaAcesso(app, telaAcesso, telaSituacao) {
   if (telaAtividades) {
     telaAtividades.hidden = true;
   }
+}
+
+/**
+ * Enriquece a home publica com o CMS editorial, preservando o HTML estatico
+ * como fallback quando o snapshot ainda estiver vazio ou indisponivel.
+ */
+async function carregarHomePublicaEditorial() {
+  const conteudoPublico = window.PortalGeapaPublicContent;
+  const home = document.getElementById('tela-inicio');
+
+  if (!home || !conteudoPublico || typeof conteudoPublico.carregarHomePublica !== 'function') {
+    return;
+  }
+
+  try {
+    const resposta = await conteudoPublico.carregarHomePublica();
+    const dados = resposta && resposta.data ? resposta.data : {};
+    const blocos = Array.isArray(dados.blocos) ? dados.blocos : [];
+
+    if (!blocos.length) {
+      return;
+    }
+
+    aplicarBlocosHomePublica(home, blocos);
+  } catch (erro) {
+    // A home estatica e o fallback publico.
+  }
+}
+
+function aplicarBlocosHomePublica(home, blocos) {
+  const hero = escolherBlocoHeroHome(blocos);
+  const cards = blocos.filter(function filtrarCards(bloco) {
+    return bloco !== hero && obterTextoCampo(bloco, ['titulo', 'TITULO']);
+  });
+
+  if (hero) {
+    aplicarHeroHomePublica(home, hero);
+  }
+
+  if (cards.length) {
+    aplicarCardsHomePublica(home, cards);
+  }
+}
+
+function escolherBlocoHeroHome(blocos) {
+  const candidatos = Array.isArray(blocos) ? blocos : [];
+  const hero = candidatos.find(function encontrarHero(bloco) {
+    const tipo = obterTextoCampo(bloco, ['tipoBloco', 'TIPO_BLOCO', 'tipo', 'TIPO'])
+      .toUpperCase();
+
+    return tipo.indexOf('HERO') >= 0 ||
+      tipo.indexOf('CAPA') >= 0 ||
+      tipo.indexOf('INTRO') >= 0;
+  });
+
+  return hero || candidatos[0] || null;
+}
+
+function aplicarHeroHomePublica(home, bloco) {
+  const titulo = obterTextoCampo(bloco, ['titulo', 'TITULO']);
+  const subtitulo = obterTextoCampo(bloco, ['subtitulo', 'SUBTITULO']);
+  const texto = obterTextoCampo(bloco, ['texto', 'TEXTO']);
+  const botaoTexto = obterTextoCampo(bloco, ['botaoTexto', 'BOTAO_TEXTO']);
+  const botaoUrl = obterTextoCampo(bloco, ['botaoUrl', 'BOTAO_URL']);
+  const h1 = home.querySelector('#portal-title');
+  const intro = home.querySelector('.intro');
+  const acoes = home.querySelector('.home-actions');
+
+  if (h1 && titulo) {
+    h1.textContent = titulo;
+  }
+
+  if (intro && (subtitulo || texto)) {
+    intro.textContent = subtitulo || texto;
+  }
+
+  if (acoes && botaoTexto && botaoUrl) {
+    acoes.insertAdjacentHTML(
+      'beforeend',
+      '<a class="secondary-button" href="' + escaparHtml(botaoUrl) + '">' +
+        escaparHtml(botaoTexto) +
+      '</a>'
+    );
+  }
+}
+
+function aplicarCardsHomePublica(home, blocos) {
+  const grid = home.querySelector('.public-home-grid');
+
+  if (!grid) {
+    return;
+  }
+
+  grid.innerHTML = blocos.slice(0, 4).map(function montarCard(bloco) {
+    const tipo = obterTextoCampo(bloco, ['tipoBloco', 'TIPO_BLOCO', 'tipo', 'TIPO']);
+    const titulo = obterTextoCampo(bloco, ['titulo', 'TITULO']);
+    const texto = obterTextoCampo(bloco, ['texto', 'TEXTO', 'subtitulo', 'SUBTITULO']);
+
+    return [
+      '<article>',
+      tipo ? '<span>' + escaparHtml(formatarRotuloPublico(tipo)) + '</span>' : '',
+      '<strong>' + escaparHtml(titulo) + '</strong>',
+      texto ? '<p>' + escaparHtml(texto) + '</p>' : '',
+      '</article>'
+    ].join('');
+  }).join('');
+}
+
+function obterTextoCampo(objeto, chaves) {
+  const dados = objeto || {};
+
+  for (let i = 0; i < chaves.length; i += 1) {
+    const valor = dados[chaves[i]];
+
+    if (valor !== undefined && valor !== null && String(valor).trim()) {
+      return String(valor).trim();
+    }
+  }
+
+  return '';
+}
+
+function formatarRotuloPublico(valor) {
+  const ui = window.PortalGeapaUi;
+
+  if (ui && typeof ui.formatarRotulo === 'function') {
+    return ui.formatarRotulo(valor);
+  }
+
+  return String(valor || '').replace(/_/g, ' ').trim();
 }
 
 /**

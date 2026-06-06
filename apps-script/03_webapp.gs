@@ -20,6 +20,7 @@ function doGet(e) {
         'solicitarCodigo',
         'validarCodigo',
         'portalLogin',
+        'conteudoPublicoSnapshot',
         'minhaSituacao',
         'atividadesBundle',
         'atividadesListar',
@@ -111,6 +112,12 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'portalLogin') {
     return portalLoginFirebase(requisicao.idToken || '');
+  }
+
+  if (acao === 'conteudoPublicoSnapshot') {
+    return portalConteudoPublicoSnapshot({
+      forceRefresh: String(requisicao.forceRefresh || '').toLowerCase() === 'true'
+    });
   }
 
   if (acao === 'minhaSituacao') {

@@ -395,8 +395,16 @@ body {
 }
 
 .public-home-grid strong {
+  display: block;
   color: var(--green-950);
   line-height: 1.35;
+}
+
+.public-home-grid p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .situation-panel {

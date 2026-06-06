@@ -157,3 +157,15 @@ function portalRunDiagnosticoSessaoCore() {
   Logger.log(JSON.stringify(resultado, null, 2));
   return resultado;
 }
+
+/**
+ * Diagnostica a leitura do conteudo publico editorial pelo GEAPA-CORE.
+ *
+ * Esta funcao nao deve ser chamada pelo front-end. Ela existe para validar, no
+ * editor do Apps Script, se o CORE publicou o contrato read-only do CMS.
+ *
+ * @return {Object} Diagnostico seguro do conteudo publico.
+ */
+function portalRunDiagnosticoConteudoPublico() {
+  return portalConteudoPublicoDiagnostics();
+}

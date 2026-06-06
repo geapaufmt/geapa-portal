@@ -1374,6 +1374,7 @@
         return {
           indice: indice,
           tipoParticipante: String(participante.tipoParticipante || '').trim() || 'MEMBRO',
+          idPessoa: String(participante.idPessoa || participante.id || participante.ID_PESSOA || '').trim(),
           rga: String(participante.rga || '').trim(),
           nome: String(participante.nome || 'Participante').trim(),
           instituicao: String(participante.instituicao || '').trim(),
@@ -1804,6 +1805,7 @@
 
       var item = {
         tipoParticipante: participante.tipoParticipante,
+        idPessoa: participante.idPessoa,
         rga: participante.rga,
         nome: participante.nome,
         statusPresenca: participante.statusPresenca,
