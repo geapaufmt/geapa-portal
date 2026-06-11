@@ -168,6 +168,10 @@ O cache operacional `portalUsers/{uid}` e gravado pelo GEAPA-CORE via Apps
 Script/Firestore REST, usando `ScriptApp.getOAuthToken()`. Nao usamos Cloud
 Functions, Secret Manager, service account nem chave privada.
 
+O Apps Script atualiza esse cache automaticamente em `portalLoginFirebase` apos
+o Firebase Auth autenticar o Google e o GEAPA-CORE autorizar a pessoa pela
+PESSOAS v2.
+
 Deploy manual das rules:
 
 ```text

@@ -14,6 +14,7 @@
 function portalLoginFirebase(idToken) {
   var inicio = portalAgoraMs_();
   var autorizacao = corePortalAuthorizeUser(idToken);
+  var firestoreSync;
 
   if (!autorizacao.authorized) {
     return portalRespostaErro_(
@@ -27,6 +28,7 @@ function portalLoginFirebase(idToken) {
   }
 
   var sessionToken = portalCriarSessaoTemporaria_(autorizacao.email);
+  firestoreSync = portalSincronizarCacheFirestoreLogin_(autorizacao);
 
   portalRegistrarLogAuthFirebase_({
     email: autorizacao.email,
@@ -43,6 +45,7 @@ function portalLoginFirebase(idToken) {
       sessionToken: sessionToken,
       validadeSessaoMinutos: PORTAL_CONFIG.validadeSessaoMinutos,
       sessao: autorizacao.sessao || null,
+      cacheFirestore: firestoreSync,
       usuario: {
         uid: autorizacao.uid,
         email: portalMascararEmail_(autorizacao.email),
@@ -55,6 +58,66 @@ function portalLoginFirebase(idToken) {
     },
     portalMetaDesempenho_(autorizacao.sessao ? 'sessao-core' : 'fallback-local', inicio)
   );
+}
+
+function portalSincronizarCacheFirestoreLogin_(autorizacao) {
+  var dados = autorizacao || {};
+  var email = String(dados.email || '').trim();
+  var uid = String(dados.uid || '').trim();
+  var resultado;
+
+  if (!email || !uid) {
+    return {
+      ok: false,
+      synced: false,
+      code: 'FIRESTORE_LOGIN_SYNC_DADOS_AUSENTES'
+    };
+  }
+
+  try {
+    if (typeof corePortalSyncFirestoreUserByEmail === 'function') {
+      resultado = corePortalSyncFirestoreUserByEmail(email, { uid: uid });
+    } else if (
+      typeof GEAPA_CORE !== 'undefined' &&
+      typeof GEAPA_CORE.corePortalSyncFirestoreUserByEmail === 'function'
+    ) {
+      resultado = GEAPA_CORE.corePortalSyncFirestoreUserByEmail(email, { uid: uid });
+    } else if (
+      typeof GEAPA_CORE !== 'undefined' &&
+      GEAPA_CORE.portal &&
+      GEAPA_CORE.portal.access &&
+      typeof GEAPA_CORE.portal.access.syncFirestoreUserByEmail === 'function'
+    ) {
+      resultado = GEAPA_CORE.portal.access.syncFirestoreUserByEmail(email, { uid: uid });
+    }
+  } catch (erro) {
+    Logger.log('GEAPA-PORTAL-FIRESTORE-LOGIN-SYNC ' + JSON.stringify({
+      ok: false,
+      code: 'FIRESTORE_LOGIN_SYNC_EXCEPTION',
+      erro: erro && erro.message ? erro.message : String(erro)
+    }));
+    return {
+      ok: false,
+      synced: false,
+      code: 'FIRESTORE_LOGIN_SYNC_EXCEPTION'
+    };
+  }
+
+  if (!resultado) {
+    return {
+      ok: false,
+      synced: false,
+      code: 'FIRESTORE_LOGIN_SYNC_INDISPONIVEL'
+    };
+  }
+
+  return {
+    ok: resultado.ok === true,
+    synced: resultado.synced === true,
+    writer: resultado.writer || '',
+    code: resultado.code || '',
+    httpStatus: resultado.httpStatus || ''
+  };
 }
 
 /**

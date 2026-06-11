@@ -20,6 +20,12 @@ O CORE grava diretamente:
 projects/portal-geapa/databases/(default)/documents/portalUsers/{uid}
 ```
 
+No fluxo normal, essa escrita acontece automaticamente durante
+`portalLoginFirebase`, logo depois que o Firebase Auth autentica o Google e o
+GEAPA-CORE autoriza oficialmente a pessoa pela PESSOAS v2. O retorno do login
+inclui um resumo `cacheFirestore` para diagnostico, mas falha de cache nao deve
+bloquear a sessao oficial.
+
 Para isso, o Apps Script precisa estar autorizado com o escopo:
 
 ```text
