@@ -6,6 +6,15 @@ node_modules/
 dist/
 build/
 
+# Segredos e credenciais locais.
+.env
+.env.*
+!.env.example
+*service-account*.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
+*private-key*.json
+
 # Arquivos temporarios de sistema e editor.
 .DS_Store
 Thumbs.db

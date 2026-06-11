@@ -299,6 +299,15 @@
       return { ok: true, reason: '' };
     }
 
+    if (
+      sessao.autenticado &&
+      sessao.validacaoOficialPendente === true &&
+      rota.requerLogin &&
+      (rota.permissoesNecessarias || []).length
+    ) {
+      return { ok: false, reason: MOTIVOS_ACESSO.PERMISSAO_INSUFICIENTE };
+    }
+
     if (!hasAnyProfile(sessao, rota.perfisPermitidos || [])) {
       return { ok: false, reason: MOTIVOS_ACESSO.PERFIL_NAO_AUTORIZADO };
     }

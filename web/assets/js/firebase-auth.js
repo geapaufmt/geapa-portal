@@ -67,8 +67,11 @@ import {
       throw new Error('Firebase Auth nao esta configurado para este portal.');
     }
 
+    var inicio = obterTempoAtual();
+
     try {
       var credencial = await signInWithPopup(auth, provider);
+      registrarPerf('firebase.auth.google', inicio, { metodo: 'popup' });
       return credencial.user;
     } catch (erro) {
       if (
@@ -78,10 +81,12 @@ import {
           erro.code === 'auth/cancelled-popup-request'
         )
       ) {
+        registrarPerf('firebase.auth.google', inicio, { metodo: 'redirect' });
         await signInWithRedirect(auth, provider);
         return null;
       }
 
+      registrarPerf('firebase.auth.google', inicio, { erro: erro && erro.code ? erro.code : 'ERRO_AUTH' });
       throw erro;
     }
   }
@@ -101,6 +106,11 @@ import {
     return auth ? auth.currentUser : null;
   }
 
+  function getFirebaseApp() {
+    inicializar();
+    return app;
+  }
+
   function getRedirectUser() {
     inicializar();
     return redirectResultPromise || Promise.resolve(null);
@@ -111,11 +121,28 @@ import {
     return auth ? signOut(auth) : Promise.resolve();
   }
 
+  function obterTempoAtual() {
+    return global.performance && typeof global.performance.now === 'function'
+      ? global.performance.now()
+      : Date.now();
+  }
+
+  function registrarPerf(evento, inicio, detalhes) {
+    if (!global.console || typeof global.console.info !== 'function') {
+      return;
+    }
+
+    global.console.info('[GEAPA-PORTAL-PERF]', evento, Object.assign({
+      tempoMs: Math.round(obterTempoAtual() - inicio)
+    }, detalhes || {}));
+  }
+
   global.PortalGeapaFirebaseAuth = {
     isAvailable: isAvailable,
     signInWithGoogle: signInWithGoogle,
     observeAuthState: observeAuthState,
     getCurrentUser: getCurrentUser,
+    getFirebaseApp: getFirebaseApp,
     getRedirectUser: getRedirectUser,
     signOutFromGoogle: signOutFromGoogle
   };

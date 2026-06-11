@@ -262,8 +262,21 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
   atualizarStatus(status, 'Validando acesso no GEAPA...');
 
   try {
+    await tentarAplicarSessaoRapidaFirestore(
+      usuarioFirebase,
+      app,
+      telaAcesso,
+      telaSituacao,
+      status,
+      usuarioContexto
+    );
+
+    atualizarStatus(status, 'Carregando dados oficiais...');
     const idToken = await usuarioFirebase.getIdToken();
-    const login = await portalLoginFirebase(idToken);
+    const firestoreSession = window.PortalGeapaFirestoreSession;
+    const login = firestoreSession && typeof firestoreSession.validarSessaoOficialEmSegundoPlano === 'function'
+      ? await firestoreSession.validarSessaoOficialEmSegundoPlano(idToken, portalLoginFirebase)
+      : await portalLoginFirebase(idToken);
     const sessionToken = obterSessionToken(login);
 
     if (!sessionToken) {
@@ -283,6 +296,51 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     throw erro;
   } finally {
     FIREBASE_LOGIN_STATE.loginEmAndamento = false;
+  }
+}
+
+/**
+ * Aplica um snapshot rapido do Firestore enquanto a validacao oficial roda.
+ *
+ * Esse estado serve apenas para abrir a interface com baixa latencia. O Apps
+ * Script/GEAPA-CORE continua sendo a fonte oficial e pode corrigir ou bloquear
+ * a sessao logo em seguida.
+ */
+async function tentarAplicarSessaoRapidaFirestore(usuarioFirebase, app, telaAcesso, telaSituacao, status, usuarioContexto) {
+  const firestoreSession = window.PortalGeapaFirestoreSession;
+
+  if (
+    !usuarioFirebase ||
+    !firestoreSession ||
+    typeof firestoreSession.buscarPortalUserSnapshot !== 'function' ||
+    typeof firestoreSession.aplicarSessaoRapidaDoFirestore !== 'function'
+  ) {
+    return false;
+  }
+
+  try {
+    const snapshot = await firestoreSession.buscarPortalUserSnapshot(usuarioFirebase.uid);
+    const sessao = firestoreSession.aplicarSessaoRapidaDoFirestore(snapshot);
+
+    if (!sessao) {
+      return false;
+    }
+
+    const usuario = normalizarUsuario({}, {}, sessao);
+    aplicarUsuarioAtual({
+      usuario: usuario,
+      sessao: sessao
+    });
+    atualizarContextoUsuario(usuarioContexto, usuario);
+    mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
+    sincronizarNavegacaoPortal();
+    atualizarStatus(status, 'Sessão rápida carregada. Validando acesso oficial...');
+    return true;
+  } catch (erro) {
+    if (window.console && typeof window.console.debug === 'function') {
+      window.console.debug('[Portal GEAPA] firestore.session', erro && erro.message ? erro.message : erro);
+    }
+    return false;
   }
 }
 
@@ -923,6 +981,13 @@ function limparSessaoLocal() {
     window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
   } catch (erro) {
     // Nada a fazer: storage indisponivel nao deve quebrar o portal.
+  }
+
+  if (
+    window.PortalGeapaFirestoreSession &&
+    typeof window.PortalGeapaFirestoreSession.limparResumoSeguro === 'function'
+  ) {
+    window.PortalGeapaFirestoreSession.limparResumoSeguro();
   }
 }
 

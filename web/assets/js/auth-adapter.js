@@ -48,7 +48,9 @@
   function normalizarSessaoResolvida(sessao) {
     var dados = sessao || {};
     var ok = dados.ok !== false;
-    var autenticado = ok && dados.autenticado !== false && Boolean(lerTokenSessao());
+    var autenticado = ok &&
+      dados.autenticado !== false &&
+      (Boolean(lerTokenSessao()) || dados.autenticadoFirebase === true);
     var perfilPrincipal = dados.perfilPortalEfetivo || dados.perfilPrincipal || dados.perfilPortal || '';
     var permissoes = normalizarPermissoes(dados.permissoes || dados.permissoesEfetivas);
 
@@ -66,7 +68,10 @@
       tipoVinculoAtual: dados.tipoVinculoAtual || '',
       statusVinculoAtual: dados.statusVinculoAtual || '',
       cargoFuncaoAtual: dados.cargoFuncaoAtual || '',
-      cargosAtuais: Array.isArray(dados.cargosAtuais) ? dados.cargosAtuais.slice() : []
+      cargosAtuais: Array.isArray(dados.cargosAtuais) ? dados.cargosAtuais.slice() : [],
+      validacaoOficialPendente: dados.validacaoOficialPendente === true,
+      origemSessao: dados.origemSessao || '',
+      origemSnapshot: dados.origemSnapshot || ''
     };
   }
 

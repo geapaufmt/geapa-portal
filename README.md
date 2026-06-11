@@ -50,6 +50,8 @@ backend.
 ## Escopo atual
 
 - Interface publica em `web/`.
+- Cache seguro `portalUsers/{uid}` no Firestore, gravado pelo GEAPA-CORE via
+  Apps Script/Firestore REST, sem Cloud Functions.
 - Manifesto PWA inicial em `web/manifest.json`.
 - Cliente de API em `web/app.js`, sem segredos e sem acesso direto a planilhas.
 - Firebase Auth com Google Sign-In em migracao, sempre validado pelo Apps
@@ -83,10 +85,12 @@ geapa-portal/
 |-- .clasp.example.json
 |-- .firebaserc
 |-- firebase.json
+|-- firestore.rules
 |-- docs/
 |   |-- ARCHITECTURE.md
 |   |-- API.md
 |   |-- FIREBASE_MIGRATION.md
+|   |-- FIRESTORE_LOGIN_CACHE.md
 |   |-- PUBLIC_CONTENT.md
 |   |-- api-contrato-atividades.md
 |   |-- DATA_MATRIX.md
@@ -158,6 +162,27 @@ Deploy manual:
 firebase deploy --only hosting
 ```
 
+## Firestore no plano Spark
+
+O cache operacional `portalUsers/{uid}` e gravado pelo GEAPA-CORE via Apps
+Script/Firestore REST, usando `ScriptApp.getOAuthToken()`. Nao usamos Cloud
+Functions, Secret Manager, service account nem chave privada.
+
+Deploy manual das rules:
+
+```text
+npx firebase-tools deploy --only firestore:rules --project portal-geapa
+```
+
+Depois, configure no Apps Script do GEAPA-CORE:
+
+```text
+GEAPA_CORE_FIRESTORE_PROJECT_ID=portal-geapa
+GEAPA_CORE_FIRESTORE_DATABASE_ID=(default)
+```
+
+Detalhes do contrato e autorizacao OAuth: [Cache de Login via Firestore](docs/FIRESTORE_LOGIN_CACHE.md).
+
 O deploy automatico em `main` usa
 `.github/workflows/firebase-hosting-merge.yml`. Pull requests recebem preview
 por `.github/workflows/firebase-hosting-pull-request.yml`.
@@ -197,6 +222,7 @@ maquina.
 - [Contrato da API](docs/API.md)
 - [Contrato inicial de atividades](docs/api-contrato-atividades.md)
 - [Migracao Firebase](docs/FIREBASE_MIGRATION.md)
+- [Cache de Login via Firestore](docs/FIRESTORE_LOGIN_CACHE.md)
 - [Conteudo publico editorial](docs/PUBLIC_CONTENT.md)
 - [PWA](docs/PWA.md)
 - [Matriz de dados](docs/DATA_MATRIX.md)
