@@ -26,6 +26,9 @@ GEAPA-CORE autoriza oficialmente a pessoa pela PESSOAS v2. O retorno do login
 inclui um resumo `cacheFirestore` para diagnostico, mas falha de cache nao deve
 bloquear a sessao oficial.
 
+Para nao duplicar leituras caras, a sincronizacao do login reaproveita a sessao
+oficial ja resolvida pelo CORE e apenas escreve o snapshot no Firestore.
+
 Para isso, o Apps Script precisa estar autorizado com o escopo:
 
 ```text

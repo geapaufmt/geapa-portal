@@ -76,19 +76,28 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
 
   try {
     if (typeof corePortalSyncFirestoreUserByEmail === 'function') {
-      resultado = corePortalSyncFirestoreUserByEmail(email, { uid: uid });
+      resultado = corePortalSyncFirestoreUserByEmail(email, {
+        uid: uid,
+        sessao: dados.sessao || null
+      });
     } else if (
       typeof GEAPA_CORE !== 'undefined' &&
       typeof GEAPA_CORE.corePortalSyncFirestoreUserByEmail === 'function'
     ) {
-      resultado = GEAPA_CORE.corePortalSyncFirestoreUserByEmail(email, { uid: uid });
+      resultado = GEAPA_CORE.corePortalSyncFirestoreUserByEmail(email, {
+        uid: uid,
+        sessao: dados.sessao || null
+      });
     } else if (
       typeof GEAPA_CORE !== 'undefined' &&
       GEAPA_CORE.portal &&
       GEAPA_CORE.portal.access &&
       typeof GEAPA_CORE.portal.access.syncFirestoreUserByEmail === 'function'
     ) {
-      resultado = GEAPA_CORE.portal.access.syncFirestoreUserByEmail(email, { uid: uid });
+      resultado = GEAPA_CORE.portal.access.syncFirestoreUserByEmail(email, {
+        uid: uid,
+        sessao: dados.sessao || null
+      });
     }
   } catch (erro) {
     Logger.log('GEAPA-PORTAL-FIRESTORE-LOGIN-SYNC ' + JSON.stringify({
