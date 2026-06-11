@@ -34,7 +34,7 @@ function portalConteudoPublicoSnapshot(options) {
     }
   }
 
-  var respostaCore = portalChamarCoreConteudoPublicoSnapshot_();
+  var respostaCore = portalChamarCoreConteudoPublicoSnapshot_(opts);
   var normalizada = portalNormalizarSnapshotConteudoPublico_(respostaCore);
 
   if (!normalizada.ok) {
@@ -101,7 +101,13 @@ function portalChamarCoreConteudoPublicoSnapshot_(options) {
     return null;
   }
 
-  return GEAPA_CORE.corePortalPublicContentBuildPublicSnapshot(options || {});
+  var resposta = GEAPA_CORE.corePortalPublicContentBuildPublicSnapshot(options || {});
+
+  if (resposta && resposta.ok === true) {
+    return resposta;
+  }
+
+  return portalChamarCoreConteudoPublicoSnapshotParcial_(resposta, options || {});
 }
 
 function portalCoreConteudoPublicoDisponivel_() {
@@ -109,6 +115,162 @@ function portalCoreConteudoPublicoDisponivel_() {
     typeof GEAPA_CORE !== 'undefined' &&
     typeof GEAPA_CORE.corePortalPublicContentBuildPublicSnapshot === 'function'
   );
+}
+
+function portalChamarCoreConteudoPublicoSnapshotParcial_(respostaOriginal, options) {
+  var avisos = [];
+  var data = {
+    pages: {},
+    documents: [],
+    media: [],
+    config: {},
+    boardComplements: [],
+    peopleComplements: [],
+    managementComplements: [],
+    peopleConfig: {}
+  };
+
+  portalCopiarPaginaCoreConteudoPublico_(
+    data.pages,
+    'home',
+    'corePortalPublicContentGetHome',
+    avisos,
+    options
+  );
+  portalCopiarPaginaCoreConteudoPublico_(
+    data.pages,
+    'sobre',
+    'corePortalPublicContentGetSobre',
+    avisos,
+    options
+  );
+  portalCopiarPaginaCoreConteudoPublico_(
+    data.pages,
+    'historia',
+    'corePortalPublicContentGetHistoria',
+    avisos,
+    options
+  );
+  portalCopiarPaginaCoreConteudoPublico_(
+    data.pages,
+    'parceiros',
+    'corePortalPublicContentGetParceiros',
+    avisos,
+    options
+  );
+
+  data.documents = portalChamarCoreListaConteudoPublico_(
+    'corePortalPublicContentGetDocumentos',
+    avisos,
+    options
+  );
+  data.media = portalChamarCoreListaConteudoPublico_(
+    'corePortalPublicContentGetMidias',
+    avisos,
+    options
+  );
+  data.config = portalChamarCoreObjetoConteudoPublico_(
+    'corePortalPublicContentGetConfig',
+    avisos,
+    options
+  );
+  data.boardComplements = portalChamarCoreListaConteudoPublico_(
+    'corePortalPublicContentGetDiretoriaComplementos',
+    avisos,
+    options
+  );
+  data.peopleComplements = portalChamarCoreListaConteudoPublico_(
+    'corePortalPublicContentGetPessoasComplementos',
+    avisos,
+    options
+  );
+  data.managementComplements = portalChamarCoreListaConteudoPublico_(
+    'corePortalPublicContentGetGestoesComplementos',
+    avisos,
+    options
+  );
+  data.peopleConfig = portalChamarCoreObjetoConteudoPublico_(
+    'corePortalPublicContentGetPessoasConfig',
+    avisos,
+    options
+  );
+
+  if (!Object.keys(data.pages).length && !data.documents.length && !data.media.length) {
+    return respostaOriginal;
+  }
+
+  return {
+    ok: true,
+    data: data,
+    meta: {
+      origem: 'GEAPA_CORE_PARCIAL',
+      fonte: 'PORTAL_CONTEUDO_PUBLICO',
+      avisos: avisos,
+      erroSnapshotCompleto: respostaOriginal ? {
+        code: respostaOriginal.code || respostaOriginal.errorCode || '',
+        message: respostaOriginal.message || ''
+      } : null
+    }
+  };
+}
+
+function portalCopiarPaginaCoreConteudoPublico_(pages, slug, functionName, avisos, options) {
+  var data = portalChamarCoreObjetoConteudoPublico_(functionName, avisos, options);
+
+  if (data && Object.keys(data).length) {
+    pages[slug] = data;
+  }
+}
+
+function portalChamarCoreListaConteudoPublico_(functionName, avisos, options) {
+  var data = portalChamarCoreObjetoConteudoPublico_(functionName, avisos, options);
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data && Array.isArray(data.itens)) {
+    return data.itens;
+  }
+
+  if (data && Array.isArray(data.items)) {
+    return data.items;
+  }
+
+  if (data && Array.isArray(data.blocos)) {
+    return data.blocos;
+  }
+
+  return [];
+}
+
+function portalChamarCoreObjetoConteudoPublico_(functionName, avisos, options) {
+  if (
+    typeof GEAPA_CORE === 'undefined' ||
+    typeof GEAPA_CORE[functionName] !== 'function'
+  ) {
+    avisos.push(functionName + ': indisponivel');
+    return {};
+  }
+
+  try {
+    var resposta = GEAPA_CORE[functionName](options || {});
+
+    if (!resposta) {
+      avisos.push(functionName + ': resposta vazia');
+      return {};
+    }
+
+    if (resposta.ok === false) {
+      avisos.push(functionName + ': ' + (resposta.code || resposta.errorCode || 'erro'));
+      return {};
+    }
+
+    return resposta.data || resposta;
+  } catch (erro) {
+    avisos.push(functionName + ': ' + (erro && erro.message ? erro.message : String(erro)));
+    return {};
+  }
 }
 
 function portalNormalizarSnapshotConteudoPublico_(respostaCore) {
@@ -145,7 +307,14 @@ function portalNormalizarSnapshotConteudoPublico_(respostaCore) {
       config: data.config || {},
       boardComplements: Array.isArray(data.boardComplements)
         ? data.boardComplements
-        : []
+        : [],
+      peopleComplements: Array.isArray(data.peopleComplements)
+        ? data.peopleComplements
+        : [],
+      managementComplements: Array.isArray(data.managementComplements)
+        ? data.managementComplements
+        : [],
+      peopleConfig: data.peopleConfig || {}
     },
     meta: respostaCore.meta || {}
   };
@@ -164,6 +333,8 @@ function portalResumoSnapshotConteudoPublico_(snapshot) {
     documentos: portalContarArrayConteudoPublico_(dados.documents),
     midias: portalContarArrayConteudoPublico_(dados.media),
     complementosDiretoria: portalContarArrayConteudoPublico_(dados.boardComplements),
+    complementosPessoas: portalContarArrayConteudoPublico_(dados.peopleComplements),
+    complementosGestoes: portalContarArrayConteudoPublico_(dados.managementComplements),
     configKeys: dados.config ? Object.keys(dados.config).length : 0
   };
 }

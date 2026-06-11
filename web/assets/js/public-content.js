@@ -31,7 +31,10 @@
     documents: [],
     media: [],
     config: {},
-    boardComplements: []
+    boardComplements: [],
+    peopleComplements: [],
+    managementComplements: [],
+    peopleConfig: {}
   });
 
   function carregarSnapshotConteudoPublico(options) {
@@ -110,6 +113,31 @@
         return {
           ok: resultado.ok,
           data: (resultado.data && resultado.data.boardComplements) || [],
+          people: (resultado.data && resultado.data.peopleComplements) || [],
+          management: (resultado.data && resultado.data.managementComplements) || [],
+          meta: resultado.meta || {}
+        };
+      });
+  }
+
+  function carregarPessoasPublicas(options) {
+    return carregarSnapshotConteudoPublico(options)
+      .then(function selecionarPessoas(resultado) {
+        return {
+          ok: resultado.ok,
+          data: (resultado.data && resultado.data.peopleComplements) || [],
+          config: (resultado.data && resultado.data.peopleConfig) || {},
+          meta: resultado.meta || {}
+        };
+      });
+  }
+
+  function carregarGestoesPublicas(options) {
+    return carregarSnapshotConteudoPublico(options)
+      .then(function selecionarGestoes(resultado) {
+        return {
+          ok: resultado.ok,
+          data: (resultado.data && resultado.data.managementComplements) || [],
           meta: resultado.meta || {}
         };
       });
@@ -174,7 +202,14 @@
       config: dados.config || {},
       boardComplements: Array.isArray(dados.boardComplements)
         ? dados.boardComplements
-        : []
+        : [],
+      peopleComplements: Array.isArray(dados.peopleComplements)
+        ? dados.peopleComplements
+        : [],
+      managementComplements: Array.isArray(dados.managementComplements)
+        ? dados.managementComplements
+        : [],
+      peopleConfig: dados.peopleConfig || {}
     };
   }
 
@@ -182,7 +217,7 @@
     var dados = pagina || {};
 
     return {
-      blocos: Array.isArray(dados.blocos) ? dados.blocos : [],
+      blocos: normalizarListaConteudoPublico_(dados, ['blocos', 'itens', 'items']),
       atualizadoEm: String(dados.atualizadoEm || '')
     };
   }
@@ -191,7 +226,7 @@
     var dados = pagina || {};
 
     return {
-      marcos: Array.isArray(dados.marcos) ? dados.marcos : [],
+      marcos: normalizarListaConteudoPublico_(dados, ['marcos', 'itens', 'items']),
       atualizadoEm: String(dados.atualizadoEm || '')
     };
   }
@@ -200,9 +235,29 @@
     var dados = pagina || {};
 
     return {
-      itens: Array.isArray(dados.itens) ? dados.itens : [],
+      itens: normalizarListaConteudoPublico_(dados, ['itens', 'items', 'parceiros']),
       atualizadoEm: String(dados.atualizadoEm || '')
     };
+  }
+
+  function normalizarListaConteudoPublico_(valor, chaves) {
+    if (Array.isArray(valor)) {
+      return valor;
+    }
+
+    var dados = valor || {};
+
+    for (var i = 0; i < chaves.length; i += 1) {
+      if (Array.isArray(dados[chaves[i]])) {
+        return dados[chaves[i]];
+      }
+    }
+
+    if (Array.isArray(dados.data)) {
+      return dados.data;
+    }
+
+    return [];
   }
 
   function normalizarSlugPagina(slug) {
@@ -270,6 +325,8 @@
     carregarPaginaPublica: carregarPaginaPublica,
     carregarHomePublica: carregarHomePublica,
     carregarDiretoriaPublica: carregarDiretoriaPublica,
+    carregarPessoasPublicas: carregarPessoasPublicas,
+    carregarGestoesPublicas: carregarGestoesPublicas,
     carregarParceirosPublicos: carregarParceirosPublicos,
     carregarDocumentosPublicos: carregarDocumentosPublicos,
     carregarAtividadesPublicas: carregarAtividadesPublicas,

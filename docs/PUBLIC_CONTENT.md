@@ -29,7 +29,9 @@ aplica cache curto e devolve um envelope padrao da API.
 - documentos publicos;
 - configuracoes publicas;
 - midias publicas;
-- complementos publicos de diretoria.
+- complementos publicos de pessoas;
+- complementos publicos de gestoes/diretorias;
+- configuracoes publicas de pessoas.
 
 Ela nao e fonte oficial para:
 
@@ -39,6 +41,47 @@ Ela nao e fonte oficial para:
 - diretoria oficial;
 - frequencia;
 - permissoes.
+
+## Pessoas Publicas E Gestoes
+
+`PUBLIC_PESSOAS_COMPLEMENTOS` substitui a antiga modelagem especifica
+`PUBLIC_DIRETORIA_COMPLEMENTOS`. A chave antiga
+`PORTAL_PUBLIC_DIRETORIA_COMPLEMENTOS` deve ser tratada apenas como legado
+defensivo pelo CORE enquanto o Registry estiver em transicao.
+
+Essa modelagem nao duplica identidade, cargos ou vinculos. Ela complementa
+publicamente pessoas que ja existem em `PESSOAS/PESSOAS v2` e gestoes que ja
+existem em `VIGENCIAS/VIGENCIAS v2`.
+
+Grupos publicos previstos para `PUBLIC_PESSOAS_COMPLEMENTOS`:
+
+- `DIRETORIA`;
+- `ORIENTADOR`;
+- `PROFESSOR_COLABORADOR`;
+- `CONSELHEIRO`;
+- `MEMBRO_ATUAL`;
+- `EX_MEMBRO`;
+- `MEMBRO_FUNDADOR`;
+- `EX_DIRETOR`;
+- `COLABORADOR`;
+- `DESTAQUE_INSTITUCIONAL`.
+
+Membros e ex-membros so devem aparecer publicamente com autorizacao explicita de
+publicacao. O portal nunca deve exibir CPF, telefone, e-mail pessoal, RGA, data
+de nascimento, observacoes internas, frequencia, justificativas, penalidades,
+suspensao ou desligamento.
+
+Destinos publicos futuros previstos:
+
+- `publicBoard/current`;
+- `publicBoard/history`;
+- `publicPeople/orientadores`;
+- `publicPeople/membros`;
+- `publicPeople/memoria`;
+- `publicPages/diretoria`;
+- `publicPages/historicoDiretorias`;
+- `publicPages/orientadores`;
+- `publicPages/memoriaInstitucional`.
 
 ## Agenda Publica
 
@@ -96,6 +139,8 @@ O modulo expoe `window.PortalGeapaPublicContent` com funcoes de leitura:
 - `carregarPaginaPublica(slug, options)`;
 - `carregarHomePublica(options)`;
 - `carregarDiretoriaPublica(options)`;
+- `carregarPessoasPublicas(options)`;
+- `carregarGestoesPublicas(options)`;
 - `carregarParceirosPublicos(options)`;
 - `carregarDocumentosPublicos(options)`;
 - `carregarAtividadesPublicas()`;

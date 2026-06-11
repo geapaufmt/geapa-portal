@@ -236,7 +236,10 @@ Resposta esperada:
     "documents": [],
     "media": [],
     "config": {},
-    "boardComplements": []
+    "boardComplements": [],
+    "peopleComplements": [],
+    "managementComplements": [],
+    "peopleConfig": {}
   },
   "meta": {
     "app": "Portal GEAPA",
@@ -251,14 +254,29 @@ Resposta esperada:
 }
 ```
 
-Essa acao consome `GEAPA_CORE.corePortalPublicContentBuildPublicSnapshot()` e
-nao acessa planilhas diretamente pelo front-end. O CORE resolve o Registry, le
-por cabecalho, filtra apenas linhas publicaveis e retorna dados sanitizados.
+Essa acao consome preferencialmente
+`GEAPA_CORE.corePortalPublicContentBuildPublicSnapshot()` e nao acessa planilhas
+diretamente pelo front-end. O CORE resolve o Registry, le por cabecalho, filtra
+apenas linhas publicaveis e retorna dados sanitizados.
+
+Enquanto a modelagem publica de pessoas e gestoes estiver em transicao no CORE,
+o backend do portal pode montar um snapshot parcial chamando as funcoes
+read-only especificas do CORE. Nesse caso, paginas como `home` e `sobre`
+continuam sendo entregues mesmo se uma parte opcional do snapshot completo
+ainda nao estiver pronta. A origem tecnica aparece em
+`meta.conteudoPublico.core.origem` como `GEAPA_CORE_PARCIAL`.
 
 `PORTAL_CONTEUDO_PUBLICO` e CMS editorial publico. Nao e fonte oficial de
 atividades, apresentacoes, membros, diretoria oficial, frequencia ou permissoes.
 Proximas atividades e proximas apresentacoes continuam pertencendo ao modulo
 `geapa-atividades` e suas views/contratos `PORTAL_*`.
+
+`boardComplements` existe apenas por compatibilidade com a antiga modelagem de
+diretoria. A modelagem publica nova usa:
+
+- `peopleComplements`, para complementos editoriais de pessoas publicaveis;
+- `managementComplements`, para complementos editoriais de gestoes/diretorias;
+- `peopleConfig`, para configuracoes publicas ligadas a pessoas.
 
 O portal aplica cache curto ao snapshot sanitizado. Quando o cache e usado, o
 codigo da resposta passa a ser `CONTEUDO_PUBLICO_CACHE`.

@@ -1752,7 +1752,7 @@ async function carregarHomePublicaEditorial() {
 function aplicarBlocosHomePublica(home, blocos) {
   const hero = escolherBlocoHeroHome(blocos);
   const cards = blocos.filter(function filtrarCards(bloco) {
-    return bloco !== hero && obterTextoCampo(bloco, ['titulo', 'TITULO']);
+    return bloco !== hero && obterTextoCampo(bloco, ['titulo', 'TITULO', 'title']);
   });
 
   if (hero) {
@@ -1780,10 +1780,10 @@ function escolherBlocoHeroHome(blocos) {
 
 function aplicarHeroHomePublica(home, bloco) {
   const titulo = obterTextoCampo(bloco, ['titulo', 'TITULO']);
-  const subtitulo = obterTextoCampo(bloco, ['subtitulo', 'SUBTITULO']);
-  const texto = obterTextoCampo(bloco, ['texto', 'TEXTO']);
-  const botaoTexto = obterTextoCampo(bloco, ['botaoTexto', 'BOTAO_TEXTO']);
-  const botaoUrl = obterTextoCampo(bloco, ['botaoUrl', 'BOTAO_URL']);
+  const subtitulo = obterTextoCampo(bloco, ['subtitulo', 'SUBTITULO', 'subtitle']);
+  const texto = obterTextoCampo(bloco, ['texto', 'TEXTO', 'descricao', 'DESCRICAO']);
+  const botaoTexto = obterTextoCampo(bloco, ['botaoTexto', 'BOTAO_TEXTO', 'botao_texto']);
+  const botaoUrl = obterTextoCampo(bloco, ['botaoUrl', 'BOTAO_URL', 'botao_url']);
   const h1 = home.querySelector('#portal-title');
   const intro = home.querySelector('.intro');
   const acoes = home.querySelector('.home-actions');
@@ -1815,8 +1815,8 @@ function aplicarCardsHomePublica(home, blocos) {
 
   grid.innerHTML = blocos.slice(0, 4).map(function montarCard(bloco) {
     const tipo = obterTextoCampo(bloco, ['tipoBloco', 'TIPO_BLOCO', 'tipo', 'TIPO']);
-    const titulo = obterTextoCampo(bloco, ['titulo', 'TITULO']);
-    const texto = obterTextoCampo(bloco, ['texto', 'TEXTO', 'subtitulo', 'SUBTITULO']);
+    const titulo = obterTextoCampo(bloco, ['titulo', 'TITULO', 'title']);
+    const texto = obterTextoCampo(bloco, ['texto', 'TEXTO', 'subtitulo', 'SUBTITULO', 'descricao', 'DESCRICAO']);
 
     return [
       '<article>',
@@ -1832,7 +1832,7 @@ function obterTextoCampo(objeto, chaves) {
   const dados = objeto || {};
 
   for (let i = 0; i < chaves.length; i += 1) {
-    const valor = dados[chaves[i]];
+    const valor = obterValorCampoFlexivel(dados, chaves[i]);
 
     if (valor !== undefined && valor !== null && String(valor).trim()) {
       return String(valor).trim();
@@ -1840,6 +1840,35 @@ function obterTextoCampo(objeto, chaves) {
   }
 
   return '';
+}
+
+function obterValorCampoFlexivel(dados, chaveDesejada) {
+  if (!dados || !chaveDesejada) {
+    return undefined;
+  }
+
+  if (dados[chaveDesejada] !== undefined) {
+    return dados[chaveDesejada];
+  }
+
+  const alvo = normalizarChaveConteudoPublico(chaveDesejada);
+  const chaves = Object.keys(dados);
+
+  for (let i = 0; i < chaves.length; i += 1) {
+    if (normalizarChaveConteudoPublico(chaves[i]) === alvo) {
+      return dados[chaves[i]];
+    }
+  }
+
+  return undefined;
+}
+
+function normalizarChaveConteudoPublico(chave) {
+  return String(chave || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
 }
 
 function formatarRotuloPublico(valor) {
