@@ -131,6 +131,7 @@ const FIREBASE_LOGIN_STATE = {
         const sessionToken = obterSessionToken(validacao);
         salvarSessaoLocal(sessionToken);
         aplicarContextoSessaoInicial(validacao, usuarioContexto);
+        salvarResumoSeguroDaResposta(validacao);
         mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
       }
     } catch (erro) {
@@ -143,6 +144,7 @@ const FIREBASE_LOGIN_STATE = {
 
   botaoSair.addEventListener('click', async function aoSair() {
     limparSessaoLocal();
+    limparResumoSeguroLocal();
     limparUsuarioAtual();
     atualizarContextoUsuario(usuarioContexto, null);
     await sairFirebaseSeDisponivel();
@@ -254,13 +256,15 @@ async function carregarMinhaSituacao(token) {
  * @param {HTMLElement} status Elemento de status.
  * @param {HTMLElement} usuarioContexto Elemento de contexto do usuario.
  */
-async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, telaSituacao, situacao, status, usuarioContexto) {
+async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, telaSituacao, situacao, status, usuarioContexto, opcoes) {
+  const opcoesLogin = opcoes || {};
+
   if (!usuarioFirebase || FIREBASE_LOGIN_STATE.loginEmAndamento) {
     return;
   }
 
   FIREBASE_LOGIN_STATE.loginEmAndamento = true;
-  atualizarStatus(status, 'Validando acesso no GEAPA...');
+  atualizarStatus(status, opcoesLogin.restaurando ? 'Restaurando sessao neste dispositivo...' : 'Validando acesso oficial...');
 
   try {
     await tentarAplicarSessaoRapidaFirestore(
@@ -272,12 +276,17 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
       usuarioContexto
     );
 
-    atualizarStatus(status, 'Carregando dados oficiais...');
+    atualizarStatus(status, 'Validando acesso oficial...');
     const idToken = await usuarioFirebase.getIdToken();
     const firestoreSession = window.PortalGeapaFirestoreSession;
     const login = firestoreSession && typeof firestoreSession.validarSessaoOficialEmSegundoPlano === 'function'
       ? await firestoreSession.validarSessaoOficialEmSegundoPlano(idToken, portalLoginFirebase)
       : await portalLoginFirebase(idToken);
+
+    if (login && login.ok === false) {
+      throw new Error(obterMensagem(login) || 'Sua autorizacao mudou. Entre novamente.');
+    }
+
     const sessionToken = obterSessionToken(login);
 
     if (!sessionToken) {
@@ -286,11 +295,13 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
 
     salvarSessaoLocal(sessionToken);
     aplicarContextoSessaoInicial(login, usuarioContexto);
+    salvarResumoSeguroDaResposta(login);
     mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
     sincronizarNavegacaoPortal();
-    atualizarStatus(status, obterMensagem(login) || 'Entrada com Google concluída.');
+    atualizarStatus(status, opcoesLogin.restaurando ? 'Sessao restaurada.' : (obterMensagem(login) || 'Entrada com Google concluida.'));
   } catch (erro) {
     limparSessaoLocal();
+    limparResumoSeguroLocal();
     limparUsuarioAtual();
     atualizarContextoUsuario(usuarioContexto, null);
     mostrarTelaAcesso(app, telaAcesso, telaSituacao);
@@ -320,6 +331,19 @@ async function tentarAplicarSessaoRapidaFirestore(usuarioFirebase, app, telaAces
   }
 
   try {
+    if (
+      typeof firestoreSession.obterResumoSeguro === 'function' &&
+      typeof firestoreSession.aplicarSessaoRapidaDoResumoSeguro === 'function'
+    ) {
+      const resumoSeguro = firestoreSession.obterResumoSeguro();
+      const sessaoLocal = firestoreSession.aplicarSessaoRapidaDoResumoSeguro(resumoSeguro);
+
+      if (sessaoLocal) {
+        aplicarSessaoVisualPendente(sessaoLocal, app, telaAcesso, telaSituacao, usuarioContexto);
+        atualizarStatus(status, 'Restaurando sessao neste dispositivo...');
+      }
+    }
+
     const snapshot = await firestoreSession.buscarPortalUserSnapshot(usuarioFirebase.uid);
     const sessao = firestoreSession.aplicarSessaoRapidaDoFirestore(snapshot);
 
@@ -343,6 +367,27 @@ async function tentarAplicarSessaoRapidaFirestore(usuarioFirebase, app, telaAces
     }
     return false;
   }
+}
+
+/**
+ * Aplica dados seguros enquanto a validacao oficial ainda esta pendente.
+ *
+ * @param {Object} sessao Sessao visual pendente.
+ * @param {HTMLElement} app Elemento raiz.
+ * @param {HTMLElement} telaAcesso Tela de acesso.
+ * @param {HTMLElement} telaSituacao Tela de situacao.
+ * @param {HTMLElement} usuarioContexto Elemento de contexto do usuario.
+ */
+function aplicarSessaoVisualPendente(sessao, app, telaAcesso, telaSituacao, usuarioContexto) {
+  const usuario = normalizarUsuario({}, {}, sessao);
+
+  aplicarUsuarioAtual({
+    usuario: usuario,
+    sessao: sessao
+  });
+  atualizarContextoUsuario(usuarioContexto, usuario);
+  mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
+  sincronizarNavegacaoPortal();
 }
 
 /**
@@ -370,7 +415,8 @@ function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao
           telaSituacao,
           situacao,
           status,
-          usuarioContexto
+          usuarioContexto,
+          { restaurando: true }
         );
       })
       .catch(function tratarErroRedirect(erro) {
@@ -383,6 +429,9 @@ function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao
       return;
     }
 
+    mostrarLoadingGlobal('Restaurando sessao...');
+    atualizarStatus(status, 'Restaurando sessao neste dispositivo...');
+
     autenticarFirebaseNoPortal(
       usuarioFirebase,
       app,
@@ -390,9 +439,12 @@ function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao
       telaSituacao,
       situacao,
       status,
-      usuarioContexto
+      usuarioContexto,
+      { restaurando: true }
     ).catch(function tratarErroFirebase(erro) {
       atualizarStatus(status, erro.message || 'Não foi possível restaurar o login com Google.');
+    }).finally(function finalizarRestauracaoFirebase() {
+      ocultarLoadingGlobal();
     });
   });
 }
@@ -420,7 +472,8 @@ function tentarRestaurarComFirebase(app, telaAcesso, telaSituacao, situacao, sta
     telaSituacao,
     situacao,
     status,
-    usuarioContexto
+    usuarioContexto,
+    { restaurando: true }
   ).then(function restaurado() {
     return true;
   });
@@ -542,6 +595,38 @@ function aplicarContextoSessaoInicial(resposta, usuarioContexto) {
     sessao: sessao
   });
   atualizarContextoUsuario(usuarioContexto, usuario);
+}
+
+/**
+ * Persiste apenas um resumo visual seguro, sem tokens ou dados sensiveis.
+ *
+ * @param {Object} resposta Resposta oficial do backend.
+ */
+function salvarResumoSeguroDaResposta(resposta) {
+  const firestoreSession = window.PortalGeapaFirestoreSession;
+  const sessao = extrairSessaoPortal(resposta, {});
+
+  if (
+    !sessao ||
+    !firestoreSession ||
+    typeof firestoreSession.salvarResumoSeguro !== 'function'
+  ) {
+    return;
+  }
+
+  firestoreSession.salvarResumoSeguro(sessao);
+}
+
+/**
+ * Remove o resumo visual seguro usado na restauracao entre visitas.
+ */
+function limparResumoSeguroLocal() {
+  if (
+    window.PortalGeapaFirestoreSession &&
+    typeof window.PortalGeapaFirestoreSession.limparResumoSeguro === 'function'
+  ) {
+    window.PortalGeapaFirestoreSession.limparResumoSeguro();
+  }
 }
 
 /**
@@ -905,7 +990,8 @@ function removerDuplicados(valores) {
  * Tenta restaurar a sessao temporaria ao atualizar a pagina.
  *
  * A sessao fica apenas no sessionStorage do navegador e continua dependendo da
- * validade definida no Apps Script. Ao expirar, o membro precisa entrar de novo.
+ * validade definida no Apps Script. Ao expirar, o Portal tenta restaurar pelo
+ * Firebase Auth persistente antes de pedir nova entrada.
  *
  * @param {HTMLElement} app Elemento raiz.
  * @param {HTMLElement} telaAcesso Tela de acesso.
@@ -982,13 +1068,6 @@ function limparSessaoLocal() {
     window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
   } catch (erro) {
     // Nada a fazer: storage indisponivel nao deve quebrar o portal.
-  }
-
-  if (
-    window.PortalGeapaFirestoreSession &&
-    typeof window.PortalGeapaFirestoreSession.limparResumoSeguro === 'function'
-  ) {
-    window.PortalGeapaFirestoreSession.limparResumoSeguro();
   }
 }
 

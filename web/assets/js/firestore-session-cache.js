@@ -18,7 +18,7 @@ import {
 (function configurarFirestoreSessionCache(global) {
   var SCHEMA_VERSION = 'portal-user-v1';
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
-  var STORAGE_KEY = 'geapaPortal.firestoreSessionSummary';
+  var STORAGE_KEY = 'geapaPortal.safeUserSummary';
   var firestore = null;
 
   function obterConfig() {
@@ -121,6 +121,8 @@ import {
       origemSessao: 'FIRESTORE_CACHE',
       origemSnapshot: 'FIRESTORE_CACHE',
       expiresAt: snapshot.cacheExpiresAt || '',
+      cacheUpdatedAt: snapshot.cacheUpdatedAt || '',
+      cacheExpiresAt: snapshot.cacheExpiresAt || '',
       idPessoa: String(snapshot.idPessoa || '').trim(),
       nomeExibicao: String(snapshot.nomeExibicao || '').trim(),
       email: String(snapshot.email || '').trim(),
@@ -153,21 +155,113 @@ import {
   }
 
   function salvarResumoSeguro(sessao) {
+    var dados = sessao || {};
+
     try {
-      global.sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-        idPessoa: sessao.idPessoa || '',
-        perfilPortalEfetivo: sessao.perfilPortalEfetivo || '',
-        portalAtivo: sessao.portalAtivo === true,
-        origemSessao: sessao.origemSessao || 'FIRESTORE_CACHE',
-        expiresAt: sessao.expiresAt || ''
+      global.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        idPessoa: String(dados.idPessoa || '').trim(),
+        nomeExibicao: String(dados.nomeExibicao || '').trim(),
+        email: mascararEmail(String(dados.email || '').trim()),
+        rga: String(dados.rga || '').trim(),
+        perfilPortalEfetivo: String(dados.perfilPortalEfetivo || dados.perfilPrincipal || '').trim(),
+        perfisPortal: normalizarLista(dados.perfisPortal || dados.perfis),
+        portalAtivo: dados.portalAtivo === true,
+        tipoVinculoAtual: String(dados.tipoVinculoAtual || '').trim(),
+        statusVinculoAtual: String(dados.statusVinculoAtual || '').trim(),
+        cargoFuncaoAtual: String(dados.cargoFuncaoAtual || '').trim(),
+        cacheUpdatedAt: normalizarDataResumo(dados.cacheUpdatedAt || dados.sourceUpdatedAt || new Date().toISOString()),
+        cacheExpiresAt: normalizarDataResumo(dados.cacheExpiresAt || dados.expiresAt || '')
       }));
     } catch (erro) {}
   }
 
+  function obterResumoSeguro() {
+    try {
+      var bruto = global.localStorage.getItem(STORAGE_KEY);
+      return bruto ? JSON.parse(bruto) : null;
+    } catch (erro) {
+      return null;
+    }
+  }
+
+  function resumoSeguroEstaValido(resumo) {
+    var config = obterConfig();
+    var ttlMs = Number(config.FIRESTORE_SESSION_TTL_MS || DEFAULT_TTL_MS);
+    var expiresAt = obterTempoSnapshot(resumo && resumo.cacheExpiresAt);
+    var updatedAt = obterTempoSnapshot(resumo && resumo.cacheUpdatedAt);
+
+    return Boolean(
+      resumo &&
+      resumo.portalAtivo === true &&
+      (
+        (expiresAt && Date.now() <= expiresAt) ||
+        (updatedAt && Date.now() - updatedAt <= ttlMs)
+      )
+    );
+  }
+
+  function aplicarSessaoRapidaDoResumoSeguro(resumo) {
+    if (!resumoSeguroEstaValido(resumo)) {
+      return null;
+    }
+
+    return {
+      autenticado: true,
+      autenticadoFirebase: true,
+      validacaoOficialPendente: true,
+      origemSessao: 'LOCAL_SAFE_CACHE',
+      origemSnapshot: 'LOCAL_SAFE_CACHE',
+      expiresAt: resumo.cacheExpiresAt || '',
+      cacheUpdatedAt: resumo.cacheUpdatedAt || '',
+      cacheExpiresAt: resumo.cacheExpiresAt || '',
+      idPessoa: String(resumo.idPessoa || '').trim(),
+      nomeExibicao: String(resumo.nomeExibicao || '').trim(),
+      email: String(resumo.email || '').trim(),
+      rga: String(resumo.rga || '').trim(),
+      portalAtivo: resumo.portalAtivo === true,
+      perfilPortalEfetivo: String(resumo.perfilPortalEfetivo || '').trim(),
+      perfisPortal: normalizarLista(resumo.perfisPortal),
+      permissoes: [],
+      tipoVinculoAtual: String(resumo.tipoVinculoAtual || '').trim(),
+      statusVinculoAtual: String(resumo.statusVinculoAtual || '').trim(),
+      cargoFuncaoAtual: String(resumo.cargoFuncaoAtual || '').trim()
+    };
+  }
+
   function limparResumoSeguro() {
     try {
-      global.sessionStorage.removeItem(STORAGE_KEY);
+      global.localStorage.removeItem(STORAGE_KEY);
     } catch (erro) {}
+  }
+
+  function normalizarDataResumo(valor) {
+    if (!valor) {
+      return '';
+    }
+
+    if (typeof valor.toDate === 'function') {
+      return valor.toDate().toISOString();
+    }
+
+    if (typeof valor.seconds === 'number') {
+      return new Date(valor.seconds * 1000).toISOString();
+    }
+
+    var data = new Date(valor);
+    return Number.isNaN(data.getTime()) ? '' : data.toISOString();
+  }
+
+  function mascararEmail(email) {
+    var valor = String(email || '').trim();
+    var partes = valor.split('@');
+
+    if (partes.length !== 2 || !partes[0] || !partes[1]) {
+      return '';
+    }
+
+    var nome = partes[0];
+    var prefixo = nome.slice(0, Math.min(2, nome.length));
+    return prefixo + '***@' + partes[1];
   }
 
   function obterTempoAtual() {
@@ -191,6 +285,10 @@ import {
     buscarPortalUserSnapshot: buscarPortalUserSnapshot,
     snapshotEstaValido: snapshotEstaValido,
     aplicarSessaoRapidaDoFirestore: aplicarSessaoRapidaDoFirestore,
+    obterResumoSeguro: obterResumoSeguro,
+    resumoSeguroEstaValido: resumoSeguroEstaValido,
+    aplicarSessaoRapidaDoResumoSeguro: aplicarSessaoRapidaDoResumoSeguro,
+    salvarResumoSeguro: salvarResumoSeguro,
     validarSessaoOficialEmSegundoPlano: validarSessaoOficialEmSegundoPlano,
     limparResumoSeguro: limparResumoSeguro
   };

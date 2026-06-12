@@ -146,3 +146,9 @@ habilitada no projeto `portal-geapa`.
 Depois que `portalUsers/{uid}` existir, o front-end autenticado le o proprio
 documento via Firebase client SDK. Se o snapshot estiver ausente, vencido ou
 divergente, o Portal cai para o fluxo oficial via Apps Script/GEAPA-CORE.
+
+O Portal tambem pode manter em `localStorage` um resumo visual seguro em
+`geapaPortal.safeUserSummary`, sem tokens e sem dados sensiveis, apenas para
+evitar a tela de login enquanto a restauracao silenciosa pelo Firebase Auth
+chama `portalLogin`. O fluxo completo esta descrito em
+`docs/AUTH_PERSISTENCE.md`.
