@@ -153,6 +153,22 @@ porque a agenda publica nao pertence ao CMS editorial. Ela deve vir do modulo
 O modulo usa `sessionStorage` com TTL curto e fallback local vazio para manter a
 interface resiliente se o backend estiver indisponivel.
 
+Rotas publicas atualmente ligadas ao snapshot editorial:
+
+- `inicio`, usando `pages.home`;
+- `sobre`, usando `pages.sobre`;
+- `historia`, usando `pages.historia`;
+- `parceiros`, usando `pages.parceiros`;
+- `documentos`, usando `documents`;
+- `diretoria`, usando `managementComplements`, `peopleComplements` e legado
+  `boardComplements`;
+- `orientadores`, usando `peopleComplements`;
+- `membros`, usando `peopleComplements`.
+
+As rotas de pessoas podem aparecer vazias ate o CORE publicar as novas funcoes
+de leitura de `PUBLIC_PESSOAS_COMPLEMENTOS`,
+`PUBLIC_GESTOES_COMPLEMENTOS` e `PUBLIC_PESSOAS_CONFIG`.
+
 ## Seguranca
 
 O CORE ja retorna apenas linhas publicaveis e sanitizadas. Mesmo assim, o portal

@@ -351,6 +351,11 @@ body {
   margin: 0;
 }
 
+.view-placeholder {
+  max-width: 1080px;
+  margin: 0;
+}
+
 .public-home-panel,
 .access-panel,
 .situation-panel {
@@ -776,6 +781,179 @@ button:disabled:hover {
 .route-placeholder .intro,
 .access-denied-panel .intro {
   max-width: 760px;
+}
+
+.public-content-heading {
+  margin-bottom: 22px;
+}
+
+.public-editorial-grid,
+.public-people-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.public-editorial-card,
+.public-person-card,
+.public-management-card,
+.public-document-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--green-050);
+  box-shadow: var(--shadow-soft);
+}
+
+.public-editorial-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.public-editorial-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--white);
+}
+
+.public-editorial-card span,
+.public-person-card span,
+.public-document-item span,
+.public-timeline span {
+  color: var(--green-700);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.public-editorial-card h3,
+.public-person-card h3,
+.public-management-card h3,
+.public-document-item h3,
+.public-timeline h3 {
+  margin: 0;
+  color: var(--green-950);
+  font-size: 1.04rem;
+  line-height: 1.25;
+}
+
+.public-editorial-card p,
+.public-person-card p,
+.public-management-card p,
+.public-document-item p,
+.public-timeline p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.public-timeline {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.public-timeline li {
+  display: grid;
+  gap: 8px;
+  border-left: 4px solid var(--green-600);
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: var(--green-050);
+}
+
+.public-people-grid {
+  align-items: stretch;
+}
+
+.public-person-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px;
+}
+
+.public-person-card img,
+.public-person-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+}
+
+.public-person-card img {
+  object-fit: cover;
+  background: var(--white);
+}
+
+.public-person-avatar {
+  display: grid;
+  place-items: center;
+  color: var(--green-950);
+  background: var(--white);
+  font-weight: 800;
+}
+
+.public-person-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.public-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.public-card-links a,
+.public-editorial-card a,
+.public-document-item a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  text-decoration: none;
+}
+
+.public-management-list,
+.public-document-list {
+  display: grid;
+  gap: 12px;
+}
+
+.public-management-list {
+  margin-bottom: 16px;
+}
+
+.public-management-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.public-management-card strong {
+  color: var(--green-700);
+  line-height: 1.35;
+}
+
+.public-document-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+}
+
+.public-content-empty {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  background: var(--green-050);
 }
 
 .route-policy-card {
@@ -1526,6 +1704,8 @@ button:disabled:hover {
   }
 
   .public-home-grid,
+  .public-editorial-grid,
+  .public-people-grid,
   .board-grid,
   .activity-facts,
   .activity-detail-grid,
@@ -1536,11 +1716,28 @@ button:disabled:hover {
   .situation-topbar,
   .activities-toolbar,
   .activity-card-main,
+  .public-document-item,
   .modal-topbar,
   .role-card,
   .attendance-row,
   .attendance-footer {
     display: grid;
+  }
+
+  .public-person-card {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .public-person-card img,
+  .public-person-avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .public-card-links a,
+  .public-editorial-card a,
+  .public-document-item a {
+    width: 100%;
   }
 
   .pendency-heading {

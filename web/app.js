@@ -37,6 +37,7 @@ const FIREBASE_LOGIN_STATE = {
   configurarCabecalhoRecolhivel();
   sincronizarNavegacaoPortal();
   carregarHomePublicaEditorial();
+  configurarRotasConteudoPublicoEditorial();
 
   botaoSolicitar.addEventListener('click', async function aoSolicitarCodigo() {
     const identificador = emailOuRga.value.trim();
@@ -1879,6 +1880,468 @@ function formatarRotuloPublico(valor) {
   }
 
   return String(valor || '').replace(/_/g, ' ').trim();
+}
+
+function configurarRotasConteudoPublicoEditorial() {
+  document.addEventListener('portal:navigationchange', function aoNavegar(evento) {
+    const rota = evento.detail && evento.detail.rota;
+
+    renderizarRotaConteudoPublicoEditorial(rota);
+  });
+
+  const navegacao = window.PortalGeapaNavigation;
+
+  if (navegacao && typeof navegacao.getRotaAtual === 'function' && typeof navegacao.getRotas === 'function') {
+    const idAtual = navegacao.getRotaAtual();
+    const rotaAtual = navegacao.getRotas().find(function encontrarRota(rota) {
+      return rota.id === idAtual;
+    });
+
+    renderizarRotaConteudoPublicoEditorial(rotaAtual);
+  }
+}
+
+async function renderizarRotaConteudoPublicoEditorial(rota) {
+  const definicao = obterDefinicaoRotaConteudoPublico(rota && rota.id);
+  const container = document.getElementById('placeholder-content');
+  const conteudoPublico = window.PortalGeapaPublicContent;
+
+  if (!definicao || !container) {
+    return;
+  }
+
+  container.innerHTML = montarEstadoCarregandoConteudoPublico(definicao);
+
+  if (!conteudoPublico || typeof conteudoPublico.carregarSnapshotConteudoPublico !== 'function') {
+    container.innerHTML = montarPaginaConteudoPublico(definicao, montarEstadoVazioConteudoPublico(definicao.vazio));
+    return;
+  }
+
+  try {
+    const resposta = await conteudoPublico.carregarSnapshotConteudoPublico();
+    const snapshot = resposta && resposta.data ? resposta.data : {};
+    const html = montarCorpoRotaConteudoPublico(definicao, snapshot);
+
+    if (rotaAindaAtual(rota.id)) {
+      container.innerHTML = montarPaginaConteudoPublico(definicao, html);
+    }
+  } catch (erro) {
+    if (rotaAindaAtual(rota.id)) {
+      container.innerHTML = montarPaginaConteudoPublico(
+        definicao,
+        montarEstadoVazioConteudoPublico('Conteúdo público indisponível no momento.')
+      );
+    }
+  }
+}
+
+function obterDefinicaoRotaConteudoPublico(idRota) {
+  const definicoes = {
+    sobre: {
+      titulo: 'Sobre o GEAPA',
+      marcador: 'Área Pública',
+      intro: 'Apresentação institucional pública do grupo.',
+      tipo: 'blocos',
+      pagina: 'sobre',
+      vazio: 'Conteúdo institucional ainda não publicado.'
+    },
+    historia: {
+      titulo: 'História',
+      marcador: 'Área Pública',
+      intro: 'Marcos institucionais publicados pelo CMS editorial.',
+      tipo: 'historia',
+      pagina: 'historia',
+      vazio: 'Marcos históricos ainda não publicados.'
+    },
+    'diretoria-publica': {
+      titulo: 'Diretoria',
+      marcador: 'Pessoas Públicas',
+      intro: 'Composição pública e complementos editoriais da gestão.',
+      tipo: 'pessoas',
+      grupos: ['DIRETORIA', 'EX_DIRETOR'],
+      incluirLegadoDiretoria: true,
+      incluirGestoes: true,
+      vazio: 'Diretoria pública ainda não publicada no CMS.'
+    },
+    orientadores: {
+      titulo: 'Orientadores',
+      marcador: 'Pessoas Públicas',
+      intro: 'Orientadores e professores colaboradores publicados pelo GEAPA.',
+      tipo: 'pessoas',
+      grupos: ['ORIENTADOR', 'PROFESSOR_COLABORADOR'],
+      vazio: 'Orientadores ainda não publicados no CMS.'
+    },
+    'membros-publicos': {
+      titulo: 'Membros',
+      marcador: 'Pessoas Públicas',
+      intro: 'Membros, egressos e destaques publicados com autorização editorial.',
+      tipo: 'pessoas',
+      grupos: ['MEMBRO_ATUAL', 'EX_MEMBRO', 'MEMBRO_FUNDADOR', 'COLABORADOR', 'DESTAQUE_INSTITUCIONAL'],
+      vazio: 'Membros públicos ainda não publicados no CMS.'
+    },
+    normas: {
+      titulo: 'Documentos e normas',
+      marcador: 'Área Pública',
+      intro: 'Documentos públicos, normas e materiais orientativos.',
+      tipo: 'documentos',
+      vazio: 'Documentos públicos ainda não publicados.'
+    },
+    parceiros: {
+      titulo: 'Parceiros',
+      marcador: 'Área Pública',
+      intro: 'Instituições e parceiros públicos do GEAPA.',
+      tipo: 'parceiros',
+      pagina: 'parceiros',
+      vazio: 'Parceiros ainda não publicados.'
+    }
+  };
+
+  return definicoes[idRota] || null;
+}
+
+function montarCorpoRotaConteudoPublico(definicao, snapshot) {
+  if (definicao.tipo === 'blocos') {
+    const pagina = obterPaginaSnapshotConteudoPublico(snapshot, definicao.pagina);
+    return montarBlocosConteudoPublico(pagina.blocos, definicao.vazio);
+  }
+
+  if (definicao.tipo === 'historia') {
+    const pagina = obterPaginaSnapshotConteudoPublico(snapshot, definicao.pagina);
+    return montarHistoriaConteudoPublico(pagina.marcos, definicao.vazio);
+  }
+
+  if (definicao.tipo === 'parceiros') {
+    const pagina = obterPaginaSnapshotConteudoPublico(snapshot, definicao.pagina);
+    return montarParceirosConteudoPublico(pagina.itens, definicao.vazio);
+  }
+
+  if (definicao.tipo === 'documentos') {
+    return montarDocumentosConteudoPublico(snapshot.documents, definicao.vazio);
+  }
+
+  if (definicao.tipo === 'pessoas') {
+    return montarPessoasConteudoPublico(snapshot, definicao);
+  }
+
+  return montarEstadoVazioConteudoPublico(definicao.vazio);
+}
+
+function obterPaginaSnapshotConteudoPublico(snapshot, slug) {
+  const pages = snapshot && snapshot.pages ? snapshot.pages : {};
+
+  return pages[slug] || {};
+}
+
+function montarPaginaConteudoPublico(definicao, corpoHtml) {
+  return [
+    '<p class="eyebrow">',
+    escaparHtml(definicao.marcador),
+    '</p>',
+    '<div class="public-content-heading">',
+    '<h2>',
+    escaparHtml(definicao.titulo),
+    '</h2>',
+    definicao.intro ? '<p class="intro">' + escaparHtml(definicao.intro) + '</p>' : '',
+    '</div>',
+    corpoHtml
+  ].join('');
+}
+
+function montarEstadoCarregandoConteudoPublico(definicao) {
+  return montarPaginaConteudoPublico(
+    definicao,
+    '<p class="empty-state">Carregando conteúdo público...</p>'
+  );
+}
+
+function montarEstadoVazioConteudoPublico(mensagem) {
+  return '<p class="empty-state public-content-empty">' + escaparHtml(mensagem || 'Conteúdo ainda não publicado.') + '</p>';
+}
+
+function montarBlocosConteudoPublico(blocos, vazio) {
+  const itens = Array.isArray(blocos) ? blocos : [];
+
+  if (!itens.length) {
+    return montarEstadoVazioConteudoPublico(vazio);
+  }
+
+  return [
+    '<div class="public-editorial-grid">',
+    itens.map(montarCardBlocoConteudoPublico).join(''),
+    '</div>'
+  ].join('');
+}
+
+function montarCardBlocoConteudoPublico(bloco) {
+  const titulo = obterTextoCampo(bloco, ['titulo', 'TITULO', 'title']);
+  const texto = obterTextoCampo(bloco, ['texto', 'TEXTO', 'descricao', 'DESCRICAO']);
+  const subtitulo = obterTextoCampo(bloco, ['subtitulo', 'SUBTITULO', 'subtitle']);
+  const imagemUrl = obterUrlPublicaConteudo(bloco, ['imagemUrl', 'IMAGEM_URL']);
+  const botaoTexto = obterTextoCampo(bloco, ['botaoTexto', 'BOTAO_TEXTO']);
+  const botaoUrl = obterUrlPublicaConteudo(bloco, ['botaoUrl', 'BOTAO_URL']);
+
+  return [
+    '<article class="public-editorial-card">',
+    imagemUrl ? '<img src="' + escaparHtml(imagemUrl) + '" alt="" loading="lazy">' : '',
+    subtitulo ? '<span>' + escaparHtml(subtitulo) + '</span>' : '',
+    titulo ? '<h3>' + escaparHtml(titulo) + '</h3>' : '',
+    texto ? '<p>' + escaparHtml(texto) + '</p>' : '',
+    botaoTexto && botaoUrl ? montarLinkPublico(botaoUrl, botaoTexto, 'secondary-button compact-button') : '',
+    '</article>'
+  ].join('');
+}
+
+function montarHistoriaConteudoPublico(marcos, vazio) {
+  const itens = Array.isArray(marcos) ? marcos : [];
+
+  if (!itens.length) {
+    return montarEstadoVazioConteudoPublico(vazio);
+  }
+
+  return [
+    '<ol class="public-timeline">',
+    itens.map(function montarMarco(marco) {
+      const ano = obterTextoCampo(marco, ['ano', 'ANO', 'data', 'DATA']);
+      const titulo = obterTextoCampo(marco, ['titulo', 'TITULO']);
+      const texto = obterTextoCampo(marco, ['texto', 'TEXTO', 'descricao', 'DESCRICAO']);
+
+      return [
+        '<li>',
+        ano ? '<span>' + escaparHtml(ano) + '</span>' : '',
+        titulo ? '<h3>' + escaparHtml(titulo) + '</h3>' : '',
+        texto ? '<p>' + escaparHtml(texto) + '</p>' : '',
+        '</li>'
+      ].join('');
+    }).join(''),
+    '</ol>'
+  ].join('');
+}
+
+function montarParceirosConteudoPublico(parceiros, vazio) {
+  const itens = Array.isArray(parceiros) ? parceiros : [];
+
+  if (!itens.length) {
+    return montarEstadoVazioConteudoPublico(vazio);
+  }
+
+  return [
+    '<div class="public-people-grid">',
+    itens.map(function montarParceiro(parceiro) {
+      const nome = obterTextoCampo(parceiro, ['nome', 'NOME', 'titulo', 'TITULO']);
+      const tipo = obterTextoCampo(parceiro, ['tipoParceiro', 'TIPO_PARCEIRO', 'tipo', 'TIPO']);
+      const descricao = obterTextoCampo(parceiro, ['descricao', 'DESCRICAO', 'texto', 'TEXTO']);
+      const logoUrl = obterUrlPublicaConteudo(parceiro, ['logoUrl', 'LOGO_URL', 'imagemUrl', 'IMAGEM_URL']);
+      const siteUrl = obterUrlPublicaConteudo(parceiro, ['siteUrl', 'SITE_URL']);
+
+      return montarCardPessoaOuParceiro({
+        nome: nome,
+        subtitulo: tipo,
+        descricao: descricao,
+        imagemUrl: logoUrl,
+        links: siteUrl ? [montarLinkPublico(siteUrl, 'Site', 'secondary-button compact-button')] : []
+      });
+    }).join(''),
+    '</div>'
+  ].join('');
+}
+
+function montarDocumentosConteudoPublico(documentos, vazio) {
+  const itens = Array.isArray(documentos) ? documentos : [];
+
+  if (!itens.length) {
+    return montarEstadoVazioConteudoPublico(vazio);
+  }
+
+  return [
+    '<div class="public-document-list">',
+    itens.map(function montarDocumento(documento) {
+      const titulo = obterTextoCampo(documento, ['titulo', 'TITULO']);
+      const tipo = obterTextoCampo(documento, ['tipoDocumento', 'TIPO_DOCUMENTO', 'tipo', 'TIPO']);
+      const descricao = obterTextoCampo(documento, ['descricao', 'DESCRICAO']);
+      const url = obterUrlPublicaConteudo(documento, ['urlDocumento', 'URL_DOCUMENTO', 'url', 'URL']);
+
+      return [
+        '<article class="public-document-item">',
+        '<div>',
+        tipo ? '<span>' + escaparHtml(formatarRotuloPublico(tipo)) + '</span>' : '',
+        titulo ? '<h3>' + escaparHtml(titulo) + '</h3>' : '',
+        descricao ? '<p>' + escaparHtml(descricao) + '</p>' : '',
+        '</div>',
+        url ? montarLinkPublico(url, 'Abrir', 'secondary-button compact-button') : '',
+        '</article>'
+      ].join('');
+    }).join(''),
+    '</div>'
+  ].join('');
+}
+
+function montarPessoasConteudoPublico(snapshot, definicao) {
+  const pessoas = filtrarPessoasPublicas(snapshot, definicao);
+  const gestoes = definicao.incluirGestoes ? obterListaSnapshot(snapshot.managementComplements) : [];
+  const blocos = [];
+
+  if (gestoes.length) {
+    blocos.push(montarGestoesConteudoPublico(gestoes));
+  }
+
+  if (pessoas.length) {
+    blocos.push([
+      '<div class="public-people-grid">',
+      pessoas.map(montarPessoaConteudoPublico).join(''),
+      '</div>'
+    ].join(''));
+  }
+
+  if (!blocos.length) {
+    return montarEstadoVazioConteudoPublico(definicao.vazio);
+  }
+
+  return blocos.join('');
+}
+
+function montarGestoesConteudoPublico(gestoes) {
+  return [
+    '<div class="public-management-list">',
+    gestoes.map(function montarGestao(gestao) {
+      const nome = obterTextoCampo(gestao, ['nomePublicoGestao', 'NOME_PUBLICO_GESTAO', 'titulo', 'TITULO']);
+      const lema = obterTextoCampo(gestao, ['lemaPublico', 'LEMA_PUBLICO']);
+      const descricao = obterTextoCampo(gestao, ['descricaoGestao', 'DESCRICAO_GESTAO', 'descricao', 'DESCRICAO']);
+
+      return [
+        '<article class="public-management-card">',
+        nome ? '<h3>' + escaparHtml(nome) + '</h3>' : '',
+        lema ? '<strong>' + escaparHtml(lema) + '</strong>' : '',
+        descricao ? '<p>' + escaparHtml(descricao) + '</p>' : '',
+        '</article>'
+      ].join('');
+    }).join(''),
+    '</div>'
+  ].join('');
+}
+
+function montarPessoaConteudoPublico(pessoa) {
+  const nome = obterTextoCampo(pessoa, ['nomePublico', 'NOME_PUBLICO', 'nome', 'NOME']);
+  const cargo = obterTextoCampo(pessoa, ['cargoPublico', 'CARGO_PUBLICO', 'cargo', 'CARGO']);
+  const grupo = obterTextoCampo(pessoa, ['grupoPublico', 'GRUPO_PUBLICO']);
+  const periodo = obterTextoCampo(pessoa, ['periodoPublico', 'PERIODO_PUBLICO']);
+  const descricao = obterTextoCampo(pessoa, ['descricaoPublica', 'DESCRICAO_PUBLICA', 'descricao', 'DESCRICAO']);
+  const fotoUrl = obterUrlPublicaConteudo(pessoa, ['fotoUrl', 'FOTO_URL', 'imagemUrl', 'IMAGEM_URL']);
+  const links = [
+    montarLinkPublico(obterUrlPublicaConteudo(pessoa, ['linkLattes', 'LINK_LATTES']), 'Lattes', 'secondary-button compact-button'),
+    montarLinkPublico(obterUrlPublicaConteudo(pessoa, ['linkInstagramPublico', 'LINK_INSTAGRAM_PUBLICO']), 'Instagram', 'secondary-button compact-button'),
+    montarLinkPublico(obterUrlPublicaConteudo(pessoa, ['linkLinkedinPublico', 'LINK_LINKEDIN_PUBLICO']), 'LinkedIn', 'secondary-button compact-button')
+  ].filter(Boolean);
+
+  return montarCardPessoaOuParceiro({
+    nome: nome,
+    subtitulo: cargo || formatarRotuloPublico(grupo),
+    periodo: periodo,
+    descricao: descricao,
+    imagemUrl: fotoUrl,
+    links: links
+  });
+}
+
+function montarCardPessoaOuParceiro(item) {
+  const nome = item.nome || 'GEAPA';
+  const iniciais = obterIniciaisConteudoPublico(nome);
+
+  return [
+    '<article class="public-person-card">',
+    item.imagemUrl
+      ? '<img src="' + escaparHtml(item.imagemUrl) + '" alt="" loading="lazy">'
+      : '<div class="public-person-avatar" aria-hidden="true">' + escaparHtml(iniciais) + '</div>',
+    '<div>',
+    item.subtitulo ? '<span>' + escaparHtml(item.subtitulo) + '</span>' : '',
+    '<h3>' + escaparHtml(nome) + '</h3>',
+    item.periodo ? '<small>' + escaparHtml(item.periodo) + '</small>' : '',
+    item.descricao ? '<p>' + escaparHtml(item.descricao) + '</p>' : '',
+    item.links && item.links.length ? '<div class="public-card-links">' + item.links.join('') + '</div>' : '',
+    '</div>',
+    '</article>'
+  ].join('');
+}
+
+function filtrarPessoasPublicas(snapshot, definicao) {
+  const grupos = definicao.grupos || [];
+  const pessoas = obterListaSnapshot(snapshot.peopleComplements);
+  const legado = definicao.incluirLegadoDiretoria ? obterListaSnapshot(snapshot.boardComplements) : [];
+  const todos = pessoas.concat(legado);
+
+  if (!grupos.length) {
+    return todos;
+  }
+
+  return todos.filter(function filtrarPessoa(pessoa) {
+    const grupo = normalizarGrupoPublico(obterTextoCampo(pessoa, ['grupoPublico', 'GRUPO_PUBLICO', 'tipo', 'TIPO']));
+
+    if (!grupo && definicao.incluirLegadoDiretoria) {
+      return true;
+    }
+
+    return grupos.indexOf(grupo) >= 0;
+  });
+}
+
+function obterListaSnapshot(valor) {
+  return Array.isArray(valor) ? valor : [];
+}
+
+function normalizarGrupoPublico(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+}
+
+function obterUrlPublicaConteudo(objeto, chaves) {
+  const url = obterTextoCampo(objeto, chaves);
+
+  return ehUrlPublicaSegura(url) ? url : '';
+}
+
+function ehUrlPublicaSegura(url) {
+  const valor = String(url || '').trim();
+
+  return /^https?:\/\//i.test(valor) || /^mailto:[^@\s]+@[^@\s]+$/i.test(valor);
+}
+
+function montarLinkPublico(url, texto, classe) {
+  if (!url || !texto) {
+    return '';
+  }
+
+  return [
+    '<a class="',
+    escaparHtml(classe || 'secondary-button compact-button'),
+    '" href="',
+    escaparHtml(url),
+    '" target="_blank" rel="noopener noreferrer">',
+    escaparHtml(texto),
+    '</a>'
+  ].join('');
+}
+
+function obterIniciaisConteudoPublico(nome) {
+  const partes = String(nome || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  return partes.map(function obterInicial(parte) {
+    return parte.charAt(0).toUpperCase();
+  }).join('') || 'G';
+}
+
+function rotaAindaAtual(idRota) {
+  const navegacao = window.PortalGeapaNavigation;
+
+  return !navegacao ||
+    typeof navegacao.getRotaAtual !== 'function' ||
+    navegacao.getRotaAtual() === idRota;
 }
 
 /**

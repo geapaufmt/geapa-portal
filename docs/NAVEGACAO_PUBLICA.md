@@ -51,6 +51,17 @@ O incremento inicial entrega:
 - rotas internas preservando guard central;
 - placeholders para areas ainda nao implementadas.
 
+Incremento editorial publico:
+
+- Sobre, Historia e Parceiros consomem o snapshot sanitizado do CMS editorial
+  publico vindo do GEAPA-CORE;
+- Documentos e normas consome a lista publica `documents`;
+- Diretoria, Orientadores e Membros consomem `peopleComplements`,
+  `managementComplements` e, por compatibilidade, `boardComplements`;
+- enquanto o CORE nao publicar as novas funcoes de pessoas/gestoes, essas rotas
+  exibem estado vazio controlado e nao buscam planilhas diretamente;
+- Firestore ainda nao e fonte dessas paginas.
+
 As acoes sensiveis continuam dependendo de validacao no Apps Script, GEAPA-CORE
 e modulos especializados.
 
