@@ -223,14 +223,14 @@
     status.textContent = rotulos.buscando;
     ui.mostrarLoading(rotulos.carregando);
 
-    return api.apiGet('/atividades/listar', {})
+    return api.apiGet(obterEndpointAtividadesReadonly(modo), {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Não foi possível carregar atividades.');
         }
 
         var bundle = normalizarBundleAtividades({
-          calendario: resposta.data || [],
+          calendario: normalizarListaAtividadesReadonly(resposta.data),
           detalhesPorId: {},
           ultimaAtualizacao: new Date().toISOString()
         });
@@ -309,6 +309,28 @@
       .finally(function finalizarLoadingAtividades() {
         ui.ocultarLoading();
       });
+  }
+
+  function obterEndpointAtividadesReadonly(modo) {
+    return modo === MODO_ATIVIDADES_HISTORICO
+      ? '/v2/historico-atividades'
+      : '/v2/proximas-atividades';
+  }
+
+  function normalizarListaAtividadesReadonly(data) {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (data && Array.isArray(data.atividades)) {
+      return data.atividades;
+    }
+
+    if (data && Array.isArray(data.calendario)) {
+      return data.calendario;
+    }
+
+    return [];
   }
 
   function carregarAtividadesFallback(lista, status, inicioOriginal, manterLoadingAtual, modo) {
@@ -960,9 +982,6 @@
       historico ? '' : montarAvisoChamada(atividade, destaque),
       '<div class="activity-actions">',
       montarBotaoDetalhes(atividade),
-      montarBotaoChamada(atividade, modo),
-      historico ? '' : montarBotaoMock('Editar', auth.canEditActivity(atividade)),
-      historico ? '' : montarBotaoMock('Justificar falta', auth.canJustifyAbsence(atividade)),
       '</div>',
       '</article>'
     ].join('');

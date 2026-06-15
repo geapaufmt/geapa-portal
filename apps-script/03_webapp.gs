@@ -27,7 +27,14 @@ function doGet(e) {
         'atividadesDetalhesPreload',
         'atividadeDetalhe',
         'atividadeChamada',
-        'atividadeSalvarChamada'
+        'atividadeSalvarChamada',
+        'minhaFrequencia',
+        'minhasApresentacoes',
+        'minhasJustificativas',
+        'proximasAtividades',
+        'historicoAtividades',
+        'pendenciasDiretoria',
+        'statusViewsV2'
       ],
       parametrosRecebidos: e && e.parameter ? e.parameter : {}
     }
@@ -155,6 +162,34 @@ function portalExecutarAcao_(requisicao) {
       requisicao.token || '',
       requisicao.payload || ''
     );
+  }
+
+  if (acao === 'minhaFrequencia') {
+    return portalMinhaFrequenciaV2(requisicao.token || '');
+  }
+
+  if (acao === 'minhasApresentacoes') {
+    return portalMinhasApresentacoesV2(requisicao.token || '');
+  }
+
+  if (acao === 'minhasJustificativas') {
+    return portalMinhasJustificativasV2(requisicao.token || '');
+  }
+
+  if (acao === 'proximasAtividades') {
+    return portalProximasAtividadesV2(requisicao.token || '');
+  }
+
+  if (acao === 'historicoAtividades') {
+    return portalHistoricoAtividadesV2(requisicao.token || '');
+  }
+
+  if (acao === 'pendenciasDiretoria') {
+    return portalPendenciasDiretoriaV2(requisicao.token || '');
+  }
+
+  if (acao === 'statusViewsV2') {
+    return portalStatusViewsV2(requisicao.token || '');
   }
 
   return portalRespostaErro_(

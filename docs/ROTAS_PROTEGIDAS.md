@@ -76,13 +76,16 @@ pelo mesmo guard.
 | --- | --- | --- | --- | --- |
 | `inicio` | Publico / Geral | Todos | `portal:acessar` | Placeholder |
 | `minha-situacao` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, ADMIN | `situacao:ver_propria` | Implementada |
-| `minhas-apresentacoes` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, EGRESSO, ADMIN | `apresentacoes:ver_propria`, `apresentacoes:ver_ate_saida` | Placeholder |
-| `frequencia` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `presencas:ler`, `presencas:gerir` | Placeholder |
+| `minhas-apresentacoes` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, EGRESSO, ADMIN | `situacao:ver_propria`, `apresentacoes:ver_propria`, `apresentacoes:ver_ate_saida` | Implementada, read-only V2 |
+| `frequencia` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `presencas:ler` | Implementada, read-only V2 |
+| `justificativas` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `justificativas:ver_proprias` | Implementada, read-only V2 |
 | `atividades` | Atividades | Todos | `atividades:ver` | Implementada |
 | `gestao-atividades` | Atividades | DIRETORIA, SECRETARIA, COMUNICACAO, ADMIN | `atividades:gerir` | Placeholder |
 | `diretoria` | Gestao | DIRETORIA, ADMIN | `membros:ler`, `atividades:gerir` | Placeholder |
 | `secretaria` | Gestao | SECRETARIA, DIRETORIA, ADMIN | `membros:ler`, `presencas:gerir`, `apresentacoes:gerir` | Placeholder |
 | `comunicacao` | Gestao | COMUNICACAO, DIRETORIA, ADMIN | `atividades:gerir`, `mensageria:ler` | Placeholder |
+| `pendencias-diretoria` | Gestao | DIRETORIA, SECRETARIA, ADMIN | `diretoria:pendencias`, `membros:ler`, `atividades:gerir`, `justificativas:analisar` | Implementada, read-only V2 |
+| `status-v2` | Gestao | DIRETORIA, SECRETARIA, ADMIN | `sistema:status_v2`, `sistema:admin`, `atividades:gerir`, `membros:ler` | Implementada, read-only V2 |
 | `conselho` | Gestao | CONSELHO, DIRETORIA, ADMIN | `portal:acessar` | Placeholder |
 | `administracao` | Administracao | ADMIN | `sistema:admin` | Placeholder |
 | `logs` | Administracao | ADMIN, DIRETORIA | `logs:ler` | Placeholder |
@@ -130,3 +133,15 @@ exige que a rota tenha ao menos uma permissao efetiva correspondente.
    `sectionId: "tela-placeholder"`.
 4. Se a tela carregar dados, escutar o evento `portal:navigationchange`.
 5. Revalidar qualquer leitura ou escrita no Apps Script/CORE.
+
+## Rotas V2 somente leitura
+
+As rotas `frequencia`, `minhas-apresentacoes`, `justificativas`,
+`pendencias-diretoria` e `status-v2` usam a tela reutilizavel
+`#tela-placeholder` com renderizacao em `web/assets/js/portal-v2-readonly.js`.
+O bloqueio visual continua no `navigation.js`, mas a autorizacao real e o
+filtro de dados acontecem no Apps Script.
+
+Membro comum recebe apenas dados proprios. Rotas de diretoria dependem de
+perfil/permissao enviados pelo backend; o frontend nao deriva cargo, diretoria
+ou permissao a partir de dados locais.

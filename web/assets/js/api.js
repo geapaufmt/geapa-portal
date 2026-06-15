@@ -238,7 +238,14 @@
       '/atividades/detalhe': 'atividadeDetalhe',
       '/atividades/chamada': 'atividadeChamada',
       '/atividades/chamada/salvar': 'atividadeSalvarChamada',
-      '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot'
+      '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
+      '/v2/minha-frequencia': 'minhaFrequencia',
+      '/v2/minhas-apresentacoes': 'minhasApresentacoes',
+      '/v2/minhas-justificativas': 'minhasJustificativas',
+      '/v2/proximas-atividades': 'proximasAtividades',
+      '/v2/historico-atividades': 'historicoAtividades',
+      '/v2/pendencias-diretoria': 'pendenciasDiretoria',
+      '/v2/status-views': 'statusViewsV2'
     };
 
     return rotas[route] || '';
@@ -311,6 +318,67 @@
           modo: 'MOCK'
         }
       });
+    }
+
+    if (route === '/v2/minha-frequencia') {
+      return Promise.resolve(criarRespostaV2Mock('registros', [
+        {
+          dataAtividade: '2026-04-16',
+          tituloPublico: 'Apresentacao de Membro',
+          tipoPublico: 'Apresentacao',
+          statusPresencaRotulo: 'Presente',
+          contaPresenca: true,
+          contaFalta: true
+        }
+      ]));
+    }
+
+    if (route === '/v2/minhas-apresentacoes') {
+      return Promise.resolve(criarRespostaV2Mock('apresentacoes', [
+        {
+          dataAtividade: '2026-04-16',
+          tituloPublico: 'Apresentacao de Membro',
+          tema: 'Tema de teste',
+          statusApresentacao: 'REALIZADA',
+          periodo: '2026/1'
+        }
+      ]));
+    }
+
+    if (route === '/v2/minhas-justificativas') {
+      return Promise.resolve(criarRespostaV2Mock('justificativas', []));
+    }
+
+    if (route === '/v2/proximas-atividades') {
+      return Promise.resolve(criarRespostaV2Mock('atividades', atividadesMock.slice()));
+    }
+
+    if (route === '/v2/historico-atividades') {
+      return Promise.resolve(criarRespostaV2Mock('atividades', atividadesMock.slice()));
+    }
+
+    if (route === '/v2/pendencias-diretoria') {
+      return Promise.resolve(criarRespostaV2Mock('pendencias', [
+        {
+          tipo: 'JUSTIFICATIVA',
+          titulo: 'Justificativa pendente',
+          descricaoPublica: 'Ha uma justificativa aguardando analise.',
+          status: 'PENDENTE',
+          severidade: 'MEDIA'
+        }
+      ]));
+    }
+
+    if (route === '/v2/status-views') {
+      return Promise.resolve(criarRespostaV2Mock('views', [
+        {
+          view: 'PORTAL_ATIVIDADES_CALENDARIO',
+          status: 'OK',
+          linhas: 3,
+          atualizadaEm: new Date().toISOString(),
+          origem: 'MOCK'
+        }
+      ]));
     }
 
     return Promise.resolve({
@@ -406,6 +474,28 @@
         podeSalvar: true,
         modo: 'MOCK',
         ultimaAtualizacao: new Date().toISOString()
+      }
+    };
+  }
+
+  function criarRespostaV2Mock(campoLista, itens) {
+    var data = {
+      resumo: {
+        total: itens.length
+      },
+      ultimaAtualizacao: new Date().toISOString()
+    };
+
+    data[campoLista] = itens;
+
+    return {
+      ok: true,
+      data: data,
+      meta: {
+        viewsV2: {
+          somenteLeitura: true,
+          origemDados: 'mock'
+        }
       }
     };
   }

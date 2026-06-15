@@ -169,3 +169,33 @@ function portalRunDiagnosticoSessaoCore() {
 function portalRunDiagnosticoConteudoPublico() {
   return portalConteudoPublicoDiagnostics();
 }
+
+/**
+ * Confere que os endpoints V2 read-only exigem sessao antes de consultar dados.
+ *
+ * @return {Object} Resultado agregado dos testes de contrato.
+ */
+function portalRunViewsV2ReadonlyTests() {
+  var endpoints = {
+    minhaFrequencia: portalMinhaFrequenciaV2(''),
+    minhasApresentacoes: portalMinhasApresentacoesV2(''),
+    minhasJustificativas: portalMinhasJustificativasV2(''),
+    proximasAtividades: portalProximasAtividadesV2(''),
+    historicoAtividades: portalHistoricoAtividadesV2(''),
+    pendenciasDiretoria: portalPendenciasDiretoriaV2(''),
+    statusViewsV2: portalStatusViewsV2('')
+  };
+  var nomes = Object.keys(endpoints);
+  var resultado = {
+    ok: nomes.every(function validar(nome) {
+      return endpoints[nome] &&
+        endpoints[nome].ok === false &&
+        endpoints[nome].code === 'SESSAO_OBRIGATORIA';
+    }),
+    modo: 'views-v2-readonly',
+    endpoints: endpoints
+  };
+
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}

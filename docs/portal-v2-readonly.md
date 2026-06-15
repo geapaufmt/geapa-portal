@@ -1,0 +1,88 @@
+# Portal V2 somente leitura
+
+Este documento registra a etapa de consumo read-only das views V2 no Portal
+GEAPA.
+
+## Objetivo
+
+O Portal passa a consultar, via Apps Script, resumos e views V2 ja preparados
+pelo GEAPA-CORE e pelo modulo GEAPA Atividades. O frontend continua sendo
+estatico no GitHub Pages e nunca acessa Google Sheets, Drive, IDs privados,
+tokens ou regras criticas diretamente.
+
+## Escopo implementado
+
+Endpoints Apps Script adicionados:
+
+- `minhaFrequencia`
+- `minhasApresentacoes`
+- `minhasJustificativas`
+- `proximasAtividades`
+- `historicoAtividades`
+- `pendenciasDiretoria`
+- `statusViewsV2`
+
+Telas conectadas:
+
+- Minha Frequencia
+- Minhas Apresentacoes
+- Minhas Justificativas
+- Pendencias da Diretoria
+- Status do Sistema V2
+
+A tela existente de Atividades passa a preferir os endpoints V2 read-only para
+proximas atividades e historico. Se o contrato V2 de Atividades ainda nao
+estiver disponivel no ambiente Apps Script, o backend usa o contrato leve ja
+existente como fallback, mantendo a validacao de sessao.
+
+## Fora de escopo
+
+Esta etapa nao implementa:
+
+- justificativa de falta pelo portal;
+- deferimento ou indeferimento;
+- edicao de atividade;
+- emissao de certificado;
+- upload de arquivos;
+- triggers;
+- escrita nas bases V2.
+
+As telas novas exibem apenas consulta, loading, vazio e erro controlado. A lista
+de Atividades tambem fica sem botoes operacionais nesta etapa.
+
+## Fluxo de dados
+
+```text
+PESSOAS_V2 / VIGENCIAS_V2 / views PORTAL_*
+  -> GEAPA-CORE ou GEAPA Atividades
+  -> Apps Script do Portal
+  -> JSON sanitizado
+  -> GitHub Pages
+```
+
+O Apps Script valida a sessao temporaria antes de consultar as views. Para
+consultas individuais, envia ao Core/Atividades um contexto seguro com
+`idPessoa`, e-mail, RGA, perfil e permissoes ja resolvidos pelo backend. O
+frontend nao calcula permissao real; ele apenas usa a sessao retornada para
+navegacao visual.
+
+## Sanitizacao
+
+O backend retorna allowlists por tela. Campos como CPF, e-mail de terceiros,
+IDs de planilha, tokens, links privados de Drive e detalhes brutos de base nao
+sao repassados.
+
+Consultas proprias filtram por `ID_PESSOA`, RGA ou e-mail quando esses campos
+existem no item retornado. A fonte preferencial, contudo, deve ser sempre um
+contrato do Core/Atividades que ja entregue somente dados do usuario atual.
+
+## Performance
+
+As respostas V2 usam cache curto no Apps Script:
+
+```text
+PORTAL_CONFIG.cacheViewsV2Segundos = 120
+```
+
+O cache guarda apenas respostas ja filtradas para a sessao atual. A tela mostra
+estado de carregamento e estado vazio para views ainda sem linhas.

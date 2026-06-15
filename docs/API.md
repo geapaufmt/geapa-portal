@@ -184,7 +184,14 @@ Resposta esperada:
       "atividadesDetalhesPreload",
       "atividadeDetalhe",
       "atividadeChamada",
-      "atividadeSalvarChamada"
+      "atividadeSalvarChamada",
+      "minhaFrequencia",
+      "minhasApresentacoes",
+      "minhasJustificativas",
+      "proximasAtividades",
+      "historicoAtividades",
+      "pendenciasDiretoria",
+      "statusViewsV2"
     ]
   },
   "meta": {
@@ -638,6 +645,75 @@ cadastrada no Registry como `ATIVIDADES_V2_DB`. A listagem usa
 `PORTAL_ATIVIDADES_CALENDARIO`. O único ID estrutural retornado é
 `ID_ATIVIDADE`, exposto no JSON como `idAtividade`, no padrão
 `ATV-AAAA-S-NNNN`.
+
+## Acoes V2 somente leitura
+
+As acoes abaixo consomem views V2 pelo Apps Script. Todas exigem `token` de
+sessao temporaria, validam a sessao no backend e retornam apenas campos
+necessarios para a tela.
+
+```text
+acao=minhaFrequencia
+acao=minhasApresentacoes
+acao=minhasJustificativas
+acao=proximasAtividades
+acao=historicoAtividades
+acao=pendenciasDiretoria
+acao=statusViewsV2
+token=sessao-temporaria
+```
+
+Contratos de resposta:
+
+- `minhaFrequencia`: retorna `data.registros`, `data.resumo` e
+  `data.ultimaAtualizacao`.
+- `minhasApresentacoes`: retorna `data.apresentacoes`, `data.resumo` e
+  `data.ultimaAtualizacao`.
+- `minhasJustificativas`: retorna `data.justificativas`, `data.resumo` e
+  `data.ultimaAtualizacao`.
+- `proximasAtividades` e `historicoAtividades`: retornam `data.atividades`,
+  `data.resumo` e `data.ultimaAtualizacao`.
+- `pendenciasDiretoria`: retorna `data.pendencias`, `data.resumo` e
+  `data.ultimaAtualizacao`, somente para perfil/permissao autorizado.
+- `statusViewsV2`: retorna `data.views`, `data.resumo` e
+  `data.ultimaAtualizacao`, somente para perfil/permissao autorizado.
+
+Exemplo:
+
+```json
+{
+  "ok": true,
+  "code": "MINHA_FREQUENCIA_V2",
+  "message": "Minha frequencia carregada pelas views V2.",
+  "data": {
+    "sessao": {
+      "perfilPortalEfetivo": "MEMBRO",
+      "perfisPortal": ["MEMBRO"],
+      "portalAtivo": true
+    },
+    "resumo": {
+      "total": 0
+    },
+    "registros": [],
+    "ultimaAtualizacao": "2026-06-14T12:00:00.000Z"
+  },
+  "meta": {
+    "viewsV2": {
+      "origemDados": "views-v2",
+      "somenteLeitura": true
+    }
+  }
+}
+```
+
+Campos proibidos: CPF, tokens, IDs de planilha, referencias privadas de Drive,
+e-mails de terceiros e linhas brutas de planilha. Se o contrato do Core ainda
+nao estiver disponivel, a API retorna erro controlado
+`VIEWS_V2_INDISPONIVEIS`.
+
+Esta etapa nao cria endpoints de escrita. Justificar falta, analisar
+justificativas, editar atividade, emitir certificado, fazer upload e executar
+triggers permanecem fora do contrato do Portal.
 
 ## Acao: atividadeDetalhe
 

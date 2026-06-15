@@ -20,6 +20,7 @@
     "04_atividades.gs",
     "05_auth_firebase.gs",
     "06_public_content_consumer.gs",
+    "07_views_v2_readonly.gs",
     "99_tests.gs",
     "appsscript.json"
   ],

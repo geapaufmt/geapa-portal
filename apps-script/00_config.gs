@@ -51,6 +51,12 @@ var PORTAL_CONFIG = {
   cacheAtividadesSegundos: 120,
 
   /**
+   * Cache curto das views V2 somente leitura consumidas pelo portal.
+   * O cache guarda apenas respostas ja filtradas para a sessao atual.
+   */
+  cacheViewsV2Segundos: 120,
+
+  /**
    * Cache curto do conteudo editorial publico ja sanitizado pelo GEAPA-CORE.
    * Esse cache nao substitui o futuro espelho publico no Firestore; apenas
    * evita chamadas repetidas ao CORE enquanto a publicacao definitiva nao
