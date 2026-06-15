@@ -130,7 +130,7 @@
     if (descricao) {
       descricao.textContent = historico
         ? 'Esta tela reúne atividades realizadas já disponíveis para consulta interna. Os detalhes continuam sendo carregados sob demanda.'
-        : 'Esta tela usa a base Atividades v2 DEV e mostra apenas atividades futuras ou em andamento. Apresentações de membros também serão tratadas a partir de geapa-atividades.';
+        : 'Esta tela busca a agenda pelo Apps Script do módulo Atividades. As chamadas continuam sendo carregadas e salvas somente pelo backend.';
     }
 
     if (tituloToolbar) {
@@ -694,7 +694,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLista.v6.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesLista.v7.' + hashCurto(token + ':' + usuarioId);
   }
 
   function hashCurto(valor) {
@@ -785,7 +785,7 @@
   function renderizarAtividades(container, atividades, modo) {
     var todas = Array.isArray(atividades) ? atividades.slice() : [];
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
-    var dados = historico ? obterHistoricoAtividades(todas) : obterProximasAtividades(todas);
+    var dados = historico ? obterHistoricoAtividades(todas) : obterAgendaOperacionalAtividades(todas);
     var proxima = historico ? null : obterProximaAtividade(dados);
     var rotulos = obterRotulosAtividades(modo);
     var avisoHistorico = historico ? montarAvisoEscopoHistoricoAtividades() : '';
@@ -857,28 +857,8 @@
     ].join('');
   }
 
-  function obterProximasAtividades(atividades) {
-    var agora = obterTempoCacheAtual();
-
-    return (Array.isArray(atividades) ? atividades : [])
-      .filter(function filtrarAtividadeFuturaOuAtual(atividade) {
-        var inicio = obterInicioAtividadeMs(atividade);
-        var fim = obterFimAtividadeMs(atividade);
-
-        if (ehAtividadeRealizadaOuCancelada(atividade)) {
-          return false;
-        }
-
-        if (fim) {
-          return fim >= agora;
-        }
-
-        if (inicio) {
-          return inicio >= agora;
-        }
-
-        return true;
-      })
+  function obterAgendaOperacionalAtividades(atividades) {
+    return (Array.isArray(atividades) ? atividades.slice() : [])
       .sort(compararAtividadesPorInicio);
   }
 
