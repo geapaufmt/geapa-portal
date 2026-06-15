@@ -14,12 +14,13 @@ function portalMinhaFrequenciaV2(token) {
     listaCampo: 'registros',
     listaChaves: ['registros', 'frequencia', 'minhaFrequencia', 'itens'],
     resumoChaves: ['resumo', 'totais'],
-    destino: 'core',
+    destino: 'atividades',
     registryKeys: [
       'ATIVIDADES_V2_PORTAL_FREQUENCIA_MEMBROS'
     ],
     requerDiretoria: false,
     funcoes: [
+      'atividadesV2_portalGetMinhaFrequencia',
       'corePortalV2GetMinhaFrequencia',
       'corePortalReadonlyGetMinhaFrequencia',
       'corePortalMinhaFrequenciaV2',
@@ -56,12 +57,13 @@ function portalMinhasApresentacoesV2(token) {
     listaCampo: 'apresentacoes',
     listaChaves: ['apresentacoes', 'minhasApresentacoes', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
-    destino: 'core',
+    destino: 'atividades',
     registryKeys: [
       'ATIVIDADES_V2_PORTAL_APRESENTACOES'
     ],
     requerDiretoria: false,
     funcoes: [
+      'atividadesV2_portalGetMinhasApresentacoes',
       'corePortalV2GetMinhasApresentacoes',
       'corePortalReadonlyGetMinhasApresentacoes',
       'corePortalMinhasApresentacoesV2',
@@ -99,12 +101,13 @@ function portalMinhasJustificativasV2(token) {
     listaCampo: 'justificativas',
     listaChaves: ['justificativas', 'minhasJustificativas', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
-    destino: 'core',
+    destino: 'atividades',
     registryKeys: [
       'ATIVIDADES_V2_PORTAL_JUSTIFICATIVAS'
     ],
     requerDiretoria: false,
     funcoes: [
+      'atividadesV2_portalGetMinhasJustificativas',
       'corePortalV2GetMinhasJustificativas',
       'corePortalReadonlyGetMinhasJustificativas',
       'corePortalMinhasJustificativasV2',
@@ -179,7 +182,7 @@ function portalPendenciasDiretoriaV2(token) {
     listaCampo: 'pendencias',
     listaChaves: ['pendencias', 'pendenciasDiretoria', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
-    destino: 'core',
+    destino: 'atividades',
     registryKeys: [
       'ATIVIDADES_V2_PORTAL_PENDENCIAS_DIRETORIA'
     ],
@@ -192,6 +195,7 @@ function portalPendenciasDiretoriaV2(token) {
       'sistema:admin'
     ],
     funcoes: [
+      'atividadesV2_portalGetPendenciasDiretoria',
       'corePortalV2GetPendenciasDiretoria',
       'corePortalReadonlyGetPendenciasDiretoria',
       'portalV2GetPendenciasDiretoria',
@@ -231,7 +235,7 @@ function portalStatusViewsV2(token) {
     listaCampo: 'views',
     listaChaves: ['views', 'statusViews', 'status', 'itens'],
     resumoChaves: ['resumo', 'totais'],
-    destino: 'core',
+    destino: 'atividades',
     registryKeys: [
       'ATIVIDADES_V2_PORTAL_STATUS',
       'ATIVIDADES_V2_PORTAL_STATUS_ATIVIDADES'
@@ -244,6 +248,7 @@ function portalStatusViewsV2(token) {
       'membros:ler'
     ],
     funcoes: [
+      'atividadesV2_portalGetStatusViews',
       'corePortalV2GetStatusViews',
       'corePortalReadonlyGetStatusViewsV2',
       'portalV2GetStatusViews',

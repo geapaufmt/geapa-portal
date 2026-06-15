@@ -707,11 +707,10 @@ Exemplo:
 ```
 
 Campos proibidos: CPF, tokens, IDs de planilha, referencias privadas de Drive,
-e-mails de terceiros e linhas brutas de planilha. O backend prefere contratos
-read-only publicados pelo Core/Atividades; quando eles ainda nao existem, le as
-views materializadas pelas keys `ATIVIDADES_V2_PORTAL_*` no Registry, filtra e
-sanitiza antes de responder. Se a view ainda nao estiver cadastrada no
-Registry, a API responde com lista vazia e `resumo.total = 0`.
+e-mails de terceiros e linhas brutas de planilha. O backend prefere os contratos
+read-only publicados pelo modulo GEAPA Atividades; quando eles ainda nao
+existem, usa fallback temporario pelas keys `ATIVIDADES_V2_PORTAL_*` no
+Registry, filtrando e sanitizando antes de responder.
 
 Esta etapa nao cria endpoints de escrita. Justificar falta, analisar
 justificativas, editar atividade, emitir certificado, fazer upload e executar

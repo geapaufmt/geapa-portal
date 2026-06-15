@@ -36,12 +36,12 @@ estiver disponivel no ambiente Apps Script, o backend usa o contrato leve ja
 existente como fallback, mantendo a validacao de sessao.
 
 Para as telas de frequencia, apresentacoes, justificativas, pendencias e status,
-o backend primeiro tenta contratos read-only publicados pelo Core/Atividades. Se
-esses contratos ainda nao estiverem publicados, o Apps Script do Portal le as
-views materializadas pelas keys `ATIVIDADES_V2_PORTAL_*` do Registry via
-`GEAPA_CORE`, aplica filtro do usuario/permissao e devolve apenas os campos da
-allowlist. Quando uma key ainda nao existe ou a view esta vazia, a tela recebe
-lista vazia controlada.
+o backend primeiro chama contratos read-only publicados pelo modulo
+GEAPA Atividades, dono das views `PORTAL_*`. Esses contratos leem a base
+Atividades v2 DEV, aplicam filtro por usuario ou perfil privilegiado e devolvem
+apenas campos seguros. O fallback via Registry/GEAPA-CORE permanece apenas como
+proteção temporaria quando a biblioteca de Atividades ainda nao estiver
+atualizada.
 
 ## Fora de escopo
 
