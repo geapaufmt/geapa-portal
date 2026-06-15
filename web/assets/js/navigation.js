@@ -36,8 +36,8 @@
   var LOGADOS = TODOS_PERFIS;
   var GRUPOS_MENU = [
     { id: 'publico', label: 'Área Pública', ordem: 10, abertoPadrao: false },
-    { id: 'meu-vinculo', label: 'Meu Vínculo', ordem: 20, abertoPadrao: false },
-    { id: 'agenda', label: 'Atividades e Apresentações', ordem: 30, abertoPadrao: false },
+    { id: 'agenda', label: 'Atividades e Apresentações', ordem: 20, abertoPadrao: false },
+    { id: 'meu-vinculo', label: 'Meu Vínculo', ordem: 30, abertoPadrao: false },
     { id: 'gestao-geapa', label: 'Gestão do GEAPA', ordem: 40, abertoPadrao: false }
   ];
   var MOTIVOS_ACESSO = {
@@ -72,11 +72,11 @@
     rota('participacoes', 'Minhas participações', 'app/participacoes', 'meu-vinculo', 90, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['participacoes:ver_proprias'], 'Participações próprias em atividades permitidas.', 'placeholder'),
     rota('preferencias', 'Preferências de comunicação', 'app/preferencias', 'meu-vinculo', 100, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['comunicacoes:preferencias_proprias'], 'Preferências de comunicação e consentimentos.', 'placeholder'),
 
-    rota('atividades', 'Próximas atividades', 'atividades', 'agenda', 10, 'tela-atividades', 'view-atividades', false, PUBLICO, [], 'Atividades futuras ou em andamento, filtradas conforme vínculo e permissões.', 'implementado'),
-    rota('calendario', 'Calendário', 'agenda/calendario', 'agenda', 20, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Visão futura para agenda mensal, eventos, reuniões, simpósios, confraternizações e apresentações.', 'placeholder'),
-    rota('historico-atividades', 'Histórico de atividades', 'agenda/historico-atividades', 'agenda', 30, 'tela-atividades', 'view-atividades', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], [], 'Histórico interno de atividades realizadas a partir do Ciclo 2026. Participações externas ficam em Meu Vínculo.', 'implementado'),
-    rota('agenda-apresentacoes', 'Próximas apresentações', 'agenda/apresentacoes', 'agenda', 40, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Próximas apresentações registradas em geapa-atividades, conforme liberação pública ou vínculo.', 'placeholder'),
-    rota('historico-apresentacoes', 'Histórico de apresentações', 'agenda/historico-apresentacoes', 'agenda', 50, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Histórico público ou permitido de apresentações registradas em geapa-atividades.', 'placeholder'),
+    rota('calendario', 'Calendário', 'agenda/calendario', 'agenda', 10, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Visão futura para agenda mensal, eventos, reuniões, simpósios, confraternizações e apresentações.', 'placeholder'),
+    rota('historico-atividades', 'Histórico de atividades', 'agenda/historico-atividades', 'agenda', 20, 'tela-atividades', 'view-atividades', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], [], 'Histórico interno de atividades realizadas a partir do Ciclo 2026. Participações externas ficam em Meu Vínculo.', 'implementado'),
+    rota('atividades', 'Próximas atividades', 'atividades', 'agenda', 30, 'tela-atividades', 'view-atividades', false, PUBLICO, [], 'Atividades futuras ou em andamento, filtradas conforme vínculo e permissões.', 'implementado'),
+    rota('historico-apresentacoes', 'Histórico de apresentações', 'agenda/historico-apresentacoes', 'agenda', 40, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Histórico público ou permitido de apresentações registradas em geapa-atividades.', 'placeholder'),
+    rota('agenda-apresentacoes', 'Próximas apresentações', 'agenda/apresentacoes', 'agenda', 50, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Próximas apresentações registradas em geapa-atividades, conforme liberação pública ou vínculo.', 'placeholder'),
 
     rota('admin', 'Painel administrativo', 'admin', 'gestao-geapa', 10, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['gestao:acessar'], 'Painel operacional conforme perfil e permissões.', 'placeholder'),
     rota('admin-membros', 'Membros', 'admin/membros', 'gestao-geapa', 20, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta e operação cotidiana de membros autorizada pelo backend.', 'placeholder'),
