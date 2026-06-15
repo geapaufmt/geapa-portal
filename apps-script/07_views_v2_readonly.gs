@@ -15,6 +15,9 @@ function portalMinhaFrequenciaV2(token) {
     listaChaves: ['registros', 'frequencia', 'minhaFrequencia', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'core',
+    registryKeys: [
+      'ATIVIDADES_V2_PORTAL_FREQUENCIA_MEMBROS'
+    ],
     requerDiretoria: false,
     funcoes: [
       'corePortalV2GetMinhaFrequencia',
@@ -25,20 +28,23 @@ function portalMinhaFrequenciaV2(token) {
       'portal.getMinhaFrequencia'
     ],
     campos: [
-      'idAtividade',
-      'dataAtividade',
-      'tituloPublico',
-      'tipoPublico',
-      'statusPresenca',
-      'statusPresencaRotulo',
-      'codigoPresenca',
-      'contaPresenca',
-      'contaFalta',
-      'justificativaStatus',
-      'cargaHoraria',
       'ciclo',
-      'periodo'
-    ]
+      'totalPresencas',
+      'totalFaltas',
+      'totalJustificadas',
+      'totalAbonadas',
+      'faltasLiquidas',
+      'limiteFaltasPeriodo',
+      'percentualFrequencia',
+      'percentualUsoLimite',
+      'situacaoDisciplinar',
+      'cargaHorariaTotal',
+      'elegivelCertificado',
+      'motivoInelegibilidade',
+      'mensagemPortal',
+      'ultimaAtualizacao'
+    ],
+    aliases: {}
   });
 }
 
@@ -51,6 +57,9 @@ function portalMinhasApresentacoesV2(token) {
     listaChaves: ['apresentacoes', 'minhasApresentacoes', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'core',
+    registryKeys: [
+      'ATIVIDADES_V2_PORTAL_APRESENTACOES'
+    ],
     requerDiretoria: false,
     funcoes: [
       'corePortalV2GetMinhasApresentacoes',
@@ -72,7 +81,13 @@ function portalMinhasApresentacoesV2(token) {
       'papel',
       'periodo',
       'cargaHoraria'
-    ]
+    ],
+    aliases: {
+      tema: ['tituloApresentacao', 'TITULO_APRESENTACAO'],
+      tituloPublico: ['tituloApresentacao', 'TITULO_APRESENTACAO'],
+      statusApresentacao: ['statusPublico', 'STATUS_PUBLICO'],
+      statusPublico: ['STATUS_PUBLICO']
+    }
   });
 }
 
@@ -85,6 +100,9 @@ function portalMinhasJustificativasV2(token) {
     listaChaves: ['justificativas', 'minhasJustificativas', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'core',
+    registryKeys: [
+      'ATIVIDADES_V2_PORTAL_JUSTIFICATIVAS'
+    ],
     requerDiretoria: false,
     funcoes: [
       'corePortalV2GetMinhasJustificativas',
@@ -105,7 +123,15 @@ function portalMinhasJustificativasV2(token) {
       'motivoCategoria',
       'enviadaEm',
       'decididaEm'
-    ]
+    ],
+    aliases: {
+      tituloPublico: ['tituloAtividade', 'TITULO_ATIVIDADE'],
+      statusJustificativa: ['statusAnalise', 'STATUS_ANALISE'],
+      statusPublico: ['statusAnalise', 'STATUS_ANALISE'],
+      motivoCategoria: ['motivoDeclarado', 'MOTIVO_DECLARADO'],
+      enviadaEm: ['dataEnvio', 'DATA_ENVIO'],
+      decididaEm: ['dataAnalise', 'DATA_ANALISE']
+    }
   });
 }
 
@@ -154,6 +180,9 @@ function portalPendenciasDiretoriaV2(token) {
     listaChaves: ['pendencias', 'pendenciasDiretoria', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'core',
+    registryKeys: [
+      'ATIVIDADES_V2_PORTAL_PENDENCIAS_DIRETORIA'
+    ],
     requerDiretoria: true,
     permissoes: [
       'diretoria:pendencias',
@@ -180,7 +209,17 @@ function portalPendenciasDiretoriaV2(token) {
       'criadaEm',
       'atualizadaEm',
       'prazo'
-    ]
+    ],
+    aliases: {
+      idPendencia: ['ID_PENDENCIA'],
+      tipo: ['tipoPendencia', 'TIPO_PENDENCIA'],
+      titulo: ['tituloAtividade', 'TITULO_ATIVIDADE'],
+      descricaoPublica: ['descricaoPendencia', 'DESCRICAO_PENDENCIA'],
+      status: ['statusPendencia', 'STATUS_PENDENCIA'],
+      severidade: ['gravidade', 'GRAVIDADE'],
+      responsavelGrupo: ['responsavelSugerido', 'RESPONSAVEL_SUGERIDO'],
+      atualizadaEm: ['ultimaAtualizacao', 'ULTIMA_ATUALIZACAO']
+    }
   });
 }
 
@@ -193,6 +232,9 @@ function portalStatusViewsV2(token) {
     listaChaves: ['views', 'statusViews', 'status', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'core',
+    registryKeys: [
+      'ATIVIDADES_V2_PORTAL_STATUS_ATIVIDADES'
+    ],
     requerDiretoria: true,
     permissoes: [
       'sistema:status_v2',
@@ -217,7 +259,15 @@ function portalStatusViewsV2(token) {
       'atualizadaEm',
       'origem',
       'mensagem'
-    ]
+    ],
+    aliases: {
+      view: ['idStatus', 'ID_STATUS'],
+      nome: ['idStatus', 'ID_STATUS'],
+      status: ['statusGeral', 'STATUS_GERAL'],
+      ok: ['statusGeral', 'STATUS_GERAL'],
+      atualizadaEm: ['dataHoraAtualizacao', 'DATA_HORA_ATUALIZACAO', 'ultimaAtualizacao'],
+      mensagem: ['observacoes', 'OBSERVACOES', 'ultimoErro', 'ULTIMO_ERRO']
+    }
   });
 }
 
@@ -242,6 +292,11 @@ function portalExecutarLeituraV2_(token, config) {
   }
 
   var resposta = portalChamarContratoViewsV2_(config, contexto);
+
+  if (!resposta) {
+    resposta = portalLerViewV2PorRegistry_(config);
+  }
+
   var normalizada = portalNormalizarRespostaViewsV2_(resposta, config, contexto);
 
   if (!normalizada.ok) {
@@ -454,6 +509,105 @@ function portalChamarContratoViewsV2_(config, contexto) {
   return null;
 }
 
+function portalLerViewV2PorRegistry_(config) {
+  var keys = config.registryKeys || [];
+  var erros = [];
+
+  for (var i = 0; i < keys.length; i++) {
+    var key = String(keys[i] || '').trim();
+    var registros = portalLerRegistrosViewV2PorKey_(key, erros);
+
+    if (registros) {
+      return portalMontarRespostaViewV2PorRegistry_(config, key, registros);
+    }
+  }
+
+  if (erros.length) {
+    Logger.log('GEAPA-PORTAL-VIEWS-V2-REGISTRY ' + JSON.stringify({
+      view: config.id,
+      erros: erros.slice(0, 3)
+    }));
+  }
+
+  return portalMontarRespostaViewV2PorRegistry_(config, '', []);
+}
+
+function portalLerRegistrosViewV2PorKey_(key, erros) {
+  var libs = portalListarBibliotecasGeapaCore_();
+
+  if (!key) {
+    return null;
+  }
+
+  for (var i = 0; i < libs.length; i++) {
+    var api = libs[i].api || {};
+
+    try {
+      if (typeof api.coreReadRecordsByKey === 'function') {
+        return api.coreReadRecordsByKey(key, {
+          headerRow: 1,
+          skipBlankRows: true
+        }) || [];
+      }
+
+      if (typeof api.coreGetSheetByKey === 'function' && typeof api.coreReadSheetRecords === 'function') {
+        return api.coreReadSheetRecords(api.coreGetSheetByKey(key), {
+          headerRow: 1,
+          skipBlankRows: true
+        }) || [];
+      }
+    } catch (erro) {
+      erros.push({
+        key: key,
+        biblioteca: libs[i].nome,
+        erro: erro && erro.message ? erro.message : String(erro)
+      });
+    }
+  }
+
+  return null;
+}
+
+function portalMontarRespostaViewV2PorRegistry_(config, key, registros) {
+  var lista = Array.isArray(registros) ? registros : [];
+  var dados = {
+    resumo: {
+      total: lista.length
+    },
+    ultimaAtualizacao: portalObterUltimaAtualizacaoListaViewsV2_(lista)
+  };
+
+  dados[config.listaCampo] = lista;
+
+  return {
+    ok: true,
+    origem: key ? 'geapa-core-registry:' + key : 'geapa-core-registry:vazio',
+    data: dados
+  };
+}
+
+function portalObterUltimaAtualizacaoListaViewsV2_(lista) {
+  var maior = '';
+
+  (lista || []).forEach(function comparar(item) {
+    var valor = portalObterCampoFlexViewsV2_(item, [
+      'ultimaAtualizacao',
+      'ULTIMA_ATUALIZACAO',
+      'atualizadoEm',
+      'ATUALIZADO_EM',
+      'dataHoraAtualizacao',
+      'DATA_HORA_ATUALIZACAO'
+    ]);
+    var texto = String(valor || '').trim();
+
+    if (texto && (!maior || texto > maior)) {
+      maior = texto;
+    }
+  });
+
+  return maior;
+}
+
 function portalChamarFuncaoGlobalViewsV2_(nome, payload) {
   var registry = portalFuncoesGlobaisViewsV2_();
 
@@ -646,7 +800,7 @@ function portalNormalizarRespostaViewsV2_(resposta, config, contexto) {
   };
 
   data[config.listaCampo] = filtrada.map(function sanitizar(item) {
-    return portalSanitizarItemViewsV2_(item, config.campos);
+    return portalSanitizarItemViewsV2_(item, config.campos, config.aliases);
   });
 
   return {
@@ -793,8 +947,8 @@ function portalItemPertenceAoUsuarioViewsV2_(item, usuario) {
   return true;
 }
 
-function portalSanitizarItemViewsV2_(item, campos) {
-  return portalSanitizarObjetoBasicoViewsV2_(item || {}, campos || []);
+function portalSanitizarItemViewsV2_(item, campos, aliases) {
+  return portalSanitizarObjetoBasicoViewsV2_(item || {}, campos || [], aliases || {});
 }
 
 function portalSanitizarAtividadeReadonlyV2_(item) {
@@ -821,12 +975,14 @@ function portalSanitizarAtividadeReadonlyV2_(item) {
   ]);
 }
 
-function portalSanitizarObjetoBasicoViewsV2_(objeto, campos) {
+function portalSanitizarObjetoBasicoViewsV2_(objeto, campos, aliases) {
   var dados = objeto || {};
   var saida = {};
+  var mapaAliases = aliases || {};
 
   (campos || []).forEach(function copiar(campo) {
-    var valor = portalObterCampoFlexViewsV2_(dados, [campo]);
+    var chaves = [campo].concat(mapaAliases[campo] || []);
+    var valor = portalObterCampoFlexViewsV2_(dados, chaves);
 
     if (valor !== undefined && valor !== null && !portalCampoProibidoViewsV2_(campo)) {
       saida[campo] = valor;

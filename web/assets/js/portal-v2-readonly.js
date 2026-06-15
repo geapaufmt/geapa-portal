@@ -17,11 +17,11 @@
       listaCampo: 'registros',
       vazio: 'Nenhum registro de frequencia disponivel nesta etapa.',
       colunas: [
-        ['dataAtividade', 'Data'],
-        ['tituloPublico', 'Atividade'],
-        ['tipoPublico', 'Tipo'],
-        ['statusPresencaRotulo', 'Presenca'],
-        ['justificativaStatus', 'Justificativa']
+        ['ciclo', 'Ciclo'],
+        ['percentualFrequencia', 'Frequencia'],
+        ['faltasLiquidas', 'Faltas'],
+        ['situacaoDisciplinar', 'Situacao'],
+        ['elegivelCertificado', 'Certificado']
       ]
     },
     'minhas-apresentacoes': {
@@ -33,9 +33,9 @@
       vazio: 'Nenhuma apresentacao disponivel para este usuario.',
       colunas: [
         ['dataAtividade', 'Data'],
-        ['tituloPublico', 'Atividade'],
         ['tema', 'Tema'],
         ['statusApresentacao', 'Status'],
+        ['eixoTematicoPrincipal', 'Eixo'],
         ['periodo', 'Periodo']
       ]
     },
@@ -79,9 +79,8 @@
       colunas: [
         ['view', 'View'],
         ['status', 'Status'],
-        ['linhas', 'Linhas'],
         ['atualizadaEm', 'Atualizada em'],
-        ['origem', 'Origem']
+        ['mensagem', 'Mensagem']
       ]
     }
   };
