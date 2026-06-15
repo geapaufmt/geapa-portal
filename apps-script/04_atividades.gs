@@ -21,7 +21,7 @@ function portalListarAtividades(token) {
   }
 
   var cacheKey = portalCacheKey_(
-    'atividadesLista',
+    'atividadesLista:v2',
     contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
   );
   var cache = portalLerJsonCache_(cacheKey);
@@ -357,14 +357,20 @@ function portalMontarContextoAtividades_(token) {
     : portalMontarUsuarioDeSessao_(sessao, membro) ||
       portalMontarUsuarioBasico_(membro);
   var perfilAtividades = portalResolverPerfilAtividades_(usuario);
+  var perfisPortal = portalListarPerfisAtividades_(usuario, sessao);
+  var permissoes = portalListarPermissoesAtividades_(usuario, sessao);
 
   return {
     ok: true,
     identificadorSessao: identificadorSessao,
     contextoAtividades: {
       perfil: perfilAtividades,
+      idPessoa: String(usuario.idPessoa || (sessao && sessao.idPessoa) || membro.idPessoa || '').trim(),
       rga: String(membro.rga || '').trim(),
-      email: String(membro.emailCadastrado || identificadorSessao || '').trim(),
+      email: String(usuario.email || membro.emailCadastrado || identificadorSessao || '').trim(),
+      perfilPortalEfetivo: String((sessao && sessao.perfilPortalEfetivo) || usuario.perfilPortalEfetivo || usuario.perfilPrincipal || '').trim(),
+      perfisPortal: perfisPortal,
+      permissoes: permissoes,
       somenteVisiveis: perfilAtividades === 'MEMBRO'
     }
   };
@@ -382,7 +388,9 @@ function portalMontarContextoAtividades_(token) {
  */
 function portalResolverPerfilAtividades_(usuario) {
   var dados = usuario || {};
-  var perfis = Array.isArray(dados.perfis) ? dados.perfis : [];
+  var perfis = Array.isArray(dados.perfis) && dados.perfis.length
+    ? dados.perfis
+    : (Array.isArray(dados.perfisPortal) ? dados.perfisPortal : []);
   var permissoes = dados.permissoes || {};
 
   if (
@@ -408,6 +416,39 @@ function portalResolverPerfilAtividades_(usuario) {
   }
 
   return 'MEMBRO';
+}
+
+function portalListarPerfisAtividades_(usuario, sessao) {
+  var fonte = Array.isArray(usuario && usuario.perfisPortal) && usuario.perfisPortal.length
+    ? usuario.perfisPortal
+    : (Array.isArray(usuario && usuario.perfis) && usuario.perfis.length
+      ? usuario.perfis
+      : (Array.isArray(sessao && sessao.perfisPortal) ? sessao.perfisPortal : []));
+
+  return portalUnicos_(fonte.map(function normalizar(perfil) {
+    return String(perfil || '').trim().toUpperCase();
+  }).filter(Boolean));
+}
+
+function portalListarPermissoesAtividades_(usuario, sessao) {
+  var permissoes = usuario && usuario.permissoes ? usuario.permissoes : {};
+  var lista = Array.isArray(sessao && sessao.permissoes) ? sessao.permissoes.slice() : [];
+  var mapa = {};
+
+  lista.forEach(function guardar(permissao) {
+    var chave = String(permissao || '').trim();
+    if (chave) {
+      mapa[chave] = true;
+    }
+  });
+
+  Object.keys(permissoes || {}).forEach(function copiar(chave) {
+    if (permissoes[chave] === true) {
+      mapa[chave] = true;
+    }
+  });
+
+  return Object.keys(mapa);
 }
 
 /**

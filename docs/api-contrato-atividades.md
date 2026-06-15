@@ -19,10 +19,11 @@ somente leitura.
   justificar falta permanecem mockadas até existir backend validado.
 - Nenhum mock deve conter dados pessoais reais.
 - A leitura real de Atividades exige sessão válida do Portal GEAPA.
-- O contexto enviado ao módulo usa o perfil oficial calculado pelo GEAPA-CORE a
-  partir das Vigências. `SECRETARIA` é enviado como `SECRETARIO`; `DIRETORIA`
-  ou `PRESIDENCIA` são enviados como `DIRETORIA`; os demais usuários seguem
-  como `MEMBRO`.
+- O contexto enviado ao módulo usa a sessão oficial calculada pelo GEAPA-CORE:
+  `idPessoa`, `perfilPortalEfetivo`, `perfisPortal`, `permissoes`, `email` e
+  `rga` legado quando existir. `SECRETARIA` é enviado como `SECRETARIO`;
+  `DIRETORIA` ou `PRESIDENCIA` são enviados como `DIRETORIA`; os demais
+  usuários seguem como `MEMBRO`.
 - O identificador estrutural usado pelo portal é sempre `ID_ATIVIDADE`, no
   padrão `ATV-AAAA-S-NNNN`, por exemplo `ATV-2026-1-0005`.
 - IDs antigos como `ID_ATIVIDADE_GLOBAL`, `ID_ATIVIDADE_LOCAL` e
