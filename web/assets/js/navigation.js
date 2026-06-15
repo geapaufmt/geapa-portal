@@ -9,6 +9,7 @@
   var MODELO = global.PortalGeapaModel || {};
   var PERFIS = {
     ADMIN: 'ADMIN',
+    ADMIN_TECNICO: 'ADMIN_TECNICO',
     DIRETORIA: 'DIRETORIA',
     SECRETARIA: 'SECRETARIA',
     COMUNICACAO: 'COMUNICACAO',
@@ -21,6 +22,7 @@
   };
   var TODOS_PERFIS = [
     PERFIS.ADMIN,
+    PERFIS.ADMIN_TECNICO,
     PERFIS.DIRETORIA,
     PERFIS.SECRETARIA,
     PERFIS.COMUNICACAO,
@@ -32,7 +34,7 @@
     PERFIS.VISITANTE
   ];
   var PUBLICO = [];
-  var OPERACIONAIS = [PERFIS.ADMIN, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO];
+  var OPERACIONAIS = [PERFIS.ADMIN, PERFIS.ADMIN_TECNICO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO];
   var LOGADOS = TODOS_PERFIS;
   var GRUPOS_MENU = [
     { id: 'publico', label: 'Área Pública', ordem: 10, abertoPadrao: false },
@@ -86,6 +88,7 @@
     rota('admin-apresentacoes', 'Apresentações', 'admin/apresentacoes', 'gestao-geapa', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['apresentacoes:gerir'], 'Gestão operacional de apresentações e materiais.', 'placeholder'),
     rota('admin-comunicacao', 'Comunicação', 'admin/comunicacao', 'gestao-geapa', 70, 'tela-placeholder', 'view-placeholder', true, [PERFIS.COMUNICACAO, PERFIS.DIRETORIA, PERFIS.ADMIN], ['comunicacoes:gerir', 'mensageria:ler'], 'Conteúdo público, divulgação e materiais de comunicação.', 'placeholder'),
     rota('admin-processo-seletivo', 'Processo seletivo', 'admin/processo-seletivo', 'gestao-geapa', 80, 'tela-placeholder', 'view-placeholder', true, [PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['processo_seletivo:gerir'], 'Gestão de processo seletivo e classificações autorizadas.', 'placeholder'),
+    rota('painel-diretoria-v2', 'Painel da Diretoria', 'admin/painel-diretoria-v2', 'gestao-geapa', 85, 'tela-placeholder', 'view-placeholder', true, [PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN, PERFIS.ADMIN_TECNICO], ['diretoria:painel_v2', 'diretoria:pendencias', 'sistema:status_v2', 'sistema:admin', 'atividades:gerir', 'membros:ler', 'justificativas:analisar'], 'Painel agregado de pendências, inconsistências e status das rotinas V2.', 'implementado'),
     rota('pendencias-diretoria', 'Pendências da Diretoria', 'admin/pendencias-diretoria', 'gestao-geapa', 90, 'tela-placeholder', 'view-placeholder', true, [PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['diretoria:pendencias', 'membros:ler', 'atividades:gerir', 'justificativas:analisar'], 'Pendências consolidadas em views V2, conforme permissão do backend.', 'implementado'),
     rota('status-v2', 'Status do Sistema V2', 'admin/status-v2', 'gestao-geapa', 100, 'tela-placeholder', 'view-placeholder', true, [PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['sistema:status_v2', 'sistema:admin', 'atividades:gerir', 'membros:ler'], 'Status de atualização das views V2 consumidas pelo Portal.', 'implementado'),
     rota('admin-normas-parametros', 'Normas e parâmetros', 'admin/normas-parametros', 'gestao-geapa', 110, 'tela-placeholder', 'view-placeholder', true, [PERFIS.DIRETORIA, PERFIS.ADMIN], ['parametros:gerir'], 'Normas e parâmetros operacionais sujeitos à autorização.', 'placeholder'),

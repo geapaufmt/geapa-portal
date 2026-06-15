@@ -659,6 +659,7 @@ acao=minhasJustificativas
 acao=proximasAtividades
 acao=historicoAtividades
 acao=pendenciasDiretoria
+acao=painelDiretoriaV2
 acao=statusViewsV2
 token=sessao-temporaria
 ```
@@ -675,8 +676,58 @@ Contratos de resposta:
   `data.resumo` e `data.ultimaAtualizacao`.
 - `pendenciasDiretoria`: retorna `data.pendencias`, `data.resumo` e
   `data.ultimaAtualizacao`, somente para perfil/permissao autorizado.
+- `painelDiretoriaV2`: retorna `data.blocos`, `data.resumo`,
+  `data.ultimaAtualizacao`, `data.avisos` e `data.viewsDesatualizadas`, somente
+  para diretoria, secretaria, admin ou admin tecnico autorizados pelo backend.
 - `statusViewsV2`: retorna `data.views`, `data.resumo` e
   `data.ultimaAtualizacao`, somente para perfil/permissao autorizado.
+
+### `painelDiretoriaV2`
+
+Endpoint frontend: `/v2/painel-diretoria`.
+
+Permissoes aceitas no backend: `diretoria:painel_v2`,
+`diretoria:pendencias`, `sistema:status_v2`, `sistema:admin`,
+`atividades:gerir`, `membros:ler` ou `justificativas:analisar`.
+
+Resposta agregada:
+
+```json
+{
+  "ok": true,
+  "code": "PAINEL_DIRETORIA_V2",
+  "data": {
+    "ultimaAtualizacao": "2026-06-15T10:00:00.000Z",
+    "somenteLeitura": true,
+    "viewsDesatualizadas": false,
+    "niveis": ["ERRO", "ALERTA", "INFO"],
+    "resumo": {
+      "total": 0,
+      "ERRO": 0,
+      "ALERTA": 0,
+      "INFO": 0,
+      "viewsDesatualizadas": 0
+    },
+    "avisos": [],
+    "blocos": [
+      {
+        "id": "atividadesSemChamada",
+        "titulo": "Atividades sem chamada",
+        "nivel": "INFO",
+        "total": 0,
+        "resumo": "Nenhuma ocorrencia encontrada.",
+        "desatualizado": false,
+        "itens": []
+      }
+    ]
+  }
+}
+```
+
+Blocos previstos: `atividadesSemChamada`, `apresentacoesPendentes`,
+`justificativasPendentes`, `membrosFrequenciaCritica`,
+`inconsistenciasCadastrais`, `errosCargosFuncoes`, `ultimaExecucaoJobs` e
+`statusViewsPortal`.
 
 Exemplo:
 

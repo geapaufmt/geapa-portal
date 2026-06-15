@@ -245,6 +245,7 @@
       '/v2/proximas-atividades': 'proximasAtividades',
       '/v2/historico-atividades': 'historicoAtividades',
       '/v2/pendencias-diretoria': 'pendenciasDiretoria',
+      '/v2/painel-diretoria': 'painelDiretoriaV2',
       '/v2/status-views': 'statusViewsV2'
     };
 
@@ -369,6 +370,19 @@
       ]));
     }
 
+    if (route === '/v2/painel-diretoria') {
+      return Promise.resolve({
+        ok: true,
+        data: criarPainelDiretoriaV2Mock(),
+        meta: {
+          viewsV2: {
+            somenteLeitura: true,
+            origemDados: 'mock'
+          }
+        }
+      });
+    }
+
     if (route === '/v2/status-views') {
       return Promise.resolve(criarRespostaV2Mock('views', [
         {
@@ -475,6 +489,86 @@
         modo: 'MOCK',
         ultimaAtualizacao: new Date().toISOString()
       }
+    };
+  }
+
+  function criarPainelDiretoriaV2Mock() {
+    return {
+      ultimaAtualizacao: new Date().toISOString(),
+      somenteLeitura: true,
+      niveis: ['ERRO', 'ALERTA', 'INFO'],
+      resumo: {
+        total: 3,
+        ERRO: 1,
+        ALERTA: 1,
+        INFO: 1,
+        viewsDesatualizadas: 1
+      },
+      avisos: [],
+      viewsDesatualizadas: true,
+      blocos: [
+        {
+          id: 'atividadesSemChamada',
+          titulo: 'Atividades sem chamada',
+          nivel: 'ALERTA',
+          total: 1,
+          resumo: '1 ocorrencia em aberto.',
+          ultimaAtualizacao: new Date().toISOString(),
+          desatualizado: false,
+          itens: [
+            {
+              tipo: 'CHAMADA',
+              titulo: 'Reuniao ordinaria sem chamada consolidada',
+              descricao: 'Atividade realizada sem fechamento de chamada na view V2.',
+              status: 'PENDENTE',
+              nivel: 'ALERTA',
+              responsavelGrupo: 'Secretaria',
+              atualizadaEm: new Date().toISOString()
+            }
+          ]
+        },
+        {
+          id: 'inconsistenciasCadastrais',
+          titulo: 'Inconsistencias cadastrais',
+          nivel: 'ERRO',
+          total: 1,
+          resumo: '1 ocorrencia em aberto.',
+          ultimaAtualizacao: new Date().toISOString(),
+          desatualizado: false,
+          itens: [
+            {
+              tipo: 'CADASTRO',
+              titulo: 'Vinculo sem identificador publico',
+              descricao: 'Registro precisa ser revisado na rotina V2 de origem.',
+              status: 'ERRO',
+              nivel: 'ERRO',
+              responsavelGrupo: 'Admin tecnico',
+              atualizadaEm: new Date().toISOString()
+            }
+          ]
+        },
+        {
+          id: 'statusViewsPortal',
+          titulo: 'Status das views do portal',
+          nivel: 'INFO',
+          total: 1,
+          resumo: '1 view monitorada.',
+          ultimaAtualizacao: new Date().toISOString(),
+          desatualizado: true,
+          itens: [
+            {
+              tipo: 'View',
+              titulo: 'PORTAL_ATIVIDADES_CALENDARIO',
+              descricao: 'Mock local',
+              status: 'OK',
+              nivel: 'INFO',
+              linhas: 3,
+              origem: 'MOCK',
+              atualizadaEm: new Date().toISOString()
+            }
+          ]
+        }
+      ]
     };
   }
 

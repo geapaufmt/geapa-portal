@@ -34,6 +34,7 @@ function doGet(e) {
         'proximasAtividades',
         'historicoAtividades',
         'pendenciasDiretoria',
+        'painelDiretoriaV2',
         'statusViewsV2'
       ],
       parametrosRecebidos: e && e.parameter ? e.parameter : {}
@@ -186,6 +187,10 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'pendenciasDiretoria') {
     return portalPendenciasDiretoriaV2(requisicao.token || '');
+  }
+
+  if (acao === 'painelDiretoriaV2') {
+    return portalApiGetPainelDiretoriaV2(requisicao.token || '');
   }
 
   if (acao === 'statusViewsV2') {

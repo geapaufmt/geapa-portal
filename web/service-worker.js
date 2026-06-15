@@ -1,4 +1,4 @@
-const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v23';
+const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v24';
 
 const STATIC_ASSETS = [
   '/',
@@ -15,6 +15,7 @@ const STATIC_ASSETS = [
   '/assets/js/ui.js',
   '/assets/js/atividades.js',
   '/assets/js/portal-v2-readonly.js',
+  '/assets/js/painel-diretoria-v2.js',
   '/assets/js/firebase-auth.js',
   '/assets/js/firestore-session-cache.js',
   '/assets/js/pwa.js',

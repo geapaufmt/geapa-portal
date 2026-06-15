@@ -277,6 +277,477 @@ function portalStatusViewsV2(token) {
   });
 }
 
+function portalApiGetPainelDiretoriaV2(token) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var config = portalPainelDiretoriaV2Config_();
+  var contexto = portalMontarContextoViewsV2_(token, config);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var cacheKey = portalCacheKey_('viewsV2r1:painelDiretoriaV2', contexto.identificadorSessao);
+  var cache = portalLerJsonCacheViewsV2_(cacheKey);
+
+  if (cache) {
+    return portalRespostaOk_(
+      'PAINEL_DIRETORIA_V2_CACHE',
+      'Painel da diretoria carregado em cache temporario.',
+      cache,
+      portalMetaViewsV2_('cache', inicio)
+    );
+  }
+
+  var pendencias = portalPainelDiretoriaV2LerFonte_(portalPainelDiretoriaV2PendenciasConfig_(), contexto);
+  var statusViews = portalPainelDiretoriaV2LerFonte_(portalPainelDiretoriaV2StatusConfig_(), contexto);
+  var painel = portalMontarPainelDiretoriaV2_(
+    pendencias.ok ? pendencias.data : null,
+    statusViews.ok ? statusViews.data : null,
+    {
+      pendencias: pendencias,
+      statusViews: statusViews
+    }
+  );
+
+  portalSalvarJsonCacheViewsV2_(cacheKey, painel);
+
+  return portalRespostaOk_(
+    'PAINEL_DIRETORIA_V2',
+    'Painel da diretoria V2 carregado em modo somente leitura.',
+    painel,
+    portalMetaViewsV2_('views-v2-agregado', inicio)
+  );
+}
+
+function portalPainelDiretoriaV2Config_() {
+  return {
+    id: 'painelDiretoriaV2',
+    requerDiretoria: true,
+    permissoes: [
+      'diretoria:painel_v2',
+      'diretoria:pendencias',
+      'sistema:status_v2',
+      'sistema:admin',
+      'atividades:gerir',
+      'membros:ler',
+      'justificativas:analisar'
+    ]
+  };
+}
+
+function portalPainelDiretoriaV2PendenciasConfig_() {
+  return {
+    id: 'painelDiretoriaV2Pendencias',
+    code: 'PAINEL_DIRETORIA_PENDENCIAS_V2',
+    message: 'Pendencias V2 carregadas para o painel da diretoria.',
+    listaCampo: 'pendencias',
+    listaChaves: ['pendencias', 'pendenciasDiretoria', 'registros', 'itens'],
+    resumoChaves: ['resumo', 'totais'],
+    destino: 'atividades',
+    registryKeys: [
+      'ATIVIDADES_V2_PORTAL_PENDENCIAS_DIRETORIA'
+    ],
+    requerDiretoria: true,
+    permissoes: portalPainelDiretoriaV2Config_().permissoes,
+    funcoes: [
+      'atividadesV2_portalGetPendenciasDiretoria',
+      'corePortalV2GetPendenciasDiretoria',
+      'corePortalReadonlyGetPendenciasDiretoria',
+      'portalV2GetPendenciasDiretoria',
+      'portal.v2.getPendenciasDiretoria',
+      'portal.getPendenciasDiretoria'
+    ],
+    campos: [
+      'idPendencia',
+      'tipo',
+      'titulo',
+      'descricaoPublica',
+      'status',
+      'severidade',
+      'responsavelGrupo',
+      'criadaEm',
+      'atualizadaEm',
+      'prazo'
+    ],
+    aliases: {
+      idPendencia: ['ID_PENDENCIA'],
+      tipo: ['tipoPendencia', 'TIPO_PENDENCIA'],
+      titulo: ['tituloAtividade', 'TITULO_ATIVIDADE'],
+      descricaoPublica: ['descricaoPendencia', 'DESCRICAO_PENDENCIA'],
+      status: ['statusPendencia', 'STATUS_PENDENCIA'],
+      severidade: ['gravidade', 'GRAVIDADE'],
+      responsavelGrupo: ['responsavelSugerido', 'RESPONSAVEL_SUGERIDO'],
+      atualizadaEm: ['ultimaAtualizacao', 'ULTIMA_ATUALIZACAO']
+    }
+  };
+}
+
+function portalPainelDiretoriaV2StatusConfig_() {
+  return {
+    id: 'painelDiretoriaV2Status',
+    code: 'PAINEL_DIRETORIA_STATUS_V2',
+    message: 'Status das views V2 carregado para o painel da diretoria.',
+    listaCampo: 'views',
+    listaChaves: ['views', 'statusViews', 'status', 'itens'],
+    resumoChaves: ['resumo', 'totais'],
+    destino: 'atividades',
+    registryKeys: [
+      'ATIVIDADES_V2_PORTAL_STATUS',
+      'ATIVIDADES_V2_PORTAL_STATUS_ATIVIDADES'
+    ],
+    requerDiretoria: true,
+    permissoes: portalPainelDiretoriaV2Config_().permissoes,
+    funcoes: [
+      'atividadesV2_portalGetStatusViews',
+      'corePortalV2GetStatusViews',
+      'corePortalReadonlyGetStatusViewsV2',
+      'portalV2GetStatusViews',
+      'portal.v2.getStatusViews',
+      'portal.getStatusViews'
+    ],
+    campos: [
+      'view',
+      'nome',
+      'status',
+      'ok',
+      'linhas',
+      'ultimaAtualizacao',
+      'atualizadaEm',
+      'origem',
+      'mensagem'
+    ],
+    aliases: {
+      view: ['idStatus', 'ID_STATUS'],
+      nome: ['idStatus', 'ID_STATUS'],
+      status: ['statusGeral', 'STATUS_GERAL'],
+      ok: ['statusGeral', 'STATUS_GERAL'],
+      atualizadaEm: ['dataHoraAtualizacao', 'DATA_HORA_ATUALIZACAO', 'ultimaAtualizacao'],
+      mensagem: ['observacoes', 'OBSERVACOES', 'ultimoErro', 'ULTIMO_ERRO']
+    }
+  };
+}
+
+function portalPainelDiretoriaV2LerFonte_(config, contexto) {
+  var resposta = portalChamarContratoViewsV2_(config, contexto);
+
+  if (!resposta) {
+    resposta = portalLerViewV2PorRegistry_(config);
+  }
+
+  return portalNormalizarRespostaViewsV2_(resposta, config, contexto);
+}
+
+function portalMontarPainelDiretoriaV2_(dadosPendencias, dadosStatus, fontes) {
+  var pendencias = dadosPendencias && Array.isArray(dadosPendencias.pendencias)
+    ? dadosPendencias.pendencias
+    : [];
+  var views = dadosStatus && Array.isArray(dadosStatus.views)
+    ? dadosStatus.views
+    : [];
+  var blocosPendencias = portalPainelDiretoriaV2BlocosBase_();
+  var blocosStatus = portalPainelDiretoriaV2MontarBlocosStatus_(views);
+  var ultimaAtualizacao = portalPainelDiretoriaV2UltimaAtualizacao_(pendencias, views, dadosPendencias, dadosStatus);
+  var avisos = portalPainelDiretoriaV2AvisosFontes_(fontes);
+
+  pendencias.forEach(function distribuir(item) {
+    var bloco = portalPainelDiretoriaV2EscolherBloco_(item);
+    blocosPendencias[bloco].itens.push(portalPainelDiretoriaV2SanitizarPendencia_(item));
+  });
+
+  var blocos = Object.keys(blocosPendencias).map(function montar(chave) {
+    return portalPainelDiretoriaV2FinalizarBloco_(blocosPendencias[chave]);
+  }).concat(blocosStatus);
+
+  return {
+    ultimaAtualizacao: ultimaAtualizacao || new Date().toISOString(),
+    somenteLeitura: true,
+    niveis: ['ERRO', 'ALERTA', 'INFO'],
+    resumo: portalPainelDiretoriaV2Resumo_(blocos),
+    avisos: avisos,
+    viewsDesatualizadas: blocos.some(function verificar(bloco) {
+      return bloco.desatualizado === true;
+    }),
+    blocos: blocos
+  };
+}
+
+function portalPainelDiretoriaV2BlocosBase_() {
+  return {
+    atividadesSemChamada: portalPainelDiretoriaV2CriarBloco_('atividadesSemChamada', 'Atividades sem chamada', 'INFO'),
+    apresentacoesPendentes: portalPainelDiretoriaV2CriarBloco_('apresentacoesPendentes', 'Apresentacoes com pendencia', 'INFO'),
+    justificativasPendentes: portalPainelDiretoriaV2CriarBloco_('justificativasPendentes', 'Justificativas pendentes', 'INFO'),
+    membrosFrequenciaCritica: portalPainelDiretoriaV2CriarBloco_('membrosFrequenciaCritica', 'Membros com frequencia critica', 'INFO'),
+    inconsistenciasCadastrais: portalPainelDiretoriaV2CriarBloco_('inconsistenciasCadastrais', 'Inconsistencias cadastrais', 'INFO'),
+    errosCargosFuncoes: portalPainelDiretoriaV2CriarBloco_('errosCargosFuncoes', 'Erros de cargos/funcoes', 'INFO')
+  };
+}
+
+function portalPainelDiretoriaV2CriarBloco_(id, titulo, nivelPadrao) {
+  return {
+    id: id,
+    titulo: titulo,
+    nivel: nivelPadrao || 'INFO',
+    total: 0,
+    itens: [],
+    ultimaAtualizacao: '',
+    desatualizado: false
+  };
+}
+
+function portalPainelDiretoriaV2EscolherBloco_(item) {
+  var texto = portalPainelDiretoriaV2TextoBusca_(item);
+
+  if (portalPainelDiretoriaV2Contem_(texto, ['CHAMADA', 'PRESENCA', 'PRESENÇA'])) {
+    return 'atividadesSemChamada';
+  }
+
+  if (portalPainelDiretoriaV2Contem_(texto, ['APRESENTACAO', 'APRESENTAÇÃO', 'BANCA', 'SEMINARIO', 'SEMINÁRIO'])) {
+    return 'apresentacoesPendentes';
+  }
+
+  if (portalPainelDiretoriaV2Contem_(texto, ['JUSTIFICATIVA', 'ABONO'])) {
+    return 'justificativasPendentes';
+  }
+
+  if (portalPainelDiretoriaV2Contem_(texto, ['FREQUENCIA', 'FREQUÊNCIA', 'FALTA', 'ASSIDUIDADE'])) {
+    return 'membrosFrequenciaCritica';
+  }
+
+  if (portalPainelDiretoriaV2Contem_(texto, ['CARGO', 'FUNCAO', 'FUNÇÃO', 'VIGENCIA', 'VIGÊNCIA', 'DIRETORIA'])) {
+    return 'errosCargosFuncoes';
+  }
+
+  return 'inconsistenciasCadastrais';
+}
+
+function portalPainelDiretoriaV2TextoBusca_(item) {
+  return [
+    item.tipo,
+    item.titulo,
+    item.descricaoPublica,
+    item.status,
+    item.severidade,
+    item.responsavelGrupo
+  ].join(' ').toUpperCase();
+}
+
+function portalPainelDiretoriaV2Contem_(texto, termos) {
+  return termos.some(function contem(termo) {
+    return texto.indexOf(termo) >= 0;
+  });
+}
+
+function portalPainelDiretoriaV2SanitizarPendencia_(item) {
+  return {
+    id: String(item.idPendencia || '').slice(0, 80),
+    tipo: String(item.tipo || 'Pendencia').slice(0, 80),
+    titulo: String(item.titulo || item.tipo || 'Pendencia').slice(0, 140),
+    descricao: String(item.descricaoPublica || '').slice(0, 220),
+    status: String(item.status || '').slice(0, 60),
+    nivel: portalPainelDiretoriaV2Nivel_(item),
+    responsavelGrupo: String(item.responsavelGrupo || '').slice(0, 80),
+    prazo: String(item.prazo || '').slice(0, 40),
+    atualizadaEm: String(item.atualizadaEm || item.criadaEm || '').slice(0, 40)
+  };
+}
+
+function portalPainelDiretoriaV2Nivel_(item) {
+  var texto = [
+    item.severidade,
+    item.status,
+    item.mensagem,
+    item.descricaoPublica,
+    item.ok === false ? 'ERRO' : ''
+  ].join(' ').toUpperCase();
+
+  if (portalPainelDiretoriaV2Contem_(texto, ['ERRO', 'CRITIC', 'CRÍTIC', 'ALTA', 'VENCID', 'FALHA', 'INCONSISTENTE'])) {
+    return 'ERRO';
+  }
+
+  if (portalPainelDiretoriaV2Contem_(texto, ['ALERTA', 'MEDIA', 'MÉDIA', 'PENDENTE', 'ATENCAO', 'ATENÇÃO', 'BAIXA'])) {
+    return 'ALERTA';
+  }
+
+  return 'INFO';
+}
+
+function portalPainelDiretoriaV2FinalizarBloco_(bloco) {
+  bloco.total = bloco.itens.length;
+  bloco.itens.forEach(function consolidar(item) {
+    bloco.nivel = portalPainelDiretoriaV2PiorNivel_(bloco.nivel, item.nivel);
+    bloco.ultimaAtualizacao = portalPainelDiretoriaV2MaiorData_(bloco.ultimaAtualizacao, item.atualizadaEm);
+  });
+  bloco.itens = bloco.itens.slice(0, 12);
+  bloco.resumo = bloco.total === 0 ? 'Nenhuma ocorrencia encontrada.' : bloco.total + ' ocorrencia(s) em aberto.';
+  return bloco;
+}
+
+function portalPainelDiretoriaV2MontarBlocosStatus_(views) {
+  var jobs = portalPainelDiretoriaV2CriarBloco_('ultimaExecucaoJobs', 'Ultima execucao dos jobs', 'INFO');
+  var status = portalPainelDiretoriaV2CriarBloco_('statusViewsPortal', 'Status das views do portal', 'INFO');
+
+  views.forEach(function incluir(view) {
+    var item = portalPainelDiretoriaV2SanitizarStatusView_(view);
+    jobs.itens.push({
+      id: item.id,
+      tipo: 'Job/View',
+      titulo: item.titulo,
+      descricao: item.ultimaAtualizacao ? 'Atualizada em ' + item.ultimaAtualizacao : item.mensagem,
+      status: item.status,
+      nivel: item.nivel,
+      atualizadaEm: item.ultimaAtualizacao
+    });
+    status.itens.push(item);
+  });
+
+  jobs = portalPainelDiretoriaV2FinalizarBloco_(jobs);
+  status = portalPainelDiretoriaV2FinalizarBloco_(status);
+  jobs.desatualizado = portalPainelDiretoriaV2TemViewDesatualizada_(views);
+  status.desatualizado = jobs.desatualizado;
+  jobs.nivel = jobs.desatualizado ? portalPainelDiretoriaV2PiorNivel_(jobs.nivel, 'ALERTA') : jobs.nivel;
+  status.nivel = status.desatualizado ? portalPainelDiretoriaV2PiorNivel_(status.nivel, 'ALERTA') : status.nivel;
+  jobs.resumo = jobs.desatualizado ? 'Ha jobs ou views com atualizacao antiga.' : jobs.resumo;
+  status.resumo = status.desatualizado ? 'Ha views possivelmente desatualizadas.' : status.resumo;
+  return [jobs, status];
+}
+
+function portalPainelDiretoriaV2SanitizarStatusView_(view) {
+  var nivel = portalPainelDiretoriaV2Nivel_(view);
+  var atualizadaEm = String(view.atualizadaEm || view.ultimaAtualizacao || '').slice(0, 40);
+
+  if (portalPainelDiretoriaV2ViewDesatualizada_(view)) {
+    nivel = portalPainelDiretoriaV2PiorNivel_(nivel, 'ALERTA');
+  }
+
+  return {
+    id: String(view.view || view.nome || '').slice(0, 80),
+    tipo: 'View',
+    titulo: String(view.nome || view.view || 'View V2').slice(0, 120),
+    descricao: String(view.mensagem || view.origem || '').slice(0, 220),
+    status: String(view.status || (view.ok === false ? 'ERRO' : 'OK')).slice(0, 60),
+    nivel: nivel,
+    linhas: view.linhas,
+    origem: String(view.origem || '').slice(0, 80),
+    atualizadaEm: atualizadaEm,
+    ultimaAtualizacao: atualizadaEm
+  };
+}
+
+function portalPainelDiretoriaV2TemViewDesatualizada_(views) {
+  return (views || []).some(function verificar(view) {
+    return portalPainelDiretoriaV2ViewDesatualizada_(view);
+  });
+}
+
+function portalPainelDiretoriaV2ViewDesatualizada_(view) {
+  var valor = view.atualizadaEm || view.ultimaAtualizacao || '';
+  var ts = portalPainelDiretoriaV2Timestamp_(valor);
+
+  if (!ts) {
+    return true;
+  }
+
+  return portalAgoraViewsV2Ms_() - ts > 24 * 60 * 60 * 1000;
+}
+
+function portalPainelDiretoriaV2Timestamp_(valor) {
+  var texto = String(valor || '').trim();
+  var partes;
+  var dt;
+
+  if (!texto) {
+    return 0;
+  }
+
+  dt = new Date(texto);
+  if (!isNaN(dt.getTime())) {
+    return dt.getTime();
+  }
+
+  partes = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (partes) {
+    dt = new Date(
+      Number(partes[3]),
+      Number(partes[2]) - 1,
+      Number(partes[1]),
+      Number(partes[4] || 0),
+      Number(partes[5] || 0)
+    );
+    return isNaN(dt.getTime()) ? 0 : dt.getTime();
+  }
+
+  return 0;
+}
+
+function portalPainelDiretoriaV2MaiorData_(atual, candidata) {
+  var tsAtual = portalPainelDiretoriaV2Timestamp_(atual);
+  var tsCandidata = portalPainelDiretoriaV2Timestamp_(candidata);
+
+  return tsCandidata > tsAtual ? candidata : atual;
+}
+
+function portalPainelDiretoriaV2UltimaAtualizacao_(pendencias, views, dadosPendencias, dadosStatus) {
+  var ultima = '';
+
+  ultima = portalPainelDiretoriaV2MaiorData_(ultima, dadosPendencias && dadosPendencias.ultimaAtualizacao);
+  ultima = portalPainelDiretoriaV2MaiorData_(ultima, dadosStatus && dadosStatus.ultimaAtualizacao);
+  (pendencias || []).forEach(function olhar(item) {
+    ultima = portalPainelDiretoriaV2MaiorData_(ultima, item.atualizadaEm || item.criadaEm);
+  });
+  (views || []).forEach(function olhar(view) {
+    ultima = portalPainelDiretoriaV2MaiorData_(ultima, view.atualizadaEm || view.ultimaAtualizacao);
+  });
+
+  return ultima;
+}
+
+function portalPainelDiretoriaV2PiorNivel_(atual, novo) {
+  var ordem = {
+    INFO: 1,
+    ALERTA: 2,
+    ERRO: 3
+  };
+
+  return (ordem[novo] || 1) > (ordem[atual] || 1) ? novo : atual;
+}
+
+function portalPainelDiretoriaV2Resumo_(blocos) {
+  return (blocos || []).reduce(function resumir(acc, bloco) {
+    acc.total += Number(bloco.total || 0);
+    acc[bloco.nivel] += Number(bloco.total || 0);
+    if (bloco.desatualizado) {
+      acc.viewsDesatualizadas += 1;
+    }
+    return acc;
+  }, {
+    total: 0,
+    ERRO: 0,
+    ALERTA: 0,
+    INFO: 0,
+    viewsDesatualizadas: 0
+  });
+}
+
+function portalPainelDiretoriaV2AvisosFontes_(fontes) {
+  var avisos = [];
+
+  if (fontes && fontes.pendencias && fontes.pendencias.ok === false) {
+    avisos.push({
+      nivel: 'ALERTA',
+      mensagem: 'Pendencias V2 indisponiveis no momento.'
+    });
+  }
+
+  if (fontes && fontes.statusViews && fontes.statusViews.ok === false) {
+    avisos.push({
+      nivel: 'ALERTA',
+      mensagem: 'Status das views V2 indisponivel no momento.'
+    });
+  }
+
+  return avisos;
+}
+
 function portalExecutarLeituraV2_(token, config) {
   var inicio = portalAgoraViewsV2Ms_();
   var contexto = portalMontarContextoViewsV2_(token, config);

@@ -84,6 +84,7 @@ pelo mesmo guard.
 | `diretoria` | Gestao | DIRETORIA, ADMIN | `membros:ler`, `atividades:gerir` | Placeholder |
 | `secretaria` | Gestao | SECRETARIA, DIRETORIA, ADMIN | `membros:ler`, `presencas:gerir`, `apresentacoes:gerir` | Placeholder |
 | `comunicacao` | Gestao | COMUNICACAO, DIRETORIA, ADMIN | `atividades:gerir`, `mensageria:ler` | Placeholder |
+| `painel-diretoria-v2` | Gestao | DIRETORIA, SECRETARIA, ADMIN, ADMIN_TECNICO | `diretoria:painel_v2`, `diretoria:pendencias`, `sistema:status_v2`, `sistema:admin`, `atividades:gerir`, `membros:ler`, `justificativas:analisar` | Implementada, read-only V2 |
 | `pendencias-diretoria` | Gestao | DIRETORIA, SECRETARIA, ADMIN | `diretoria:pendencias`, `membros:ler`, `atividades:gerir`, `justificativas:analisar` | Implementada, read-only V2 |
 | `status-v2` | Gestao | DIRETORIA, SECRETARIA, ADMIN | `sistema:status_v2`, `sistema:admin`, `atividades:gerir`, `membros:ler` | Implementada, read-only V2 |
 | `conselho` | Gestao | CONSELHO, DIRETORIA, ADMIN | `portal:acessar` | Placeholder |
@@ -139,8 +140,10 @@ exige que a rota tenha ao menos uma permissao efetiva correspondente.
 As rotas `frequencia`, `minhas-apresentacoes`, `justificativas`,
 `pendencias-diretoria` e `status-v2` usam a tela reutilizavel
 `#tela-placeholder` com renderizacao em `web/assets/js/portal-v2-readonly.js`.
-O bloqueio visual continua no `navigation.js`, mas a autorizacao real e o
-filtro de dados acontecem no Apps Script.
+A rota `painel-diretoria-v2` usa o mesmo placeholder, mas renderiza o painel
+agregado em `web/assets/js/painel-diretoria-v2.js`. O bloqueio visual continua
+no `navigation.js`, mas a autorizacao real e o filtro de dados acontecem no
+Apps Script.
 
 Membro comum recebe apenas dados proprios. Rotas de diretoria dependem de
 perfil/permissao enviados pelo backend; o frontend nao deriva cargo, diretoria

@@ -102,9 +102,10 @@ listas completas de membros para que o navegador filtre depois.
 
 ## Diretoria e edicao futura
 
-Painel da Diretoria e edicao de dados estao fora do escopo atual.
+O Painel da Diretoria V2 existe apenas para leitura de agregados sanitizados.
+Edicao de dados pela diretoria permanece fora do escopo atual.
 
-Quando essa fase existir, ela devera ter:
+Quando a fase de edicao existir, ela devera ter:
 
 - autenticacao mais forte;
 - permissao por perfil;
