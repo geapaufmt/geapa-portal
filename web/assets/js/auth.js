@@ -218,6 +218,9 @@
   function canRegisterAttendance(atividade) {
     var usuarioPodeRegistrar = hasPermissao('podeRegistrarChamada') ||
       hasPermissao('podeGerenciarAtividades') ||
+      hasPermissao('presencas:gerir') ||
+      hasPermissao('atividades:gerir') ||
+      hasPermissao('sistema:admin') ||
       isSecretario() ||
       isDiretoria() ||
       isAdminTecnico();

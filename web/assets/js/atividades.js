@@ -960,6 +960,7 @@
       historico ? '' : montarAvisoChamada(atividade, destaque),
       '<div class="activity-actions">',
       montarBotaoDetalhes(atividade),
+      montarBotaoChamada(atividade, modo),
       '</div>',
       '</article>'
     ].join('');
