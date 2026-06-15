@@ -2,12 +2,12 @@
  * Testes manuais iniciais do Portal GEAPA.
  *
  * Estes testes nao substituem uma suite formal. Eles existem para que futuras
- * manutencoes possam validar rapidamente os placeholders no editor do Apps
- * Script enquanto a arquitetura definitiva nao estiver pronta.
+ * manutencoes possam validar rapidamente os contratos no editor do Apps
+ * Script.
  */
 
 /**
- * Executa verificacoes simples dos contratos placeholder.
+ * Executa verificacoes simples dos contratos iniciais.
  *
  * @return {Object} Resultado agregado dos testes simulados.
  */
@@ -175,27 +175,59 @@ function portalRunDiagnosticoConteudoPublico() {
  *
  * @return {Object} Resultado agregado dos testes de contrato.
  */
-function portalRunViewsV2ReadonlyTests() {
-  var endpoints = {
-    minhaFrequencia: portalMinhaFrequenciaV2(''),
-    minhasApresentacoes: portalMinhasApresentacoesV2(''),
-    minhasJustificativas: portalMinhasJustificativasV2(''),
-    proximasAtividades: portalProximasAtividadesV2(''),
-    historicoAtividades: portalHistoricoAtividadesV2(''),
-    pendenciasDiretoria: portalPendenciasDiretoriaV2(''),
-    statusViewsV2: portalStatusViewsV2('')
+function portalRunTesteEndpointsReadOnlyV2() {
+  var funcoes = {
+    minhaFrequencia: portalMinhaFrequenciaV2,
+    minhasApresentacoes: portalMinhasApresentacoesV2,
+    minhasJustificativas: portalMinhasJustificativasV2,
+    proximasAtividades: portalProximasAtividadesV2,
+    historicoAtividades: portalHistoricoAtividadesV2,
+    pendenciasDiretoria: portalPendenciasDiretoriaV2,
+    painelDiretoriaV2: portalApiGetPainelDiretoriaV2,
+    statusViewsV2: portalStatusViewsV2
   };
-  var nomes = Object.keys(endpoints);
+  var nomes = Object.keys(funcoes);
+  var endpoints = {};
+  var funcoesLocalizadas = {};
+
+  nomes.forEach(function executar(nome) {
+    funcoesLocalizadas[nome] = typeof funcoes[nome] === 'function';
+    endpoints[nome] = funcoesLocalizadas[nome]
+      ? funcoes[nome]('')
+      : {
+        ok: false,
+        code: 'FUNCAO_NAO_LOCALIZADA',
+        message: 'Funcao read-only V2 nao localizada: ' + nome
+      };
+  });
+
   var resultado = {
     ok: nomes.every(function validar(nome) {
-      return endpoints[nome] &&
+      return funcoesLocalizadas[nome] === true &&
+        endpoints[nome] &&
         endpoints[nome].ok === false &&
         endpoints[nome].code === 'SESSAO_OBRIGATORIA';
     }),
     modo: 'views-v2-readonly',
+    checks: {
+      todasFuncoesLocalizadas: nomes.every(function validar(nome) {
+        return funcoesLocalizadas[nome] === true;
+      }),
+      visitanteSemTokenBloqueado: nomes.every(function validar(nome) {
+        return endpoints[nome] &&
+          endpoints[nome].ok === false &&
+          endpoints[nome].code === 'SESSAO_OBRIGATORIA';
+      }),
+      somenteLeitura: true
+    },
+    funcoesLocalizadas: funcoesLocalizadas,
     endpoints: endpoints
   };
 
   Logger.log(JSON.stringify(resultado, null, 2));
   return resultado;
+}
+
+function portalRunViewsV2ReadonlyTests() {
+  return portalRunTesteEndpointsReadOnlyV2();
 }

@@ -7,7 +7,7 @@
 
 var PORTAL_CONFIG = {
   nomePortal: 'Portal GEAPA',
-  versaoContrato: 'v1-placeholder',
+  versaoContrato: 'v2-readonly',
   ambiente: 'desenvolvimento',
 
   /**

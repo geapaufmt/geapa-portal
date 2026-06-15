@@ -1,8 +1,8 @@
 /**
  * Entrada do Web App do Apps Script.
  *
- * Nesta etapa, o endpoint ja roteia acoes do portal, mas todas as funcoes
- * chamadas ainda retornam dados simulados. Nao ha consulta real a planilhas.
+ * Nesta etapa, o endpoint roteia acoes reais do portal para contratos
+ * Apps Script, mantendo as leituras V2 em modo somente leitura.
  */
 
 /**
@@ -14,7 +14,7 @@
 function doGet(e) {
   return portalJsonOutput_(portalRespostaOk_(
     'PORTAL_API_OK',
-    'API do Portal GEAPA ativa em modo placeholder.',
+    'API do Portal GEAPA ativa.',
     {
       acoesDisponiveis: [
         'solicitarCodigo',
@@ -55,8 +55,8 @@ function doPost(e) {
     return portalJsonOutput_(resposta);
   } catch (erro) {
     return portalJsonOutput_(portalRespostaErro_(
-      'ERRO_INTERNO_PLACEHOLDER',
-      'Erro ao processar requisicao placeholder.',
+      'ERRO_INTERNO_PORTAL',
+      'Erro ao processar requisicao do Portal GEAPA.',
       {
         detalhe: erro && erro.message ? erro.message : String(erro)
       }
@@ -91,7 +91,7 @@ function portalLerRequisicao_(e) {
 }
 
 /**
- * Encaminha a acao solicitada para a funcao placeholder correspondente.
+ * Encaminha a acao solicitada para a funcao correspondente.
  *
  * @param {Object} requisicao Parametros recebidos do front-end.
  * @return {Object} Resposta da acao.
@@ -242,7 +242,7 @@ function portalRespostaErro_(code, message, data, metaExtra) {
 function portalResposta_(ok, code, message, data, metaExtra) {
   var meta = {
     app: PORTAL_CONFIG.nomePortal,
-    modo: 'placeholder',
+    modo: 'apps-script',
     versaoContrato: PORTAL_CONFIG.versaoContrato
   };
 

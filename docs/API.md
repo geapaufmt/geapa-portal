@@ -3,11 +3,12 @@
 Este documento descreve o contrato inicial entre o front-end publico do Portal
 GEAPA e o backend em Google Apps Script.
 
-Nesta etapa, a API ja pode resolver um membro pelo `GEAPA_CORE` ou por um
-cadastro de teste privado, enviar codigo real ao e-mail cadastrado e carregar a
-primeira versao parcial da tela "Minha situacao". Nome, RGA, vinculo e situacao
-geral podem vir do backend; frequencia, pendencias, certificados e historico
-ainda ficam em preparacao.
+Nesta etapa, a API ja resolve sessoes pelo `GEAPA_CORE`, autentica pelo Firebase
+ou por codigo temporario, carrega a tela "Minha situacao", integra atividades
+operacionais e expoe endpoints V2 somente leitura para frequencia,
+apresentacoes, justificativas, atividades, pendencias, painel da diretoria e
+status das views. Certificados, upload, decisao de justificativa e edicao de
+atividade seguem fora do contrato do Portal.
 
 O backend prioriza o resolvedor oficial de sessao do GEAPA-CORE:
 
@@ -60,8 +61,8 @@ Todas as respostas devem seguir este formato:
   "data": {},
   "meta": {
     "app": "Portal GEAPA",
-    "modo": "placeholder",
-    "versaoContrato": "v1-placeholder"
+    "modo": "apps-script",
+    "versaoContrato": "v2-readonly"
   }
 }
 ```
@@ -171,7 +172,7 @@ Resposta esperada:
 {
   "ok": true,
   "code": "PORTAL_API_OK",
-  "message": "API do Portal GEAPA ativa em modo placeholder.",
+  "message": "API do Portal GEAPA ativa.",
   "data": {
     "acoesDisponiveis": [
       "solicitarCodigo",
@@ -191,13 +192,14 @@ Resposta esperada:
       "proximasAtividades",
       "historicoAtividades",
       "pendenciasDiretoria",
+      "painelDiretoriaV2",
       "statusViewsV2"
     ]
   },
   "meta": {
     "app": "Portal GEAPA",
-    "modo": "placeholder",
-    "versaoContrato": "v1-placeholder"
+    "modo": "apps-script",
+    "versaoContrato": "v2-readonly"
   }
 }
 ```
@@ -250,8 +252,8 @@ Resposta esperada:
   },
   "meta": {
     "app": "Portal GEAPA",
-    "modo": "placeholder",
-    "versaoContrato": "v1-placeholder",
+    "modo": "apps-script",
+    "versaoContrato": "v2-readonly",
     "desempenho": {
       "origemDados": "geapa-core",
       "tempoMs": 0,
@@ -311,8 +313,8 @@ Resposta em modo de teste com envio habilitado:
   },
   "meta": {
     "app": "Portal GEAPA",
-    "modo": "placeholder",
-    "versaoContrato": "v1-placeholder"
+    "modo": "apps-script",
+    "versaoContrato": "v2-readonly"
   }
 }
 ```
@@ -355,8 +357,8 @@ Resposta em modo de teste:
   },
   "meta": {
     "app": "Portal GEAPA",
-    "modo": "placeholder",
-    "versaoContrato": "v1-placeholder"
+    "modo": "apps-script",
+    "versaoContrato": "v2-readonly"
   }
 }
 ```
@@ -471,8 +473,8 @@ Resposta quando a situacao vem do GEAPA-CORE:
   },
   "meta": {
     "app": "Portal GEAPA",
-    "modo": "placeholder",
-    "versaoContrato": "v1-placeholder",
+    "modo": "apps-script",
+    "versaoContrato": "v2-readonly",
     "desempenho": {
       "origemDados": "geapa-core",
       "tempoMs": 820,
@@ -763,6 +765,17 @@ read-only publicados pelo modulo GEAPA Atividades; quando eles ainda nao
 existem, usa fallback temporario pelas keys `ATIVIDADES_V2_PORTAL_*` no
 Registry, filtrando e sanitizando antes de responder.
 
+Teste manual no editor do Apps Script:
+
+```text
+portalRunTesteEndpointsReadOnlyV2()
+```
+
+O teste confirma que as oito funcoes read-only V2 roteadas existem, podem ser
+chamadas sem `ReferenceError` e bloqueiam visitante sem token com
+`SESSAO_OBRIGATORIA`. O alias legado `portalRunViewsV2ReadonlyTests()` chama o
+mesmo teste.
+
 Esta etapa nao cria endpoints de escrita. Justificar falta, analisar
 justificativas, editar atividade, emitir certificado, fazer upload e executar
 triggers permanecem fora do contrato do Portal.
@@ -904,7 +917,7 @@ de presenca, `LockService` e logs. Registros de presenca ficam em
 - `ACAO_OBRIGATORIA`: nenhuma acao foi enviada.
 - `ACAO_NAO_RECONHECIDA`: a acao enviada nao existe.
 - `REQUISICAO_INVALIDA`: a requisicao nao pode ser lida.
-- `ERRO_INTERNO_PLACEHOLDER`: erro inesperado nesta etapa placeholder.
+- `ERRO_INTERNO_PORTAL`: erro inesperado ao processar requisicao do Portal.
 - `IDENTIFICADOR_OBRIGATORIO`: e-mail ou RGA nao foi informado.
 - `IDENTIFICADOR_NAO_SUPORTADO_NESTA_ETAPA`: nesta fase, apenas e-mails de teste sao aceitos.
 - `ENVIO_EMAIL_DESABILITADO`: envio real nao foi habilitado nas propriedades.
