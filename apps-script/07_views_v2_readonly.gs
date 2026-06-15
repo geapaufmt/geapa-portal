@@ -233,6 +233,7 @@ function portalStatusViewsV2(token) {
     resumoChaves: ['resumo', 'totais'],
     destino: 'core',
     registryKeys: [
+      'ATIVIDADES_V2_PORTAL_STATUS',
       'ATIVIDADES_V2_PORTAL_STATUS_ATIVIDADES'
     ],
     requerDiretoria: true,
@@ -279,7 +280,7 @@ function portalExecutarLeituraV2_(token, config) {
     return contexto.resposta;
   }
 
-  var cacheKey = portalCacheKey_('viewsV2:' + config.id, contexto.identificadorSessao);
+  var cacheKey = portalCacheKey_('viewsV2r2:' + config.id, contexto.identificadorSessao);
   var cache = portalLerJsonCacheViewsV2_(cacheKey);
 
   if (cache) {
@@ -929,22 +930,25 @@ function portalFiltrarListaPropriaViewsV2_(lista, contexto) {
 function portalItemPertenceAoUsuarioViewsV2_(item, usuario) {
   var dados = item || {};
   var idPessoa = String(dados.idPessoa || dados.ID_PESSOA || '').trim();
+  var idPessoaUsuario = String(usuario.idPessoa || '').trim();
   var rga = String(dados.rga || dados.RGA || '').trim().toLowerCase();
+  var rgaUsuario = String(usuario.rga || '').trim().toLowerCase();
   var email = String(dados.email || dados.EMAIL || dados.emailCadastrado || '').trim().toLowerCase();
+  var emailUsuario = String(usuario.email || '').trim().toLowerCase();
 
-  if (idPessoa) {
-    return idPessoa === usuario.idPessoa;
+  if (idPessoa && idPessoaUsuario && idPessoa === idPessoaUsuario) {
+    return true;
   }
 
-  if (rga) {
-    return rga === String(usuario.rga || '').trim().toLowerCase();
+  if (rga && rgaUsuario && rga === rgaUsuario) {
+    return true;
   }
 
-  if (email) {
-    return email === String(usuario.email || '').trim().toLowerCase();
+  if (email && emailUsuario && email === emailUsuario) {
+    return true;
   }
 
-  return true;
+  return false;
 }
 
 function portalSanitizarItemViewsV2_(item, campos, aliases) {
