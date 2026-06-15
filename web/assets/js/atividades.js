@@ -223,14 +223,14 @@
     status.textContent = rotulos.buscando;
     ui.mostrarLoading(rotulos.carregando);
 
-    return api.apiGet(obterEndpointAtividadesReadonly(modo), {})
+    return api.apiGet('/atividades/listar', {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Não foi possível carregar atividades.');
         }
 
         var bundle = normalizarBundleAtividades({
-          calendario: normalizarListaAtividadesReadonly(resposta.data),
+          calendario: resposta.data || [],
           detalhesPorId: {},
           ultimaAtualizacao: new Date().toISOString()
         });
@@ -309,28 +309,6 @@
       .finally(function finalizarLoadingAtividades() {
         ui.ocultarLoading();
       });
-  }
-
-  function obterEndpointAtividadesReadonly(modo) {
-    return modo === MODO_ATIVIDADES_HISTORICO
-      ? '/v2/historico-atividades'
-      : '/v2/proximas-atividades';
-  }
-
-  function normalizarListaAtividadesReadonly(data) {
-    if (Array.isArray(data)) {
-      return data;
-    }
-
-    if (data && Array.isArray(data.atividades)) {
-      return data.atividades;
-    }
-
-    if (data && Array.isArray(data.calendario)) {
-      return data.calendario;
-    }
-
-    return [];
   }
 
   function carregarAtividadesFallback(lista, status, inicioOriginal, manterLoadingAtual, modo) {
@@ -716,7 +694,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLista.v5.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesLista.v6.' + hashCurto(token + ':' + usuarioId);
   }
 
   function hashCurto(valor) {
