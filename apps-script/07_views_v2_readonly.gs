@@ -50,47 +50,265 @@ function portalMinhaFrequenciaV2(token) {
 }
 
 function portalMinhasApresentacoesV2(token) {
-  return portalExecutarLeituraV2_(token, {
+  return portalExecutarMinhasApresentacoesPorAtividadesV2_(token);
+}
+
+function portalExecutarMinhasApresentacoesPorAtividadesV2_(token) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var config = {
     id: 'minhasApresentacoes',
-    code: 'MINHAS_APRESENTACOES_V2',
-    message: 'Minhas apresentacoes carregadas pelas views V2.',
-    listaCampo: 'apresentacoes',
-    listaChaves: ['apresentacoes', 'minhasApresentacoes', 'registros', 'itens'],
-    resumoChaves: ['resumo', 'totais'],
-    destino: 'atividades',
-    registryKeys: [
-      'ATIVIDADES_V2_PORTAL_APRESENTACOES'
-    ],
-    requerDiretoria: false,
-    funcoes: [
-      'atividadesV2_portalGetMinhasApresentacoes',
-      'corePortalV2GetMinhasApresentacoes',
-      'corePortalReadonlyGetMinhasApresentacoes',
-      'corePortalMinhasApresentacoesV2',
-      'portalV2GetMinhasApresentacoes',
-      'portal.v2.getMinhasApresentacoes',
-      'portal.getMinhasApresentacoes'
-    ],
-    campos: [
-      'idAtividade',
-      'idApresentacao',
-      'dataAtividade',
-      'tituloPublico',
-      'tema',
-      'tipoPublico',
-      'statusPublico',
-      'statusApresentacao',
-      'papel',
-      'periodo',
-      'cargaHoraria'
-    ],
-    aliases: {
-      tema: ['tituloApresentacao', 'TITULO_APRESENTACAO'],
-      tituloPublico: ['tituloApresentacao', 'TITULO_APRESENTACAO'],
-      statusApresentacao: ['statusPublico', 'STATUS_PUBLICO'],
-      statusPublico: ['STATUS_PUBLICO']
-    }
+    requerDiretoria: false
+  };
+  var contexto = portalMontarContextoViewsV2_(token, config);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var cacheKey = portalCacheKey_('viewsV2r3:minhasApresentacoesAtividades', contexto.identificadorSessao);
+  var cache = portalLerJsonCacheViewsV2_(cacheKey);
+
+  if (cache) {
+    return portalRespostaOk_(
+      'MINHAS_APRESENTACOES_V2_CACHE',
+      'Minhas apresentacoes carregadas em cache temporario.',
+      cache,
+      portalMetaViewsV2_('cache', inicio)
+    );
+  }
+
+  var resposta = portalChamarAtividadesDetalhesPreload_(
+    portalMontarContextoAtividadesReadonlyV2_(contexto)
+  );
+  var data = portalMontarMinhasApresentacoesDeDetalhesV2_(resposta, contexto);
+
+  portalSalvarJsonCacheViewsV2_(cacheKey, data);
+
+  return portalRespostaOk_(
+    'MINHAS_APRESENTACOES_V2',
+    'Minhas apresentacoes carregadas a partir dos detalhes de atividades.',
+    data,
+    portalMetaViewsV2_('portal-atividades-detalhes', inicio)
+  );
+}
+
+function portalMontarMinhasApresentacoesDeDetalhesV2_(resposta, contexto) {
+  var bruto = resposta && resposta.ok !== false
+    ? (resposta.data || resposta.dados || resposta)
+    : {};
+  var detalhes = portalExtrairDetalhesAtividadesParaApresentacoesV2_(bruto);
+  var apresentacoes = [];
+
+  detalhes.forEach(function varrerDetalhe(detalhe) {
+    var lista = portalParseListaJsonViewsV2_(
+      portalObterCampoFlexViewsV2_(detalhe, [
+        'apresentacoesPublicas',
+        'APRESENTACOES_PUBLICAS_JSON',
+        'apresentacoesPublicasJson'
+      ])
+    );
+
+    lista.forEach(function copiar(apresentacao) {
+      if (portalApresentacaoPertenceAoUsuarioV2_(apresentacao, detalhe, contexto.contexto)) {
+        apresentacoes.push(portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe));
+      }
+    });
   });
+
+  return {
+    sessao: portalResumoSessaoViewsV2_(contexto),
+    apresentacoes: apresentacoes,
+    resumo: {
+      total: apresentacoes.length
+    },
+    ultimaAtualizacao: portalObterCampoFlexViewsV2_(bruto, ['ultimaAtualizacao', 'atualizadoEm', 'updatedAt']) ||
+      new Date().toISOString()
+  };
+}
+
+function portalMontarContextoAtividadesReadonlyV2_(contexto) {
+  var origem = (contexto && contexto.contexto) || {};
+  var perfil = portalResolverPerfilAtividadesReadonlyV2_(origem);
+
+  return {
+    perfil: perfil,
+    idPessoa: String(origem.idPessoa || '').trim(),
+    rga: String(origem.rga || '').trim(),
+    email: String(origem.email || '').trim(),
+    perfilPortalEfetivo: String(origem.perfilPortalEfetivo || '').trim(),
+    perfisPortal: origem.perfisPortal || ['MEMBRO'],
+    permissoes: origem.permissoes || [],
+    somenteProprios: true,
+    somenteVisiveis: perfil === 'MEMBRO'
+  };
+}
+
+function portalResolverPerfilAtividadesReadonlyV2_(contexto) {
+  if (typeof portalResolverPerfilAtividades_ === 'function') {
+    return portalResolverPerfilAtividades_(contexto || {});
+  }
+
+  var perfis = []
+    .concat((contexto && contexto.perfisPortal) || [])
+    .concat((contexto && contexto.perfis) || [])
+    .concat((contexto && contexto.perfilPortalEfetivo) || []);
+  var normalizados = perfis.map(function normalizar(perfil) {
+    return String(perfil || '').trim().toUpperCase();
+  });
+
+  if (normalizados.indexOf('ADMIN') >= 0 ||
+      normalizados.indexOf('ADMIN_TECNICO') >= 0 ||
+      normalizados.indexOf('DIRETORIA') >= 0 ||
+      normalizados.indexOf('PRESIDENCIA') >= 0) {
+    return 'DIRETORIA';
+  }
+
+  if (normalizados.indexOf('SECRETARIA') >= 0 || normalizados.indexOf('SECRETARIO') >= 0) {
+    return 'SECRETARIO';
+  }
+
+  return 'MEMBRO';
+}
+
+function portalExtrairDetalhesAtividadesParaApresentacoesV2_(dados) {
+  var origem = dados || {};
+  var detalhesPorId = origem.detalhesPorId || origem.detalhes || origem.atividadesDetalhes;
+  var lista;
+
+  if (Array.isArray(origem)) {
+    return origem;
+  }
+
+  if (Array.isArray(detalhesPorId)) {
+    return detalhesPorId;
+  }
+
+  if (detalhesPorId && typeof detalhesPorId === 'object') {
+    return Object.keys(detalhesPorId).map(function mapear(idAtividade) {
+      var detalhe = detalhesPorId[idAtividade] || {};
+      if (!detalhe.idAtividade) {
+        detalhe.idAtividade = idAtividade;
+      }
+      return detalhe;
+    });
+  }
+
+  lista = portalExtrairListaViewsV2_(origem, ['atividades', 'calendario', 'registros', 'itens']);
+  return lista || [];
+}
+
+function portalParseListaJsonViewsV2_(valor) {
+  if (Array.isArray(valor)) {
+    return valor;
+  }
+
+  if (valor && typeof valor === 'object') {
+    return [valor];
+  }
+
+  if (typeof valor === 'string' && valor.trim()) {
+    try {
+      var parsed = JSON.parse(valor);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (erro) {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function portalApresentacaoPertenceAoUsuarioV2_(apresentacao, detalhe, usuario) {
+  var dados = apresentacao || {};
+  var atividade = detalhe || {};
+
+  return portalValorUsuarioConfereV2_(dados, usuario, [
+    'idPessoa',
+    'idPessoaApresentador',
+    'idPessoaPrincipal',
+    'ID_PESSOA',
+    'ID_PESSOA_APRESENTADOR'
+  ], 'idPessoa') ||
+    portalValorUsuarioConfereV2_(dados, usuario, [
+      'rga',
+      'rgaApresentador',
+      'RGA',
+      'RGA_APRESENTADOR'
+    ], 'rga') ||
+    portalValorUsuarioConfereV2_(dados, usuario, [
+      'email',
+      'emailApresentador',
+      'EMAIL',
+      'EMAIL_APRESENTADOR'
+    ], 'email') ||
+    portalValorUsuarioConfereV2_(atividade, usuario, [
+      'idPessoaPrincipal',
+      'idPessoaApresentador',
+      'ID_PESSOA_PRINCIPAL'
+    ], 'idPessoa') ||
+    portalValorUsuarioConfereV2_(atividade, usuario, [
+      'rgaPrincipal',
+      'rgaApresentador',
+      'RGA_PRINCIPAL'
+    ], 'rga') ||
+    portalValorUsuarioConfereV2_(atividade, usuario, [
+      'emailPrincipal',
+      'emailApresentador',
+      'EMAIL_PRINCIPAL'
+    ], 'email');
+}
+
+function portalValorUsuarioConfereV2_(dados, usuario, chaves, campoUsuario) {
+  var valor = String(portalObterCampoFlexViewsV2_(dados || {}, chaves) || '').trim().toLowerCase();
+  var esperado = String((usuario || {})[campoUsuario] || '').trim().toLowerCase();
+
+  return Boolean(valor && esperado && valor === esperado);
+}
+
+function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
+  var origem = apresentacao || {};
+  var atividade = detalhe || {};
+  var item = {
+    idAtividade: atividade.idAtividade || origem.idAtividade,
+    idApresentacao: origem.idApresentacao || origem.ID_APRESENTACAO,
+    dataAtividade: atividade.dataAtividade || origem.dataAtividade,
+    tituloPublico: atividade.tituloPublico || origem.tituloPublico,
+    tema: origem.tema || origem.tituloApresentacao || origem.TITULO_APRESENTACAO,
+    tituloApresentacao: origem.tituloApresentacao || origem.tema || origem.TITULO_APRESENTACAO,
+    tipoPublico: atividade.tipoPublico || atividade.tipoAtividade,
+    statusPublico: atividade.statusPublico,
+    statusApresentacao: origem.statusApresentacao || origem.statusPublico || origem.STATUS_PUBLICO,
+    statusArquivoPublico: origem.statusArquivoPublico || origem.statusArquivo,
+    eixoTematicoPrincipal: origem.eixoTematicoPrincipal || atividade.eixoTematicoPrincipal,
+    eixoTematicoSecundario: origem.eixoTematicoSecundario || atividade.eixoTematicoSecundario,
+    nomeApresentadorPublico: origem.nomeApresentadorPublico || origem.nomePessoaPrincipalPublico || atividade.nomePessoaPrincipalPublico,
+    papel: origem.papel || atividade.papelPessoaPrincipal,
+    periodo: origem.periodo || atividade.periodo,
+    cargaHoraria: atividade.cargaHoraria,
+    linkPublico: origem.linkPublico || origem.linkMaterialPublico || '',
+    linkMaterialPublico: origem.linkMaterialPublico || origem.linkPublico || ''
+  };
+
+  return portalSanitizarObjetoBasicoViewsV2_(item, [
+    'idAtividade',
+    'idApresentacao',
+    'dataAtividade',
+    'tituloPublico',
+    'tema',
+    'tituloApresentacao',
+    'tipoPublico',
+    'statusPublico',
+    'statusApresentacao',
+    'statusArquivoPublico',
+    'eixoTematicoPrincipal',
+    'eixoTematicoSecundario',
+    'nomeApresentadorPublico',
+    'papel',
+    'periodo',
+    'cargaHoraria',
+    'linkPublico',
+    'linkMaterialPublico'
+  ]);
 }
 
 function portalMinhasJustificativasV2(token) {
@@ -1451,7 +1669,16 @@ function portalSanitizarAtividadeReadonlyV2_(item) {
     'cargaHoraria',
     'statusPublico',
     'visibilidadePortal',
-    'podeVerDetalhes'
+    'podeVerDetalhes',
+    'eixoTematicoPrincipal',
+    'eixoTematicoSecundario',
+    'nomePessoaPrincipalPublico',
+    'papelPessoaPrincipal',
+    'tipoPessoaPrincipal',
+    'qtdApresentacoes',
+    'resumoApresentacoesPublico',
+    'possuiApresentacoes',
+    'ehApresentacao'
   ]);
 }
 

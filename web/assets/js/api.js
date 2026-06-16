@@ -28,6 +28,15 @@
       geraCertificado: true,
       cargaHoraria: 2,
       statusPublico: 'REALIZADA',
+      eixoTematicoPrincipal: 'Direito Penal',
+      eixoTematicoSecundario: 'Criminologia',
+      nomePessoaPrincipalPublico: 'Membro de Teste',
+      papelPessoaPrincipal: 'Apresentador',
+      tipoPessoaPrincipal: 'Membro',
+      qtdApresentacoes: 1,
+      resumoApresentacoesPublico: 'Tema de teste sobre fundamentos penais.',
+      possuiApresentacoes: true,
+      ehApresentacao: true,
       visibilidadePortal: 'MEMBROS',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
@@ -52,6 +61,9 @@
       geraCertificado: false,
       cargaHoraria: 1.5,
       statusPublico: 'PLANEJADA',
+      qtdApresentacoes: 0,
+      possuiApresentacoes: false,
+      ehApresentacao: false,
       visibilidadePortal: 'MEMBROS',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
@@ -76,6 +88,15 @@
       geraCertificado: true,
       cargaHoraria: 2,
       statusPublico: 'PUBLICADA',
+      eixoTematicoPrincipal: 'Direitos Humanos',
+      eixoTematicoSecundario: 'Sistema Penal',
+      nomePessoaPrincipalPublico: 'Equipe de Apresentadores',
+      papelPessoaPrincipal: 'Apresentadores',
+      tipoPessoaPrincipal: 'Membros',
+      qtdApresentacoes: 2,
+      resumoApresentacoesPublico: 'Duas apresentacoes curtas vinculadas a oficina.',
+      possuiApresentacoes: true,
+      ehApresentacao: true,
       visibilidadePortal: 'PUBLICA',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
@@ -103,8 +124,35 @@
       geraCertificado: true,
       cargaHoraria: 2,
       statusPublico: 'REALIZADA',
+      eixoTematicoPrincipal: 'Direito Penal',
+      eixoTematicoSecundario: 'Criminologia',
+      nomePessoaPrincipalPublico: 'Membro de Teste',
+      papelPessoaPrincipal: 'Apresentador',
+      tipoPessoaPrincipal: 'Membro',
+      qtdApresentacoes: 1,
+      resumoApresentacoesPublico: 'Tema de teste sobre fundamentos penais.',
+      apresentacoesPublicas: [
+        {
+          idApresentacao: 'APR-TESTE-1',
+          nomeApresentadorPublico: 'Membro de Teste',
+          tituloApresentacao: 'Tema de teste',
+          eixoTematicoPrincipal: 'Direito Penal',
+          eixoTematicoSecundario: 'Criminologia',
+          statusApresentacao: 'REALIZADA',
+          statusArquivoPublico: 'SEM_ARQUIVO_PUBLICO',
+          linkPublico: ''
+        }
+      ],
+      envolvidosPublicos: [
+        {
+          nomePublico: 'Membro de Teste',
+          papel: 'Apresentador',
+          tipoPessoa: 'Membro'
+        }
+      ],
       linkMaterialPublico: '',
-      linkAtaPublica: ''
+      linkAtaPublica: '',
+      linkFotosPublico: ''
     },
     'ATV-2026-1-0006': {
       idAtividade: 'ATV-2026-1-0006',
@@ -124,8 +172,19 @@
       geraCertificado: false,
       cargaHoraria: 1.5,
       statusPublico: 'PLANEJADA',
+      qtdApresentacoes: 0,
+      resumoApresentacoesPublico: '',
+      apresentacoesPublicas: [],
+      envolvidosPublicos: [
+        {
+          nomePublico: 'Diretoria GEAPA',
+          papel: 'Responsavel',
+          tipoPessoa: 'Grupo'
+        }
+      ],
       linkMaterialPublico: '',
-      linkAtaPublica: ''
+      linkAtaPublica: '',
+      linkFotosPublico: ''
     },
     'ATV-2026-1-0007': {
       idAtividade: 'ATV-2026-1-0007',
@@ -145,8 +204,50 @@
       geraCertificado: true,
       cargaHoraria: 2,
       statusPublico: 'PUBLICADA',
+      eixoTematicoPrincipal: 'Direitos Humanos',
+      eixoTematicoSecundario: 'Sistema Penal',
+      nomePessoaPrincipalPublico: 'Equipe de Apresentadores',
+      papelPessoaPrincipal: 'Apresentadores',
+      tipoPessoaPrincipal: 'Membros',
+      qtdApresentacoes: 2,
+      resumoApresentacoesPublico: 'Duas apresentacoes curtas vinculadas a oficina.',
+      apresentacoesPublicas: [
+        {
+          idApresentacao: 'APR-TESTE-2',
+          nomeApresentadorPublico: 'Membro de Teste 1',
+          tituloApresentacao: 'Primeira abordagem',
+          eixoTematicoPrincipal: 'Direitos Humanos',
+          eixoTematicoSecundario: 'Sistema Penal',
+          statusApresentacao: 'PUBLICADA',
+          statusArquivoPublico: 'PUBLICO',
+          linkPublico: 'https://example.org/material-1'
+        },
+        {
+          idApresentacao: 'APR-TESTE-3',
+          nomeApresentadorPublico: 'Membro de Teste 2',
+          tituloApresentacao: 'Segunda abordagem',
+          eixoTematicoPrincipal: 'Direitos Humanos',
+          eixoTematicoSecundario: 'Politicas Publicas',
+          statusApresentacao: 'PUBLICADA',
+          statusArquivoPublico: 'SEM_ARQUIVO_PUBLICO',
+          linkPublico: ''
+        }
+      ],
+      envolvidosPublicos: [
+        {
+          nomePublico: 'Membro de Teste 1',
+          papel: 'Apresentador',
+          tipoPessoa: 'Membro'
+        },
+        {
+          nomePublico: 'Membro de Teste 2',
+          papel: 'Apresentador',
+          tipoPessoa: 'Membro'
+        }
+      ],
       linkMaterialPublico: '',
-      linkAtaPublica: ''
+      linkAtaPublica: '',
+      linkFotosPublico: ''
     }
   };
 
@@ -335,15 +436,7 @@
     }
 
     if (route === '/v2/minhas-apresentacoes') {
-      return Promise.resolve(criarRespostaV2Mock('apresentacoes', [
-        {
-          dataAtividade: '2026-04-16',
-          tituloPublico: 'Apresentacao de Membro',
-          tema: 'Tema de teste',
-          statusApresentacao: 'REALIZADA',
-          periodo: '2026/1'
-        }
-      ]));
+      return Promise.resolve(criarRespostaV2Mock('apresentacoes', criarMinhasApresentacoesMock()));
     }
 
     if (route === '/v2/minhas-justificativas') {
@@ -421,6 +514,33 @@
         route: route
       }
     });
+  }
+
+  function criarMinhasApresentacoesMock() {
+    return Object.keys(detalhesMock).reduce(function coletar(lista, idAtividade) {
+      var detalhe = detalhesMock[idAtividade];
+      var apresentacoes = Array.isArray(detalhe.apresentacoesPublicas)
+        ? detalhe.apresentacoesPublicas
+        : [];
+
+      apresentacoes.forEach(function copiar(apresentacao) {
+        lista.push({
+          idAtividade: detalhe.idAtividade,
+          idApresentacao: apresentacao.idApresentacao,
+          dataAtividade: detalhe.dataAtividade,
+          tituloPublico: detalhe.tituloPublico,
+          tema: apresentacao.tituloApresentacao,
+          nomeApresentadorPublico: apresentacao.nomeApresentadorPublico,
+          statusApresentacao: apresentacao.statusApresentacao,
+          statusArquivoPublico: apresentacao.statusArquivoPublico,
+          eixoTematicoPrincipal: apresentacao.eixoTematicoPrincipal,
+          eixoTematicoSecundario: apresentacao.eixoTematicoSecundario,
+          periodo: '2026/1'
+        });
+      });
+
+      return lista;
+    }, []);
   }
 
   function criarChamadaMock(idAtividade) {

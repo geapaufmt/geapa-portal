@@ -82,9 +82,10 @@ Modelo atual:
   A aba lista atividades realizadas a partir da primeira atividade do Ciclo
   2026, realizada em 09/04/2026. Externos devem consultar participacoes
   proprias em Meu Vinculo.
-- Proximas apresentacoes e Historico de apresentacoes: placeholders. A fonte de
-  apresentacoes de membros passa a ser `geapa-atividades` e suas planilhas
-  relacionadas, nao um modulo `geapa-apresentacoes` separado.
+- Proximas apresentacoes e Historico de apresentacoes nao sao telas separadas.
+  Sao atalhos legados para a agenda/historico unificados de atividades. As
+  apresentacoes aparecem vinculadas a atividade, a partir dos campos publicos
+  do calendario e dos detalhes de `geapa-atividades`.
 
 Materiais devem aparecer dentro da atividade ou apresentacao relacionada, em vez
 de uma aba solta de materiais.

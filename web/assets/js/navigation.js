@@ -77,8 +77,8 @@
     rota('calendario', 'Calendário', 'agenda/calendario', 'agenda', 10, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Visão futura para agenda mensal, eventos, reuniões, simpósios, confraternizações e apresentações.', 'placeholder'),
     rota('historico-atividades', 'Histórico de atividades', 'agenda/historico-atividades', 'agenda', 20, 'tela-atividades', 'view-atividades', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], [], 'Histórico interno de atividades realizadas a partir do Ciclo 2026. Participações externas ficam em Meu Vínculo.', 'implementado'),
     rota('atividades', 'Próximas atividades', 'atividades', 'agenda', 30, 'tela-atividades', 'view-atividades', false, PUBLICO, [], 'Atividades futuras ou em andamento, filtradas conforme vínculo e permissões.', 'implementado'),
-    rota('historico-apresentacoes', 'Histórico de apresentações', 'agenda/historico-apresentacoes', 'agenda', 40, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Histórico público ou permitido de apresentações registradas em geapa-atividades.', 'placeholder'),
-    rota('agenda-apresentacoes', 'Próximas apresentações', 'agenda/apresentacoes', 'agenda', 50, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Próximas apresentações registradas em geapa-atividades, conforme liberação pública ou vínculo.', 'placeholder'),
+    rota('historico-apresentacoes', 'Historico de apresentacoes', 'agenda/historico-apresentacoes', 'agenda', 40, 'tela-atividades', 'view-atividades', false, PUBLICO, [], 'Atalho legado para o historico unificado de atividades.', 'implementado'),
+    rota('agenda-apresentacoes', 'Proximas apresentacoes', 'agenda/apresentacoes', 'agenda', 50, 'tela-atividades', 'view-atividades', false, PUBLICO, [], 'Atalho legado para a agenda unificada de atividades.', 'implementado'),
 
     rota('admin', 'Painel administrativo', 'admin', 'gestao-geapa', 10, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['gestao:acessar'], 'Painel operacional conforme perfil e permissões.', 'placeholder'),
     rota('admin-membros', 'Membros', 'admin/membros', 'gestao-geapa', 20, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta e operação cotidiana de membros autorizada pelo backend.', 'placeholder'),
@@ -97,7 +97,11 @@
   var ALIASES_ROTAS = {
     situacao: 'minha-situacao',
     'minha_situacao': 'minha-situacao',
-    apresentacoes: 'historico-apresentacoes',
+    apresentacoes: 'historico-atividades',
+    'historico-apresentacoes': 'historico-atividades',
+    'agenda/historico-apresentacoes': 'historico-atividades',
+    'agenda-apresentacoes': 'atividades',
+    'agenda/apresentacoes': 'atividades',
     atividades: 'atividades',
     agenda: 'atividades',
     'atividades-abertas': 'atividades',

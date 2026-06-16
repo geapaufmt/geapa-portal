@@ -34,8 +34,11 @@
       colunas: [
         ['dataAtividade', 'Data'],
         ['tema', 'Tema'],
+        ['nomeApresentadorPublico', 'Apresentador'],
         ['statusApresentacao', 'Status'],
+        ['statusArquivoPublico', 'Arquivo'],
         ['eixoTematicoPrincipal', 'Eixo'],
+        ['eixoTematicoSecundario', 'Eixo secundario'],
         ['periodo', 'Periodo']
       ]
     },

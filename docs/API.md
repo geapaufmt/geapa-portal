@@ -277,8 +277,8 @@ ainda nao estiver pronta. A origem tecnica aparece em
 
 `PORTAL_CONTEUDO_PUBLICO` e CMS editorial publico. Nao e fonte oficial de
 atividades, apresentacoes, membros, diretoria oficial, frequencia ou permissoes.
-Proximas atividades e proximas apresentacoes continuam pertencendo ao modulo
-`geapa-atividades` e suas views/contratos `PORTAL_*`.
+Agenda, historico e apresentacoes vinculadas continuam pertencendo ao modulo
+`geapa-atividades` e aos contratos de atividades do Portal.
 
 `boardComplements` existe apenas por compatibilidade com a antiga modelagem de
 diretoria. A modelagem publica nova usa:
@@ -624,6 +624,15 @@ Resposta esperada:
       "geraCertificado": true,
       "cargaHoraria": 2,
       "statusPublico": "REALIZADA",
+      "eixoTematicoPrincipal": "Direito Penal",
+      "eixoTematicoSecundario": "Criminologia",
+      "nomePessoaPrincipalPublico": "Nome publico",
+      "papelPessoaPrincipal": "Apresentador",
+      "tipoPessoaPrincipal": "Membro",
+      "qtdApresentacoes": 1,
+      "resumoApresentacoesPublico": "Resumo curto das apresentacoes.",
+      "possuiApresentacoes": true,
+      "ehApresentacao": true,
       "visibilidadePortal": "MEMBROS",
       "podeVerDetalhes": true,
       "podeJustificarFalta": false,
@@ -648,6 +657,15 @@ cadastrada no Registry como `ATIVIDADES_V2_DB`. A listagem usa
 `ID_ATIVIDADE`, exposto no JSON como `idAtividade`, no padrão
 `ATV-AAAA-S-NNNN`.
 
+Apresentacoes nao sao consumidas por view propria no Portal. Cards, agenda e
+historico usam os campos publicos do calendario (`eixoTematicoPrincipal`,
+`eixoTematicoSecundario`, `nomePessoaPrincipalPublico`,
+`papelPessoaPrincipal`, `tipoPessoaPrincipal`, `qtdApresentacoes`,
+`resumoApresentacoesPublico`, `possuiApresentacoes`, `ehApresentacao`). O
+detalhe/modal usa `PORTAL_ATIVIDADES_DETALHES`, especialmente
+`apresentacoesPublicas`, `envolvidosPublicos`, `linkMaterialPublico`,
+`linkAtaPublica` e `linkFotosPublico`.
+
 ## Acoes V2 somente leitura
 
 As acoes abaixo consomem views V2 pelo Apps Script. Todas exigem `token` de
@@ -671,7 +689,9 @@ Contratos de resposta:
 - `minhaFrequencia`: retorna `data.registros`, `data.resumo` e
   `data.ultimaAtualizacao`.
 - `minhasApresentacoes`: retorna `data.apresentacoes`, `data.resumo` e
-  `data.ultimaAtualizacao`.
+  `data.ultimaAtualizacao`; o backend deriva os registros dos detalhes de
+  atividades e filtra por `idPessoa`, `rga` ou e-mail da sessao, sem consumir
+  uma view paralela de apresentacoes.
 - `minhasJustificativas`: retorna `data.justificativas`, `data.resumo` e
   `data.ultimaAtualizacao`.
 - `proximasAtividades` e `historicoAtividades`: retornam `data.atividades`,

@@ -231,3 +231,56 @@ function portalRunTesteEndpointsReadOnlyV2() {
 function portalRunViewsV2ReadonlyTests() {
   return portalRunTesteEndpointsReadOnlyV2();
 }
+
+function portalRunTesteAtividadesV2ApresentacoesVinculadas() {
+  var funcoes = {
+    atividadesListar: typeof portalListarAtividades === 'function',
+    atividadeDetalhe: typeof portalDetalheAtividade === 'function',
+    minhasApresentacoes: typeof portalMinhasApresentacoesV2 === 'function'
+  };
+  var checksManuais = [
+    'card de atividade comum sem apresentacao',
+    'card com uma apresentacao',
+    'card com multiplas apresentacoes',
+    'modal sem apresentacoes',
+    'modal com uma apresentacao',
+    'modal com multiplas apresentacoes',
+    'historico com todas as atividades',
+    'historico filtrando somente apresentacoes',
+    'JSON valido em apresentacoesPublicas',
+    'ausencia de dependencia ativa de view paralela de apresentacoes'
+  ];
+  var resultado = {
+    ok: funcoes.atividadesListar &&
+      funcoes.atividadeDetalhe &&
+      funcoes.minhasApresentacoes,
+    modo: 'atividades-v2-apresentacoes-vinculadas',
+    funcoes: funcoes,
+    contrato: {
+      lista: [
+        'eixoTematicoPrincipal',
+        'eixoTematicoSecundario',
+        'nomePessoaPrincipalPublico',
+        'papelPessoaPrincipal',
+        'tipoPessoaPrincipal',
+        'qtdApresentacoes',
+        'resumoApresentacoesPublico',
+        'possuiApresentacoes',
+        'ehApresentacao'
+      ],
+      detalhe: [
+        'apresentacoesPublicas',
+        'envolvidosPublicos',
+        'qtdApresentacoes',
+        'resumoApresentacoesPublico',
+        'linkMaterialPublico',
+        'linkAtaPublica',
+        'linkFotosPublico'
+      ]
+    },
+    checksManuais: checksManuais
+  };
+
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}

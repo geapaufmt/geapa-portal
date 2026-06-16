@@ -111,6 +111,15 @@ Resposta esperada:
       "geraCertificado": true,
       "cargaHoraria": 2,
       "statusPublico": "REALIZADA",
+      "eixoTematicoPrincipal": "Direito Penal",
+      "eixoTematicoSecundario": "Criminologia",
+      "nomePessoaPrincipalPublico": "Nome publico",
+      "papelPessoaPrincipal": "Apresentador",
+      "tipoPessoaPrincipal": "Membro",
+      "qtdApresentacoes": 1,
+      "resumoApresentacoesPublico": "Resumo curto das apresentacoes.",
+      "possuiApresentacoes": true,
+      "ehApresentacao": true,
       "visibilidadePortal": "MEMBROS",
       "podeVerDetalhes": true,
       "podeJustificarFalta": false,
@@ -157,13 +166,79 @@ Resposta esperada:
     "contaPresenca": true,
     "contaFalta": true,
     "geraCertificado": true,
-    "cargaHoraria": 2,
-    "statusPublico": "REALIZADA",
-    "linkMaterialPublico": "",
-    "linkAtaPublica": ""
+      "cargaHoraria": 2,
+      "statusPublico": "REALIZADA",
+      "eixoTematicoPrincipal": "Direito Penal",
+      "eixoTematicoSecundario": "Criminologia",
+      "nomePessoaPrincipalPublico": "Nome publico",
+      "papelPessoaPrincipal": "Apresentador",
+      "tipoPessoaPrincipal": "Membro",
+      "qtdApresentacoes": 1,
+      "resumoApresentacoesPublico": "Resumo curto das apresentacoes.",
+      "apresentacoesPublicas": [
+        {
+          "idApresentacao": "APR-2026-1-0001",
+          "nomeApresentadorPublico": "Nome publico",
+          "tituloApresentacao": "Titulo publico",
+          "eixoTematicoPrincipal": "Direito Penal",
+          "eixoTematicoSecundario": "Criminologia",
+          "statusApresentacao": "PUBLICADA",
+          "statusArquivoPublico": "PUBLICO",
+          "linkPublico": "https://example.org/material"
+        }
+      ],
+      "envolvidosPublicos": [
+        {
+          "nomePublico": "Nome publico",
+          "papel": "Apresentador",
+          "tipoPessoa": "Membro"
+        }
+      ],
+      "linkMaterialPublico": "",
+      "linkAtaPublica": "",
+      "linkFotosPublico": ""
   }
 }
 ```
+
+## Apresentacoes dentro de atividades
+
+Atividades sao o eixo central do contrato. O Portal nao consome uma view
+paralela de apresentacoes. A lista, os cards e o historico usam o payload de
+`PORTAL_ATIVIDADES_CALENDARIO`; o modal/detalhe usa
+`PORTAL_ATIVIDADES_DETALHES`.
+
+Campos minimos esperados na lista/calendario:
+
+- `eixoTematicoPrincipal`
+- `eixoTematicoSecundario`
+- `nomePessoaPrincipalPublico`
+- `papelPessoaPrincipal`
+- `tipoPessoaPrincipal`
+- `qtdApresentacoes`
+- `resumoApresentacoesPublico`
+- `possuiApresentacoes`
+- `ehApresentacao`
+
+Campos minimos esperados no detalhe:
+
+- `apresentacoesPublicas`
+- `envolvidosPublicos`
+- `qtdApresentacoes`
+- `resumoApresentacoesPublico`
+- `linkMaterialPublico`
+- `linkAtaPublica`
+- `linkFotosPublico`
+
+`apresentacoesPublicas` e `envolvidosPublicos` podem chegar como array seguro ou
+JSON serializado; o front-end tenta parsear e, se vier vazio ou invalido, omite
+a secao correspondente. O historico e sempre historico de atividades, com
+filtros de tipo/subtipo, somente apresentacoes e eixo tematico. Um filtro por
+pessoa principal/apresentador esta previsto para fase futura.
+
+`Minhas apresentacoes` tambem e derivado dos detalhes de atividades. O backend
+filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da sessao e
+retorna somente campos publicos/sanitizados da apresentacao vinculada.
 
 ## Endpoints futuros
 
@@ -262,6 +337,27 @@ carregados por preload posterior ou sob demanda ao abrir uma atividade.
 - lock para evitar concorrência;
 - log de ação;
 - retorno estruturado e sem dados desnecessários.
+## Checagens manuais do Portal
+
+Antes de publicar uma mudanca nessa integracao, validar:
+
+- card de atividade comum sem apresentacao nao exibe campos vazios de eixo ou
+  apresentador;
+- card com uma apresentacao mostra indicacao visual, apresentador, titulo/resumo
+  e eixo quando disponiveis;
+- card com multiplas apresentacoes mostra quantidade, resumo curto e acesso ao
+  detalhe;
+- modal sem `apresentacoesPublicas` nao mostra secao de apresentacoes;
+- modal com uma apresentacao usa o titulo "Apresentacao vinculada";
+- modal com multiplas apresentacoes usa o titulo "Apresentacoes vinculadas";
+- historico mostra todas as atividades e aceita filtro por tipo/subtipo;
+- historico aceita filtro "Somente apresentacoes";
+- historico aceita filtro por eixo tematico;
+- `apresentacoesPublicas` em JSON serializado invalido ou vazio nao quebra a
+  tela;
+- busca por dependencias ativas nao deve encontrar consumo de view paralela de
+  apresentacoes no Portal.
+
 ## Cache e medicao de performance
 
 O front-end guarda a lista leve e os detalhes ja carregados em `sessionStorage`

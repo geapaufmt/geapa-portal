@@ -21,6 +21,11 @@
   var atividadesResumoCache = {};
   var atividadesBundleCache = null;
   var atividadesBundleCacheSalvoEm = 0;
+  var filtrosHistoricoAtividades = {
+    tipoSubtipo: '',
+    somenteApresentacoes: false,
+    eixo: ''
+  };
   var detalhesPreloadPromise = null;
   var detalhesPreloadTimer = null;
   var detalhesPreloadFila = [];
@@ -99,7 +104,7 @@
   }
 
   function ehRotaDaTelaAtividades(idRota) {
-    return ['atividades', 'historico-atividades'].indexOf(idRota) >= 0;
+    return ['atividades', 'historico-atividades', 'historico-apresentacoes', 'agenda-apresentacoes'].indexOf(idRota) >= 0;
   }
 
   function obterModoAtividadesAtual() {
@@ -111,7 +116,7 @@
   }
 
   function obterModoAtividadesPorRota(rota) {
-    return rota && rota.id === 'historico-atividades'
+    return rota && (rota.id === 'historico-atividades' || rota.id === 'historico-apresentacoes')
       ? MODO_ATIVIDADES_HISTORICO
       : MODO_ATIVIDADES_PROXIMAS;
   }
@@ -785,19 +790,22 @@
   function renderizarAtividades(container, atividades, modo) {
     var todas = Array.isArray(atividades) ? atividades.slice() : [];
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
-    var dados = historico ? obterHistoricoAtividades(todas) : obterAgendaOperacionalAtividades(todas);
+    var base = historico ? obterHistoricoAtividades(todas) : obterAgendaOperacionalAtividades(todas);
+    var dados = historico ? aplicarFiltrosHistoricoAtividades(base) : base;
     var proxima = historico ? null : obterProximaAtividade(dados);
     var rotulos = obterRotulosAtividades(modo);
     var avisoHistorico = historico ? montarAvisoEscopoHistoricoAtividades() : '';
+    var filtrosHistorico = historico ? montarFiltrosHistoricoAtividades(base) : '';
 
     if (!dados.length) {
-      container.innerHTML = avisoHistorico + '<p class="empty-state">' +
+      container.innerHTML = avisoHistorico + filtrosHistorico + '<p class="empty-state">' +
         ui.escaparHtml(todas.length
           ? (historico
             ? 'Nenhuma atividade realizada a partir do Ciclo 2026 está disponível nesta aba.'
             : 'Nenhuma próxima atividade disponível. Atividades já realizadas ficarão no histórico de atividades.')
           : rotulos.vazio) +
         '</p>';
+      registrarEventosFiltrosHistorico(container, todas, modo);
       return;
     }
 
@@ -809,6 +817,7 @@
 
     container.innerHTML = [
       avisoHistorico,
+      filtrosHistorico,
       proxima
         ? [
           '<section class="next-activity-section" aria-labelledby="proxima-atividade-title">',
@@ -846,6 +855,7 @@
       }
     );
 
+    registrarEventosFiltrosHistorico(container, todas, modo);
     observarPreloadDetalhes(container);
   }
 
@@ -888,6 +898,115 @@
       .sort(compararAtividadesPorInicioDesc);
   }
 
+  function aplicarFiltrosHistoricoAtividades(atividades) {
+    var filtroTipo = String(filtrosHistoricoAtividades.tipoSubtipo || '').trim();
+    var filtroEixo = String(filtrosHistoricoAtividades.eixo || '').trim();
+
+    return (Array.isArray(atividades) ? atividades : []).filter(function filtrar(atividade) {
+      if (filtrosHistoricoAtividades.somenteApresentacoes && !atividadePossuiApresentacoes(atividade)) {
+        return false;
+      }
+
+      if (filtroTipo && obterValorFiltroTipoAtividade(atividade) !== filtroTipo) {
+        return false;
+      }
+
+      if (filtroEixo && obterValorFiltroEixoAtividade(atividade) !== filtroEixo) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  function montarFiltrosHistoricoAtividades(atividades) {
+    var tipos = obterOpcoesUnicas(atividades, obterValorFiltroTipoAtividade);
+    var eixos = obterOpcoesUnicas(atividades, obterValorFiltroEixoAtividade);
+
+    return [
+      '<div class="activity-history-filters" aria-label="Filtros do historico de atividades">',
+      '<label>',
+      '<span>Tipo/subtipo</span>',
+      '<select data-history-filter="tipoSubtipo">',
+      '<option value="">Todos</option>',
+      tipos.map(function montarOpcao(valor) {
+        return '<option value="' + ui.escaparHtml(valor) + '"' +
+          (valor === filtrosHistoricoAtividades.tipoSubtipo ? ' selected' : '') +
+          '>' + ui.escaparHtml(valor) + '</option>';
+      }).join(''),
+      '</select>',
+      '</label>',
+      '<label>',
+      '<span>Eixo tematico</span>',
+      '<select data-history-filter="eixo">',
+      '<option value="">Todos</option>',
+      eixos.map(function montarOpcao(valor) {
+        return '<option value="' + ui.escaparHtml(valor) + '"' +
+          (valor === filtrosHistoricoAtividades.eixo ? ' selected' : '') +
+          '>' + ui.escaparHtml(valor) + '</option>';
+      }).join(''),
+      '</select>',
+      '</label>',
+      '<label class="activity-history-check">',
+      '<input type="checkbox" data-history-filter="somenteApresentacoes"' +
+        (filtrosHistoricoAtividades.somenteApresentacoes ? ' checked' : '') +
+        '>',
+      '<span>Somente apresentacoes</span>',
+      '</label>',
+      '</div>'
+    ].join('');
+  }
+
+  function registrarEventosFiltrosHistorico(container, atividades, modo) {
+    if (modo !== MODO_ATIVIDADES_HISTORICO) {
+      return;
+    }
+
+    Array.prototype.forEach.call(
+      container.querySelectorAll('[data-history-filter]'),
+      function registrarFiltro(campo) {
+        campo.addEventListener('change', function atualizarFiltro() {
+          var chave = campo.getAttribute('data-history-filter');
+
+          if (chave === 'somenteApresentacoes') {
+            filtrosHistoricoAtividades.somenteApresentacoes = campo.checked === true;
+          } else {
+            filtrosHistoricoAtividades[chave] = campo.value || '';
+          }
+
+          renderizarAtividades(container, atividades, modo);
+        });
+      }
+    );
+  }
+
+  function obterOpcoesUnicas(atividades, extrator) {
+    var mapa = {};
+
+    (Array.isArray(atividades) ? atividades : []).forEach(function guardar(atividade) {
+      var valor = extrator(atividade);
+
+      if (valor) {
+        mapa[valor] = true;
+      }
+    });
+
+    return Object.keys(mapa).sort(function ordenar(a, b) {
+      return a.localeCompare(b);
+    });
+  }
+
+  function obterValorFiltroTipoAtividade(atividade) {
+    return [
+      obterCampoTextoAtividade(atividade, ['tipoPublico', 'tipoAtividade']),
+      obterCampoTextoAtividade(atividade, ['subtipoAtividade'])
+    ].filter(Boolean).join(' / ');
+  }
+
+  function obterValorFiltroEixoAtividade(atividade) {
+    return obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico']);
+  }
+
   function ehAtividadeRealizadaOuCancelada(atividade) {
     return ehAtividadeRealizadaOuEncerrada(atividade) || ehAtividadeCancelada(atividade);
   }
@@ -913,9 +1032,12 @@
 
   function montarCardAtividade(atividade, destaque, modo) {
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
+    var possuiApresentacao = atividadePossuiApresentacoes(atividade);
 
     return [
-      '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') + '" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '">',
+      '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') +
+        (possuiApresentacao ? ' activity-card-with-presentation' : '') +
+        '" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '">',
       '<div class="activity-card-main">',
       '<div>',
       '<p class="activity-date">' + ui.escaparHtml(ui.formatarData(atividade.dataAtividade)) + ' · ' + ui.escaparHtml(atividade.diaSemana) + '</p>',
@@ -932,11 +1054,16 @@
       '<dl class="activity-facts">',
       montarFato('Tipo', atividade.tipoPublico),
       montarFato('Formato', ui.formatarRotulo(atividade.formato)),
+      montarFatoOpcional('Eixo principal', obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico'])),
+      montarFatoOpcional('Eixo secundario', obterCampoTextoAtividade(atividade, ['eixoTematicoSecundario', 'eixoSecundario'])),
+      montarFatoOpcional('Pessoa principal', montarPessoaPrincipalAtividade(atividade)),
+      montarFatoOpcional('Apresentacoes', obterQtdApresentacoesAtividade(atividade) || ''),
       montarFato('Presença', ui.formatarBooleano(atividade.contaPresenca)),
       montarFato('Falta', ui.formatarBooleano(atividade.contaFalta)),
       montarFato('Certificado', ui.formatarBooleano(atividade.geraCertificado)),
       montarFato('Carga horária', atividade.cargaHoraria + ' h'),
       '</dl>',
+      montarBlocoApresentacoesCard(atividade),
       historico ? '' : montarAvisoChamada(atividade, destaque),
       '<div class="activity-actions">',
       montarBotaoDetalhes(atividade),
@@ -1078,6 +1205,120 @@
       '<dd>' + ui.escaparHtml(valor || '-') + '</dd>',
       '</div>'
     ].join('');
+  }
+
+  function montarFatoOpcional(rotulo, valor) {
+    return valor ? montarFato(rotulo, valor) : '';
+  }
+
+  function montarBlocoApresentacoesCard(atividade) {
+    var qtd = obterQtdApresentacoesAtividade(atividade);
+    var resumo = obterCampoTextoAtividade(atividade, ['resumoApresentacoesPublico', 'resumoApresentacoes']);
+    var pessoa = montarPessoaPrincipalAtividade(atividade);
+    var eixo = [
+      obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico']),
+      obterCampoTextoAtividade(atividade, ['eixoTematicoSecundario', 'eixoSecundario'])
+    ].filter(Boolean).join(' / ');
+    var titulo = resumo || atividade.tituloPublico || '';
+
+    if (!atividadePossuiApresentacoes(atividade)) {
+      return '';
+    }
+
+    return [
+      '<div class="activity-presentation-summary">',
+      '<span class="status-pill status-pill-muted">Atividade com apresentacao</span>',
+      qtd > 1
+        ? '<strong>' + ui.escaparHtml(qtd + ' apresentacoes vinculadas') + '</strong>'
+        : '<strong>' + ui.escaparHtml(titulo || 'Apresentacao vinculada') + '</strong>',
+      pessoa ? '<small>' + ui.escaparHtml(pessoa) + '</small>' : '',
+      qtd > 1 && resumo ? '<small>' + ui.escaparHtml(resumo) + '</small>' : '',
+      eixo ? '<small>' + ui.escaparHtml(eixo) + '</small>' : '',
+      '</div>'
+    ].join('');
+  }
+
+  function montarPessoaPrincipalAtividade(atividade) {
+    var nome = obterCampoTextoAtividade(atividade, ['nomePessoaPrincipalPublico', 'nomeApresentadorPublico', 'pessoaPrincipalPublica']);
+    var papel = obterCampoTextoAtividade(atividade, ['papelPessoaPrincipal', 'papelApresentador']);
+    var tipo = obterCampoTextoAtividade(atividade, ['tipoPessoaPrincipal', 'tipoApresentador']);
+
+    return [
+      nome,
+      [papel, tipo].filter(Boolean).join(' / ')
+    ].filter(Boolean).join(' - ');
+  }
+
+  function atividadePossuiApresentacoes(atividade) {
+    var qtd = obterQtdApresentacoesAtividade(atividade);
+    var flag = atividade && (atividade.possuiApresentacoes === true || atividade.ehApresentacao === true);
+
+    return Boolean(flag || qtd > 0);
+  }
+
+  function obterQtdApresentacoesAtividade(atividade) {
+    var direto = Number(atividade && atividade.qtdApresentacoes);
+    var apresentacoes = obterApresentacoesPublicas(atividade);
+
+    if (Number.isFinite(direto) && direto > 0) {
+      return direto;
+    }
+
+    return apresentacoes.length;
+  }
+
+  function obterCampoTextoAtividade(dados, chaves) {
+    var origem = dados || {};
+    var keys = Object.keys(origem);
+
+    for (var i = 0; i < chaves.length; i++) {
+      var alvo = normalizarChaveAtividade(chaves[i]);
+
+      for (var j = 0; j < keys.length; j++) {
+        if (normalizarChaveAtividade(keys[j]) === alvo) {
+          return String(origem[keys[j]] || '').trim();
+        }
+      }
+    }
+
+    return '';
+  }
+
+  function normalizarChaveAtividade(chave) {
+    return String(chave || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  }
+
+  function obterApresentacoesPublicas(dados) {
+    return normalizarListaPublicaAtividade(
+      (dados && (dados.apresentacoesPublicas || dados.apresentacoesPublicasJson || dados.APRESENTACOES_PUBLICAS_JSON)) || []
+    );
+  }
+
+  function obterEnvolvidosPublicos(dados) {
+    return normalizarListaPublicaAtividade(
+      (dados && (dados.envolvidosPublicos || dados.envolvidosPublicosJson || dados.ENVOLVIDOS_PUBLICOS_JSON)) || []
+    );
+  }
+
+  function normalizarListaPublicaAtividade(valor) {
+    if (Array.isArray(valor)) {
+      return valor.filter(Boolean);
+    }
+
+    if (valor && typeof valor === 'object') {
+      return [valor];
+    }
+
+    if (typeof valor === 'string' && valor.trim()) {
+      try {
+        var parsed = JSON.parse(valor);
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+      } catch (erro) {
+        return [];
+      }
+    }
+
+    return [];
   }
 
   function montarBotaoDetalhes(atividade) {
@@ -1849,17 +2090,122 @@
       montarFato('Reunião', ui.formatarRotulo(detalhe.classificacaoReuniao)),
       montarFato('Acesso', ui.formatarRotulo(detalhe.classificacaoAcesso)),
       montarFato('Responsável', detalhe.responsavelPublico || 'Não informado'),
+      montarFatoOpcional('Eixo principal', obterCampoTextoAtividade(detalhe, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico'])),
+      montarFatoOpcional('Eixo secundario', obterCampoTextoAtividade(detalhe, ['eixoTematicoSecundario', 'eixoSecundario'])),
+      montarFatoOpcional('Pessoa principal', montarPessoaPrincipalAtividade(detalhe)),
+      montarFatoOpcional('Apresentacoes', obterQtdApresentacoesAtividade(detalhe) || ''),
       montarFato('Conta presença', ui.formatarBooleano(detalhe.contaPresenca)),
       montarFato('Conta falta', ui.formatarBooleano(detalhe.contaFalta)),
       montarFato('Gera certificado', ui.formatarBooleano(detalhe.geraCertificado)),
       montarFato('Carga horária', detalhe.cargaHoraria ? detalhe.cargaHoraria + ' h' : '-'),
       montarFato('Status', ui.formatarRotulo(detalhe.statusPublico)),
       '</dl>',
-      '<p class="section-note">Materiais e atas públicas serão exibidos quando a integração real estiver disponível.</p>'
+      montarLinksPublicosDetalhe(detalhe),
+      montarEnvolvidosPublicosDetalhe(detalhe),
+      montarApresentacoesVinculadasDetalhe(detalhe)
     ].join('');
 
     modal.hidden = false;
     document.body.classList.add('modal-open');
+  }
+
+  function montarLinksPublicosDetalhe(detalhe) {
+    var links = [
+      { rotulo: 'Material publico', href: obterCampoTextoAtividade(detalhe, ['linkMaterialPublico']) },
+      { rotulo: 'Ata publica', href: obterCampoTextoAtividade(detalhe, ['linkAtaPublica']) },
+      { rotulo: 'Fotos publicas', href: obterCampoTextoAtividade(detalhe, ['linkFotosPublico']) }
+    ].filter(function filtrar(link) {
+      return link.href;
+    });
+
+    if (!links.length) {
+      return '';
+    }
+
+    return [
+      '<section class="activity-detail-section">',
+      '<h4>Materiais publicos</h4>',
+      '<div class="activity-detail-links">',
+      links.map(function montarLink(link) {
+        return '<a class="secondary-button compact-button" href="' + ui.escaparHtml(link.href) +
+          '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(link.rotulo) + '</a>';
+      }).join(''),
+      '</div>',
+      '</section>'
+    ].join('');
+  }
+
+  function montarEnvolvidosPublicosDetalhe(detalhe) {
+    var envolvidos = obterEnvolvidosPublicos(detalhe);
+
+    if (!envolvidos.length) {
+      return '';
+    }
+
+    return [
+      '<section class="activity-detail-section">',
+      '<h4>Envolvidos publicos</h4>',
+      '<div class="activity-detail-list">',
+      envolvidos.map(function montarEnvolvido(item) {
+        var nome = obterCampoTextoAtividade(item, ['nomePublico', 'nome', 'nomePessoaPublico']);
+        var papel = obterCampoTextoAtividade(item, ['papel', 'papelPublico']);
+        var tipo = obterCampoTextoAtividade(item, ['tipoPessoa', 'tipo']);
+
+        return [
+          '<article>',
+          '<strong>' + ui.escaparHtml(nome || 'Pessoa vinculada') + '</strong>',
+          [papel, tipo].filter(Boolean).length
+            ? '<small>' + ui.escaparHtml([papel, tipo].filter(Boolean).join(' / ')) + '</small>'
+            : '',
+          '</article>'
+        ].join('');
+      }).join(''),
+      '</div>',
+      '</section>'
+    ].join('');
+  }
+
+  function montarApresentacoesVinculadasDetalhe(detalhe) {
+    var apresentacoes = obterApresentacoesPublicas(detalhe);
+
+    if (!apresentacoes.length) {
+      return '';
+    }
+
+    return [
+      '<section class="activity-detail-section">',
+      '<h4>' + ui.escaparHtml(apresentacoes.length > 1 ? 'Apresentacoes vinculadas' : 'Apresentacao vinculada') + '</h4>',
+      '<div class="activity-presentation-list">',
+      apresentacoes.map(montarApresentacaoDetalhe).join(''),
+      '</div>',
+      '</section>'
+    ].join('');
+  }
+
+  function montarApresentacaoDetalhe(apresentacao) {
+    var apresentador = obterCampoTextoAtividade(apresentacao, ['nomeApresentadorPublico', 'apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico']);
+    var titulo = obterCampoTextoAtividade(apresentacao, ['tituloApresentacao', 'tema', 'tituloPublico', 'resumoPublico']);
+    var eixoPrincipal = obterCampoTextoAtividade(apresentacao, ['eixoTematicoPrincipal', 'eixoPrincipal']);
+    var eixoSecundario = obterCampoTextoAtividade(apresentacao, ['eixoTematicoSecundario', 'eixoSecundario']);
+    var status = obterCampoTextoAtividade(apresentacao, ['statusApresentacao', 'statusPublico', 'status']);
+    var statusArquivo = obterCampoTextoAtividade(apresentacao, ['statusArquivoPublico', 'statusArquivo']);
+    var link = obterCampoTextoAtividade(apresentacao, ['linkPublico', 'linkMaterialPublico', 'linkArquivoPublico']);
+
+    return [
+      '<article class="activity-presentation-detail">',
+      apresentador ? '<small>' + ui.escaparHtml(apresentador) + '</small>' : '',
+      '<strong>' + ui.escaparHtml(titulo || 'Apresentacao') + '</strong>',
+      eixoPrincipal || eixoSecundario
+        ? '<span>' + ui.escaparHtml([eixoPrincipal, eixoSecundario].filter(Boolean).join(' / ')) + '</span>'
+        : '',
+      status || statusArquivo
+        ? '<span>' + ui.escaparHtml([status, statusArquivo].filter(Boolean).join(' - ')) + '</span>'
+        : '',
+      link
+        ? '<a href="' + ui.escaparHtml(link) + '" target="_blank" rel="noopener noreferrer">Abrir material publico</a>'
+        : '',
+      '</article>'
+    ].join('');
   }
 
   function definirTituloModal(titulo) {

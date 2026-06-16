@@ -90,7 +90,7 @@ pelo mesmo guard.
 | `conselho` | Gestao | CONSELHO, DIRETORIA, ADMIN | `portal:acessar` | Placeholder |
 | `administracao` | Administracao | ADMIN | `sistema:admin` | Placeholder |
 | `logs` | Administracao | ADMIN, DIRETORIA | `logs:ler` | Placeholder |
-| `historico-apresentacoes` | Publico / Geral | Todos | `apresentacoes:ver_publicas`, `apresentacoes:ver_ate_saida` | Placeholder |
+| `historico-apresentacoes` | Atividades | Todos | mesmas regras de `historico-atividades` | Atalho legado para historico unificado |
 
 O contrato oficial agora espera permissoes canonicas no formato `dominio:acao`
 em `data.sessao.permissoes`. Para respostas legadas que ainda nao tragam
@@ -120,8 +120,9 @@ exige que a rota tenha ao menos uma permissao efetiva correspondente.
    administrativas por padrao.
 6. EGRESSO: ve areas limitadas; nao ve frequencia interna, diretoria ou gestao.
    Regras de apresentacoes ate a saida devem ser aplicadas no backend/CORE.
-7. VISITANTE: ve apenas Inicio, Atividades publicas e Historico de
-   apresentacoes quando essas rotas forem expostas publicamente.
+7. VISITANTE: ve apenas Inicio e Atividades publicas quando essas rotas forem
+   expostas publicamente. Historico de apresentacoes nao e area privada
+   separada; quando usado, aponta para o historico unificado de atividades.
 8. ADMIN: ve as areas administrativas quando o perfil/permissao vier do CORE.
 
 ## Como adicionar uma nova rota protegida
