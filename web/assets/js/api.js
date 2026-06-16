@@ -72,7 +72,7 @@
     },
     {
       idAtividade: 'ATV-2026-1-0007',
-      dataAtividade: '2026-06-04',
+      dataAtividade: '2026-07-02',
       diaSemana: 'quinta-feira',
       horarioInicio: '19h00',
       horarioFim: '21h00',
@@ -190,7 +190,7 @@
       idAtividade: 'ATV-2026-1-0007',
       tituloPublico: 'Oficina Temática',
       descricaoPublica: 'Oficina remota com conteúdo formativo para membros e convidados.',
-      dataAtividade: '2026-06-04',
+      dataAtividade: '2026-07-02',
       horarioCompleto: '19h00 às 21h00',
       local: 'Ambiente virtual',
       formato: 'REMOTO',

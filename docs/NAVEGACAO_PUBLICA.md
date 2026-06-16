@@ -79,12 +79,11 @@ Modelo atual:
 - Calendario: placeholder para visao futura de agenda mensal, eventos,
   reunioes, simposios, confraternizacoes e apresentacoes.
 - Historico de atividades: tela implementada e restrita a internos do GEAPA.
-  A aba lista atividades realizadas a partir da primeira atividade do Ciclo
-  2026, realizada em 09/04/2026. Externos devem consultar participacoes
-  proprias em Meu Vinculo.
+  A aba lista atividades realizadas disponiveis no payload do backend e oferece
+  filtros por ciclo/semestre, tipo/subtipo, eixo tematico e somente
+  apresentacoes. Externos devem consultar participacoes proprias em Meu Vinculo.
 - Proximas apresentacoes e Historico de apresentacoes nao sao telas separadas.
-  Sao atalhos legados para a agenda/historico unificados de atividades. As
-  apresentacoes aparecem vinculadas a atividade, a partir dos campos publicos
+  As apresentacoes aparecem vinculadas a atividade, a partir dos campos publicos
   do calendario e dos detalhes de `geapa-atividades`.
 
 Materiais devem aparecer dentro da atividade ou apresentacao relacionada, em vez

@@ -232,9 +232,11 @@ Campos minimos esperados no detalhe:
 
 `apresentacoesPublicas` e `envolvidosPublicos` podem chegar como array seguro ou
 JSON serializado; o front-end tenta parsear e, se vier vazio ou invalido, omite
-a secao correspondente. O historico e sempre historico de atividades, com
-filtros de tipo/subtipo, somente apresentacoes e eixo tematico. Um filtro por
-pessoa principal/apresentador esta previsto para fase futura.
+a secao correspondente. A aba de proximas atividades mostra apenas atividades
+futuras ou em andamento. O historico e sempre historico de atividades, sem corte
+fixo por ciclo no front-end, com filtros de ciclo/semestre, tipo/subtipo,
+somente apresentacoes e eixo tematico. Um filtro por pessoa
+principal/apresentador esta previsto para fase futura.
 
 `Minhas apresentacoes` tambem e derivado dos detalhes de atividades. O backend
 filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da sessao e
@@ -353,6 +355,8 @@ Antes de publicar uma mudanca nessa integracao, validar:
 - historico mostra todas as atividades e aceita filtro por tipo/subtipo;
 - historico aceita filtro "Somente apresentacoes";
 - historico aceita filtro por eixo tematico;
+- historico aceita filtro por ciclo/semestre quando o payload trouxer esses
+  campos ou quando for possivel derivar o semestre pela data;
 - `apresentacoesPublicas` em JSON serializado invalido ou vazio nao quebra a
   tela;
 - busca por dependencias ativas nao deve encontrar consumo de view paralela de

@@ -664,7 +664,10 @@ historico usam os campos publicos do calendario (`eixoTematicoPrincipal`,
 `resumoApresentacoesPublico`, `possuiApresentacoes`, `ehApresentacao`). O
 detalhe/modal usa `PORTAL_ATIVIDADES_DETALHES`, especialmente
 `apresentacoesPublicas`, `envolvidosPublicos`, `linkMaterialPublico`,
-`linkAtaPublica` e `linkFotosPublico`.
+`linkAtaPublica` e `linkFotosPublico`. A aba de proximas atividades filtra
+apenas atividades futuras ou em andamento. O historico nao aplica corte fixo de
+ciclo no front-end e oferece filtros por ciclo/semestre, tipo/subtipo,
+apresentacoes e eixo tematico.
 
 ## Acoes V2 somente leitura
 

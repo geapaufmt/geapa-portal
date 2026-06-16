@@ -16,7 +16,6 @@
   var PRELOAD_DETALHES_LIMITE_PADRAO = 5;
   var MODO_ATIVIDADES_PROXIMAS = 'proximas';
   var MODO_ATIVIDADES_HISTORICO = 'historico';
-  var HISTORICO_ATIVIDADES_INICIO = '2026-04-09';
   var detalhesCache = {};
   var atividadesResumoCache = {};
   var atividadesBundleCache = null;
@@ -24,7 +23,8 @@
   var filtrosHistoricoAtividades = {
     tipoSubtipo: '',
     somenteApresentacoes: false,
-    eixo: ''
+    eixo: '',
+    cicloSemestre: ''
   };
   var detalhesPreloadPromise = null;
   var detalhesPreloadTimer = null;
@@ -104,7 +104,7 @@
   }
 
   function ehRotaDaTelaAtividades(idRota) {
-    return ['atividades', 'historico-atividades', 'historico-apresentacoes', 'agenda-apresentacoes'].indexOf(idRota) >= 0;
+    return ['atividades', 'historico-atividades'].indexOf(idRota) >= 0;
   }
 
   function obterModoAtividadesAtual() {
@@ -116,7 +116,7 @@
   }
 
   function obterModoAtividadesPorRota(rota) {
-    return rota && (rota.id === 'historico-atividades' || rota.id === 'historico-apresentacoes')
+    return rota && rota.id === 'historico-atividades'
       ? MODO_ATIVIDADES_HISTORICO
       : MODO_ATIVIDADES_PROXIMAS;
   }
@@ -801,7 +801,7 @@
       container.innerHTML = avisoHistorico + filtrosHistorico + '<p class="empty-state">' +
         ui.escaparHtml(todas.length
           ? (historico
-            ? 'Nenhuma atividade realizada a partir do Ciclo 2026 está disponível nesta aba.'
+            ? 'Nenhuma atividade realizada atende aos filtros selecionados.'
             : 'Nenhuma próxima atividade disponível. Atividades já realizadas ficarão no histórico de atividades.')
           : rotulos.vazio) +
         '</p>';
@@ -860,20 +860,32 @@
   }
 
   function montarAvisoEscopoHistoricoAtividades() {
-    return [
-      '<p class="simulation-warning">',
-      ui.escaparHtml('Apenas as atividades a partir da primeira atividade do Ciclo 2026 em diante, realizada em 09/04/2026, estarão disponíveis nesta aba.'),
-      '</p>'
-    ].join('');
+    return '';
   }
 
   function obterAgendaOperacionalAtividades(atividades) {
     return (Array.isArray(atividades) ? atividades.slice() : [])
+      .filter(atividadeEhFuturaOuEmAndamento)
       .sort(compararAtividadesPorInicio);
   }
 
+  function atividadeEhFuturaOuEmAndamento(atividade) {
+    var inicio = obterInicioAtividadeMs(atividade) || obterDataAtividadeMs(atividade);
+    var fim = obterFimAtividadeMs(atividade) || obterFimDoDiaAtividadeMs(atividade);
+    var agora = obterTempoCacheAtual();
+
+    if (!inicio || ehAtividadeCancelada(atividade) || ehAtividadeRealizadaOuEncerrada(atividade)) {
+      return false;
+    }
+
+    if (fim) {
+      return fim >= agora;
+    }
+
+    return inicio > agora;
+  }
+
   function obterHistoricoAtividades(atividades) {
-    var inicioHistorico = new Date(HISTORICO_ATIVIDADES_INICIO + 'T00:00:00').getTime();
     var agora = obterTempoCacheAtual();
 
     return (Array.isArray(atividades) ? atividades : [])
@@ -881,7 +893,7 @@
         var inicio = obterInicioAtividadeMs(atividade) || obterDataAtividadeMs(atividade);
         var fim = obterFimAtividadeMs(atividade);
 
-        if (!inicio || inicio < inicioHistorico) {
+        if (!inicio) {
           return false;
         }
 
@@ -901,6 +913,7 @@
   function aplicarFiltrosHistoricoAtividades(atividades) {
     var filtroTipo = String(filtrosHistoricoAtividades.tipoSubtipo || '').trim();
     var filtroEixo = String(filtrosHistoricoAtividades.eixo || '').trim();
+    var filtroCicloSemestre = String(filtrosHistoricoAtividades.cicloSemestre || '').trim();
 
     return (Array.isArray(atividades) ? atividades : []).filter(function filtrar(atividade) {
       if (filtrosHistoricoAtividades.somenteApresentacoes && !atividadePossuiApresentacoes(atividade)) {
@@ -915,16 +928,32 @@
         return false;
       }
 
+      if (filtroCicloSemestre && obterValorFiltroCicloSemestreAtividade(atividade) !== filtroCicloSemestre) {
+        return false;
+      }
+
       return true;
     });
   }
 
   function montarFiltrosHistoricoAtividades(atividades) {
+    var ciclosSemestres = obterOpcoesUnicas(atividades, obterValorFiltroCicloSemestreAtividade);
     var tipos = obterOpcoesUnicas(atividades, obterValorFiltroTipoAtividade);
     var eixos = obterOpcoesUnicas(atividades, obterValorFiltroEixoAtividade);
 
     return [
       '<div class="activity-history-filters" aria-label="Filtros do historico de atividades">',
+      '<label>',
+      '<span>Ciclo/semestre</span>',
+      '<select data-history-filter="cicloSemestre">',
+      '<option value="">Todos</option>',
+      ciclosSemestres.map(function montarOpcao(valor) {
+        return '<option value="' + ui.escaparHtml(valor) + '"' +
+          (valor === filtrosHistoricoAtividades.cicloSemestre ? ' selected' : '') +
+          '>' + ui.escaparHtml(valor) + '</option>';
+      }).join(''),
+      '</select>',
+      '</label>',
       '<label>',
       '<span>Tipo/subtipo</span>',
       '<select data-history-filter="tipoSubtipo">',
@@ -1007,6 +1036,30 @@
     return obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico']);
   }
 
+  function obterValorFiltroCicloSemestreAtividade(atividade) {
+    var ciclo = obterCampoTextoAtividade(atividade, ['ciclo', 'cicloAtividade', 'anoCiclo']);
+    var semestre = obterCampoTextoAtividade(atividade, ['semestre', 'semestreAtividade', 'periodo', 'periodoLetivo', 'cicloSemestre']);
+    var derivado = montarCicloSemestrePorDataAtividade(atividade);
+
+    if (ciclo && semestre && ciclo !== semestre) {
+      return ciclo + ' / ' + semestre;
+    }
+
+    return ciclo || semestre || derivado;
+  }
+
+  function montarCicloSemestrePorDataAtividade(atividade) {
+    var dataMs = obterDataAtividadeMs(atividade);
+    var data;
+
+    if (!dataMs) {
+      return '';
+    }
+
+    data = new Date(dataMs);
+    return data.getFullYear() + '/' + (data.getMonth() < 6 ? '1' : '2');
+  }
+
   function ehAtividadeRealizadaOuCancelada(atividade) {
     return ehAtividadeRealizadaOuEncerrada(atividade) || ehAtividadeCancelada(atividade);
   }
@@ -1087,19 +1140,8 @@
   }
 
   function obterProximaAtividade(atividades) {
-    var agora = obterTempoCacheAtual();
-
     return (Array.isArray(atividades) ? atividades : [])
-      .filter(function filtrarFuturas(atividade) {
-        var inicio = obterInicioAtividadeMs(atividade);
-        var fim = obterFimAtividadeMs(atividade);
-
-        if (fim) {
-          return fim >= agora;
-        }
-
-        return inicio && inicio > agora;
-      })
+      .filter(atividadeEhFuturaOuEmAndamento)
       .sort(compararAtividadesPorInicio)[0] || null;
   }
 
@@ -1144,6 +1186,18 @@
     }
 
     dataHora = new Date(data + 'T00:00:00');
+    return Number.isNaN(dataHora.getTime()) ? 0 : dataHora.getTime();
+  }
+
+  function obterFimDoDiaAtividadeMs(atividade) {
+    var data = String((atividade && (atividade.dataAtividade || atividade.data)) || '').trim();
+    var dataHora;
+
+    if (!data) {
+      return 0;
+    }
+
+    dataHora = new Date(data + 'T23:59:59');
     return Number.isNaN(dataHora.getTime()) ? 0 : dataHora.getTime();
   }
 
