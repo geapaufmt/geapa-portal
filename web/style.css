@@ -566,6 +566,20 @@ button:focus-visible {
   font-size: 0.92rem;
 }
 
+.activity-folder-link {
+  border-color: #8a5a32;
+  border-radius: 999px;
+  color: #fffdf8;
+  background: #8a5a32;
+}
+
+.activity-folder-link:hover,
+.activity-folder-link:focus-visible {
+  border-color: #6f4525;
+  color: #ffffff;
+  background: #6f4525;
+}
+
 button:disabled {
   border: 1px solid var(--border);
   color: var(--muted);

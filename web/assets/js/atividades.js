@@ -2188,7 +2188,7 @@
   function montarLinksPublicosDetalhe(detalhe) {
     var links = [
       { rotulo: 'Material geral da atividade', href: obterCampoTextoAtividade(detalhe, ['linkMaterialPublico']) },
-      { rotulo: 'Pasta geral da atividade', href: obterCampoTextoAtividade(detalhe, ['linkPastaDrive']) },
+      { rotulo: 'Pasta geral da atividade', href: obterCampoTextoAtividade(detalhe, ['linkPastaDrive']), classe: 'activity-folder-link' },
       { rotulo: 'Ata publica', href: obterCampoTextoAtividade(detalhe, ['linkAtaPublica']) },
       { rotulo: 'Fotos publicas', href: obterCampoTextoAtividade(detalhe, ['linkFotosPublico']) }
     ].filter(function filtrar(link) {
@@ -2204,7 +2204,7 @@
       '<h4>Materiais publicos</h4>',
       '<div class="activity-detail-links">',
       links.map(function montarLink(link) {
-        return '<a class="secondary-button compact-button" href="' + ui.escaparHtml(link.href) +
+        return '<a class="secondary-button compact-button ' + ui.escaparHtml(link.classe || '') + '" href="' + ui.escaparHtml(link.href) +
           '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(link.rotulo) + '</a>';
       }).join(''),
       '</div>',
