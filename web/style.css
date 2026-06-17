@@ -567,17 +567,16 @@ button:focus-visible {
 }
 
 .activity-folder-link {
-  border-color: #8a5a32;
-  border-radius: 999px;
-  color: #fffdf8;
-  background: #8a5a32;
+  border-color: #8a5a32 !important;
+  color: var(--white) !important;
+  background: #8a5a32 !important;
 }
 
 .activity-folder-link:hover,
 .activity-folder-link:focus-visible {
-  border-color: #6f4525;
-  color: #ffffff;
-  background: #6f4525;
+  border-color: #6f4525 !important;
+  color: var(--white) !important;
+  background: #6f4525 !important;
 }
 
 button:disabled {
