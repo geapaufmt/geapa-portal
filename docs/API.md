@@ -669,7 +669,10 @@ apenas atividades futuras ou em andamento. O historico nao aplica corte fixo de
 ciclo no front-end e oferece filtros por ciclo/semestre, tipo/subtipo,
 apresentacoes e eixo tematico. O ciclo/semestre deve vir do backend por campos
 explicitos derivados de Atividades/Vigencias; o Portal nao infere semestre
-letivo por divisao civil do ano.
+letivo por divisao civil do ano. Cards da lista so renderizam bloco de
+apresentacao quando `apresentacoesPublicas` trouxer item vinculado ao mesmo
+`idAtividade`; resumo agregado sem esse vinculo nao e suficiente para montar o
+bloco visual.
 
 ## Acoes V2 somente leitura
 

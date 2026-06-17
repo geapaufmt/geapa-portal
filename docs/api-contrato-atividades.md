@@ -241,6 +241,12 @@ equivalentes vindos de Atividades/Vigencias), nunca inferencia por semestre
 civil. Um filtro por pessoa
 principal/apresentador esta previsto para fase futura.
 
+Para evitar mistura entre registros, cards da lista so devem renderizar detalhes
+de apresentacao quando `apresentacoesPublicas` trouxer item vinculado ao mesmo
+`idAtividade`. Campos agregados soltos como `qtdApresentacoes` e
+`resumoApresentacoesPublico` podem sinalizar filtros, mas nao devem ser usados
+sozinhos para montar o bloco visual de uma apresentacao.
+
 `Minhas apresentacoes` tambem e derivado dos detalhes de atividades. O backend
 filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da sessao e
 retorna somente campos publicos/sanitizados da apresentacao vinculada.

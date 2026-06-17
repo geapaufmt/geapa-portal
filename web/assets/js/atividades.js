@@ -1041,12 +1041,16 @@
       'cicloSemestre',
       'anoSemestre',
       'anoSemestreLetivo',
-      'periodoLetivo'
+      'periodoLetivo',
+      'periodoAtividade',
+      'periodoReferencia'
     ]);
     var ano = obterCampoTextoAtividade(atividade, [
       'ano',
       'anoAtividade',
       'anoLetivo',
+      'anoReferencia',
+      'anoVigencia',
       'ciclo',
       'cicloAtividade',
       'anoCiclo'
@@ -1054,7 +1058,9 @@
     var semestre = obterCampoTextoAtividade(atividade, [
       'semestre',
       'semestreAtividade',
-      'semestreLetivo'
+      'semestreLetivo',
+      'semestreReferencia',
+      'semestreVigencia'
     ]);
 
     if (ano && semestre && ano !== semestre) {
@@ -1089,7 +1095,7 @@
 
   function montarCardAtividade(atividade, destaque, modo) {
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
-    var possuiApresentacao = atividadePossuiApresentacoes(atividade);
+    var possuiApresentacao = obterApresentacoesVinculadasAtividade(atividade, true).length > 0;
 
     return [
       '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') +
@@ -1269,16 +1275,22 @@
   }
 
   function montarBlocoApresentacoesCard(atividade) {
-    var qtd = obterQtdApresentacoesAtividade(atividade);
-    var resumo = obterCampoTextoAtividade(atividade, ['resumoApresentacoesPublico', 'resumoApresentacoes']);
-    var pessoa = montarPessoaPrincipalAtividade(atividade);
-    var eixo = [
+    var apresentacoes = obterApresentacoesVinculadasAtividade(atividade, true);
+    var qtd = apresentacoes.length;
+    var principal = apresentacoes[0] || {};
+    var resumo = apresentacoes
+      .map(obterTituloApresentacao)
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('; ');
+    var pessoa = montarPessoaPrincipalApresentacao(principal) || montarPessoaPrincipalAtividade(atividade);
+    var eixo = montarEixoApresentacao(principal) || [
       obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico']),
       obterCampoTextoAtividade(atividade, ['eixoTematicoSecundario', 'eixoSecundario'])
     ].filter(Boolean).join(' / ');
-    var titulo = resumo || atividade.tituloPublico || '';
+    var titulo = obterTituloApresentacao(principal) || resumo || '';
 
-    if (!atividadePossuiApresentacoes(atividade)) {
+    if (!qtd) {
       return '';
     }
 
@@ -1295,6 +1307,28 @@
       eixo ? '<small>' + ui.escaparHtml(eixo) + '</small>' : '',
       '</div>'
     ].join('');
+  }
+
+  function obterTituloApresentacao(apresentacao) {
+    return obterCampoTextoAtividade(apresentacao, ['tituloApresentacao', 'tema', 'tituloPublico', 'resumoPublico']);
+  }
+
+  function montarPessoaPrincipalApresentacao(apresentacao) {
+    var nome = obterCampoTextoAtividade(apresentacao, ['nomeApresentadorPublico', 'apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico']);
+    var papel = obterCampoTextoAtividade(apresentacao, ['papelPessoaPrincipal', 'papelApresentador', 'papel']);
+    var tipo = obterCampoTextoAtividade(apresentacao, ['tipoPessoaPrincipal', 'tipoApresentador', 'tipoPessoa']);
+
+    return [
+      nome,
+      [papel, tipo].filter(Boolean).join(' / ')
+    ].filter(Boolean).join(' - ');
+  }
+
+  function montarEixoApresentacao(apresentacao) {
+    return [
+      obterCampoTextoAtividade(apresentacao, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico']),
+      obterCampoTextoAtividade(apresentacao, ['eixoTematicoSecundario', 'eixoSecundario'])
+    ].filter(Boolean).join(' / ');
   }
 
   function montarPessoaPrincipalAtividade(atividade) {
@@ -1351,6 +1385,29 @@
     return normalizarListaPublicaAtividade(
       (dados && (dados.apresentacoesPublicas || dados.apresentacoesPublicasJson || dados.APRESENTACOES_PUBLICAS_JSON)) || []
     );
+  }
+
+  function obterApresentacoesVinculadasAtividade(dados, exigirIdExplicito) {
+    var idAtividade = String((dados && dados.idAtividade) || '').trim();
+
+    return obterApresentacoesPublicas(dados).filter(function filtrar(apresentacao) {
+      var idApresentacaoAtividade = obterCampoTextoAtividade(apresentacao, [
+        'idAtividade',
+        'ID_ATIVIDADE',
+        'idAtividadeVinculada',
+        'idAtividadeOrigem'
+      ]);
+
+      if (!idAtividade) {
+        return exigirIdExplicito !== true || Boolean(idApresentacaoAtividade);
+      }
+
+      if (idApresentacaoAtividade) {
+        return idApresentacaoAtividade === idAtividade;
+      }
+
+      return exigirIdExplicito !== true;
+    });
   }
 
   function obterEnvolvidosPublicos(dados) {
@@ -2131,7 +2188,7 @@
   function abrirModal(detalhe) {
     var modal = document.getElementById('atividade-modal');
     var conteudo = document.getElementById('atividade-modal-content');
-    var possuiApresentacao = atividadePossuiApresentacoes(detalhe);
+    var possuiApresentacao = obterApresentacoesVinculadasAtividade(detalhe, false).length > 0;
 
     conteudo.innerHTML = [
       '<p class="eyebrow">' + ui.escaparHtml(detalhe.idAtividade || 'Atividade') + '</p>',
@@ -2225,7 +2282,7 @@
   }
 
   function montarApresentacoesVinculadasDetalhe(detalhe) {
-    var apresentacoes = obterApresentacoesPublicas(detalhe);
+    var apresentacoes = obterApresentacoesVinculadasAtividade(detalhe, false);
 
     if (!apresentacoes.length) {
       return '';
