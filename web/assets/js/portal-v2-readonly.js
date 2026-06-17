@@ -33,16 +33,16 @@
       vazio: 'Nenhuma apresentacao disponivel para este usuario.',
       colunas: [
         ['dataAtividade', 'Data'],
-        ['tema', 'Tema'],
-        ['apresentadorPublico', 'Apresentador'],
+        ['tema', 'Tema', 'texto', ['titulo']],
+        ['apresentadorPublico', 'Apresentador', 'texto', ['nomeApresentador']],
         ['statusApresentacao', 'Status'],
         ['statusMaterial', 'Material'],
         ['nomeArquivoMaterial', 'Arquivo'],
         ['versaoMaterial', 'Versao'],
-        ['linkMaterialPublico', 'Abrir material', 'link'],
+        ['linkMaterialPublico', 'Abrir material', 'link', ['idArquivoMaterial']],
         ['eixoTematicoPrincipal', 'Eixo'],
         ['eixoTematicoSecundario', 'Eixo secundario'],
-        ['periodo', 'Periodo']
+        ['periodo', 'Periodo', 'texto', ['rotuloSemestre']]
       ]
     },
     justificativas: {
@@ -207,7 +207,7 @@
         return [
           '<tr>',
           definicao.colunas.map(function montarCelula(coluna) {
-            return '<td>' + renderizarValorTabela(item[coluna[0]], coluna) + '</td>';
+            return '<td>' + renderizarValorTabela(obterValorColuna(item, coluna), coluna, item) + '</td>';
           }).join(''),
           '</tr>'
         ].join('');
@@ -218,17 +218,85 @@
     ].join('');
   }
 
-  function renderizarValorTabela(valor, coluna) {
+  function obterValorColuna(item, coluna) {
+    var chaves = [coluna[0]].concat(coluna[3] || []);
+    var dados = item || {};
+    var valor;
+
+    for (var i = 0; i < chaves.length; i++) {
+      valor = dados[chaves[i]];
+
+      if (valor !== undefined && valor !== null && valor !== '') {
+        return valor;
+      }
+    }
+
+    return '';
+  }
+
+  function renderizarValorTabela(valor, coluna, item) {
     var tipo = coluna && coluna[2];
     var texto = formatarValor(valor);
+    var url;
 
     if (tipo === 'link') {
-      return texto
-        ? '<a href="' + ui.escaparHtml(texto) + '" target="_blank" rel="noopener noreferrer">Abrir</a>'
+      url = normalizarUrlPublica((item || {})[coluna[0]]) ||
+        montarUrlDrivePorId((item || {})[coluna[0]]) ||
+        montarUrlDrivePorId(obterPrimeiroValorPorChaves(item, coluna[3] || []));
+
+      return url
+        ? '<a href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir</a>'
         : '<span class="muted-inline">Nao disponivel</span>';
     }
 
     return ui.escaparHtml(texto);
+  }
+
+  function obterPrimeiroValorPorChaves(item, chaves) {
+    var dados = item || {};
+    var valor;
+
+    for (var i = 0; i < chaves.length; i++) {
+      valor = dados[chaves[i]];
+
+      if (valor !== undefined && valor !== null && valor !== '') {
+        return valor;
+      }
+    }
+
+    return '';
+  }
+
+  function normalizarUrlPublica(valor) {
+    var texto = String(valor || '').trim();
+
+    if (!texto || texto === '-') {
+      return '';
+    }
+
+    if (/^https?:\/\//i.test(texto)) {
+      return texto;
+    }
+
+    if (/^www\./i.test(texto)) {
+      return 'https://' + texto;
+    }
+
+    if (/^drive\.google\.com\//i.test(texto)) {
+      return 'https://' + texto;
+    }
+
+    return '';
+  }
+
+  function montarUrlDrivePorId(valor) {
+    var id = String(valor || '').trim();
+
+    if (!id || !/^[a-zA-Z0-9_-]{20,}$/.test(id)) {
+      return '';
+    }
+
+    return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
   }
 
   function formatarValor(valor) {

@@ -567,7 +567,14 @@ button:focus-visible {
 }
 
 .activity-folder-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
   border-color: #8a5a32 !important;
+  border-radius: 5px;
+  text-decoration: none;
   color: var(--white) !important;
   background: #8a5a32 !important;
 }

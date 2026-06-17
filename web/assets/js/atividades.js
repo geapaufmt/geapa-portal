@@ -26,6 +26,9 @@
     eixo: '',
     cicloSemestre: ''
   };
+  var filtrosProximasAtividades = {
+    mes: ''
+  };
   var detalhesPreloadPromise = null;
   var detalhesPreloadTimer = null;
   var detalhesPreloadFila = [];
@@ -791,21 +794,23 @@
     var todas = Array.isArray(atividades) ? atividades.slice() : [];
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
     var base = historico ? obterHistoricoAtividades(todas) : obterAgendaOperacionalAtividades(todas);
-    var dados = historico ? aplicarFiltrosHistoricoAtividades(base) : base;
+    var dados = historico ? aplicarFiltrosHistoricoAtividades(base) : aplicarFiltrosProximasAtividades(base);
     var proxima = historico ? null : obterProximaAtividade(dados);
     var rotulos = obterRotulosAtividades(modo);
     var avisoHistorico = historico ? montarAvisoEscopoHistoricoAtividades() : '';
     var filtrosHistorico = historico ? montarFiltrosHistoricoAtividades(base) : '';
+    var filtrosProximas = historico ? '' : montarFiltrosProximasAtividades(base);
 
     if (!dados.length) {
-      container.innerHTML = avisoHistorico + filtrosHistorico + '<p class="empty-state">' +
+      container.innerHTML = avisoHistorico + filtrosHistorico + filtrosProximas + '<p class="empty-state">' +
         ui.escaparHtml(todas.length
           ? (historico
             ? 'Nenhuma atividade realizada atende aos filtros selecionados.'
-            : 'Nenhuma próxima atividade disponível. Atividades já realizadas ficarão no histórico de atividades.')
+            : 'Nenhuma próxima atividade atende ao filtro selecionado.')
           : rotulos.vazio) +
         '</p>';
       registrarEventosFiltrosHistorico(container, todas, modo);
+      registrarEventosFiltrosProximas(container, todas, modo);
       return;
     }
 
@@ -818,6 +823,7 @@
     container.innerHTML = [
       avisoHistorico,
       filtrosHistorico,
+      filtrosProximas,
       proxima
         ? [
           '<section class="next-activity-section" aria-labelledby="proxima-atividade-title">',
@@ -856,6 +862,7 @@
     );
 
     registrarEventosFiltrosHistorico(container, todas, modo);
+    registrarEventosFiltrosProximas(container, todas, modo);
     observarPreloadDetalhes(container);
   }
 
@@ -908,6 +915,14 @@
         return fim ? fim < agora : inicio < agora;
       })
       .sort(compararAtividadesPorInicioDesc);
+  }
+
+  function aplicarFiltrosProximasAtividades(atividades) {
+    var filtroMes = String(filtrosProximasAtividades.mes || '').trim();
+
+    return (Array.isArray(atividades) ? atividades : []).filter(function filtrar(atividade) {
+      return !filtroMes || obterValorFiltroMesAtividade(atividade) === filtroMes;
+    });
   }
 
   function aplicarFiltrosHistoricoAtividades(atividades) {
@@ -986,6 +1001,30 @@
     ].join('');
   }
 
+  function montarFiltrosProximasAtividades(atividades) {
+    var meses = obterOpcoesUnicas(atividades, obterValorFiltroMesAtividade);
+
+    if (!meses.length) {
+      return '';
+    }
+
+    return [
+      '<div class="activity-history-filters activity-upcoming-filters" aria-label="Filtros de próximas atividades">',
+      '<label>',
+      '<span>Mês</span>',
+      '<select data-upcoming-filter="mes">',
+      '<option value="">Todos</option>',
+      meses.map(function montarOpcao(valor) {
+        return '<option value="' + ui.escaparHtml(valor) + '"' +
+          (valor === filtrosProximasAtividades.mes ? ' selected' : '') +
+          '>' + ui.escaparHtml(formatarRotuloMesAtividade(valor)) + '</option>';
+      }).join(''),
+      '</select>',
+      '</label>',
+      '</div>'
+    ].join('');
+  }
+
   function registrarEventosFiltrosHistorico(container, atividades, modo) {
     if (modo !== MODO_ATIVIDADES_HISTORICO) {
       return;
@@ -1003,6 +1042,23 @@
             filtrosHistoricoAtividades[chave] = campo.value || '';
           }
 
+          renderizarAtividades(container, atividades, modo);
+        });
+      }
+    );
+  }
+
+  function registrarEventosFiltrosProximas(container, atividades, modo) {
+    if (modo === MODO_ATIVIDADES_HISTORICO) {
+      return;
+    }
+
+    Array.prototype.forEach.call(
+      container.querySelectorAll('[data-upcoming-filter]'),
+      function registrarFiltro(campo) {
+        campo.addEventListener('change', function atualizarFiltro() {
+          var chave = campo.getAttribute('data-upcoming-filter');
+          filtrosProximasAtividades[chave] = campo.value || '';
           renderizarAtividades(container, atividades, modo);
         });
       }
@@ -1034,6 +1090,52 @@
 
   function obterValorFiltroEixoAtividade(atividade) {
     return obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico']);
+  }
+
+  function obterValorFiltroMesAtividade(atividade) {
+    var inicio = obterInicioAtividadeMs(atividade) || obterDataAtividadeMs(atividade);
+    var data;
+    var ano;
+    var mes;
+
+    if (!inicio) {
+      return '';
+    }
+
+    data = new Date(inicio);
+    if (Number.isNaN(data.getTime())) {
+      return '';
+    }
+
+    ano = data.getFullYear();
+    mes = String(data.getMonth() + 1).padStart(2, '0');
+    return ano + '-' + mes;
+  }
+
+  function formatarRotuloMesAtividade(valor) {
+    var partes = String(valor || '').split('-');
+    var nomes = [
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro'
+    ];
+    var ano = partes[0];
+    var mes = Number(partes[1]) - 1;
+
+    if (!ano || mes < 0 || mes > 11) {
+      return valor || '';
+    }
+
+    return nomes[mes] + '/' + ano;
   }
 
   function obterValorFiltroCicloSemestreAtividade(atividade) {
