@@ -1037,27 +1037,31 @@
   }
 
   function obterValorFiltroCicloSemestreAtividade(atividade) {
-    var ciclo = obterCampoTextoAtividade(atividade, ['ciclo', 'cicloAtividade', 'anoCiclo']);
-    var semestre = obterCampoTextoAtividade(atividade, ['semestre', 'semestreAtividade', 'periodo', 'periodoLetivo', 'cicloSemestre']);
-    var derivado = montarCicloSemestrePorDataAtividade(atividade);
+    var cicloSemestre = obterCampoTextoAtividade(atividade, [
+      'cicloSemestre',
+      'anoSemestre',
+      'anoSemestreLetivo',
+      'periodoLetivo'
+    ]);
+    var ano = obterCampoTextoAtividade(atividade, [
+      'ano',
+      'anoAtividade',
+      'anoLetivo',
+      'ciclo',
+      'cicloAtividade',
+      'anoCiclo'
+    ]);
+    var semestre = obterCampoTextoAtividade(atividade, [
+      'semestre',
+      'semestreAtividade',
+      'semestreLetivo'
+    ]);
 
-    if (ciclo && semestre && ciclo !== semestre) {
-      return ciclo + ' / ' + semestre;
+    if (ano && semestre && ano !== semestre) {
+      return ano + '/' + semestre;
     }
 
-    return ciclo || semestre || derivado;
-  }
-
-  function montarCicloSemestrePorDataAtividade(atividade) {
-    var dataMs = obterDataAtividadeMs(atividade);
-    var data;
-
-    if (!dataMs) {
-      return '';
-    }
-
-    data = new Date(dataMs);
-    return data.getFullYear() + '/' + (data.getMonth() < 6 ? '1' : '2');
+    return cicloSemestre || ano || semestre;
   }
 
   function ehAtividadeRealizadaOuCancelada(atividade) {
@@ -1107,10 +1111,9 @@
       '<dl class="activity-facts">',
       montarFato('Tipo', atividade.tipoPublico),
       montarFato('Formato', ui.formatarRotulo(atividade.formato)),
-      montarFatoOpcional('Eixo principal', obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico'])),
-      montarFatoOpcional('Eixo secundario', obterCampoTextoAtividade(atividade, ['eixoTematicoSecundario', 'eixoSecundario'])),
-      montarFatoOpcional('Pessoa principal', montarPessoaPrincipalAtividade(atividade)),
-      montarFatoOpcional('Apresentacoes', obterQtdApresentacoesAtividade(atividade) || ''),
+      possuiApresentacao ? '' : montarFatoOpcional('Eixo principal', obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico'])),
+      possuiApresentacao ? '' : montarFatoOpcional('Eixo secundario', obterCampoTextoAtividade(atividade, ['eixoTematicoSecundario', 'eixoSecundario'])),
+      possuiApresentacao ? '' : montarFatoOpcional('Pessoa principal', montarPessoaPrincipalAtividade(atividade)),
       montarFato('Presença', ui.formatarBooleano(atividade.contaPresenca)),
       montarFato('Falta', ui.formatarBooleano(atividade.contaFalta)),
       montarFato('Certificado', ui.formatarBooleano(atividade.geraCertificado)),
@@ -1281,7 +1284,9 @@
 
     return [
       '<div class="activity-presentation-summary">',
-      '<span class="status-pill status-pill-muted">Atividade com apresentacao</span>',
+      '<span class="status-pill status-pill-muted">' +
+        ui.escaparHtml(qtd > 1 ? 'Apresentacoes vinculadas' : 'Apresentacao vinculada') +
+        '</span>',
       qtd > 1
         ? '<strong>' + ui.escaparHtml(qtd + ' apresentacoes vinculadas') + '</strong>'
         : '<strong>' + ui.escaparHtml(titulo || 'Apresentacao vinculada') + '</strong>',
@@ -2126,6 +2131,7 @@
   function abrirModal(detalhe) {
     var modal = document.getElementById('atividade-modal');
     var conteudo = document.getElementById('atividade-modal-content');
+    var possuiApresentacao = atividadePossuiApresentacoes(detalhe);
 
     conteudo.innerHTML = [
       '<p class="eyebrow">' + ui.escaparHtml(detalhe.idAtividade || 'Atividade') + '</p>',
@@ -2144,10 +2150,9 @@
       montarFato('Reunião', ui.formatarRotulo(detalhe.classificacaoReuniao)),
       montarFato('Acesso', ui.formatarRotulo(detalhe.classificacaoAcesso)),
       montarFato('Responsável', detalhe.responsavelPublico || 'Não informado'),
-      montarFatoOpcional('Eixo principal', obterCampoTextoAtividade(detalhe, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico'])),
-      montarFatoOpcional('Eixo secundario', obterCampoTextoAtividade(detalhe, ['eixoTematicoSecundario', 'eixoSecundario'])),
-      montarFatoOpcional('Pessoa principal', montarPessoaPrincipalAtividade(detalhe)),
-      montarFatoOpcional('Apresentacoes', obterQtdApresentacoesAtividade(detalhe) || ''),
+      possuiApresentacao ? '' : montarFatoOpcional('Eixo principal', obterCampoTextoAtividade(detalhe, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico'])),
+      possuiApresentacao ? '' : montarFatoOpcional('Eixo secundario', obterCampoTextoAtividade(detalhe, ['eixoTematicoSecundario', 'eixoSecundario'])),
+      possuiApresentacao ? '' : montarFatoOpcional('Pessoa principal', montarPessoaPrincipalAtividade(detalhe)),
       montarFato('Conta presença', ui.formatarBooleano(detalhe.contaPresenca)),
       montarFato('Conta falta', ui.formatarBooleano(detalhe.contaFalta)),
       montarFato('Gera certificado', ui.formatarBooleano(detalhe.geraCertificado)),

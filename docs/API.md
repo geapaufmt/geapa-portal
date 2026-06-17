@@ -667,7 +667,9 @@ detalhe/modal usa `PORTAL_ATIVIDADES_DETALHES`, especialmente
 `linkAtaPublica` e `linkFotosPublico`. A aba de proximas atividades filtra
 apenas atividades futuras ou em andamento. O historico nao aplica corte fixo de
 ciclo no front-end e oferece filtros por ciclo/semestre, tipo/subtipo,
-apresentacoes e eixo tematico.
+apresentacoes e eixo tematico. O ciclo/semestre deve vir do backend por campos
+explicitos derivados de Atividades/Vigencias; o Portal nao infere semestre
+letivo por divisao civil do ano.
 
 ## Acoes V2 somente leitura
 

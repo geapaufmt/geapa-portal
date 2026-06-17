@@ -235,7 +235,10 @@ JSON serializado; o front-end tenta parsear e, se vier vazio ou invalido, omite
 a secao correspondente. A aba de proximas atividades mostra apenas atividades
 futuras ou em andamento. O historico e sempre historico de atividades, sem corte
 fixo por ciclo no front-end, com filtros de ciclo/semestre, tipo/subtipo,
-somente apresentacoes e eixo tematico. Um filtro por pessoa
+somente apresentacoes e eixo tematico. O filtro de ciclo/semestre deve usar
+campos explicitos do backend (`ano`, `semestre`, `periodoLetivo` ou
+equivalentes vindos de Atividades/Vigencias), nunca inferencia por semestre
+civil. Um filtro por pessoa
 principal/apresentador esta previsto para fase futura.
 
 `Minhas apresentacoes` tambem e derivado dos detalhes de atividades. O backend
@@ -356,7 +359,7 @@ Antes de publicar uma mudanca nessa integracao, validar:
 - historico aceita filtro "Somente apresentacoes";
 - historico aceita filtro por eixo tematico;
 - historico aceita filtro por ciclo/semestre quando o payload trouxer esses
-  campos ou quando for possivel derivar o semestre pela data;
+  campos explicitamente;
 - `apresentacoesPublicas` em JSON serializado invalido ou vazio nao quebra a
   tela;
 - busca por dependencias ativas nao deve encontrar consumo de view paralela de
