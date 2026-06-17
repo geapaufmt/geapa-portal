@@ -1538,6 +1538,11 @@ button:disabled:hover {
   text-decoration: none;
 }
 
+.muted-inline {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .readonly-summary {
   margin: 0 0 16px;
   display: grid;

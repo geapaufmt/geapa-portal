@@ -668,7 +668,7 @@ historico usam os campos publicos do calendario (`eixoTematicoPrincipal`,
 `semestre` e `rotuloSemestre`). O
 detalhe/modal usa `PORTAL_ATIVIDADES_DETALHES`, especialmente
 `apresentacoesPublicas`, `envolvidosPublicos`, `linkMaterialPublico`,
-`linkAtaPublica` e `linkFotosPublico`. A aba de proximas atividades filtra
+`linkPastaDrive`, `linkAtaPublica` e `linkFotosPublico`. A aba de proximas atividades filtra
 apenas atividades futuras ou em andamento. O historico nao aplica corte fixo de
 ciclo no front-end e oferece filtros por ciclo/semestre, tipo/subtipo,
 apresentacoes e eixo tematico. O filtro de semestre usa `rotuloSemestre` e,
@@ -676,6 +676,12 @@ como fallback, `ano` + "/" + `semestre`; quando nada vier no payload, o Portal
 usa "Sem semestre definido". O Portal nao infere semestre letivo por divisao
 civil do ano. Cards da lista mostram apenas o resumo agregado do calendario; a
 lista completa de apresentacoes fica restrita ao detalhe/modal.
+
+No detalhe, `linkMaterialPublico` no nivel da atividade e o material geral da
+atividade, e `linkPastaDrive` aponta para a pasta geral. Em cada item de
+`apresentacoesPublicas`, `linkMaterialPublico`, `statusMaterial`,
+`idArquivoMaterial`, `nomeArquivoMaterial` e `versaoMaterial` pertencem ao
+material especifico daquela apresentacao.
 
 ## Acoes V2 somente leitura
 
@@ -847,6 +853,7 @@ Resposta esperada:
     "cargaHoraria": 2,
     "statusPublico": "REALIZADA",
     "linkMaterialPublico": "",
+    "linkPastaDrive": "",
     "linkAtaPublica": ""
   }
 }

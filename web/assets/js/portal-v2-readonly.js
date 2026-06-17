@@ -35,8 +35,11 @@
         ['dataAtividade', 'Data'],
         ['tema', 'Tema'],
         ['apresentadorPublico', 'Apresentador'],
-        ['statusPublico', 'Status'],
-        ['statusArquivoPublico', 'Arquivo'],
+        ['statusApresentacao', 'Status'],
+        ['statusMaterial', 'Material'],
+        ['nomeArquivoMaterial', 'Arquivo'],
+        ['versaoMaterial', 'Versao'],
+        ['linkMaterialPublico', 'Abrir material', 'link'],
         ['eixoTematicoPrincipal', 'Eixo'],
         ['eixoTematicoSecundario', 'Eixo secundario'],
         ['periodo', 'Periodo']
@@ -204,7 +207,7 @@
         return [
           '<tr>',
           definicao.colunas.map(function montarCelula(coluna) {
-            return '<td>' + ui.escaparHtml(formatarValor(item[coluna[0]])) + '</td>';
+            return '<td>' + renderizarValorTabela(item[coluna[0]], coluna) + '</td>';
           }).join(''),
           '</tr>'
         ].join('');
@@ -213,6 +216,19 @@
       '</table>',
       '</div>'
     ].join('');
+  }
+
+  function renderizarValorTabela(valor, coluna) {
+    var tipo = coluna && coluna[2];
+    var texto = formatarValor(valor);
+
+    if (tipo === 'link') {
+      return texto
+        ? '<a href="' + ui.escaparHtml(texto) + '" target="_blank" rel="noopener noreferrer">Abrir</a>'
+        : '<span class="muted-inline">Nao disponivel</span>';
+    }
+
+    return ui.escaparHtml(texto);
   }
 
   function formatarValor(valor) {

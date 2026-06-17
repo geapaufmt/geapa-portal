@@ -139,13 +139,23 @@
       resumoApresentacoesPublico: 'Tema de teste sobre fundamentos penais.',
       apresentacoesPublicas: [
         {
+          idApresentacao: 'APR-TESTE-1',
+          idAtividade: 'ATV-2026-1-0005',
+          idPessoa: 'PESSOA-TESTE-1',
+          rga: 'RGA-TESTE',
           apresentadorPublico: 'Membro de Teste',
+          nomeApresentador: 'Membro de Teste',
           tema: 'Tema de teste',
+          titulo: 'Tema de teste',
           eixoTematicoPrincipal: 'Direito Penal',
           eixoTematicoSecundario: 'Criminologia',
-          statusPublico: 'REALIZADA',
-          statusArquivoPublico: 'SEM_ARQUIVO_PUBLICO',
-          linkPublico: ''
+          statusApresentacao: 'REALIZADA',
+          statusTituloEixo: 'VALIDADO',
+          statusMaterial: 'SEM_MATERIAL_PUBLICO',
+          idArquivoMaterial: '',
+          nomeArquivoMaterial: '',
+          linkMaterialPublico: '',
+          versaoMaterial: ''
         }
       ],
       envolvidosPublicos: [
@@ -155,7 +165,9 @@
           tipoPessoa: 'Membro'
         }
       ],
-      linkMaterialPublico: '',
+      idPastaDrive: 'PASTA-ATV-0005',
+      linkPastaDrive: 'https://example.org/pasta-atividade-0005',
+      linkMaterialPublico: 'https://example.org/material-geral-atividade-0005',
       linkAtaPublica: '',
       linkFotosPublico: ''
     },
@@ -187,6 +199,8 @@
           tipoPessoa: 'Grupo'
         }
       ],
+      idPastaDrive: 'PASTA-ATV-0006',
+      linkPastaDrive: '',
       linkMaterialPublico: '',
       linkAtaPublica: '',
       linkFotosPublico: ''
@@ -218,22 +232,42 @@
       resumoApresentacoesPublico: 'Duas apresentacoes curtas vinculadas a oficina.',
       apresentacoesPublicas: [
         {
+          idApresentacao: 'APR-TESTE-2',
+          idAtividade: 'ATV-2026-1-0007',
+          idPessoa: 'PESSOA-TESTE-1',
+          rga: 'RGA-TESTE-1',
           apresentadorPublico: 'Membro de Teste 1',
+          nomeApresentador: 'Membro de Teste 1',
           tema: 'Primeira abordagem',
+          titulo: 'Primeira abordagem',
           eixoTematicoPrincipal: 'Direitos Humanos',
           eixoTematicoSecundario: 'Sistema Penal',
-          statusPublico: 'PUBLICADA',
-          statusArquivoPublico: 'PUBLICO',
-          linkPublico: 'https://example.org/material-1'
+          statusApresentacao: 'PUBLICADA',
+          statusTituloEixo: 'VALIDADO',
+          statusMaterial: 'PUBLICO',
+          idArquivoMaterial: 'ARQ-TESTE-1',
+          nomeArquivoMaterial: 'material-primeira-abordagem.pdf',
+          linkMaterialPublico: 'https://example.org/material-1',
+          versaoMaterial: 'v1'
         },
         {
+          idApresentacao: 'APR-TESTE-3',
+          idAtividade: 'ATV-2026-1-0007',
+          idPessoa: 'PESSOA-TESTE-2',
+          rga: 'RGA-TESTE-2',
           apresentadorPublico: 'Membro de Teste 2',
+          nomeApresentador: 'Membro de Teste 2',
           tema: 'Segunda abordagem',
+          titulo: 'Segunda abordagem',
           eixoTematicoPrincipal: 'Direitos Humanos',
           eixoTematicoSecundario: 'Politicas Publicas',
-          statusPublico: 'PUBLICADA',
-          statusArquivoPublico: 'SEM_ARQUIVO_PUBLICO',
-          linkPublico: ''
+          statusApresentacao: 'PUBLICADA',
+          statusTituloEixo: 'VALIDADO',
+          statusMaterial: 'SEM_MATERIAL_PUBLICO',
+          idArquivoMaterial: '',
+          nomeArquivoMaterial: '',
+          linkMaterialPublico: '',
+          versaoMaterial: ''
         }
       ],
       envolvidosPublicos: [
@@ -248,6 +282,8 @@
           tipoPessoa: 'Membro'
         }
       ],
+      idPastaDrive: 'PASTA-ATV-0007',
+      linkPastaDrive: 'https://example.org/pasta-atividade-0007',
       linkMaterialPublico: '',
       linkAtaPublica: '',
       linkFotosPublico: ''
@@ -531,10 +567,15 @@
           idAtividade: detalhe.idAtividade,
           dataAtividade: detalhe.dataAtividade,
           tituloPublico: detalhe.tituloPublico,
-          tema: apresentacao.tema,
+          tema: apresentacao.titulo || apresentacao.tema,
           apresentadorPublico: apresentacao.apresentadorPublico,
-          statusPublico: apresentacao.statusPublico,
-          statusArquivoPublico: apresentacao.statusArquivoPublico,
+          statusApresentacao: apresentacao.statusApresentacao,
+          statusTituloEixo: apresentacao.statusTituloEixo,
+          statusMaterial: apresentacao.statusMaterial,
+          idArquivoMaterial: apresentacao.idArquivoMaterial,
+          nomeArquivoMaterial: apresentacao.nomeArquivoMaterial,
+          linkMaterialPublico: apresentacao.linkMaterialPublico,
+          versaoMaterial: apresentacao.versaoMaterial,
           eixoTematicoPrincipal: apresentacao.eixoTematicoPrincipal,
           eixoTematicoSecundario: apresentacao.eixoTematicoSecundario,
           periodo: '2026/1'

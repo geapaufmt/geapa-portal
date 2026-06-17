@@ -180,13 +180,21 @@ Resposta esperada:
       "resumoApresentacoesPublico": "Resumo curto das apresentacoes.",
       "apresentacoesPublicas": [
         {
-          "apresentadorPublico": "Nome publico",
-          "tema": "Titulo publico",
+          "idApresentacao": "APR-2026-1-0001",
+          "idAtividade": "ATV-2026-1-0005",
+          "idPessoa": "PESSOA-0001",
+          "rga": "20260001",
+          "nomeApresentador": "Nome publico",
+          "titulo": "Titulo publico",
           "eixoTematicoPrincipal": "Direito Penal",
           "eixoTematicoSecundario": "Criminologia",
-          "statusPublico": "PUBLICADA",
-          "statusArquivoPublico": "PUBLICO",
-          "linkPublico": "https://example.org/material"
+          "statusApresentacao": "PUBLICADA",
+          "statusTituloEixo": "VALIDADO",
+          "statusMaterial": "PUBLICO",
+          "idArquivoMaterial": "ARQ-0001",
+          "nomeArquivoMaterial": "material.pdf",
+          "linkMaterialPublico": "https://example.org/material",
+          "versaoMaterial": "v1"
         }
       ],
       "envolvidosPublicos": [
@@ -196,6 +204,8 @@ Resposta esperada:
           "tipoPessoa": "Membro"
         }
       ],
+      "idPastaDrive": "PASTA-0001",
+      "linkPastaDrive": "https://example.org/pasta",
       "linkMaterialPublico": "",
       "linkAtaPublica": "",
       "linkFotosPublico": ""
@@ -232,6 +242,8 @@ Campos minimos esperados no detalhe:
 - `qtdApresentacoes`
 - `resumoApresentacoesPublico`
 - `linkMaterialPublico`
+- `idPastaDrive`
+- `linkPastaDrive`
 - `linkAtaPublica`
 - `linkFotosPublico`
 
@@ -249,6 +261,14 @@ Cards da lista e do historico usam apenas os agregados do calendario:
 `possuiApresentacoes`, `qtdApresentacoes` e `resumoApresentacoesPublico`. A
 lista completa de apresentacoes e renderizada somente no modal/detalhe, a partir
 de `apresentacoesPublicas`.
+
+Materiais seguem fontes separadas. No nivel da atividade,
+`linkMaterialPublico` e o material geral da atividade, enquanto `idPastaDrive`
+e `linkPastaDrive` representam a pasta geral. Dentro de
+`apresentacoesPublicas`, `linkMaterialPublico`, `idArquivoMaterial`,
+`nomeArquivoMaterial`, `statusMaterial` e `versaoMaterial` descrevem apenas o
+material daquela apresentacao. O Portal nao usa campos antigos como status ou
+link de arquivo publico fora desse novo contrato.
 
 `Minhas apresentacoes` tambem e derivado dos detalhes de atividades. O backend
 filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da sessao e

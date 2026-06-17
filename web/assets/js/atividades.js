@@ -699,7 +699,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLista.v7.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesLista.v8.' + hashCurto(token + ':' + usuarioId);
   }
 
   function hashCurto(valor) {
@@ -1293,11 +1293,11 @@
   }
 
   function obterTituloApresentacao(apresentacao) {
-    return obterCampoTextoAtividade(apresentacao, ['tema', 'tituloPublico', 'resumoPublico', 'titulo']);
+    return obterCampoTextoAtividade(apresentacao, ['titulo', 'tema', 'tituloPublico', 'resumoPublico']);
   }
 
   function montarPessoaPrincipalApresentacao(apresentacao) {
-    var nome = obterCampoTextoAtividade(apresentacao, ['apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico', 'nome']);
+    var nome = obterCampoTextoAtividade(apresentacao, ['nomeApresentador', 'apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico', 'nome']);
     var papel = obterCampoTextoAtividade(apresentacao, ['papelPessoaPrincipal', 'papelApresentador', 'papel']);
     var tipo = obterCampoTextoAtividade(apresentacao, ['tipoPessoaPrincipal', 'tipoApresentador', 'tipoPessoa']);
 
@@ -2187,7 +2187,8 @@
 
   function montarLinksPublicosDetalhe(detalhe) {
     var links = [
-      { rotulo: 'Material publico', href: obterCampoTextoAtividade(detalhe, ['linkMaterialPublico']) },
+      { rotulo: 'Material geral da atividade', href: obterCampoTextoAtividade(detalhe, ['linkMaterialPublico']) },
+      { rotulo: 'Pasta geral da atividade', href: obterCampoTextoAtividade(detalhe, ['linkPastaDrive']) },
       { rotulo: 'Ata publica', href: obterCampoTextoAtividade(detalhe, ['linkAtaPublica']) },
       { rotulo: 'Fotos publicas', href: obterCampoTextoAtividade(detalhe, ['linkFotosPublico']) }
     ].filter(function filtrar(link) {
@@ -2259,13 +2260,17 @@
   }
 
   function montarApresentacaoDetalhe(apresentacao) {
-    var apresentador = obterCampoTextoAtividade(apresentacao, ['apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico', 'nome']);
+    var apresentador = obterCampoTextoAtividade(apresentacao, ['nomeApresentador', 'apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico', 'nome']);
     var titulo = obterTituloApresentacao(apresentacao);
     var eixoPrincipal = obterCampoTextoAtividade(apresentacao, ['eixoTematicoPrincipal', 'eixoPrincipal']);
     var eixoSecundario = obterCampoTextoAtividade(apresentacao, ['eixoTematicoSecundario', 'eixoSecundario']);
-    var status = obterCampoTextoAtividade(apresentacao, ['statusPublico', 'status']);
-    var statusArquivo = obterCampoTextoAtividade(apresentacao, ['statusArquivoPublico', 'statusArquivo']);
-    var link = obterCampoTextoAtividade(apresentacao, ['linkPublico', 'linkMaterialPublico']);
+    var statusApresentacao = obterCampoTextoAtividade(apresentacao, ['statusApresentacao', 'statusPublico', 'status']);
+    var statusTituloEixo = obterCampoTextoAtividade(apresentacao, ['statusTituloEixo']);
+    var statusMaterial = obterCampoTextoAtividade(apresentacao, ['statusMaterial']);
+    var nomeArquivoMaterial = obterCampoTextoAtividade(apresentacao, ['nomeArquivoMaterial']);
+    var idArquivoMaterial = obterCampoTextoAtividade(apresentacao, ['idArquivoMaterial']);
+    var versaoMaterial = obterCampoTextoAtividade(apresentacao, ['versaoMaterial']);
+    var linkMaterial = obterCampoTextoAtividade(apresentacao, ['linkMaterialPublico']);
 
     return [
       '<article class="activity-presentation-detail">',
@@ -2274,12 +2279,16 @@
       eixoPrincipal || eixoSecundario
         ? '<span>' + ui.escaparHtml([eixoPrincipal, eixoSecundario].filter(Boolean).join(' / ')) + '</span>'
         : '',
-      status || statusArquivo
-        ? '<span>' + ui.escaparHtml([status, statusArquivo].filter(Boolean).join(' - ')) + '</span>'
+      statusApresentacao || statusTituloEixo || statusMaterial || versaoMaterial
+        ? '<span>' + ui.escaparHtml([statusApresentacao, statusTituloEixo, statusMaterial, versaoMaterial].filter(Boolean).join(' - ')) + '</span>'
         : '',
-      link
-        ? '<a href="' + ui.escaparHtml(link) + '" target="_blank" rel="noopener noreferrer">Abrir material publico</a>'
+      idArquivoMaterial && !linkMaterial
+        ? '<span>' + ui.escaparHtml(nomeArquivoMaterial || 'Material cadastrado sem link publico') + '</span>'
         : '',
+      linkMaterial
+        ? '<a href="' + ui.escaparHtml(linkMaterial) + '" target="_blank" rel="noopener noreferrer">' +
+          ui.escaparHtml(nomeArquivoMaterial || 'Abrir material da apresentacao') + '</a>'
+        : '<small>Material nao disponivel</small>',
       '</article>'
     ].join('');
   }
