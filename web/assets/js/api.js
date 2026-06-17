@@ -36,7 +36,9 @@
       qtdApresentacoes: 1,
       resumoApresentacoesPublico: 'Tema de teste sobre fundamentos penais.',
       possuiApresentacoes: true,
-      ehApresentacao: true,
+      ano: 2026,
+      semestre: 1,
+      rotuloSemestre: '2026/1',
       visibilidadePortal: 'MEMBROS',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
@@ -63,7 +65,9 @@
       statusPublico: 'PLANEJADA',
       qtdApresentacoes: 0,
       possuiApresentacoes: false,
-      ehApresentacao: false,
+      ano: 2026,
+      semestre: 1,
+      rotuloSemestre: '2026/1',
       visibilidadePortal: 'MEMBROS',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
@@ -96,7 +100,9 @@
       qtdApresentacoes: 2,
       resumoApresentacoesPublico: 'Duas apresentacoes curtas vinculadas a oficina.',
       possuiApresentacoes: true,
-      ehApresentacao: true,
+      ano: 2026,
+      semestre: 2,
+      rotuloSemestre: '2026/2',
       visibilidadePortal: 'PUBLICA',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
@@ -133,12 +139,11 @@
       resumoApresentacoesPublico: 'Tema de teste sobre fundamentos penais.',
       apresentacoesPublicas: [
         {
-          idApresentacao: 'APR-TESTE-1',
-          nomeApresentadorPublico: 'Membro de Teste',
-          tituloApresentacao: 'Tema de teste',
+          apresentadorPublico: 'Membro de Teste',
+          tema: 'Tema de teste',
           eixoTematicoPrincipal: 'Direito Penal',
           eixoTematicoSecundario: 'Criminologia',
-          statusApresentacao: 'REALIZADA',
+          statusPublico: 'REALIZADA',
           statusArquivoPublico: 'SEM_ARQUIVO_PUBLICO',
           linkPublico: ''
         }
@@ -213,22 +218,20 @@
       resumoApresentacoesPublico: 'Duas apresentacoes curtas vinculadas a oficina.',
       apresentacoesPublicas: [
         {
-          idApresentacao: 'APR-TESTE-2',
-          nomeApresentadorPublico: 'Membro de Teste 1',
-          tituloApresentacao: 'Primeira abordagem',
+          apresentadorPublico: 'Membro de Teste 1',
+          tema: 'Primeira abordagem',
           eixoTematicoPrincipal: 'Direitos Humanos',
           eixoTematicoSecundario: 'Sistema Penal',
-          statusApresentacao: 'PUBLICADA',
+          statusPublico: 'PUBLICADA',
           statusArquivoPublico: 'PUBLICO',
           linkPublico: 'https://example.org/material-1'
         },
         {
-          idApresentacao: 'APR-TESTE-3',
-          nomeApresentadorPublico: 'Membro de Teste 2',
-          tituloApresentacao: 'Segunda abordagem',
+          apresentadorPublico: 'Membro de Teste 2',
+          tema: 'Segunda abordagem',
           eixoTematicoPrincipal: 'Direitos Humanos',
           eixoTematicoSecundario: 'Politicas Publicas',
-          statusApresentacao: 'PUBLICADA',
+          statusPublico: 'PUBLICADA',
           statusArquivoPublico: 'SEM_ARQUIVO_PUBLICO',
           linkPublico: ''
         }
@@ -526,12 +529,11 @@
       apresentacoes.forEach(function copiar(apresentacao) {
         lista.push({
           idAtividade: detalhe.idAtividade,
-          idApresentacao: apresentacao.idApresentacao,
           dataAtividade: detalhe.dataAtividade,
           tituloPublico: detalhe.tituloPublico,
-          tema: apresentacao.tituloApresentacao,
-          nomeApresentadorPublico: apresentacao.nomeApresentadorPublico,
-          statusApresentacao: apresentacao.statusApresentacao,
+          tema: apresentacao.tema,
+          apresentadorPublico: apresentacao.apresentadorPublico,
+          statusPublico: apresentacao.statusPublico,
           statusArquivoPublico: apresentacao.statusArquivoPublico,
           eixoTematicoPrincipal: apresentacao.eixoTematicoPrincipal,
           eixoTematicoSecundario: apresentacao.eixoTematicoSecundario,

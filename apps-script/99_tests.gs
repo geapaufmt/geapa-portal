@@ -266,7 +266,10 @@ function portalRunTesteAtividadesV2ApresentacoesVinculadas() {
         'qtdApresentacoes',
         'resumoApresentacoesPublico',
         'possuiApresentacoes',
-        'ehApresentacao'
+        'ciclo',
+        'ano',
+        'semestre',
+        'rotuloSemestre'
       ],
       detalhe: [
         'apresentacoesPublicas',

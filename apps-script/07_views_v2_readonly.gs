@@ -224,38 +224,29 @@ function portalApresentacaoPertenceAoUsuarioV2_(apresentacao, detalhe, usuario) 
 
   return portalValorUsuarioConfereV2_(dados, usuario, [
     'idPessoa',
-    'idPessoaApresentador',
     'idPessoaPrincipal',
-    'ID_PESSOA',
-    'ID_PESSOA_APRESENTADOR'
+    'ID_PESSOA'
   ], 'idPessoa') ||
     portalValorUsuarioConfereV2_(dados, usuario, [
-      'rga',
-      'rgaApresentador',
-      'RGA',
-      'RGA_APRESENTADOR'
-    ], 'rga') ||
+    'rga',
+    'RGA'
+  ], 'rga') ||
     portalValorUsuarioConfereV2_(dados, usuario, [
-      'email',
-      'emailApresentador',
-      'EMAIL',
-      'EMAIL_APRESENTADOR'
-    ], 'email') ||
+    'email',
+      'EMAIL'
+  ], 'email') ||
     portalValorUsuarioConfereV2_(atividade, usuario, [
-      'idPessoaPrincipal',
-      'idPessoaApresentador',
-      'ID_PESSOA_PRINCIPAL'
-    ], 'idPessoa') ||
+    'idPessoaPrincipal',
+    'ID_PESSOA_PRINCIPAL'
+  ], 'idPessoa') ||
     portalValorUsuarioConfereV2_(atividade, usuario, [
-      'rgaPrincipal',
-      'rgaApresentador',
-      'RGA_PRINCIPAL'
-    ], 'rga') ||
+    'rgaPrincipal',
+    'RGA_PRINCIPAL'
+  ], 'rga') ||
     portalValorUsuarioConfereV2_(atividade, usuario, [
-      'emailPrincipal',
-      'emailApresentador',
-      'EMAIL_PRINCIPAL'
-    ], 'email');
+    'emailPrincipal',
+    'EMAIL_PRINCIPAL'
+  ], 'email');
 }
 
 function portalValorUsuarioConfereV2_(dados, usuario, chaves, campoUsuario) {
@@ -270,20 +261,17 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
   var atividade = detalhe || {};
   var item = {
     idAtividade: atividade.idAtividade || origem.idAtividade,
-    idApresentacao: origem.idApresentacao || origem.ID_APRESENTACAO,
     dataAtividade: atividade.dataAtividade || origem.dataAtividade,
     tituloPublico: atividade.tituloPublico || origem.tituloPublico,
-    tema: origem.tema || origem.tituloApresentacao || origem.TITULO_APRESENTACAO,
-    tituloApresentacao: origem.tituloApresentacao || origem.tema || origem.TITULO_APRESENTACAO,
+    tema: origem.tema || origem.tituloPublico || origem.resumoPublico,
     tipoPublico: atividade.tipoPublico || atividade.tipoAtividade,
-    statusPublico: atividade.statusPublico,
-    statusApresentacao: origem.statusApresentacao || origem.statusPublico || origem.STATUS_PUBLICO,
+    statusPublico: origem.statusPublico || origem.status || origem.STATUS_PUBLICO || atividade.statusPublico,
     statusArquivoPublico: origem.statusArquivoPublico || origem.statusArquivo,
     eixoTematicoPrincipal: origem.eixoTematicoPrincipal || atividade.eixoTematicoPrincipal,
     eixoTematicoSecundario: origem.eixoTematicoSecundario || atividade.eixoTematicoSecundario,
-    nomeApresentadorPublico: origem.nomeApresentadorPublico || origem.nomePessoaPrincipalPublico || atividade.nomePessoaPrincipalPublico,
+    apresentadorPublico: origem.apresentadorPublico || origem.nomePessoaPrincipalPublico || origem.nomePublico || atividade.nomePessoaPrincipalPublico,
     papel: origem.papel || atividade.papelPessoaPrincipal,
-    periodo: origem.periodo || atividade.periodo,
+    periodo: origem.periodo || atividade.rotuloSemestre || atividade.periodo,
     cargaHoraria: atividade.cargaHoraria,
     linkPublico: origem.linkPublico || origem.linkMaterialPublico || '',
     linkMaterialPublico: origem.linkMaterialPublico || origem.linkPublico || ''
@@ -291,18 +279,15 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
 
   return portalSanitizarObjetoBasicoViewsV2_(item, [
     'idAtividade',
-    'idApresentacao',
     'dataAtividade',
     'tituloPublico',
     'tema',
-    'tituloApresentacao',
     'tipoPublico',
     'statusPublico',
-    'statusApresentacao',
     'statusArquivoPublico',
     'eixoTematicoPrincipal',
     'eixoTematicoSecundario',
-    'nomeApresentadorPublico',
+    'apresentadorPublico',
     'papel',
     'periodo',
     'cargaHoraria',
@@ -1670,12 +1655,14 @@ function portalSanitizarAtividadeReadonlyV2_(item) {
     'statusPublico',
     'visibilidadePortal',
     'podeVerDetalhes',
+    'ciclo',
     'ano',
     'anoAtividade',
     'anoLetivo',
     'semestre',
     'semestreAtividade',
     'semestreLetivo',
+    'rotuloSemestre',
     'periodoLetivo',
     'cicloSemestre',
     'eixoTematicoPrincipal',
@@ -1685,8 +1672,7 @@ function portalSanitizarAtividadeReadonlyV2_(item) {
     'tipoPessoaPrincipal',
     'qtdApresentacoes',
     'resumoApresentacoesPublico',
-    'possuiApresentacoes',
-    'ehApresentacao'
+    'possuiApresentacoes'
   ]);
 }
 

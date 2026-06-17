@@ -1037,37 +1037,27 @@
   }
 
   function obterValorFiltroCicloSemestreAtividade(atividade) {
-    var cicloSemestre = obterCampoTextoAtividade(atividade, [
-      'cicloSemestre',
-      'anoSemestre',
-      'anoSemestreLetivo',
-      'periodoLetivo',
-      'periodoAtividade',
-      'periodoReferencia'
-    ]);
+    var rotulo = obterCampoTextoAtividade(atividade, ['rotuloSemestre']);
     var ano = obterCampoTextoAtividade(atividade, [
       'ano',
       'anoAtividade',
-      'anoLetivo',
-      'anoReferencia',
-      'anoVigencia',
-      'ciclo',
-      'cicloAtividade',
-      'anoCiclo'
+      'anoLetivo'
     ]);
     var semestre = obterCampoTextoAtividade(atividade, [
       'semestre',
       'semestreAtividade',
-      'semestreLetivo',
-      'semestreReferencia',
-      'semestreVigencia'
+      'semestreLetivo'
     ]);
+
+    if (rotulo) {
+      return rotulo;
+    }
 
     if (ano && semestre && ano !== semestre) {
       return ano + '/' + semestre;
     }
 
-    return cicloSemestre || ano || semestre;
+    return 'Sem semestre definido';
   }
 
   function ehAtividadeRealizadaOuCancelada(atividade) {
@@ -1095,7 +1085,7 @@
 
   function montarCardAtividade(atividade, destaque, modo) {
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
-    var possuiApresentacao = obterApresentacoesVinculadasAtividade(atividade, true).length > 0;
+    var possuiApresentacao = atividadePossuiApresentacoes(atividade);
 
     return [
       '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') +
@@ -1275,22 +1265,15 @@
   }
 
   function montarBlocoApresentacoesCard(atividade) {
-    var apresentacoes = obterApresentacoesVinculadasAtividade(atividade, true);
-    var qtd = apresentacoes.length;
-    var principal = apresentacoes[0] || {};
-    var resumo = apresentacoes
-      .map(obterTituloApresentacao)
-      .filter(Boolean)
-      .slice(0, 2)
-      .join('; ');
-    var pessoa = montarPessoaPrincipalApresentacao(principal) || montarPessoaPrincipalAtividade(atividade);
-    var eixo = montarEixoApresentacao(principal) || [
+    var qtd = obterQtdApresentacoesAtividade(atividade);
+    var resumo = obterCampoTextoAtividade(atividade, ['resumoApresentacoesPublico', 'resumoApresentacoes']);
+    var pessoa = montarPessoaPrincipalAtividade(atividade);
+    var eixo = [
       obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico']),
       obterCampoTextoAtividade(atividade, ['eixoTematicoSecundario', 'eixoSecundario'])
     ].filter(Boolean).join(' / ');
-    var titulo = obterTituloApresentacao(principal) || resumo || '';
 
-    if (!qtd) {
+    if (!atividadePossuiApresentacoes(atividade)) {
       return '';
     }
 
@@ -1301,7 +1284,7 @@
         '</span>',
       qtd > 1
         ? '<strong>' + ui.escaparHtml(qtd + ' apresentacoes vinculadas') + '</strong>'
-        : '<strong>' + ui.escaparHtml(titulo || 'Apresentacao vinculada') + '</strong>',
+        : '<strong>' + ui.escaparHtml(resumo || 'Apresentacao vinculada') + '</strong>',
       pessoa ? '<small>' + ui.escaparHtml(pessoa) + '</small>' : '',
       qtd > 1 && resumo ? '<small>' + ui.escaparHtml(resumo) + '</small>' : '',
       eixo ? '<small>' + ui.escaparHtml(eixo) + '</small>' : '',
@@ -1310,11 +1293,11 @@
   }
 
   function obterTituloApresentacao(apresentacao) {
-    return obterCampoTextoAtividade(apresentacao, ['tituloApresentacao', 'tema', 'tituloPublico', 'resumoPublico']);
+    return obterCampoTextoAtividade(apresentacao, ['tema', 'tituloPublico', 'resumoPublico', 'titulo']);
   }
 
   function montarPessoaPrincipalApresentacao(apresentacao) {
-    var nome = obterCampoTextoAtividade(apresentacao, ['nomeApresentadorPublico', 'apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico']);
+    var nome = obterCampoTextoAtividade(apresentacao, ['apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico', 'nome']);
     var papel = obterCampoTextoAtividade(apresentacao, ['papelPessoaPrincipal', 'papelApresentador', 'papel']);
     var tipo = obterCampoTextoAtividade(apresentacao, ['tipoPessoaPrincipal', 'tipoApresentador', 'tipoPessoa']);
 
@@ -1332,7 +1315,7 @@
   }
 
   function montarPessoaPrincipalAtividade(atividade) {
-    var nome = obterCampoTextoAtividade(atividade, ['nomePessoaPrincipalPublico', 'nomeApresentadorPublico', 'pessoaPrincipalPublica']);
+    var nome = obterCampoTextoAtividade(atividade, ['nomePessoaPrincipalPublico', 'pessoaPrincipalPublica']);
     var papel = obterCampoTextoAtividade(atividade, ['papelPessoaPrincipal', 'papelApresentador']);
     var tipo = obterCampoTextoAtividade(atividade, ['tipoPessoaPrincipal', 'tipoApresentador']);
 
@@ -1344,7 +1327,7 @@
 
   function atividadePossuiApresentacoes(atividade) {
     var qtd = obterQtdApresentacoesAtividade(atividade);
-    var flag = atividade && (atividade.possuiApresentacoes === true || atividade.ehApresentacao === true);
+    var flag = atividade && atividade.possuiApresentacoes === true;
 
     return Boolean(flag || qtd > 0);
   }
@@ -1385,29 +1368,6 @@
     return normalizarListaPublicaAtividade(
       (dados && (dados.apresentacoesPublicas || dados.apresentacoesPublicasJson || dados.APRESENTACOES_PUBLICAS_JSON)) || []
     );
-  }
-
-  function obterApresentacoesVinculadasAtividade(dados, exigirIdExplicito) {
-    var idAtividade = String((dados && dados.idAtividade) || '').trim();
-
-    return obterApresentacoesPublicas(dados).filter(function filtrar(apresentacao) {
-      var idApresentacaoAtividade = obterCampoTextoAtividade(apresentacao, [
-        'idAtividade',
-        'ID_ATIVIDADE',
-        'idAtividadeVinculada',
-        'idAtividadeOrigem'
-      ]);
-
-      if (!idAtividade) {
-        return exigirIdExplicito !== true || Boolean(idApresentacaoAtividade);
-      }
-
-      if (idApresentacaoAtividade) {
-        return idApresentacaoAtividade === idAtividade;
-      }
-
-      return exigirIdExplicito !== true;
-    });
   }
 
   function obterEnvolvidosPublicos(dados) {
@@ -2188,7 +2148,7 @@
   function abrirModal(detalhe) {
     var modal = document.getElementById('atividade-modal');
     var conteudo = document.getElementById('atividade-modal-content');
-    var possuiApresentacao = obterApresentacoesVinculadasAtividade(detalhe, false).length > 0;
+    var possuiApresentacao = obterApresentacoesPublicas(detalhe).length > 0;
 
     conteudo.innerHTML = [
       '<p class="eyebrow">' + ui.escaparHtml(detalhe.idAtividade || 'Atividade') + '</p>',
@@ -2282,7 +2242,7 @@
   }
 
   function montarApresentacoesVinculadasDetalhe(detalhe) {
-    var apresentacoes = obterApresentacoesVinculadasAtividade(detalhe, false);
+    var apresentacoes = obterApresentacoesPublicas(detalhe);
 
     if (!apresentacoes.length) {
       return '';
@@ -2299,13 +2259,13 @@
   }
 
   function montarApresentacaoDetalhe(apresentacao) {
-    var apresentador = obterCampoTextoAtividade(apresentacao, ['nomeApresentadorPublico', 'apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico']);
-    var titulo = obterCampoTextoAtividade(apresentacao, ['tituloApresentacao', 'tema', 'tituloPublico', 'resumoPublico']);
+    var apresentador = obterCampoTextoAtividade(apresentacao, ['apresentadorPublico', 'nomePessoaPrincipalPublico', 'nomePublico', 'nome']);
+    var titulo = obterTituloApresentacao(apresentacao);
     var eixoPrincipal = obterCampoTextoAtividade(apresentacao, ['eixoTematicoPrincipal', 'eixoPrincipal']);
     var eixoSecundario = obterCampoTextoAtividade(apresentacao, ['eixoTematicoSecundario', 'eixoSecundario']);
-    var status = obterCampoTextoAtividade(apresentacao, ['statusApresentacao', 'statusPublico', 'status']);
+    var status = obterCampoTextoAtividade(apresentacao, ['statusPublico', 'status']);
     var statusArquivo = obterCampoTextoAtividade(apresentacao, ['statusArquivoPublico', 'statusArquivo']);
-    var link = obterCampoTextoAtividade(apresentacao, ['linkPublico', 'linkMaterialPublico', 'linkArquivoPublico']);
+    var link = obterCampoTextoAtividade(apresentacao, ['linkPublico', 'linkMaterialPublico']);
 
     return [
       '<article class="activity-presentation-detail">',

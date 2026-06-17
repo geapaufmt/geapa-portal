@@ -119,7 +119,10 @@ Resposta esperada:
       "qtdApresentacoes": 1,
       "resumoApresentacoesPublico": "Resumo curto das apresentacoes.",
       "possuiApresentacoes": true,
-      "ehApresentacao": true,
+      "ciclo": "2026",
+      "ano": 2026,
+      "semestre": 1,
+      "rotuloSemestre": "2026/1",
       "visibilidadePortal": "MEMBROS",
       "podeVerDetalhes": true,
       "podeJustificarFalta": false,
@@ -177,12 +180,11 @@ Resposta esperada:
       "resumoApresentacoesPublico": "Resumo curto das apresentacoes.",
       "apresentacoesPublicas": [
         {
-          "idApresentacao": "APR-2026-1-0001",
-          "nomeApresentadorPublico": "Nome publico",
-          "tituloApresentacao": "Titulo publico",
+          "apresentadorPublico": "Nome publico",
+          "tema": "Titulo publico",
           "eixoTematicoPrincipal": "Direito Penal",
           "eixoTematicoSecundario": "Criminologia",
-          "statusApresentacao": "PUBLICADA",
+          "statusPublico": "PUBLICADA",
           "statusArquivoPublico": "PUBLICO",
           "linkPublico": "https://example.org/material"
         }
@@ -218,7 +220,10 @@ Campos minimos esperados na lista/calendario:
 - `qtdApresentacoes`
 - `resumoApresentacoesPublico`
 - `possuiApresentacoes`
-- `ehApresentacao`
+- `ciclo`
+- `ano`
+- `semestre`
+- `rotuloSemestre`
 
 Campos minimos esperados no detalhe:
 
@@ -236,16 +241,14 @@ a secao correspondente. A aba de proximas atividades mostra apenas atividades
 futuras ou em andamento. O historico e sempre historico de atividades, sem corte
 fixo por ciclo no front-end, com filtros de ciclo/semestre, tipo/subtipo,
 somente apresentacoes e eixo tematico. O filtro de ciclo/semestre deve usar
-campos explicitos do backend (`ano`, `semestre`, `periodoLetivo` ou
-equivalentes vindos de Atividades/Vigencias), nunca inferencia por semestre
-civil. Um filtro por pessoa
+`rotuloSemestre`; se esse campo nao vier, usa `ano` + "/" + `semestre`; se nada
+vier, mostra "Sem semestre definido". O Portal nao infere semestre civil. Um filtro por pessoa
 principal/apresentador esta previsto para fase futura.
 
-Para evitar mistura entre registros, cards da lista so devem renderizar detalhes
-de apresentacao quando `apresentacoesPublicas` trouxer item vinculado ao mesmo
-`idAtividade`. Campos agregados soltos como `qtdApresentacoes` e
-`resumoApresentacoesPublico` podem sinalizar filtros, mas nao devem ser usados
-sozinhos para montar o bloco visual de uma apresentacao.
+Cards da lista e do historico usam apenas os agregados do calendario:
+`possuiApresentacoes`, `qtdApresentacoes` e `resumoApresentacoesPublico`. A
+lista completa de apresentacoes e renderizada somente no modal/detalhe, a partir
+de `apresentacoesPublicas`.
 
 `Minhas apresentacoes` tambem e derivado dos detalhes de atividades. O backend
 filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da sessao e

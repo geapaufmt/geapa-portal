@@ -632,7 +632,10 @@ Resposta esperada:
       "qtdApresentacoes": 1,
       "resumoApresentacoesPublico": "Resumo curto das apresentacoes.",
       "possuiApresentacoes": true,
-      "ehApresentacao": true,
+      "ciclo": "2026",
+      "ano": 2026,
+      "semestre": 1,
+      "rotuloSemestre": "2026/1",
       "visibilidadePortal": "MEMBROS",
       "podeVerDetalhes": true,
       "podeJustificarFalta": false,
@@ -661,18 +664,18 @@ Apresentacoes nao sao consumidas por view propria no Portal. Cards, agenda e
 historico usam os campos publicos do calendario (`eixoTematicoPrincipal`,
 `eixoTematicoSecundario`, `nomePessoaPrincipalPublico`,
 `papelPessoaPrincipal`, `tipoPessoaPrincipal`, `qtdApresentacoes`,
-`resumoApresentacoesPublico`, `possuiApresentacoes`, `ehApresentacao`). O
+`resumoApresentacoesPublico`, `possuiApresentacoes`, `ciclo`, `ano`,
+`semestre` e `rotuloSemestre`). O
 detalhe/modal usa `PORTAL_ATIVIDADES_DETALHES`, especialmente
 `apresentacoesPublicas`, `envolvidosPublicos`, `linkMaterialPublico`,
 `linkAtaPublica` e `linkFotosPublico`. A aba de proximas atividades filtra
 apenas atividades futuras ou em andamento. O historico nao aplica corte fixo de
 ciclo no front-end e oferece filtros por ciclo/semestre, tipo/subtipo,
-apresentacoes e eixo tematico. O ciclo/semestre deve vir do backend por campos
-explicitos derivados de Atividades/Vigencias; o Portal nao infere semestre
-letivo por divisao civil do ano. Cards da lista so renderizam bloco de
-apresentacao quando `apresentacoesPublicas` trouxer item vinculado ao mesmo
-`idAtividade`; resumo agregado sem esse vinculo nao e suficiente para montar o
-bloco visual.
+apresentacoes e eixo tematico. O filtro de semestre usa `rotuloSemestre` e,
+como fallback, `ano` + "/" + `semestre`; quando nada vier no payload, o Portal
+usa "Sem semestre definido". O Portal nao infere semestre letivo por divisao
+civil do ano. Cards da lista mostram apenas o resumo agregado do calendario; a
+lista completa de apresentacoes fica restrita ao detalhe/modal.
 
 ## Acoes V2 somente leitura
 
