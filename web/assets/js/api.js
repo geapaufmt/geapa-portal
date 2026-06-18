@@ -609,11 +609,13 @@
           linkMaterialPublico: apresentacao.linkMaterialPublico || '',
           nomeArquivoMaterial: apresentacao.nomeArquivoMaterial || '',
           versaoMaterial: apresentacao.versaoMaterial || '',
-          podeEditarTituloEixo: true,
-          podeEnviarMaterial: true,
-          podeReenviarMaterial: Boolean(apresentacao.linkMaterialPublico),
-          podeAprovarTituloEixo: false,
-          podeRevisarMaterial: false
+          acoesMembro: {
+            podeEditarTituloEixo: true,
+            podeEnviarMaterial: !apresentacao.linkMaterialPublico,
+            podeReenviarMaterial: false,
+            podeAbrirMaterial: Boolean(apresentacao.linkMaterialPublico),
+            podeAbrirPastaAtividade: Boolean(detalhe.linkPastaDrive || detalhe.idPastaDrive)
+          }
         });
       });
 
@@ -641,16 +643,28 @@
   function criarPendenciasApresentacoesMock() {
     return [
       {
+        idPendencia: 'PEND-MOCK-1',
+        tipoPendencia: 'TITULO_EIXO_AGUARDANDO_ANALISE',
+        gravidade: 'MEDIA',
+        idAtividade: 'ATV-MOCK-1',
         idApresentacao: 'APR-MOCK-1',
         dataAtividade: '2026-06-26',
-        titulo: 'Agricultura Marciana e o que ela pode nos ensinar sobre a da Terra',
-        tema: 'Agricultura Marciana e o que ela pode nos ensinar sobre a da Terra',
-        apresentador: 'Membro de Teste',
+        rotuloSemestre: '2026/1',
+        tituloAtividade: 'Palestra de teste',
+        tituloApresentacao: 'Agricultura Marciana e o que ela pode nos ensinar sobre a da Terra',
+        nomeApresentador: 'Membro de Teste',
         statusTituloEixo: 'PENDENTE_REVISAO',
         statusMaterial: 'NAO_ENVIADO',
         eixoTematicoPrincipal: 'VIII - Temas Livres de Relevancia Agronomica',
-        podeAprovarTituloEixo: true,
-        podeRevisarMaterial: true
+        descricaoPendencia: 'Titulo e eixos aguardam analise da diretoria.',
+        acaoRecomendada: 'Revisar titulo/eixos',
+        acoesGestao: {
+          podeAprovarTituloEixo: true,
+          podeSolicitarAjusteTituloEixo: true,
+          podeAprovarMaterial: false,
+          podeSolicitarAjusteMaterial: false,
+          podeDispensarMaterial: true
+        }
       }
     ];
   }

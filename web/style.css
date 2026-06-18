@@ -1639,6 +1639,23 @@ button:disabled:hover {
   box-shadow: var(--shadow-soft);
 }
 
+.presentation-card-topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.presentation-card-topline span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: var(--green-950);
+  background: var(--green-050);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .presentation-action-main,
 .presentation-resource-row,
 .presentation-card-actions {
@@ -1701,6 +1718,42 @@ button:disabled:hover {
 .presentation-card-actions {
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.presentation-action-primary {
+  color: var(--white);
+  background: var(--green-700);
+}
+
+.presentation-action-primary:hover,
+.presentation-action-primary:focus-visible {
+  background: var(--green-950);
+}
+
+.presentation-action-warning {
+  border: 1px solid var(--warning-border);
+  color: #5d4210;
+  background: var(--warning-bg);
+}
+
+.presentation-action-warning:hover,
+.presentation-action-warning:focus-visible {
+  color: var(--white);
+  background: #8a5a32;
+}
+
+.presentation-pendency-text,
+.presentation-pendency-action {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.presentation-pendency-action {
+  border-left: 3px solid var(--geapa-brown);
+  padding-left: 10px;
+  color: var(--green-950);
+  font-weight: 700;
 }
 
 .readonly-form {

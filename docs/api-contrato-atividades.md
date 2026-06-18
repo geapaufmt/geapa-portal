@@ -274,11 +274,12 @@ link de arquivo publico fora desse novo contrato.
 `atividadesV2_portalGetMinhasApresentacoes(contexto)` quando disponivel. O
 backend filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da
 sessao e retorna somente campos publicos/sanitizados da apresentacao vinculada.
-A tela exibe Data, Semestre, Tema, Eixos, Status, pasta geral da atividade
-(`linkPastaDrive`), material da apresentacao (`linkMaterialPublico`,
-`nomeArquivoMaterial`, `versaoMaterial`) e acoes liberadas pelas flags:
+A tela exibe Data, Semestre, Tema, Eixos, Status, material da apresentacao
+(`linkMaterialPublico`, `nomeArquivoMaterial`, `versaoMaterial`) e, quando
+permitido pelo backend, pasta geral da atividade (`linkPastaDrive`). A tela
+pessoal consome somente `apresentacao.acoesMembro`:
 `podeEditarTituloEixo`, `podeEnviarMaterial`, `podeReenviarMaterial`,
-`podeAprovarTituloEixo` e `podeRevisarMaterial`.
+`podeAbrirMaterial` e `podeAbrirPastaAtividade`.
 
 ## Acoes de apresentacoes pelo Portal
 
@@ -299,6 +300,11 @@ iniciais aceitos sao PDF, PPT, PPTX e ODP. Revisoes da Diretoria/Secretaria
 permitem aprovar ou solicitar ajuste de titulo/eixos, e aprovar, solicitar
 ajuste ou dispensar material. Nao ha auto-chamada, presenca ou alteracao de
 frequencia neste pacote.
+
+`Pendencias de apresentacoes` consome somente `pendencia.acoesGestao`:
+`podeAprovarTituloEixo`, `podeSolicitarAjusteTituloEixo`,
+`podeAprovarMaterial`, `podeSolicitarAjusteMaterial` e
+`podeDispensarMaterial`. O front-end nao infere acao por perfil.
 
 ## Endpoints futuros
 

@@ -257,7 +257,7 @@
   }
 
   function obterIdItem(item) {
-    return String((item || {}).idApresentacao || (item || {}).idAtividade || '').trim();
+    return String((item || {}).idApresentacao || (item || {}).idPendencia || (item || {}).idAtividade || '').trim();
   }
 
   function montarMinhasApresentacoes(itens) {
@@ -265,32 +265,31 @@
       '<div class="presentation-actions-list">',
       itens.map(function montar(item) {
         var id = obterIdItem(item);
+        var acoesMembro = obterAcoesMembro(item);
         var eixos = renderizarEixos(item);
-        var material = renderizarMaterialApresentacao(item);
-        var pasta = renderizarPastaAtividade(item);
-        var acoes = montarAcoesMinhasApresentacoes(item, id);
+        var material = renderizarMaterialApresentacao(item, acoesMembro);
+        var pasta = renderizarPastaAtividade(item, acoesMembro);
+        var recursos = montarRecursosApresentacao(material, pasta);
+        var acoes = montarAcoesMinhasApresentacoes(item, id, acoesMembro);
 
         return [
           '<article class="presentation-action-card">',
+          '<div class="presentation-card-topline">',
+          '<span>' + ui.escaparHtml(formatarValor(item.dataAtividade)) + '</span>',
+          item.rotuloSemestre ? '<span>' + ui.escaparHtml(formatarValor(item.rotuloSemestre)) + '</span>' : '',
+          item.statusApresentacao ? '<span>' + ui.escaparHtml(formatarValor(item.statusApresentacao)) + '</span>' : '',
+          '</div>',
           '<div class="presentation-action-main">',
           '<div>',
-          '<small>' + ui.escaparHtml(formatarValor(item.dataAtividade)) + '</small>',
-          item.rotuloSemestre ? '<small>' + ui.escaparHtml(formatarValor(item.rotuloSemestre)) + '</small>' : '',
-          '</div>',
-          '<div>',
-          '<h3>' + ui.escaparHtml(formatarValor(item.tema || item.titulo || item.tituloPublico)) + '</h3>',
+          '<h3>' + ui.escaparHtml(formatarValor(obterTituloApresentacao(item))) + '</h3>',
           eixos ? '<p>' + eixos + '</p>' : '',
           '</div>',
           '<div class="presentation-status-stack">',
-          item.statusApresentacao ? '<span>' + ui.escaparHtml(formatarValor(item.statusApresentacao)) + '</span>' : '',
           item.statusTituloEixo ? '<small>Titulo/eixos: ' + ui.escaparHtml(formatarValor(item.statusTituloEixo)) + '</small>' : '',
           item.statusMaterial ? '<small>Material: ' + ui.escaparHtml(formatarValor(item.statusMaterial)) + '</small>' : '',
           '</div>',
           '</div>',
-          '<div class="presentation-resource-row">',
-          '<div><strong>Pasta da atividade</strong>' + pasta + '</div>',
-          '<div><strong>Material da apresentacao</strong>' + material + '</div>',
-          '</div>',
+          recursos,
           acoes ? '<div class="presentation-card-actions">' + acoes + '</div>' : '',
           '</article>'
         ].join('');
@@ -299,24 +298,19 @@
     ].join('');
   }
 
-  function montarAcoesMinhasApresentacoes(item, id) {
+  function montarAcoesMinhasApresentacoes(item, id, acoesMembro) {
     var botoes = [];
     var temTituloOuEixo = Boolean(item.tema || item.titulo || item.eixoTematicoPrincipal || item.eixoTematicoSecundario);
+    var acoes = acoesMembro || {};
 
-    if (item.podeEditarTituloEixo === true) {
-      botoes.push(botaoAcao('titulo-eixo', id, temTituloOuEixo ? 'Editar titulo/eixos' : 'Informar titulo/eixos'));
+    if (acoes.podeEditarTituloEixo === true) {
+      botoes.push(botaoAcao('titulo-eixo', id, temTituloOuEixo ? 'Editar titulo/eixos' : 'Informar titulo/eixos', 'secondary'));
     }
 
-    if (item.podeEnviarMaterial === true) {
-      botoes.push(botaoAcao('material', id, 'Enviar material'));
-    } else if (item.podeReenviarMaterial === true) {
-      botoes.push(botaoAcao('material', id, 'Reenviar material'));
-    }
-
-    if (normalizarUrlPublica(item.linkMaterialPublico)) {
-      botoes.push(
-        '<a class="secondary-button compact-button" href="' + ui.escaparHtml(normalizarUrlPublica(item.linkMaterialPublico)) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
-      );
+    if (acoes.podeEnviarMaterial === true) {
+      botoes.push(botaoAcao('material', id, 'Enviar material', 'primary'));
+    } else if (acoes.podeReenviarMaterial === true) {
+      botoes.push(botaoAcao('material', id, 'Reenviar material', 'primary'));
     }
 
     return botoes.join('');
@@ -326,28 +320,42 @@
     return [
       '<div class="presentation-actions-list">',
       itens.map(function montar(item) {
-        var id = obterIdItem(item);
-        var titulo = item.tema || item.titulo || item.tituloPublico || 'Apresentacao';
-        var apresentador = item.nomeApresentador || item.apresentador || item.nomePessoaPrincipalPublico || '';
-        var acoesTitulo = item.podeAprovarTituloEixo === false
-          ? ''
-          : [
-            botaoAcao('revisar-titulo-aprovar', id, 'Aprovar titulo/eixos'),
-            botaoAcao('revisar-titulo-ajuste', id, 'Solicitar ajuste')
-          ].join('');
-        var acoesMaterial = item.podeRevisarMaterial === false
-          ? ''
-          : [
-            botaoAcao('revisar-material-aprovar', id, 'Aprovar material'),
-            botaoAcao('revisar-material-ajuste', id, 'Solicitar ajuste'),
-            botaoAcao('revisar-material-dispensar', id, 'Dispensar material')
-          ].join('');
+        var id = String(item.idApresentacao || '').trim();
+        var acoesGestao = obterAcoesGestao(item);
+        var tituloAtividade = item.tituloAtividade || item.tituloPublico || item.atividade || item.idAtividade || 'Atividade';
+        var titulo = item.tituloApresentacao || item.tema || item.titulo || 'Titulo ainda nao informado';
+        var apresentador = item.nomeApresentador || item.apresentador || item.nomePessoaPrincipalPublico || 'Apresentador ainda nao definido';
+        var acoesTitulo = [
+          acoesGestao.podeAprovarTituloEixo === true
+            ? botaoAcao('revisar-titulo-aprovar', id, 'Aprovar titulo/eixos', 'primary')
+            : '',
+          acoesGestao.podeSolicitarAjusteTituloEixo === true
+            ? botaoAcao('revisar-titulo-ajuste', id, 'Solicitar ajuste', 'warning')
+            : ''
+        ].join('');
+        var acoesMaterial = [
+          acoesGestao.podeAprovarMaterial === true
+            ? botaoAcao('revisar-material-aprovar', id, 'Aprovar material', 'primary')
+            : '',
+          acoesGestao.podeSolicitarAjusteMaterial === true
+            ? botaoAcao('revisar-material-ajuste', id, 'Solicitar ajuste', 'warning')
+            : '',
+          acoesGestao.podeDispensarMaterial === true
+            ? botaoAcao('revisar-material-dispensar', id, 'Dispensar material', 'warning')
+            : ''
+        ].join('');
+        var material = renderizarLinkMaterialGestao(item);
 
         return [
           '<article class="presentation-action-card">',
+          '<div class="presentation-card-topline">',
+          item.gravidade ? '<span>' + ui.escaparHtml(formatarValor(item.gravidade)) + '</span>' : '',
+          item.tipoPendencia ? '<span>' + ui.escaparHtml(formatarValor(item.tipoPendencia)) + '</span>' : '',
+          '</div>',
           '<div class="presentation-action-main">',
-          '<div><small>' + ui.escaparHtml(formatarValor(item.dataAtividade)) + '</small></div>',
           '<div>',
+          '<small>' + ui.escaparHtml(formatarValor(item.dataAtividade)) + (item.rotuloSemestre ? ' | ' + ui.escaparHtml(formatarValor(item.rotuloSemestre)) : '') + '</small>',
+          '<p>Atividade: ' + ui.escaparHtml(formatarValor(tituloAtividade)) + '</p>',
           '<h3>' + ui.escaparHtml(formatarValor(titulo)) + '</h3>',
           apresentador ? '<p>' + ui.escaparHtml(apresentador) + '</p>' : '',
           renderizarEixos(item) ? '<p>' + renderizarEixos(item) + '</p>' : '',
@@ -357,8 +365,10 @@
           item.statusMaterial ? '<small>Material: ' + ui.escaparHtml(formatarValor(item.statusMaterial)) + '</small>' : '',
           '</div>',
           '</div>',
-          acoesTitulo ? '<div class="presentation-card-actions">' + acoesTitulo + '</div>' : '',
-          acoesMaterial ? '<div class="presentation-card-actions">' + acoesMaterial + '</div>' : '',
+          item.descricaoPendencia ? '<p class="presentation-pendency-text">' + ui.escaparHtml(item.descricaoPendencia) + '</p>' : '',
+          item.acaoRecomendada ? '<p class="presentation-pendency-action">Acao recomendada: ' + ui.escaparHtml(item.acaoRecomendada) + '</p>' : '',
+          material ? '<div class="presentation-resource-row"><div><strong>Material da apresentacao</strong>' + material + '</div></div>' : '',
+          acoesTitulo || acoesMaterial ? '<div class="presentation-card-actions">' + acoesTitulo + acoesMaterial + '</div>' : '',
           '</article>'
         ].join('');
       }).join(''),
@@ -366,9 +376,19 @@
     ].join('');
   }
 
-  function botaoAcao(acao, id, texto) {
+  function botaoAcao(acao, id, texto, variante) {
+    var classe = variante === 'primary'
+      ? 'compact-button presentation-action-primary'
+      : variante === 'warning'
+        ? 'compact-button presentation-action-warning'
+        : 'secondary-button compact-button';
+
+    if (!id) {
+      return '';
+    }
+
     return [
-      '<button class="secondary-button compact-button" type="button" data-portal-v2-action="',
+      '<button class="' + ui.escaparHtml(classe) + '" type="button" data-portal-v2-action="',
       ui.escaparHtml(acao),
       '" data-id-apresentacao="',
       ui.escaparHtml(id),
@@ -378,23 +398,109 @@
     ].join('');
   }
 
-  function renderizarMaterialApresentacao(item) {
-    var url = normalizarUrlPublica((item || {}).linkMaterialPublico);
+  function obterTituloApresentacao(item) {
+    return (item || {}).tituloApresentacao ||
+      (item || {}).tema ||
+      (item || {}).titulo ||
+      (item || {}).tituloPublico ||
+      'Titulo ainda nao informado';
+  }
+
+  function montarRecursosApresentacao(material, pasta) {
+    var blocos = [];
+
+    if (material) {
+      blocos.push('<div><strong>Material da apresentacao</strong>' + material + '</div>');
+    }
+
+    if (pasta) {
+      blocos.push('<div><strong>Pasta da atividade</strong>' + pasta + '</div>');
+    }
+
+    return blocos.length
+      ? '<div class="presentation-resource-row">' + blocos.join('') + '</div>'
+      : '';
+  }
+
+  function renderizarMaterialApresentacao(item, acoesMembro) {
+    var acoes = acoesMembro || {};
+    var url = normalizarUrlPublica((item || {}).linkMaterialPublico) ||
+      montarUrlDrivePorId((item || {}).idArquivoMaterial);
     var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir material';
     var versao = (item || {}).versaoMaterial ? ' v' + formatarValor((item || {}).versaoMaterial) : '';
 
-    return url
-      ? '<a href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(rotulo + versao) + '</a>'
-      : '<span class="muted-inline">Nao disponivel</span>';
+    if (acoes.podeAbrirMaterial === true && url) {
+      return '<a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(rotulo + versao) + '</a>';
+    }
+
+    if ((item || {}).nomeArquivoMaterial) {
+      return '<span class="muted-inline">' + ui.escaparHtml(rotulo + versao) + '</span>';
+    }
+
+    return '';
   }
 
-  function renderizarPastaAtividade(item) {
+  function renderizarPastaAtividade(item, acoesMembro) {
+    var acoes = acoesMembro || {};
     var url = normalizarUrlPublica((item || {}).linkPastaDrive) ||
       montarUrlDrivePorId((item || {}).idPastaDrive);
 
-    return url
+    return acoes.podeAbrirPastaAtividade === true && url
       ? '<a class="activity-folder-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Pasta geral da atividade</a>'
-      : '<span class="muted-inline">Nao disponivel</span>';
+      : '';
+  }
+
+  function renderizarLinkMaterialGestao(item) {
+    var url = normalizarUrlPublica((item || {}).linkMaterialPublico) ||
+      montarUrlDrivePorId((item || {}).idArquivoMaterial);
+    var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir material';
+
+    return url
+      ? '<a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(rotulo) + '</a>'
+      : ((item || {}).nomeArquivoMaterial ? '<span class="muted-inline">' + ui.escaparHtml((item || {}).nomeArquivoMaterial) + '</span>' : '');
+  }
+
+  function obterAcoesMembro(item) {
+    return normalizarObjetoAcoes((item || {}).acoesMembro, [
+      'podeEditarTituloEixo',
+      'podeEnviarMaterial',
+      'podeReenviarMaterial',
+      'podeAbrirMaterial',
+      'podeAbrirPastaAtividade'
+    ]);
+  }
+
+  function obterAcoesGestao(item) {
+    return normalizarObjetoAcoes((item || {}).acoesGestao, [
+      'podeAprovarTituloEixo',
+      'podeSolicitarAjusteTituloEixo',
+      'podeAprovarMaterial',
+      'podeSolicitarAjusteMaterial',
+      'podeDispensarMaterial'
+    ]);
+  }
+
+  function normalizarObjetoAcoes(valor, chaves) {
+    var origem = valor || {};
+    var saida = {};
+
+    if (typeof origem === 'string' && origem.trim()) {
+      try {
+        origem = JSON.parse(origem);
+      } catch (erro) {
+        origem = {};
+      }
+    }
+
+    if (!origem || typeof origem !== 'object' || Array.isArray(origem)) {
+      origem = {};
+    }
+
+    (chaves || []).forEach(function copiar(chave) {
+      saida[chave] = origem[chave] === true;
+    });
+
+    return saida;
   }
 
   function tratarCliqueReadonly(evento) {
@@ -866,6 +972,10 @@
   }
 
   function renderizarEixos(item) {
+    if ((item || {}).eixos) {
+      return ui.escaparHtml(formatarValor((item || {}).eixos));
+    }
+
     var eixoPrincipal = (item || {}).eixoTematicoPrincipal || '';
     var eixoSecundario = (item || {}).eixoTematicoSecundario || '';
     var eixos = [eixoPrincipal, eixoSecundario].filter(Boolean).join(' / ');

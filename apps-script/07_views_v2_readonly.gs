@@ -353,6 +353,36 @@ function portalNormalizarBooleanViewsV2_(valor) {
   return false;
 }
 
+function portalNormalizarAcoesApresentacaoV2_(valor) {
+  var origem = valor || {};
+  var permitido = [
+    'podeEditarTituloEixo',
+    'podeEnviarMaterial',
+    'podeReenviarMaterial',
+    'podeAbrirMaterial',
+    'podeAbrirPastaAtividade'
+  ];
+  var saida = {};
+
+  if (typeof origem === 'string' && origem.trim()) {
+    try {
+      origem = JSON.parse(origem);
+    } catch (erro) {
+      origem = {};
+    }
+  }
+
+  if (!origem || typeof origem !== 'object' || Array.isArray(origem)) {
+    origem = {};
+  }
+
+  permitido.forEach(function copiar(chave) {
+    saida[chave] = portalNormalizarBooleanViewsV2_(origem[chave]);
+  });
+
+  return saida;
+}
+
 function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
   var origem = apresentacao || {};
   var atividade = detalhe || {};
@@ -388,6 +418,9 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     tituloPublico: portalObterCampoFlexViewsV2_(atividade, ['tituloPublico', 'titulo', 'TITULO_PUBLICO']),
     tema: titulo,
     titulo: titulo,
+    tituloAtividade: portalObterCampoFlexViewsV2_(atividade, ['tituloAtividade', 'tituloPublico', 'titulo', 'TITULO_ATIVIDADE']),
+    tituloApresentacao: portalObterCampoFlexViewsV2_(origem, ['tituloApresentacao', 'titulo', 'tema', 'TITULO_APRESENTACAO']),
+    nomeApresentador: portalObterCampoFlexViewsV2_(origem, ['nomeApresentador', 'nomePessoaPrincipalPublico', 'NOME_APRESENTADOR']),
     tipoPublico: portalObterCampoFlexViewsV2_(atividade, ['tipoPublico', 'tipoAtividade', 'TIPO_PUBLICO']),
     statusApresentacao: portalObterCampoFlexViewsV2_(origem, [
       'statusApresentacao',
@@ -437,25 +470,9 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
       'versaoMaterial',
       'VERSAO_MATERIAL'
     ]),
-    podeEditarTituloEixo: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
-      'podeEditarTituloEixo',
-      'PODE_EDITAR_TITULO_EIXO'
-    ])),
-    podeEnviarMaterial: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
-      'podeEnviarMaterial',
-      'PODE_ENVIAR_MATERIAL'
-    ])),
-    podeReenviarMaterial: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
-      'podeReenviarMaterial',
-      'PODE_REENVIAR_MATERIAL'
-    ])),
-    podeAprovarTituloEixo: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
-      'podeAprovarTituloEixo',
-      'PODE_APROVAR_TITULO_EIXO'
-    ])),
-    podeRevisarMaterial: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
-      'podeRevisarMaterial',
-      'PODE_REVISAR_MATERIAL'
+    acoesMembro: portalNormalizarAcoesApresentacaoV2_(portalObterCampoFlexViewsV2_(origem, [
+      'acoesMembro',
+      'ACOES_MEMBRO'
     ])),
     periodo: rotuloSemestre,
     rotuloSemestre: rotuloSemestre,
@@ -477,6 +494,9 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     'tituloPublico',
     'tema',
     'titulo',
+    'tituloAtividade',
+    'tituloApresentacao',
+    'nomeApresentador',
     'tipoPublico',
     'statusApresentacao',
     'eixoTematicoPrincipal',
@@ -488,11 +508,7 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     'nomeArquivoMaterial',
     'linkMaterialPublico',
     'versaoMaterial',
-    'podeEditarTituloEixo',
-    'podeEnviarMaterial',
-    'podeReenviarMaterial',
-    'podeAprovarTituloEixo',
-    'podeRevisarMaterial',
+    'acoesMembro',
     'periodo',
     'rotuloSemestre',
     'cargaHoraria',

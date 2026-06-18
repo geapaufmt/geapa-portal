@@ -713,7 +713,8 @@ Contratos de resposta:
   `data.ultimaAtualizacao`; o backend prefere
   `atividadesV2_portalGetMinhasApresentacoes(contexto)` e filtra por
   `idPessoa`, `rga` ou e-mail da sessao, sem consumir uma view paralela de
-  apresentacoes.
+  apresentacoes. A tela pessoal renderiza botoes somente a partir de
+  `apresentacao.acoesMembro`.
 - `minhasJustificativas`: retorna `data.justificativas`, `data.resumo` e
   `data.ultimaAtualizacao`.
 - `proximasAtividades` e `historicoAtividades`: retornam `data.atividades`,
@@ -745,6 +746,37 @@ Endpoints frontend e acoes Apps Script:
 `apresentacoesListarEixos` chama
 `atividadesV2_portalListarEixosTematicos(contexto)`. O select do Portal usa
 `rotuloFormulario` como texto visivel e envia o valor selecionado ao backend.
+
+As acoes da tela pessoal devem vir apenas de:
+
+```json
+{
+  "acoesMembro": {
+    "podeEditarTituloEixo": true,
+    "podeEnviarMaterial": false,
+    "podeReenviarMaterial": false,
+    "podeAbrirMaterial": true,
+    "podeAbrirPastaAtividade": true
+  }
+}
+```
+
+As acoes da tela de gestao devem vir apenas de:
+
+```json
+{
+  "acoesGestao": {
+    "podeAprovarTituloEixo": true,
+    "podeSolicitarAjusteTituloEixo": true,
+    "podeAprovarMaterial": false,
+    "podeSolicitarAjusteMaterial": false,
+    "podeDispensarMaterial": true
+  }
+}
+```
+
+O front-end nao infere botoes por perfil. Se o backend zerar uma acao, o botao
+nao aparece.
 
 Envio de titulo/eixos:
 
