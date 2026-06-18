@@ -65,7 +65,7 @@ function portalExecutarMinhasApresentacoesPorAtividadesV2_(token) {
     return contexto.resposta;
   }
 
-  var cacheKey = portalCacheKey_('viewsV2r3:minhasApresentacoesAtividades', contexto.identificadorSessao);
+  var cacheKey = portalCacheKey_('viewsV2r4:minhasApresentacoesAtividades', contexto.identificadorSessao);
   var cache = portalLerJsonCacheViewsV2_(cacheKey);
 
   if (cache) {
@@ -77,9 +77,13 @@ function portalExecutarMinhasApresentacoesPorAtividadesV2_(token) {
     );
   }
 
-  var resposta = portalChamarAtividadesDetalhesPreload_(
-    portalMontarContextoAtividadesReadonlyV2_(contexto)
-  );
+  var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  var resposta = portalChamarAtividadesBundle_(contextoAtividades);
+
+  if (!resposta || resposta.ok === false) {
+    resposta = portalChamarAtividadesDetalhesPreload_(contextoAtividades);
+  }
+
   var data = portalMontarMinhasApresentacoesDeDetalhesV2_(resposta, contexto);
 
   portalSalvarJsonCacheViewsV2_(cacheKey, data);
@@ -97,11 +101,14 @@ function portalMontarMinhasApresentacoesDeDetalhesV2_(resposta, contexto) {
     ? (resposta.data || resposta.dados || resposta)
     : {};
   var detalhes = portalExtrairDetalhesAtividadesParaApresentacoesV2_(bruto);
+  var calendarioPorId = portalMontarMapaCalendarioAtividadesV2_(bruto);
   var apresentacoes = [];
 
   detalhes.forEach(function varrerDetalhe(detalhe) {
+    var idAtividade = portalObterCampoFlexViewsV2_(detalhe, ['idAtividade', 'ID_ATIVIDADE']);
+    var detalheCompleto = Object.assign({}, calendarioPorId[idAtividade] || {}, detalhe || {});
     var lista = portalParseListaJsonViewsV2_(
-      portalObterCampoFlexViewsV2_(detalhe, [
+      portalObterCampoFlexViewsV2_(detalheCompleto, [
         'apresentacoesPublicas',
         'APRESENTACOES_PUBLICAS_JSON',
         'apresentacoesPublicasJson'
@@ -109,8 +116,8 @@ function portalMontarMinhasApresentacoesDeDetalhesV2_(resposta, contexto) {
     );
 
     lista.forEach(function copiar(apresentacao) {
-      if (portalApresentacaoPertenceAoUsuarioV2_(apresentacao, detalhe, contexto.contexto)) {
-        apresentacoes.push(portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe));
+      if (portalApresentacaoPertenceAoUsuarioV2_(apresentacao, detalheCompleto, contexto.contexto)) {
+        apresentacoes.push(portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalheCompleto));
       }
     });
   });
@@ -124,6 +131,24 @@ function portalMontarMinhasApresentacoesDeDetalhesV2_(resposta, contexto) {
     ultimaAtualizacao: portalObterCampoFlexViewsV2_(bruto, ['ultimaAtualizacao', 'atualizadoEm', 'updatedAt']) ||
       new Date().toISOString()
   };
+}
+
+function portalMontarMapaCalendarioAtividadesV2_(dados) {
+  var origem = dados || {};
+  var lista = Array.isArray(origem.calendario)
+    ? origem.calendario
+    : portalExtrairListaViewsV2_(origem, ['atividades', 'registros', 'itens']);
+  var mapa = {};
+
+  (lista || []).forEach(function mapear(item) {
+    var idAtividade = portalObterCampoFlexViewsV2_(item, ['idAtividade', 'ID_ATIVIDADE']);
+
+    if (idAtividade) {
+      mapa[idAtividade] = item;
+    }
+  });
+
+  return mapa;
 }
 
 function portalMontarContextoAtividadesReadonlyV2_(contexto) {
