@@ -28,6 +28,7 @@
       geraCertificado: true,
       cargaHoraria: 2,
       statusPublico: 'REALIZADA',
+      rotuloSemestre: '2026/1',
       eixoTematicoPrincipal: 'Direito Penal',
       eixoTematicoSecundario: 'Criminologia',
       nomePessoaPrincipalPublico: 'Membro de Teste',
@@ -63,6 +64,7 @@
       geraCertificado: false,
       cargaHoraria: 1.5,
       statusPublico: 'PLANEJADA',
+      rotuloSemestre: '2026/1',
       qtdApresentacoes: 0,
       possuiApresentacoes: false,
       ano: 2026,
@@ -92,6 +94,7 @@
       geraCertificado: true,
       cargaHoraria: 2,
       statusPublico: 'PUBLICADA',
+      rotuloSemestre: '2026/2',
       eixoTematicoPrincipal: 'Direitos Humanos',
       eixoTematicoSecundario: 'Sistema Penal',
       nomePessoaPrincipalPublico: 'Equipe de Apresentadores',
@@ -568,17 +571,13 @@
           dataAtividade: detalhe.dataAtividade,
           tituloPublico: detalhe.tituloPublico,
           tema: apresentacao.titulo || apresentacao.tema,
-          apresentadorPublico: apresentacao.apresentadorPublico,
           statusApresentacao: apresentacao.statusApresentacao,
-          statusTituloEixo: apresentacao.statusTituloEixo,
-          statusMaterial: apresentacao.statusMaterial,
-          idArquivoMaterial: apresentacao.idArquivoMaterial,
-          nomeArquivoMaterial: apresentacao.nomeArquivoMaterial,
-          linkMaterialPublico: apresentacao.linkMaterialPublico,
-          versaoMaterial: apresentacao.versaoMaterial,
           eixoTematicoPrincipal: apresentacao.eixoTematicoPrincipal,
           eixoTematicoSecundario: apresentacao.eixoTematicoSecundario,
-          periodo: '2026/1'
+          periodo: detalhe.rotuloSemestre || '2026/1',
+          rotuloSemestre: detalhe.rotuloSemestre || '2026/1',
+          linkPastaDrive: detalhe.linkPastaDrive,
+          idPastaDrive: detalhe.idPastaDrive
         });
       });
 

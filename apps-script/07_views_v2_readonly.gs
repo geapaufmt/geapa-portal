@@ -263,18 +263,18 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     idAtividade: atividade.idAtividade || origem.idAtividade,
     dataAtividade: atividade.dataAtividade || origem.dataAtividade,
     tituloPublico: atividade.tituloPublico || origem.tituloPublico,
-    tema: origem.tema || origem.tituloPublico || origem.resumoPublico,
+    tema: origem.titulo || origem.tema || origem.tituloPublico || origem.resumoPublico,
+    titulo: origem.titulo || origem.tema || origem.tituloPublico || origem.resumoPublico,
     tipoPublico: atividade.tipoPublico || atividade.tipoAtividade,
-    statusPublico: origem.statusPublico || origem.status || origem.STATUS_PUBLICO || atividade.statusPublico,
-    statusArquivoPublico: origem.statusArquivoPublico || origem.statusArquivo,
+    statusApresentacao: origem.statusApresentacao || origem.statusPublico || origem.status || origem.STATUS_PUBLICO || atividade.statusPublico,
     eixoTematicoPrincipal: origem.eixoTematicoPrincipal || atividade.eixoTematicoPrincipal,
     eixoTematicoSecundario: origem.eixoTematicoSecundario || atividade.eixoTematicoSecundario,
-    apresentadorPublico: origem.apresentadorPublico || origem.nomePessoaPrincipalPublico || origem.nomePublico || atividade.nomePessoaPrincipalPublico,
     papel: origem.papel || atividade.papelPessoaPrincipal,
-    periodo: origem.periodo || atividade.rotuloSemestre || atividade.periodo,
+    periodo: origem.rotuloSemestre || atividade.rotuloSemestre || origem.periodo || atividade.periodo,
+    rotuloSemestre: origem.rotuloSemestre || atividade.rotuloSemestre || origem.periodo || atividade.periodo,
     cargaHoraria: atividade.cargaHoraria,
-    linkPublico: origem.linkPublico || origem.linkMaterialPublico || '',
-    linkMaterialPublico: origem.linkMaterialPublico || origem.linkPublico || ''
+    linkPastaDrive: atividade.linkPastaDrive || atividade.LINK_PASTA_DRIVE || '',
+    idPastaDrive: atividade.idPastaDrive || atividade.ID_PASTA_DRIVE || ''
   };
 
   return portalSanitizarObjetoBasicoViewsV2_(item, [
@@ -282,17 +282,17 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     'dataAtividade',
     'tituloPublico',
     'tema',
+    'titulo',
     'tipoPublico',
-    'statusPublico',
-    'statusArquivoPublico',
+    'statusApresentacao',
     'eixoTematicoPrincipal',
     'eixoTematicoSecundario',
-    'apresentadorPublico',
     'papel',
     'periodo',
+    'rotuloSemestre',
     'cargaHoraria',
-    'linkPublico',
-    'linkMaterialPublico'
+    'linkPastaDrive',
+    'idPastaDrive'
   ]);
 }
 

@@ -683,6 +683,10 @@ atividade, e `linkPastaDrive` aponta para a pasta geral. Em cada item de
 `idArquivoMaterial`, `nomeArquivoMaterial` e `versaoMaterial` pertencem ao
 material especifico daquela apresentacao.
 
+A tela `Minhas apresentacoes` usa um recorte simplificado desse contrato:
+Data/Semestre, Apresentacao/Eixos, Status e Pasta. O link de Pasta vem de
+`linkPastaDrive` da atividade vinculada.
+
 ## Acoes V2 somente leitura
 
 As acoes abaixo consomem views V2 pelo Apps Script. Todas exigem `token` de

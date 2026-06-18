@@ -32,17 +32,10 @@
       listaCampo: 'apresentacoes',
       vazio: 'Nenhuma apresentacao disponivel para este usuario.',
       colunas: [
-        ['dataAtividade', 'Data'],
-        ['tema', 'Tema', 'texto', ['titulo']],
-        ['apresentadorPublico', 'Apresentador', 'texto', ['nomeApresentador']],
+        ['dataAtividade', 'Data', 'dataPeriodo', ['rotuloSemestre', 'periodo']],
+        ['tema', 'Apresentacao', 'temaEixos', ['titulo', 'eixoTematicoPrincipal', 'eixoTematicoSecundario']],
         ['statusApresentacao', 'Status'],
-        ['statusMaterial', 'Material'],
-        ['nomeArquivoMaterial', 'Arquivo'],
-        ['versaoMaterial', 'Versao'],
-        ['linkMaterialPublico', 'Abrir material', 'link', ['idArquivoMaterial']],
-        ['eixoTematicoPrincipal', 'Eixo'],
-        ['eixoTematicoSecundario', 'Eixo secundario'],
-        ['periodo', 'Periodo', 'texto', ['rotuloSemestre']]
+        ['linkPastaDrive', 'Pasta', 'link', ['idPastaDrive']]
       ]
     },
     justificativas: {
@@ -239,6 +232,14 @@
     var texto = formatarValor(valor);
     var url;
 
+    if (tipo === 'dataPeriodo') {
+      return renderizarDataPeriodo(item, coluna);
+    }
+
+    if (tipo === 'temaEixos') {
+      return renderizarTemaEixos(item, coluna);
+    }
+
     if (tipo === 'link') {
       url = normalizarUrlPublica((item || {})[coluna[0]]) ||
         montarUrlDrivePorId((item || {})[coluna[0]]) ||
@@ -250,6 +251,32 @@
     }
 
     return ui.escaparHtml(texto);
+  }
+
+  function renderizarDataPeriodo(item, coluna) {
+    var data = formatarValor((item || {})[coluna[0]]);
+    var periodo = obterPrimeiroValorPorChaves(item, coluna[3] || []);
+
+    return [
+      '<span class="readonly-main-value">' + ui.escaparHtml(data) + '</span>',
+      periodo
+        ? '<small class="readonly-sub-value">' + ui.escaparHtml(formatarValor(periodo)) + '</small>'
+        : ''
+    ].join('');
+  }
+
+  function renderizarTemaEixos(item, coluna) {
+    var titulo = obterValorColuna(item, coluna);
+    var eixoPrincipal = (item || {}).eixoTematicoPrincipal || '';
+    var eixoSecundario = (item || {}).eixoTematicoSecundario || '';
+    var eixos = [eixoPrincipal, eixoSecundario].filter(Boolean).join(' / ');
+
+    return [
+      '<span class="readonly-main-value">' + ui.escaparHtml(formatarValor(titulo)) + '</span>',
+      eixos
+        ? '<small class="readonly-sub-value">' + ui.escaparHtml(eixos) + '</small>'
+        : ''
+    ].join('');
   }
 
   function obterPrimeiroValorPorChaves(item, chaves) {

@@ -1563,6 +1563,17 @@ button:disabled:hover {
   font-size: 0.88rem;
 }
 
+.readonly-main-value,
+.readonly-sub-value {
+  display: block;
+}
+
+.readonly-sub-value {
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
 .readonly-summary {
   margin: 0 0 16px;
   display: grid;
