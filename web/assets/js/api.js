@@ -389,7 +389,13 @@
       '/v2/historico-atividades': 'historicoAtividades',
       '/v2/pendencias-diretoria': 'pendenciasDiretoria',
       '/v2/painel-diretoria': 'painelDiretoriaV2',
-      '/v2/status-views': 'statusViewsV2'
+      '/v2/status-views': 'statusViewsV2',
+      '/v2/apresentacoes/eixos': 'apresentacoesListarEixos',
+      '/v2/apresentacoes/titulo-eixo/enviar': 'apresentacaoEnviarTituloEixo',
+      '/v2/apresentacoes/titulo-eixo/revisar': 'apresentacaoRevisarTituloEixo',
+      '/v2/apresentacoes/material/registrar': 'apresentacaoRegistrarMaterial',
+      '/v2/apresentacoes/material/revisar': 'apresentacaoRevisarMaterial',
+      '/v2/apresentacoes/pendencias': 'apresentacoesPendenciasDiretoria'
     };
 
     return rotas[route] || '';
@@ -481,6 +487,10 @@
       return Promise.resolve(criarRespostaV2Mock('apresentacoes', criarMinhasApresentacoesMock()));
     }
 
+    if (route === '/v2/apresentacoes/eixos') {
+      return Promise.resolve(criarRespostaV2Mock('eixos', criarEixosTematicosMock()));
+    }
+
     if (route === '/v2/minhas-justificativas') {
       return Promise.resolve(criarRespostaV2Mock('justificativas', []));
     }
@@ -503,6 +513,10 @@
           severidade: 'MEDIA'
         }
       ]));
+    }
+
+    if (route === '/v2/apresentacoes/pendencias') {
+      return Promise.resolve(criarRespostaV2Mock('pendencias', criarPendenciasApresentacoesMock()));
     }
 
     if (route === '/v2/painel-diretoria') {
@@ -549,6 +563,17 @@
       });
     }
 
+    if (route.indexOf('/v2/apresentacoes/') === 0) {
+      return Promise.resolve({
+        ok: true,
+        message: 'Acao de apresentacao simulada com sucesso.',
+        data: {
+          route: route,
+          modo: 'MOCK'
+        }
+      });
+    }
+
     return Promise.resolve({
       ok: true,
       message: 'Ação simulada com sucesso em modo de desenvolvimento.',
@@ -567,22 +592,67 @@
 
       apresentacoes.forEach(function copiar(apresentacao) {
         lista.push({
+          idApresentacao: apresentacao.idApresentacao || 'APR-' + idAtividade,
           idAtividade: detalhe.idAtividade,
           dataAtividade: detalhe.dataAtividade,
           tituloPublico: detalhe.tituloPublico,
           tema: apresentacao.titulo || apresentacao.tema,
           statusApresentacao: apresentacao.statusApresentacao,
+          statusTituloEixo: apresentacao.statusTituloEixo || 'PENDENTE_REVISAO',
+          statusMaterial: apresentacao.statusMaterial || 'NAO_ENVIADO',
           eixoTematicoPrincipal: apresentacao.eixoTematicoPrincipal,
           eixoTematicoSecundario: apresentacao.eixoTematicoSecundario,
           periodo: detalhe.rotuloSemestre || '2026/1',
           rotuloSemestre: detalhe.rotuloSemestre || '2026/1',
           linkPastaDrive: detalhe.linkPastaDrive,
-          idPastaDrive: detalhe.idPastaDrive
+          idPastaDrive: detalhe.idPastaDrive,
+          linkMaterialPublico: apresentacao.linkMaterialPublico || '',
+          nomeArquivoMaterial: apresentacao.nomeArquivoMaterial || '',
+          versaoMaterial: apresentacao.versaoMaterial || '',
+          podeEditarTituloEixo: true,
+          podeEnviarMaterial: true,
+          podeReenviarMaterial: Boolean(apresentacao.linkMaterialPublico),
+          podeAprovarTituloEixo: false,
+          podeRevisarMaterial: false
         });
       });
 
       return lista;
     }, []);
+  }
+
+  function criarEixosTematicosMock() {
+    return [
+      {
+        valor: 'VIII - Temas Livres de Relevancia Agronomica',
+        rotuloFormulario: 'VIII - Temas Livres de Relevancia Agronomica',
+        descricaoResumida: 'Temas atuais conectados a agronomia e sociedade.',
+        palavrasChave: 'agronomia, inovacao, campo'
+      },
+      {
+        valor: 'VI - Extensao Rural, Associativismo e Politicas Publicas',
+        rotuloFormulario: 'VI - Extensao Rural, Associativismo e Politicas Publicas',
+        descricaoResumida: 'Extensao, politicas publicas e organizacao social no campo.',
+        exemplosTemas: 'ATER, cooperativas, politicas territoriais'
+      }
+    ];
+  }
+
+  function criarPendenciasApresentacoesMock() {
+    return [
+      {
+        idApresentacao: 'APR-MOCK-1',
+        dataAtividade: '2026-06-26',
+        titulo: 'Agricultura Marciana e o que ela pode nos ensinar sobre a da Terra',
+        tema: 'Agricultura Marciana e o que ela pode nos ensinar sobre a da Terra',
+        apresentador: 'Membro de Teste',
+        statusTituloEixo: 'PENDENTE_REVISAO',
+        statusMaterial: 'NAO_ENVIADO',
+        eixoTematicoPrincipal: 'VIII - Temas Livres de Relevancia Agronomica',
+        podeAprovarTituloEixo: true,
+        podeRevisarMaterial: true
+      }
+    ];
   }
 
   function criarChamadaMock(idAtividade) {

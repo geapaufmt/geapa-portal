@@ -35,7 +35,13 @@ function doGet(e) {
         'historicoAtividades',
         'pendenciasDiretoria',
         'painelDiretoriaV2',
-        'statusViewsV2'
+        'statusViewsV2',
+        'apresentacoesListarEixos',
+        'apresentacaoEnviarTituloEixo',
+        'apresentacaoRevisarTituloEixo',
+        'apresentacaoRegistrarMaterial',
+        'apresentacaoRevisarMaterial',
+        'apresentacoesPendenciasDiretoria'
       ],
       parametrosRecebidos: e && e.parameter ? e.parameter : {}
     }
@@ -195,6 +201,42 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'statusViewsV2') {
     return portalStatusViewsV2(requisicao.token || '');
+  }
+
+  if (acao === 'apresentacoesListarEixos') {
+    return portalApresentacoesListarEixosV2(requisicao.token || '');
+  }
+
+  if (acao === 'apresentacaoEnviarTituloEixo') {
+    return portalApresentacaoEnviarTituloEixoV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'apresentacaoRevisarTituloEixo') {
+    return portalApresentacaoRevisarTituloEixoV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'apresentacaoRegistrarMaterial') {
+    return portalApresentacaoRegistrarMaterialV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'apresentacaoRevisarMaterial') {
+    return portalApresentacaoRevisarMaterialV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'apresentacoesPendenciasDiretoria') {
+    return portalApresentacoesPendenciasDiretoriaV2(requisicao.token || '');
   }
 
   return portalRespostaErro_(

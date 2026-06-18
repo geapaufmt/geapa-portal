@@ -683,15 +683,15 @@ atividade, e `linkPastaDrive` aponta para a pasta geral. Em cada item de
 `idArquivoMaterial`, `nomeArquivoMaterial` e `versaoMaterial` pertencem ao
 material especifico daquela apresentacao.
 
-A tela `Minhas apresentacoes` usa um recorte simplificado desse contrato:
-Data, Semestre, Tema, Eixos, Status e Pasta. O link de Pasta vem de
-`linkPastaDrive` da atividade vinculada.
+A tela `Minhas apresentacoes` usa um recorte desse contrato com Data,
+Semestre, Tema, Eixos, Status, Pasta da atividade, material da apresentacao e
+acoes permitidas pelo backend.
 
-## Acoes V2 somente leitura
+## Acoes V2 do portal
 
-As acoes abaixo consomem views V2 pelo Apps Script. Todas exigem `token` de
-sessao temporaria, validam a sessao no backend e retornam apenas campos
-necessarios para a tela.
+As acoes abaixo consomem contratos V2 pelo Apps Script. Todas exigem `token` de
+sessao temporaria, validam a sessao no backend e retornam ou alteram apenas o
+necessario para a tela. O Portal nao escreve diretamente em planilhas.
 
 ```text
 acao=minhaFrequencia
@@ -710,9 +710,10 @@ Contratos de resposta:
 - `minhaFrequencia`: retorna `data.registros`, `data.resumo` e
   `data.ultimaAtualizacao`.
 - `minhasApresentacoes`: retorna `data.apresentacoes`, `data.resumo` e
-  `data.ultimaAtualizacao`; o backend deriva os registros dos detalhes de
-  atividades e filtra por `idPessoa`, `rga` ou e-mail da sessao, sem consumir
-  uma view paralela de apresentacoes.
+  `data.ultimaAtualizacao`; o backend prefere
+  `atividadesV2_portalGetMinhasApresentacoes(contexto)` e filtra por
+  `idPessoa`, `rga` ou e-mail da sessao, sem consumir uma view paralela de
+  apresentacoes.
 - `minhasJustificativas`: retorna `data.justificativas`, `data.resumo` e
   `data.ultimaAtualizacao`.
 - `proximasAtividades` e `historicoAtividades`: retornam `data.atividades`,
@@ -724,6 +725,66 @@ Contratos de resposta:
   para diretoria, secretaria, admin ou admin tecnico autorizados pelo backend.
 - `statusViewsV2`: retorna `data.views`, `data.resumo` e
   `data.ultimaAtualizacao`, somente para perfil/permissao autorizado.
+
+### Acoes de apresentacoes V2
+
+Endpoints frontend e acoes Apps Script:
+
+- `GET /v2/apresentacoes/eixos` -> `apresentacoesListarEixos`.
+- `POST /v2/apresentacoes/titulo-eixo/enviar` ->
+  `apresentacaoEnviarTituloEixo`.
+- `POST /v2/apresentacoes/material/registrar` ->
+  `apresentacaoRegistrarMaterial`.
+- `GET /v2/apresentacoes/pendencias` ->
+  `apresentacoesPendenciasDiretoria`.
+- `POST /v2/apresentacoes/titulo-eixo/revisar` ->
+  `apresentacaoRevisarTituloEixo`.
+- `POST /v2/apresentacoes/material/revisar` ->
+  `apresentacaoRevisarMaterial`.
+
+`apresentacoesListarEixos` chama
+`atividadesV2_portalListarEixosTematicos(contexto)`. O select do Portal usa
+`rotuloFormulario` como texto visivel e envia o valor selecionado ao backend.
+
+Envio de titulo/eixos:
+
+```json
+{
+  "idApresentacao": "APR-0001",
+  "tituloApresentacao": "Titulo publico",
+  "eixoTematicoPrincipal": "VIII - Temas Livres de Relevancia Agronomica",
+  "eixoTematicoSecundario": "",
+  "observacoes": ""
+}
+```
+
+Envio de material:
+
+```json
+{
+  "idApresentacao": "APR-0001",
+  "nomeArquivoOriginal": "material.pdf",
+  "mimeType": "application/pdf",
+  "conteudoBase64": "...",
+  "observacoes": ""
+}
+```
+
+Revisao de titulo/eixos:
+
+```json
+{
+  "idApresentacao": "APR-0001",
+  "decisao": "APROVAR",
+  "observacaoPublica": "",
+  "observacaoInterna": ""
+}
+```
+
+Revisao de material usa o mesmo formato, com `decisao` em `APROVAR`,
+`SOLICITAR_AJUSTE` ou `DISPENSAR`. A seguranca final, inclusive impedir
+edicao de apresentacao de outra pessoa, fica no backend `geapa-atividades`.
+Nenhum fluxo de chamada/presenca e alterado por essas acoes.
 
 ### `painelDiretoriaV2`
 

@@ -517,7 +517,8 @@ button {
 }
 
 select,
-input {
+input,
+textarea {
   width: 100%;
   min-width: 0;
   border: 1px solid var(--border);
@@ -527,9 +528,18 @@ input {
 }
 
 select:focus,
-input:focus {
+input:focus,
+textarea:focus {
   outline: 3px solid rgba(45, 138, 90, 0.22);
   border-color: var(--green-600);
+}
+
+textarea {
+  min-height: 96px;
+  padding-top: 12px;
+  resize: vertical;
+  border-radius: 6px;
+  font: inherit;
 }
 
 button {
@@ -1616,6 +1626,99 @@ button:disabled:hover {
   background: var(--green-050);
 }
 
+.presentation-actions-list {
+  display: grid;
+  gap: 12px;
+}
+
+.presentation-action-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--white);
+  box-shadow: var(--shadow-soft);
+}
+
+.presentation-action-main,
+.presentation-resource-row,
+.presentation-card-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.presentation-action-main {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.presentation-action-main h3 {
+  margin: 0 0 6px;
+  color: var(--green-950);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.presentation-action-main p,
+.presentation-action-main small,
+.presentation-status-stack small {
+  margin: 0;
+  color: var(--muted);
+}
+
+.presentation-action-main small,
+.presentation-status-stack span,
+.presentation-status-stack small {
+  display: block;
+}
+
+.presentation-status-stack {
+  min-width: 180px;
+}
+
+.presentation-status-stack span {
+  margin-bottom: 4px;
+  font-weight: 700;
+  color: var(--green-950);
+}
+
+.presentation-resource-row {
+  margin-top: 12px;
+  align-items: stretch;
+}
+
+.presentation-resource-row > div {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.presentation-resource-row strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--green-950);
+  font-size: 0.86rem;
+}
+
+.presentation-card-actions {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.readonly-form {
+  display: grid;
+  gap: 14px;
+}
+
+.readonly-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.eixo-help {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
 .painel-diretoria-summary {
   margin-bottom: 10px;
 }
@@ -2115,6 +2218,15 @@ button:disabled:hover {
 
   .presentation-list {
     grid-template-columns: 1fr;
+  }
+
+  .presentation-action-main,
+  .presentation-resource-row {
+    flex-direction: column;
+  }
+
+  .presentation-status-stack {
+    min-width: 0;
   }
 
   .public-home-grid,

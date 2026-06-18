@@ -65,7 +65,7 @@ function portalExecutarMinhasApresentacoesPorAtividadesV2_(token) {
     return contexto.resposta;
   }
 
-  var cacheKey = portalCacheKey_('viewsV2r4:minhasApresentacoesAtividades', contexto.identificadorSessao);
+  var cacheKey = portalCacheKey_('viewsV2r5:minhasApresentacoesAtividades', contexto.identificadorSessao);
   var cache = portalLerJsonCacheViewsV2_(cacheKey);
 
   if (cache) {
@@ -78,6 +78,21 @@ function portalExecutarMinhasApresentacoesPorAtividadesV2_(token) {
   }
 
   var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  var respostaMinhas = portalChamarAtividadesMinhasApresentacoesV2_(contextoAtividades);
+
+  if (respostaMinhas && respostaMinhas.ok !== false) {
+    var dataMinhas = portalMontarMinhasApresentacoesDiretasV2_(respostaMinhas, contexto);
+
+    portalSalvarJsonCacheViewsV2_(cacheKey, dataMinhas);
+
+    return portalRespostaOk_(
+      'MINHAS_APRESENTACOES_V2',
+      'Minhas apresentacoes carregadas pelo contrato especifico de atividades.',
+      dataMinhas,
+      portalMetaViewsV2_('portal-atividades-minhas-apresentacoes', inicio)
+    );
+  }
+
   var resposta = portalChamarAtividadesBundle_(contextoAtividades);
 
   if (!resposta || resposta.ok === false) {
@@ -94,6 +109,30 @@ function portalExecutarMinhasApresentacoesPorAtividadesV2_(token) {
     data,
     portalMetaViewsV2_('portal-atividades-detalhes', inicio)
   );
+}
+
+function portalMontarMinhasApresentacoesDiretasV2_(resposta, contexto) {
+  var bruto = resposta && resposta.ok !== false
+    ? (resposta.data || resposta.dados || resposta)
+    : {};
+  var lista = portalExtrairListaViewsV2_(bruto, ['apresentacoes', 'registros', 'itens']);
+  var apresentacoes = lista
+    .filter(function filtrar(item) {
+      return item && typeof item === 'object';
+    })
+    .map(function sanitizar(item) {
+      return portalSanitizarApresentacaoDeAtividadeV2_(item, item);
+    });
+
+  return {
+    sessao: portalResumoSessaoViewsV2_(contexto),
+    apresentacoes: apresentacoes,
+    resumo: {
+      total: apresentacoes.length
+    },
+    ultimaAtualizacao: portalObterCampoFlexViewsV2_(bruto, ['ultimaAtualizacao', 'atualizadoEm', 'updatedAt']) ||
+      new Date().toISOString()
+  };
 }
 
 function portalMontarMinhasApresentacoesDeDetalhesV2_(resposta, contexto) {
@@ -163,9 +202,24 @@ function portalMontarContextoAtividadesReadonlyV2_(contexto) {
     perfilPortalEfetivo: String(origem.perfilPortalEfetivo || '').trim(),
     perfisPortal: origem.perfisPortal || ['MEMBRO'],
     permissoes: origem.permissoes || [],
-    somenteProprios: true,
+    somenteProprios: origem.somenteProprios !== false,
     somenteVisiveis: perfil === 'MEMBRO'
   };
+}
+
+function portalChamarAtividadesMinhasApresentacoesV2_(contexto) {
+  if (typeof atividadesV2_portalGetMinhasApresentacoes === 'function') {
+    return atividadesV2_portalGetMinhasApresentacoes(contexto);
+  }
+
+  if (
+    typeof GEAPA_ATIVIDADES !== 'undefined' &&
+    typeof GEAPA_ATIVIDADES.atividadesV2_portalGetMinhasApresentacoes === 'function'
+  ) {
+    return GEAPA_ATIVIDADES.atividadesV2_portalGetMinhasApresentacoes(contexto);
+  }
+
+  return null;
 }
 
 function portalResolverPerfilAtividadesReadonlyV2_(contexto) {
@@ -281,6 +335,24 @@ function portalValorUsuarioConfereV2_(dados, usuario, chaves, campoUsuario) {
   return Boolean(valor && esperado && valor === esperado);
 }
 
+function portalNormalizarBooleanViewsV2_(valor) {
+  if (valor === true || valor === false) {
+    return valor;
+  }
+
+  var texto = String(valor || '').trim().toLowerCase();
+
+  if (['true', 'sim', 's', '1', 'yes'].indexOf(texto) >= 0) {
+    return true;
+  }
+
+  if (['false', 'nao', 'não', 'n', '0', 'no'].indexOf(texto) >= 0) {
+    return false;
+  }
+
+  return false;
+}
+
 function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
   var origem = apresentacao || {};
   var atividade = detalhe || {};
@@ -305,6 +377,10 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     'PERIODO_LETIVO'
   ]);
   var item = {
+    idApresentacao: portalObterCampoFlexViewsV2_(origem, [
+      'idApresentacao',
+      'ID_APRESENTACAO'
+    ]),
     idAtividade: portalObterCampoFlexViewsV2_(atividade, ['idAtividade', 'ID_ATIVIDADE']) ||
       portalObterCampoFlexViewsV2_(origem, ['idAtividade', 'ID_ATIVIDADE']),
     dataAtividade: portalObterCampoFlexViewsV2_(atividade, ['dataAtividade', 'data', 'DATA_ATIVIDADE']) ||
@@ -332,6 +408,55 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     ]) || portalObterCampoFlexViewsV2_(atividade, ['eixoTematicoSecundario', 'eixoSecundario', 'EIXO_TEMATICO_SECUNDARIO']),
     papel: portalObterCampoFlexViewsV2_(origem, ['papel', 'papelPessoaPrincipal']) ||
       portalObterCampoFlexViewsV2_(atividade, ['papelPessoaPrincipal', 'papel']),
+    statusTituloEixo: portalObterCampoFlexViewsV2_(origem, [
+      'statusTituloEixo',
+      'STATUS_TITULO_EIXO',
+      'statusEixoTematico',
+      'STATUS_EIXO_TEMATICO'
+    ]),
+    statusMaterial: portalObterCampoFlexViewsV2_(origem, [
+      'statusMaterial',
+      'STATUS_MATERIAL',
+      'statusEnvioMaterial',
+      'STATUS_ENVIO_MATERIAL'
+    ]),
+    idArquivoMaterial: portalObterCampoFlexViewsV2_(origem, [
+      'idArquivoMaterial',
+      'ID_ARQUIVO_MATERIAL'
+    ]),
+    nomeArquivoMaterial: portalObterCampoFlexViewsV2_(origem, [
+      'nomeArquivoMaterial',
+      'NOME_ARQUIVO_MATERIAL'
+    ]),
+    linkMaterialPublico: portalObterCampoFlexViewsV2_(origem, [
+      'linkMaterialPublico',
+      'LINK_MATERIAL_APRESENTACAO',
+      'linkMaterialApresentacao'
+    ]),
+    versaoMaterial: portalObterCampoFlexViewsV2_(origem, [
+      'versaoMaterial',
+      'VERSAO_MATERIAL'
+    ]),
+    podeEditarTituloEixo: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
+      'podeEditarTituloEixo',
+      'PODE_EDITAR_TITULO_EIXO'
+    ])),
+    podeEnviarMaterial: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
+      'podeEnviarMaterial',
+      'PODE_ENVIAR_MATERIAL'
+    ])),
+    podeReenviarMaterial: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
+      'podeReenviarMaterial',
+      'PODE_REENVIAR_MATERIAL'
+    ])),
+    podeAprovarTituloEixo: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
+      'podeAprovarTituloEixo',
+      'PODE_APROVAR_TITULO_EIXO'
+    ])),
+    podeRevisarMaterial: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
+      'podeRevisarMaterial',
+      'PODE_REVISAR_MATERIAL'
+    ])),
     periodo: rotuloSemestre,
     rotuloSemestre: rotuloSemestre,
     cargaHoraria: portalObterCampoFlexViewsV2_(atividade, ['cargaHoraria', 'CARGA_HORARIA']),
@@ -346,6 +471,7 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
   };
 
   return portalSanitizarObjetoBasicoViewsV2_(item, [
+    'idApresentacao',
     'idAtividade',
     'dataAtividade',
     'tituloPublico',
@@ -356,6 +482,17 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     'eixoTematicoPrincipal',
     'eixoTematicoSecundario',
     'papel',
+    'statusTituloEixo',
+    'statusMaterial',
+    'idArquivoMaterial',
+    'nomeArquivoMaterial',
+    'linkMaterialPublico',
+    'versaoMaterial',
+    'podeEditarTituloEixo',
+    'podeEnviarMaterial',
+    'podeReenviarMaterial',
+    'podeAprovarTituloEixo',
+    'podeRevisarMaterial',
     'periodo',
     'rotuloSemestre',
     'cargaHoraria',
@@ -546,6 +683,255 @@ function portalStatusViewsV2(token) {
       mensagem: ['observacoes', 'OBSERVACOES', 'ultimoErro', 'ULTIMO_ERRO']
     }
   });
+}
+
+function portalApresentacoesListarEixosV2(token) {
+  return portalExecutarConsultaApresentacaoAtividadesV2_(token, {
+    id: 'apresentacoesListarEixos',
+    code: 'APRESENTACOES_EIXOS_V2',
+    message: 'Eixos tematicos carregados pelo modulo Atividades.',
+    funcao: 'atividadesV2_portalListarEixosTematicos',
+    requerDiretoria: false
+  });
+}
+
+function portalApresentacaoEnviarTituloEixoV2(token, payloadJson) {
+  return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
+    id: 'apresentacaoEnviarTituloEixo',
+    code: 'APRESENTACAO_TITULO_EIXO_ENVIADO',
+    message: 'Titulo e eixos enviados para revisao.',
+    funcao: 'atividadesV2_portalEnviarTituloEixoApresentacao',
+    requerDiretoria: false,
+    camposObrigatorios: ['idApresentacao', 'tituloApresentacao', 'eixoTematicoPrincipal']
+  });
+}
+
+function portalApresentacaoRegistrarMaterialV2(token, payloadJson) {
+  return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
+    id: 'apresentacaoRegistrarMaterial',
+    code: 'APRESENTACAO_MATERIAL_REGISTRADO',
+    message: 'Material de apresentacao enviado para revisao.',
+    funcao: 'atividadesV2_portalRegistrarMaterialApresentacao',
+    requerDiretoria: false,
+    camposObrigatorios: ['idApresentacao']
+  });
+}
+
+function portalApresentacoesPendenciasDiretoriaV2(token) {
+  return portalExecutarConsultaApresentacaoAtividadesV2_(token, {
+    id: 'apresentacoesPendenciasDiretoria',
+    code: 'APRESENTACOES_PENDENCIAS_DIRETORIA',
+    message: 'Pendencias de apresentacoes carregadas para diretoria.',
+    funcao: 'atividadesV2_portalListarPendenciasApresentacoesDiretoria',
+    requerDiretoria: true,
+    permissoes: [
+      'apresentacoes:gerir',
+      'diretoria:pendencias',
+      'atividades:gerir',
+      'sistema:admin'
+    ]
+  });
+}
+
+function portalApresentacaoRevisarTituloEixoV2(token, payloadJson) {
+  return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
+    id: 'apresentacaoRevisarTituloEixo',
+    code: 'APRESENTACAO_TITULO_EIXO_REVISADO',
+    message: 'Revisao de titulo e eixos registrada.',
+    funcao: 'atividadesV2_portalRevisarTituloEixoApresentacao',
+    requerDiretoria: true,
+    permissoes: [
+      'apresentacoes:gerir',
+      'diretoria:pendencias',
+      'atividades:gerir',
+      'sistema:admin'
+    ],
+    camposObrigatorios: ['idApresentacao', 'decisao']
+  });
+}
+
+function portalApresentacaoRevisarMaterialV2(token, payloadJson) {
+  return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
+    id: 'apresentacaoRevisarMaterial',
+    code: 'APRESENTACAO_MATERIAL_REVISADO',
+    message: 'Revisao de material registrada.',
+    funcao: 'atividadesV2_portalRevisarMaterialApresentacao',
+    requerDiretoria: true,
+    permissoes: [
+      'apresentacoes:gerir',
+      'diretoria:pendencias',
+      'atividades:gerir',
+      'sistema:admin'
+    ],
+    camposObrigatorios: ['idApresentacao', 'decisao']
+  });
+}
+
+function portalExecutarConsultaApresentacaoAtividadesV2_(token, config) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var contexto = portalMontarContextoViewsV2_(token, config);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  var resposta = portalChamarAtividadesPacoteApresentacoesV2_(config.funcao, null, contextoAtividades);
+
+  return portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio);
+}
+
+function portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, config) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var contexto = portalMontarContextoViewsV2_(token, config);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var payload = portalLerPayloadJson_(payloadJson);
+
+  if (!payload.ok) {
+    return payload.resposta;
+  }
+
+  var dadosPayload = portalNormalizarPayloadApresentacaoV2_(payload.data);
+  var validacao = portalValidarPayloadApresentacaoV2_(dadosPayload, config.camposObrigatorios || []);
+
+  if (!validacao.ok) {
+    return validacao.resposta;
+  }
+
+  var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  var resposta = portalChamarAtividadesPacoteApresentacoesV2_(config.funcao, dadosPayload, contextoAtividades);
+
+  return portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio);
+}
+
+function portalNormalizarPayloadApresentacaoV2_(payload) {
+  var dados = Object.assign({}, payload || {});
+
+  delete dados.acao;
+  delete dados.token;
+  delete dados.payload;
+
+  return dados;
+}
+
+function portalValidarPayloadApresentacaoV2_(payload, camposObrigatorios) {
+  var ausentes = (camposObrigatorios || []).filter(function validar(campo) {
+    return payload[campo] === undefined || payload[campo] === null || payload[campo] === '';
+  });
+
+  if (ausentes.length) {
+    return {
+      ok: false,
+      resposta: portalRespostaErro_(
+        'PAYLOAD_INCOMPLETO',
+        'Informe os dados obrigatorios da apresentacao.',
+        {
+          campos: ausentes
+        }
+      )
+    };
+  }
+
+  return {
+    ok: true
+  };
+}
+
+function portalChamarAtividadesPacoteApresentacoesV2_(nomeFuncao, payload, contexto) {
+  var funcoesGlobais = portalFuncoesGlobaisApresentacoesV2_();
+  var funcaoGlobal = funcoesGlobais[nomeFuncao] ||
+    (typeof globalThis !== 'undefined' ? globalThis[nomeFuncao] : null);
+
+  try {
+    if (typeof funcaoGlobal === 'function') {
+      return payload === null
+        ? funcaoGlobal(contexto)
+        : funcaoGlobal(payload, contexto);
+    }
+
+    if (
+      typeof GEAPA_ATIVIDADES !== 'undefined' &&
+      typeof GEAPA_ATIVIDADES[nomeFuncao] === 'function'
+    ) {
+      return payload === null
+        ? GEAPA_ATIVIDADES[nomeFuncao](contexto)
+        : GEAPA_ATIVIDADES[nomeFuncao](payload, contexto);
+    }
+  } catch (erro) {
+    Logger.log('GEAPA-PORTAL-APRESENTACOES-V2 ' + JSON.stringify({
+      funcao: nomeFuncao,
+      erro: erro && erro.message ? erro.message : String(erro)
+    }));
+
+    return {
+      ok: false,
+      errorCode: 'ERRO_APRESENTACOES_V2',
+      message: 'Nao foi possivel executar a acao de apresentacao.'
+    };
+  }
+
+  return null;
+}
+
+function portalFuncoesGlobaisApresentacoesV2_() {
+  var funcoes = {};
+
+  if (typeof atividadesV2_portalListarEixosTematicos === 'function') {
+    funcoes.atividadesV2_portalListarEixosTematicos = atividadesV2_portalListarEixosTematicos;
+  }
+
+  if (typeof atividadesV2_portalEnviarTituloEixoApresentacao === 'function') {
+    funcoes.atividadesV2_portalEnviarTituloEixoApresentacao = atividadesV2_portalEnviarTituloEixoApresentacao;
+  }
+
+  if (typeof atividadesV2_portalRevisarTituloEixoApresentacao === 'function') {
+    funcoes.atividadesV2_portalRevisarTituloEixoApresentacao = atividadesV2_portalRevisarTituloEixoApresentacao;
+  }
+
+  if (typeof atividadesV2_portalRegistrarMaterialApresentacao === 'function') {
+    funcoes.atividadesV2_portalRegistrarMaterialApresentacao = atividadesV2_portalRegistrarMaterialApresentacao;
+  }
+
+  if (typeof atividadesV2_portalRevisarMaterialApresentacao === 'function') {
+    funcoes.atividadesV2_portalRevisarMaterialApresentacao = atividadesV2_portalRevisarMaterialApresentacao;
+  }
+
+  if (typeof atividadesV2_portalListarPendenciasApresentacoesDiretoria === 'function') {
+    funcoes.atividadesV2_portalListarPendenciasApresentacoesDiretoria = atividadesV2_portalListarPendenciasApresentacoesDiretoria;
+  }
+
+  return funcoes;
+}
+
+function portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio) {
+  if (!resposta) {
+    return portalRespostaErro_(
+      'APRESENTACOES_V2_INDISPONIVEIS',
+      'A integracao de apresentacoes V2 ainda nao esta disponivel.',
+      {},
+      portalMetaViewsV2_('geapa-atividades-indisponivel', inicio)
+    );
+  }
+
+  if (resposta.ok === false) {
+    return portalRespostaErro_(
+      resposta.code || resposta.errorCode || 'ERRO_APRESENTACOES_V2',
+      resposta.message || 'Nao foi possivel executar a acao de apresentacao.',
+      {},
+      portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+    );
+  }
+
+  return portalRespostaOk_(
+    config.code,
+    resposta.message || config.message,
+    resposta.data || resposta.dados || resposta || {},
+    portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+  );
 }
 
 function portalApiGetPainelDiretoriaV2(token) {

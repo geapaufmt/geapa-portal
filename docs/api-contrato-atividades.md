@@ -270,12 +270,35 @@ e `linkPastaDrive` representam a pasta geral. Dentro de
 material daquela apresentacao. O Portal nao usa campos antigos como status ou
 link de arquivo publico fora desse novo contrato.
 
-`Minhas apresentacoes` tambem e derivado dos detalhes de atividades. O backend
-filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da sessao e
-retorna somente campos publicos/sanitizados da apresentacao vinculada. A tela
-compacta exibe Data, Semestre, Tema, Eixos, Status e um link unico para a pasta
-geral da atividade (`linkPastaDrive`), evitando colunas tecnicas de
-arquivo/material que pertencem mais ao fluxo administrativo.
+`Minhas apresentacoes` usa o contrato especifico
+`atividadesV2_portalGetMinhasApresentacoes(contexto)` quando disponivel. O
+backend filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da
+sessao e retorna somente campos publicos/sanitizados da apresentacao vinculada.
+A tela exibe Data, Semestre, Tema, Eixos, Status, pasta geral da atividade
+(`linkPastaDrive`), material da apresentacao (`linkMaterialPublico`,
+`nomeArquivoMaterial`, `versaoMaterial`) e acoes liberadas pelas flags:
+`podeEditarTituloEixo`, `podeEnviarMaterial`, `podeReenviarMaterial`,
+`podeAprovarTituloEixo` e `podeRevisarMaterial`.
+
+## Acoes de apresentacoes pelo Portal
+
+O Pacote 1 de acoes do Portal consome somente endpoints Apps Script que delegam
+ao modulo `geapa-atividades`:
+
+- `atividadesV2_portalListarEixosTematicos(contexto)`;
+- `atividadesV2_portalEnviarTituloEixoApresentacao(payload, contexto)`;
+- `atividadesV2_portalRegistrarMaterialApresentacao(payload, contexto)`;
+- `atividadesV2_portalListarPendenciasApresentacoesDiretoria(contexto)`;
+- `atividadesV2_portalRevisarTituloEixoApresentacao(payload, contexto)`;
+- `atividadesV2_portalRevisarMaterialApresentacao(payload, contexto)`.
+
+O Portal nao usa campo livre para eixo tematico: os selects devem vir de
+`rotuloFormulario` e enviar o valor selecionado ao backend. O envio de material
+pode usar `conteudoBase64`, `nomeArquivoOriginal` e `mimeType`; os formatos
+iniciais aceitos sao PDF, PPT, PPTX e ODP. Revisoes da Diretoria/Secretaria
+permitem aprovar ou solicitar ajuste de titulo/eixos, e aprovar, solicitar
+ajuste ou dispensar material. Nao ha auto-chamada, presenca ou alteracao de
+frequencia neste pacote.
 
 ## Endpoints futuros
 
