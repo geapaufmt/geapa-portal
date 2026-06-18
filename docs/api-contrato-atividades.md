@@ -273,9 +273,9 @@ link de arquivo publico fora desse novo contrato.
 `Minhas apresentacoes` tambem e derivado dos detalhes de atividades. O backend
 filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da sessao e
 retorna somente campos publicos/sanitizados da apresentacao vinculada. A tela
-compacta exibe Data junto do semestre, Apresentacao junto dos eixos, Status e
-um link unico para a pasta geral da atividade (`linkPastaDrive`), evitando
-colunas tecnicas de arquivo/material que pertencem mais ao fluxo administrativo.
+compacta exibe Data, Semestre, Tema, Eixos, Status e um link unico para a pasta
+geral da atividade (`linkPastaDrive`), evitando colunas tecnicas de
+arquivo/material que pertencem mais ao fluxo administrativo.
 
 ## Endpoints futuros
 

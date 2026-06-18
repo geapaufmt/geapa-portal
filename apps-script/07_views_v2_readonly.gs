@@ -259,22 +259,65 @@ function portalValorUsuarioConfereV2_(dados, usuario, chaves, campoUsuario) {
 function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
   var origem = apresentacao || {};
   var atividade = detalhe || {};
+  var titulo = portalObterCampoFlexViewsV2_(origem, [
+    'titulo',
+    'tema',
+    'tituloPublico',
+    'resumoPublico',
+    'TITULO',
+    'TEMA'
+  ]);
+  var rotuloSemestre = portalObterCampoFlexViewsV2_(origem, [
+    'rotuloSemestre',
+    'periodo',
+    'ROTULO_SEMESTRE'
+  ]) || portalObterCampoFlexViewsV2_(atividade, [
+    'rotuloSemestre',
+    'periodo',
+    'periodoLetivo',
+    'cicloSemestre',
+    'ROTULO_SEMESTRE',
+    'PERIODO_LETIVO'
+  ]);
   var item = {
-    idAtividade: atividade.idAtividade || origem.idAtividade,
-    dataAtividade: atividade.dataAtividade || origem.dataAtividade,
-    tituloPublico: atividade.tituloPublico || origem.tituloPublico,
-    tema: origem.titulo || origem.tema || origem.tituloPublico || origem.resumoPublico,
-    titulo: origem.titulo || origem.tema || origem.tituloPublico || origem.resumoPublico,
-    tipoPublico: atividade.tipoPublico || atividade.tipoAtividade,
-    statusApresentacao: origem.statusApresentacao || origem.statusPublico || origem.status || origem.STATUS_PUBLICO || atividade.statusPublico,
-    eixoTematicoPrincipal: origem.eixoTematicoPrincipal || atividade.eixoTematicoPrincipal,
-    eixoTematicoSecundario: origem.eixoTematicoSecundario || atividade.eixoTematicoSecundario,
-    papel: origem.papel || atividade.papelPessoaPrincipal,
-    periodo: origem.rotuloSemestre || atividade.rotuloSemestre || origem.periodo || atividade.periodo,
-    rotuloSemestre: origem.rotuloSemestre || atividade.rotuloSemestre || origem.periodo || atividade.periodo,
-    cargaHoraria: atividade.cargaHoraria,
-    linkPastaDrive: atividade.linkPastaDrive || atividade.LINK_PASTA_DRIVE || '',
-    idPastaDrive: atividade.idPastaDrive || atividade.ID_PASTA_DRIVE || ''
+    idAtividade: portalObterCampoFlexViewsV2_(atividade, ['idAtividade', 'ID_ATIVIDADE']) ||
+      portalObterCampoFlexViewsV2_(origem, ['idAtividade', 'ID_ATIVIDADE']),
+    dataAtividade: portalObterCampoFlexViewsV2_(atividade, ['dataAtividade', 'data', 'DATA_ATIVIDADE']) ||
+      portalObterCampoFlexViewsV2_(origem, ['dataAtividade', 'data', 'DATA_ATIVIDADE']),
+    tituloPublico: portalObterCampoFlexViewsV2_(atividade, ['tituloPublico', 'titulo', 'TITULO_PUBLICO']),
+    tema: titulo,
+    titulo: titulo,
+    tipoPublico: portalObterCampoFlexViewsV2_(atividade, ['tipoPublico', 'tipoAtividade', 'TIPO_PUBLICO']),
+    statusApresentacao: portalObterCampoFlexViewsV2_(origem, [
+      'statusApresentacao',
+      'statusPublico',
+      'status',
+      'STATUS_APRESENTACAO',
+      'STATUS_PUBLICO'
+    ]) || portalObterCampoFlexViewsV2_(atividade, ['statusPublico', 'status', 'STATUS_PUBLICO']),
+    eixoTematicoPrincipal: portalObterCampoFlexViewsV2_(origem, [
+      'eixoTematicoPrincipal',
+      'eixoPrincipal',
+      'EIXO_TEMATICO_PRINCIPAL'
+    ]) || portalObterCampoFlexViewsV2_(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'EIXO_TEMATICO_PRINCIPAL']),
+    eixoTematicoSecundario: portalObterCampoFlexViewsV2_(origem, [
+      'eixoTematicoSecundario',
+      'eixoSecundario',
+      'EIXO_TEMATICO_SECUNDARIO'
+    ]) || portalObterCampoFlexViewsV2_(atividade, ['eixoTematicoSecundario', 'eixoSecundario', 'EIXO_TEMATICO_SECUNDARIO']),
+    papel: portalObterCampoFlexViewsV2_(origem, ['papel', 'papelPessoaPrincipal']) ||
+      portalObterCampoFlexViewsV2_(atividade, ['papelPessoaPrincipal', 'papel']),
+    periodo: rotuloSemestre,
+    rotuloSemestre: rotuloSemestre,
+    cargaHoraria: portalObterCampoFlexViewsV2_(atividade, ['cargaHoraria', 'CARGA_HORARIA']),
+    linkPastaDrive: portalObterCampoFlexViewsV2_(atividade, [
+      'linkPastaDrive',
+      'linkPastaPublica',
+      'linkPastaPublico',
+      'LINK_PASTA_DRIVE',
+      'LINK_PASTA_PUBLICA'
+    ]),
+    idPastaDrive: portalObterCampoFlexViewsV2_(atividade, ['idPastaDrive', 'ID_PASTA_DRIVE'])
   };
 
   return portalSanitizarObjetoBasicoViewsV2_(item, [

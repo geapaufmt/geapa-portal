@@ -32,8 +32,10 @@
       listaCampo: 'apresentacoes',
       vazio: 'Nenhuma apresentacao disponivel para este usuario.',
       colunas: [
-        ['dataAtividade', 'Data', 'dataPeriodo', ['rotuloSemestre', 'periodo']],
-        ['tema', 'Apresentacao', 'temaEixos', ['titulo', 'eixoTematicoPrincipal', 'eixoTematicoSecundario']],
+        ['dataAtividade', 'Data'],
+        ['rotuloSemestre', 'Semestre', 'texto', ['periodo']],
+        ['tema', 'Tema', 'texto', ['titulo']],
+        ['eixoTematicoPrincipal', 'Eixos', 'eixos', ['eixoTematicoSecundario']],
         ['statusApresentacao', 'Status'],
         ['linkPastaDrive', 'Pasta', 'link', ['idPastaDrive']]
       ]
@@ -232,12 +234,8 @@
     var texto = formatarValor(valor);
     var url;
 
-    if (tipo === 'dataPeriodo') {
-      return renderizarDataPeriodo(item, coluna);
-    }
-
-    if (tipo === 'temaEixos') {
-      return renderizarTemaEixos(item, coluna);
+    if (tipo === 'eixos') {
+      return renderizarEixos(item);
     }
 
     if (tipo === 'link') {
@@ -253,30 +251,12 @@
     return ui.escaparHtml(texto);
   }
 
-  function renderizarDataPeriodo(item, coluna) {
-    var data = formatarValor((item || {})[coluna[0]]);
-    var periodo = obterPrimeiroValorPorChaves(item, coluna[3] || []);
-
-    return [
-      '<span class="readonly-main-value">' + ui.escaparHtml(data) + '</span>',
-      periodo
-        ? '<small class="readonly-sub-value">' + ui.escaparHtml(formatarValor(periodo)) + '</small>'
-        : ''
-    ].join('');
-  }
-
-  function renderizarTemaEixos(item, coluna) {
-    var titulo = obterValorColuna(item, coluna);
+  function renderizarEixos(item) {
     var eixoPrincipal = (item || {}).eixoTematicoPrincipal || '';
     var eixoSecundario = (item || {}).eixoTematicoSecundario || '';
     var eixos = [eixoPrincipal, eixoSecundario].filter(Boolean).join(' / ');
 
-    return [
-      '<span class="readonly-main-value">' + ui.escaparHtml(formatarValor(titulo)) + '</span>',
-      eixos
-        ? '<small class="readonly-sub-value">' + ui.escaparHtml(eixos) + '</small>'
-        : ''
-    ].join('');
+    return ui.escaparHtml(formatarValor(eixos));
   }
 
   function obterPrimeiroValorPorChaves(item, chaves) {
