@@ -778,6 +778,18 @@ As acoes da tela de gestao devem vir apenas de:
 O front-end nao infere botoes por perfil. Se o backend zerar uma acao, o botao
 nao aparece.
 
+Para exibicao de recursos em `Minhas apresentacoes`, o Portal usa
+`linkMaterialPublico` como URL preferencial do material e, se ausente,
+`idArquivoMaterial` para montar `https://drive.google.com/file/d/<id>/view`.
+Para a pasta geral da atividade, usa `linkPastaDrive` e, se ausente,
+`idPastaDrive` para montar `https://drive.google.com/drive/folders/<id>`.
+Quando nao houver material, o card mostra discretamente "Material ainda nao
+enviado"; quando nao houver pasta, o bloco de pasta fica oculto.
+
+Em `Pendencias de apresentacoes`, o apresentador deve ser renderizado a partir
+de `nomeApresentador`, com fallback para `responsavelSugerido`, `responsavel`,
+`nomePessoaPrincipal` ou `nomePessoaPrincipalPublico`.
+
 Envio de titulo/eixos:
 
 ```json

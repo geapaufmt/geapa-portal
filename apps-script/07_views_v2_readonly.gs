@@ -420,7 +420,15 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     titulo: titulo,
     tituloAtividade: portalObterCampoFlexViewsV2_(atividade, ['tituloAtividade', 'tituloPublico', 'titulo', 'TITULO_ATIVIDADE']),
     tituloApresentacao: portalObterCampoFlexViewsV2_(origem, ['tituloApresentacao', 'titulo', 'tema', 'TITULO_APRESENTACAO']),
-    nomeApresentador: portalObterCampoFlexViewsV2_(origem, ['nomeApresentador', 'nomePessoaPrincipalPublico', 'NOME_APRESENTADOR']),
+    nomeApresentador: portalObterCampoFlexViewsV2_(origem, [
+      'nomeApresentador',
+      'responsavelSugerido',
+      'responsavel',
+      'nomePessoaPrincipal',
+      'nomePessoaPrincipalPublico',
+      'NOME_APRESENTADOR',
+      'RESPONSAVEL_SUGERIDO'
+    ]),
     tipoPublico: portalObterCampoFlexViewsV2_(atividade, ['tipoPublico', 'tipoAtividade', 'TIPO_PUBLICO']),
     statusApresentacao: portalObterCampoFlexViewsV2_(origem, [
       'statusApresentacao',

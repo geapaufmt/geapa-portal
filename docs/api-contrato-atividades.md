@@ -306,6 +306,13 @@ frequencia neste pacote.
 `podeAprovarMaterial`, `podeSolicitarAjusteMaterial` e
 `podeDispensarMaterial`. O front-end nao infere acao por perfil.
 
+Para recursos, o Portal renderiza material por `linkMaterialPublico` ou por
+`idArquivoMaterial` como fallback seguro de Drive. A pasta da atividade usa
+`linkPastaDrive` ou `idPastaDrive`, montando URL de pasta em
+`/drive/folders/<id>`. Cards de pendencia exibem apresentador por
+`nomeApresentador`, com fallback para `responsavelSugerido`, `responsavel`,
+`nomePessoaPrincipal` e `nomePessoaPrincipalPublico`.
+
 ## Endpoints futuros
 
 - `POST /atividades/criar`

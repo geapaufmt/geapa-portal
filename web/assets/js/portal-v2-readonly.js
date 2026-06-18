@@ -324,7 +324,13 @@
         var acoesGestao = obterAcoesGestao(item);
         var tituloAtividade = item.tituloAtividade || item.tituloPublico || item.atividade || item.idAtividade || 'Atividade';
         var titulo = item.tituloApresentacao || item.tema || item.titulo || 'Titulo ainda nao informado';
-        var apresentador = item.nomeApresentador || item.apresentador || item.nomePessoaPrincipalPublico || 'Apresentador ainda nao definido';
+        var apresentador = item.nomeApresentador ||
+          item.responsavelSugerido ||
+          item.responsavel ||
+          item.nomePessoaPrincipal ||
+          item.nomePessoaPrincipalPublico ||
+          item.apresentador ||
+          'Apresentador ainda nao definido';
         var acoesTitulo = [
           acoesGestao.podeAprovarTituloEixo === true
             ? botaoAcao('revisar-titulo-aprovar', id, 'Aprovar titulo/eixos', 'primary')
@@ -349,8 +355,8 @@
         return [
           '<article class="presentation-action-card">',
           '<div class="presentation-card-topline">',
-          item.gravidade ? '<span>' + ui.escaparHtml(formatarValor(item.gravidade)) + '</span>' : '',
-          item.tipoPendencia ? '<span>' + ui.escaparHtml(formatarValor(item.tipoPendencia)) + '</span>' : '',
+          (item.gravidade || item.severidade) ? '<span>' + ui.escaparHtml(formatarValor(item.gravidade || item.severidade)) + '</span>' : '',
+          (item.tipoPendencia || item.tipo) ? '<span>' + ui.escaparHtml(formatarValor(item.tipoPendencia || item.tipo)) + '</span>' : '',
           '</div>',
           '<div class="presentation-action-main">',
           '<div>',
@@ -429,7 +435,7 @@
     var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir material';
     var versao = (item || {}).versaoMaterial ? ' v' + formatarValor((item || {}).versaoMaterial) : '';
 
-    if (acoes.podeAbrirMaterial === true && url) {
+    if (url) {
       return '<a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(rotulo + versao) + '</a>';
     }
 
@@ -437,15 +443,14 @@
       return '<span class="muted-inline">' + ui.escaparHtml(rotulo + versao) + '</span>';
     }
 
-    return '';
+    return '<span class="muted-inline">Material ainda nao enviado</span>';
   }
 
   function renderizarPastaAtividade(item, acoesMembro) {
-    var acoes = acoesMembro || {};
     var url = normalizarUrlPublica((item || {}).linkPastaDrive) ||
-      montarUrlDrivePorId((item || {}).idPastaDrive);
+      montarUrlDriveFolderPorId((item || {}).idPastaDrive);
 
-    return acoes.podeAbrirPastaAtividade === true && url
+    return url
       ? '<a class="activity-folder-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Pasta geral da atividade</a>'
       : '';
   }
@@ -1028,6 +1033,16 @@
     }
 
     return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
+  }
+
+  function montarUrlDriveFolderPorId(valor) {
+    var id = String(valor || '').trim();
+
+    if (!id || !/^[a-zA-Z0-9_-]{10,}$/.test(id)) {
+      return '';
+    }
+
+    return 'https://drive.google.com/drive/folders/' + encodeURIComponent(id);
   }
 
   function formatarValor(valor) {
