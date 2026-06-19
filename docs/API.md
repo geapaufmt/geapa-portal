@@ -767,7 +767,9 @@ As acoes da tela de gestao devem vir apenas de:
 {
   "acoesGestao": {
     "podeAprovarTituloEixo": true,
+    "podeEditarAprovarTituloEixo": true,
     "podeSolicitarAjusteTituloEixo": true,
+    "podeReprovarTituloEixo": true,
     "podeAprovarMaterial": false,
     "podeSolicitarAjusteMaterial": false,
     "podeDispensarMaterial": true
@@ -829,6 +831,20 @@ Revisao de material usa o mesmo formato, com `decisao` em `APROVAR`,
 `SOLICITAR_AJUSTE` ou `DISPENSAR`. A seguranca final, inclusive impedir
 edicao de apresentacao de outra pessoa, fica no backend `geapa-atividades`.
 Nenhum fluxo de chamada/presenca e alterado por essas acoes.
+
+Para titulo/eixos, o Portal tambem pode enviar `decisao=EDITAR_E_APROVAR`,
+incluindo `tituloApresentacao`, `eixoTematicoPrincipal` e
+`eixoTematicoSecundario`, quando `acoesGestao.podeEditarAprovarTituloEixo`
+vier habilitado. Para rejeitar uma proposta de tema/titulo/eixos, envia
+`decisao=REPROVAR`; essa acao exige observacao publica ou interna no front-end
+e nao representa reprovar a apresentacao inteira.
+
+As telas V2 reutilizaveis mantem cache em memoria por endpoint durante a sessao
+por cerca de 60 segundos. Quando ha cache valido, o Portal renderiza o dado
+imediatamente e atualiza em segundo plano. Eixos tematicos usam cache em memoria
+mais longo, de cerca de 20 minutos. Apos acoes de apresentacao, o Portal
+invalida `minhasApresentacoes`, `apresentacoes/pendencias`,
+`pendenciasDiretoria` e `painelDiretoria`.
 
 ### `painelDiretoriaV2`
 

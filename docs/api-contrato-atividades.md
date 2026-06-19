@@ -306,12 +306,22 @@ frequencia neste pacote.
 `podeAprovarMaterial`, `podeSolicitarAjusteMaterial` e
 `podeDispensarMaterial`. O front-end nao infere acao por perfil.
 
+Quando habilitado pelo backend, o Portal tambem renderiza
+`podeEditarAprovarTituloEixo` para permitir "Editar e aprovar" e
+`podeReprovarTituloEixo`/`podeRejeitarPropostaTema` para "Rejeitar proposta de
+tema". A rejeicao exige observacao e envia `decisao=REPROVAR` para o endpoint
+de revisao de titulo/eixos; ela nao deve ser interpretada como reprovar a
+apresentacao inteira.
+
 Para recursos, o Portal renderiza material por `linkMaterialPublico` ou por
 `idArquivoMaterial` como fallback seguro de Drive. A pasta da atividade usa
 `linkPastaDrive` ou `idPastaDrive`, montando URL de pasta em
 `/drive/folders/<id>`. Cards de pendencia exibem apresentador por
 `nomeApresentador`, com fallback para `responsavelSugerido`, `responsavel`,
 `nomePessoaPrincipal` e `nomePessoaPrincipalPublico`.
+
+O front-end mantem cache em memoria de curta duracao para telas V2 privadas e
+invalida os caches relacionados apos qualquer acao de apresentacao.
 
 ## Endpoints futuros
 

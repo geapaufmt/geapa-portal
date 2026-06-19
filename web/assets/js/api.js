@@ -660,7 +660,9 @@
         acaoRecomendada: 'Revisar titulo/eixos',
         acoesGestao: {
           podeAprovarTituloEixo: true,
+          podeEditarAprovarTituloEixo: true,
           podeSolicitarAjusteTituloEixo: true,
+          podeReprovarTituloEixo: true,
           podeAprovarMaterial: false,
           podeSolicitarAjusteMaterial: false,
           podeDispensarMaterial: true

@@ -99,8 +99,12 @@
     rotaAtual: '',
     itensPorId: {},
     eixos: null,
-    eixosPromise: null
+    eixosExpiraEm: 0,
+    eixosPromise: null,
+    cache: {}
   };
+  var TTL_CACHE_PRIVADO_MS = 60000;
+  var TTL_CACHE_EIXOS_MS = 20 * 60 * 1000;
 
   function iniciar() {
     if (!api || !ui || !navigation) {
@@ -133,19 +137,41 @@
     }
 
     estado.rotaAtual = idRota;
+    definicao.idRota = idRota;
     estado.itensPorId = {};
-    renderizarBase(container, definicao, '<p class="empty-state">Carregando dados da view V2...</p>');
-    ui.mostrarLoading('Carregando view V2...');
 
+    var cacheKey = obterCacheKey(definicao.endpoint);
+    var cache = lerCachePortal(cacheKey);
+
+    if (cache) {
+      renderizarBase(container, definicao, montarConteudo(definicao, cache.data || {}, true));
+      buscarTela(definicao, container, cacheKey, true);
+      return;
+    }
+
+    renderizarBase(container, definicao, '<p class="empty-state readonly-skeleton">Carregando dados da view V2...</p>');
+    ui.mostrarLoading('Carregando view V2...');
+    buscarTela(definicao, container, cacheKey, false);
+  }
+
+  function buscarTela(definicao, container, cacheKey, emSegundoPlano) {
     api.apiGet(definicao.endpoint, {})
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Nao foi possivel carregar a view V2.');
         }
 
+        salvarCachePortal(cacheKey, resposta.data || {}, TTL_CACHE_PRIVADO_MS);
+        if (definicao.idRota && estado.rotaAtual !== definicao.idRota) {
+          return;
+        }
         renderizarBase(container, definicao, montarConteudo(definicao, resposta.data || {}));
       })
       .catch(function tratarErro(erro) {
+        if (emSegundoPlano) {
+          return;
+        }
+
         renderizarBase(
           container,
           definicao,
@@ -153,8 +179,47 @@
         );
       })
       .then(function finalizar() {
-        ui.ocultarLoading();
+        if (!emSegundoPlano) {
+          ui.ocultarLoading();
+        }
       });
+  }
+
+  function obterCacheKey(endpoint) {
+    return 'portal-v2-readonly:' + String(endpoint || '');
+  }
+
+  function lerCachePortal(chave) {
+    var entrada = estado.cache[chave];
+
+    if (!entrada || entrada.expiraEm <= Date.now()) {
+      delete estado.cache[chave];
+      return null;
+    }
+
+    return entrada;
+  }
+
+  function salvarCachePortal(chave, data, ttlMs) {
+    estado.cache[chave] = {
+      data: data,
+      expiraEm: Date.now() + ttlMs
+    };
+  }
+
+  function invalidarCachePortal(chaves) {
+    (chaves || []).forEach(function remover(chave) {
+      delete estado.cache[obterCacheKey(chave)];
+    });
+  }
+
+  function invalidarCacheApresentacoes() {
+    invalidarCachePortal([
+      '/v2/minhas-apresentacoes',
+      '/v2/apresentacoes/pendencias',
+      '/v2/pendencias-diretoria',
+      '/v2/painel-diretoria'
+    ]);
   }
 
   function renderizarBase(container, definicao, corpo) {
@@ -168,7 +233,7 @@
     ].join('');
   }
 
-  function montarConteudo(definicao, data) {
+  function montarConteudo(definicao, data, emCache) {
     var itens = Array.isArray(data[definicao.listaCampo]) ? data[definicao.listaCampo] : [];
     var resumo = data.resumo || {};
     var ultimaAtualizacao = data.ultimaAtualizacao || '';
@@ -177,6 +242,7 @@
 
     return [
       montarResumo(resumo, itens.length, ultimaAtualizacao),
+      emCache ? '<p class="updated-at">Atualizando em segundo plano...</p>' : '',
       itens.length && definicao.tipo === 'minhas-apresentacoes'
         ? montarMinhasApresentacoes(itens)
         : '',
@@ -317,9 +383,18 @@
   }
 
   function montarPendenciasApresentacoes(itens) {
+    var agrupadas = agruparPendenciasPorApresentacao(itens);
+
+    agrupadas.forEach(function indexarGrupo(item) {
+      var id = String(item.idApresentacao || item.idPendencia || item.idAtividade || '').trim();
+      if (id) {
+        estado.itensPorId[id] = item;
+      }
+    });
+
     return [
       '<div class="presentation-actions-list">',
-      itens.map(function montar(item) {
+      agrupadas.map(function montar(item) {
         var id = String(item.idApresentacao || '').trim();
         var acoesGestao = obterAcoesGestao(item);
         var tituloAtividade = item.tituloAtividade || item.tituloPublico || item.atividade || item.idAtividade || 'Atividade';
@@ -335,8 +410,14 @@
           acoesGestao.podeAprovarTituloEixo === true
             ? botaoAcao('revisar-titulo-aprovar', id, 'Aprovar titulo/eixos', 'primary')
             : '',
+          acaoGestaoAtiva(acoesGestao, ['podeEditarAprovarTituloEixo', 'podeEditarEAprovarTituloEixo'])
+            ? botaoAcao('revisar-titulo-editar-aprovar', id, 'Editar e aprovar', 'secondary')
+            : '',
           acoesGestao.podeSolicitarAjusteTituloEixo === true
             ? botaoAcao('revisar-titulo-ajuste', id, 'Solicitar ajuste', 'warning')
+            : '',
+          acaoGestaoAtiva(acoesGestao, ['podeReprovarTituloEixo', 'podeRejeitarPropostaTema'])
+            ? botaoAcao('revisar-titulo-reprovar', id, 'Rejeitar proposta de tema', 'warning')
             : ''
         ].join('');
         var acoesMaterial = [
@@ -356,7 +437,7 @@
           '<article class="presentation-action-card">',
           '<div class="presentation-card-topline">',
           (item.gravidade || item.severidade) ? '<span>' + ui.escaparHtml(formatarValor(item.gravidade || item.severidade)) + '</span>' : '',
-          (item.tipoPendencia || item.tipo) ? '<span>' + ui.escaparHtml(formatarValor(item.tipoPendencia || item.tipo)) + '</span>' : '',
+          montarTiposPendencia(item),
           '</div>',
           '<div class="presentation-action-main">',
           '<div>',
@@ -371,7 +452,7 @@
           item.statusMaterial ? '<small>Material: ' + ui.escaparHtml(formatarValor(item.statusMaterial)) + '</small>' : '',
           '</div>',
           '</div>',
-          item.descricaoPendencia ? '<p class="presentation-pendency-text">' + ui.escaparHtml(item.descricaoPendencia) + '</p>' : '',
+          montarDescricoesPendencia(item),
           item.acaoRecomendada ? '<p class="presentation-pendency-action">Acao recomendada: ' + ui.escaparHtml(item.acaoRecomendada) + '</p>' : '',
           material ? '<div class="presentation-resource-row"><div><strong>Material da apresentacao</strong>' + material + '</div></div>' : '',
           acoesTitulo || acoesMaterial ? '<div class="presentation-card-actions">' + acoesTitulo + acoesMaterial + '</div>' : '',
@@ -380,6 +461,108 @@
       }).join(''),
       '</div>'
     ].join('');
+  }
+
+  function agruparPendenciasPorApresentacao(itens) {
+    var mapa = {};
+    var lista = [];
+
+    (itens || []).forEach(function agrupar(item) {
+      var chave = String(item.idApresentacao || item.idPendencia || item.idAtividade || '').trim();
+      var atual;
+
+      if (!chave || !mapa[chave]) {
+        atual = Object.assign({}, item);
+        atual.tiposPendencia = [];
+        atual.descricoesPendencia = [];
+        mapa[chave || String(lista.length)] = atual;
+        lista.push(atual);
+      } else {
+        atual = mapa[chave];
+        mesclarPendenciaApresentacao(atual, item);
+      }
+
+      adicionarUnico(atual.tiposPendencia, item.tipoPendencia || item.tipo);
+      adicionarUnico(atual.descricoesPendencia, item.descricaoPendencia);
+    });
+
+    return lista;
+  }
+
+  function mesclarPendenciaApresentacao(destino, item) {
+    [
+      'gravidade',
+      'severidade',
+      'dataAtividade',
+      'rotuloSemestre',
+      'statusApresentacao',
+      'tituloAtividade',
+      'tituloPublico',
+      'tituloApresentacao',
+      'nomeApresentador',
+      'responsavelSugerido',
+      'eixoTematicoPrincipal',
+      'eixoTematicoSecundario',
+      'statusTituloEixo',
+      'statusMaterial',
+      'nomeArquivoMaterial',
+      'linkMaterialPublico',
+      'idArquivoMaterial',
+      'acaoRecomendada'
+    ].forEach(function copiar(campo) {
+      if (!destino[campo] && item[campo]) {
+        destino[campo] = item[campo];
+      }
+    });
+
+    destino.acoesGestao = mesclarAcoesGestao(destino.acoesGestao, item.acoesGestao);
+  }
+
+  function adicionarUnico(lista, valor) {
+    var texto = String(valor || '').trim();
+
+    if (texto && lista.indexOf(texto) < 0) {
+      lista.push(texto);
+    }
+  }
+
+  function mesclarAcoesGestao(a, b) {
+    var base = Object.assign({}, a || {});
+    var extra = b || {};
+
+    if (typeof extra === 'string' && extra.trim()) {
+      try {
+        extra = JSON.parse(extra);
+      } catch (erro) {
+        extra = {};
+      }
+    }
+
+    Object.keys(extra || {}).forEach(function copiar(chave) {
+      base[chave] = base[chave] === true || extra[chave] === true;
+    });
+
+    return base;
+  }
+
+  function montarTiposPendencia(item) {
+    var tipos = Array.isArray((item || {}).tiposPendencia) && item.tiposPendencia.length
+      ? item.tiposPendencia
+      : [item.tipoPendencia || item.tipo].filter(Boolean);
+
+    return tipos.map(function montar(tipo) {
+      return '<span>' + ui.escaparHtml(formatarValor(tipo)) + '</span>';
+    }).join('');
+  }
+
+  function montarDescricoesPendencia(item) {
+    var descricoes = Array.isArray((item || {}).descricoesPendencia) && item.descricoesPendencia.length
+      ? item.descricoesPendencia
+      : [item.descricaoPendencia].filter(Boolean);
+
+    return descricoes.map(function montar(descricao) {
+      return '<p class="presentation-pendency-text">' + ui.escaparHtml(descricao) + '</p>';
+    }).join('');
   }
 
   function botaoAcao(acao, id, texto, variante) {
@@ -436,7 +619,10 @@
     var versao = (item || {}).versaoMaterial ? ' v' + formatarValor((item || {}).versaoMaterial) : '';
 
     if (url) {
-      return '<a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(rotulo + versao) + '</a>';
+      return [
+        '<span class="muted-inline">' + ui.escaparHtml(rotulo + versao) + '</span>',
+        '<a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
+      ].join('');
     }
 
     if ((item || {}).nomeArquivoMaterial) {
@@ -461,7 +647,7 @@
     var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir material';
 
     return url
-      ? '<a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(rotulo) + '</a>'
+      ? '<span class="muted-inline">' + ui.escaparHtml(rotulo) + '</span><a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
       : ((item || {}).nomeArquivoMaterial ? '<span class="muted-inline">' + ui.escaparHtml((item || {}).nomeArquivoMaterial) + '</span>' : '');
   }
 
@@ -478,11 +664,21 @@
   function obterAcoesGestao(item) {
     return normalizarObjetoAcoes((item || {}).acoesGestao, [
       'podeAprovarTituloEixo',
+      'podeEditarAprovarTituloEixo',
+      'podeEditarEAprovarTituloEixo',
       'podeSolicitarAjusteTituloEixo',
+      'podeReprovarTituloEixo',
+      'podeRejeitarPropostaTema',
       'podeAprovarMaterial',
       'podeSolicitarAjusteMaterial',
       'podeDispensarMaterial'
     ]);
+  }
+
+  function acaoGestaoAtiva(acoes, chaves) {
+    return (chaves || []).some(function testar(chave) {
+      return (acoes || {})[chave] === true;
+    });
   }
 
   function normalizarObjetoAcoes(valor, chaves) {
@@ -540,8 +736,18 @@
       return;
     }
 
+    if (acao === 'revisar-titulo-editar-aprovar') {
+      abrirModalEditarAprovarTituloEixo(id);
+      return;
+    }
+
     if (acao === 'revisar-titulo-ajuste') {
       abrirModalRevisao(id, 'titulo', 'SOLICITAR_AJUSTE');
+      return;
+    }
+
+    if (acao === 'revisar-titulo-reprovar') {
+      abrirModalRevisao(id, 'titulo', 'REPROVAR', true);
       return;
     }
 
@@ -571,6 +777,11 @@
 
     if (form.getAttribute('data-portal-v2-form') === 'titulo-eixo') {
       salvarTituloEixo(form);
+      return;
+    }
+
+    if (form.getAttribute('data-portal-v2-form') === 'editar-aprovar-titulo-eixo') {
+      salvarEditarAprovarTituloEixo(form);
       return;
     }
 
@@ -627,6 +838,39 @@
       });
   }
 
+  function abrirModalEditarAprovarTituloEixo(id) {
+    var item = estado.itensPorId[id];
+
+    if (!item) {
+      return;
+    }
+
+    abrirModalBase('Editar e aprovar titulo/eixos', '<p class="empty-state">Carregando eixos tematicos...</p>');
+    carregarEixos()
+      .then(function renderizar(eixos) {
+        atualizarModalConteudo([
+          '<form class="readonly-form" data-portal-v2-form="editar-aprovar-titulo-eixo">',
+          '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(id) + '">',
+          '<label>Titulo',
+          '<input name="tituloApresentacao" required value="' + ui.escaparHtml(obterTituloApresentacao(item)) + '">',
+          '</label>',
+          montarSelectEixo('eixoTematicoPrincipal', 'Eixo tematico principal', eixos, item.eixoTematicoPrincipal, true),
+          montarSelectEixo('eixoTematicoSecundario', 'Eixo tematico secundario', eixos, item.eixoTematicoSecundario, false),
+          '<label>Observacoes',
+          '<textarea name="observacaoInterna" rows="4"></textarea>',
+          '</label>',
+          '<div class="presentation-card-actions">',
+          '<button type="submit">Salvar e aprovar</button>',
+          '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Cancelar</button>',
+          '</div>',
+          '</form>'
+        ].join(''));
+      })
+      .catch(function falhar(erro) {
+        atualizarModalConteudo('<p class="empty-state readonly-error">' + ui.escaparHtml(erro.message || 'Nao foi possivel carregar os eixos.') + '</p>');
+      });
+  }
+
   function abrirModalMaterial(id) {
     var item = estado.itensPorId[id];
 
@@ -652,12 +896,13 @@
     ].join(''));
   }
 
-  function abrirModalRevisao(id, tipo, decisao) {
+  function abrirModalRevisao(id, tipo, decisao, observacaoObrigatoria) {
     abrirModalBase('Revisao de apresentacao', [
-      '<form class="readonly-form" data-portal-v2-form="revisao" data-tipo-revisao="' + ui.escaparHtml(tipo) + '" data-decisao="' + ui.escaparHtml(decisao) + '">',
+      '<form class="readonly-form" data-portal-v2-form="revisao" data-tipo-revisao="' + ui.escaparHtml(tipo) + '" data-decisao="' + ui.escaparHtml(decisao) + '" data-observacao-obrigatoria="' + (observacaoObrigatoria ? 'true' : 'false') + '">',
       '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(id) + '">',
+      observacaoObrigatoria ? '<p class="simulation-warning">Esta acao rejeita apenas a proposta de titulo/eixos e mantem a apresentacao ativa. Informe uma justificativa para o membro.</p>' : '',
       '<label>Observacao publica',
-      '<textarea name="observacaoPublica" rows="4"></textarea>',
+      '<textarea name="observacaoPublica" rows="4" ' + (observacaoObrigatoria ? 'required' : '') + '></textarea>',
       '</label>',
       '<label>Observacao interna',
       '<textarea name="observacaoInterna" rows="4"></textarea>',
@@ -671,7 +916,7 @@
   }
 
   function carregarEixos() {
-    if (estado.eixos) {
+    if (estado.eixos && estado.eixosExpiraEm > Date.now()) {
       return Promise.resolve(estado.eixos);
     }
 
@@ -686,6 +931,7 @@
         }
 
         estado.eixos = extrairListaEixos(resposta.data || {});
+        estado.eixosExpiraEm = Date.now() + TTL_CACHE_EIXOS_MS;
         return estado.eixos;
       })
       .finally(function limpar() {
@@ -765,6 +1011,20 @@
     });
   }
 
+  function salvarEditarAprovarTituloEixo(form) {
+    var dados = new FormData(form);
+
+    executarPostApresentacao('/v2/apresentacoes/titulo-eixo/revisar', {
+      idApresentacao: dados.get('idApresentacao'),
+      decisao: 'EDITAR_E_APROVAR',
+      tituloApresentacao: dados.get('tituloApresentacao'),
+      eixoTematicoPrincipal: dados.get('eixoTematicoPrincipal'),
+      eixoTematicoSecundario: dados.get('eixoTematicoSecundario'),
+      observacaoPublica: '',
+      observacaoInterna: dados.get('observacaoInterna') || ''
+    });
+  }
+
   function salvarMaterial(form) {
     var dados = new FormData(form);
     var arquivo = dados.get('arquivo');
@@ -800,13 +1060,21 @@
     var dados = new FormData(form);
     var tipo = form.getAttribute('data-tipo-revisao');
     var decisao = form.getAttribute('data-decisao');
+    var observacaoObrigatoria = form.getAttribute('data-observacao-obrigatoria') === 'true';
+    var observacaoPublica = String(dados.get('observacaoPublica') || '').trim();
+    var observacaoInterna = String(dados.get('observacaoInterna') || '').trim();
+
+    if (observacaoObrigatoria && !observacaoPublica && !observacaoInterna) {
+      mostrarErroModal('Informe uma observacao para concluir esta acao.');
+      return;
+    }
 
     if (tipo === 'titulo') {
       enviarRevisaoTitulo(
         dados.get('idApresentacao'),
         decisao,
-        dados.get('observacaoPublica'),
-        dados.get('observacaoInterna')
+        observacaoPublica,
+        observacaoInterna
       );
       return;
     }
@@ -814,8 +1082,8 @@
     enviarRevisaoMaterial(
       dados.get('idApresentacao'),
       decisao,
-      dados.get('observacaoPublica'),
-      dados.get('observacaoInterna')
+      observacaoPublica,
+      observacaoInterna
     );
   }
 
@@ -851,6 +1119,7 @@
         }
 
         fecharModal();
+        invalidarCacheApresentacoes();
         carregarTela(estado.rotaAtual || 'minhas-apresentacoes');
       })
       .catch(function falhar(erro) {
