@@ -740,6 +740,8 @@ Endpoints frontend e acoes Apps Script:
   `apresentacoesPendenciasDiretoria`.
 - `POST /v2/apresentacoes/titulo-eixo/revisar` ->
   `apresentacaoRevisarTituloEixo`.
+- `POST /v2/apresentacoes/titulo-eixo/reprovar` ->
+  `apresentacaoReprovarTituloEixo`.
 - `POST /v2/apresentacoes/material/revisar` ->
   `apresentacaoRevisarMaterial`.
 
@@ -778,7 +780,16 @@ As acoes da tela de gestao devem vir apenas de:
 ```
 
 O front-end nao infere botoes por perfil. Se o backend zerar uma acao, o botao
-nao aparece.
+nao aparece. Mesmo quando a flag vier habilitada, o Portal so mostra revisao de
+titulo/eixos para `ENVIADO`, `RECEBIDO` ou `EM_ANALISE`; para `PENDENTE`,
+`APROVADO`, `HISTORICO` ou `REPROVADO`, mostra apenas estado informativo quando
+aplicavel. Revisao de material so aparece para `RECEBIDO`, `REENVIADO` ou
+`EM_ANALISE`; com material `PENDENTE`, pode aparecer apenas aviso e
+`Dispensar material` se o backend enviar essa flag.
+
+`Rejeitar proposta de tema` usa `apresentacaoReprovarTituloEixo`, que chama
+`atividadesV2_portalReprovarTituloEixoApresentacao(payload, contexto)`. Essa
+acao exige observacao publica e nao reprova a apresentacao inteira.
 
 Para exibicao de recursos em `Minhas apresentacoes`, o Portal usa
 `linkMaterialPublico` como URL preferencial do material e, se ausente,

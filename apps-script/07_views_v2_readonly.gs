@@ -478,6 +478,12 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
       'versaoMaterial',
       'VERSAO_MATERIAL'
     ]),
+    mensagemTituloEixo: portalObterCampoFlexViewsV2_(origem, [
+      'mensagemTituloEixo',
+      'MENSAGEM_TITULO_EIXO',
+      'mensagemReprovacaoTituloEixo',
+      'MENSAGEM_REPROVACAO_TITULO_EIXO'
+    ]),
     acoesMembro: portalNormalizarAcoesApresentacaoV2_(portalObterCampoFlexViewsV2_(origem, [
       'acoesMembro',
       'ACOES_MEMBRO'
@@ -516,6 +522,7 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     'nomeArquivoMaterial',
     'linkMaterialPublico',
     'versaoMaterial',
+    'mensagemTituloEixo',
     'acoesMembro',
     'periodo',
     'rotuloSemestre',
@@ -774,6 +781,23 @@ function portalApresentacaoRevisarTituloEixoV2(token, payloadJson) {
   });
 }
 
+function portalApresentacaoReprovarTituloEixoV2(token, payloadJson) {
+  return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
+    id: 'apresentacaoReprovarTituloEixo',
+    code: 'APRESENTACAO_TITULO_EIXO_REPROVADO',
+    message: 'Proposta de titulo e eixos reprovada.',
+    funcao: 'atividadesV2_portalReprovarTituloEixoApresentacao',
+    requerDiretoria: true,
+    permissoes: [
+      'apresentacoes:gerir',
+      'diretoria:pendencias',
+      'atividades:gerir',
+      'sistema:admin'
+    ],
+    camposObrigatorios: ['idApresentacao', 'decisao', 'observacaoPublica']
+  });
+}
+
 function portalApresentacaoRevisarMaterialV2(token, payloadJson) {
   return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
     id: 'apresentacaoRevisarMaterial',
@@ -914,6 +938,10 @@ function portalFuncoesGlobaisApresentacoesV2_() {
 
   if (typeof atividadesV2_portalRevisarTituloEixoApresentacao === 'function') {
     funcoes.atividadesV2_portalRevisarTituloEixoApresentacao = atividadesV2_portalRevisarTituloEixoApresentacao;
+  }
+
+  if (typeof atividadesV2_portalReprovarTituloEixoApresentacao === 'function') {
+    funcoes.atividadesV2_portalReprovarTituloEixoApresentacao = atividadesV2_portalReprovarTituloEixoApresentacao;
   }
 
   if (typeof atividadesV2_portalRegistrarMaterialApresentacao === 'function') {

@@ -39,6 +39,7 @@ function doGet(e) {
         'apresentacoesListarEixos',
         'apresentacaoEnviarTituloEixo',
         'apresentacaoRevisarTituloEixo',
+        'apresentacaoReprovarTituloEixo',
         'apresentacaoRegistrarMaterial',
         'apresentacaoRevisarMaterial',
         'apresentacoesPendenciasDiretoria'
@@ -216,6 +217,13 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'apresentacaoRevisarTituloEixo') {
     return portalApresentacaoRevisarTituloEixoV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'apresentacaoReprovarTituloEixo') {
+    return portalApresentacaoReprovarTituloEixoV2(
       requisicao.token || '',
       requisicao.payload || requisicao
     );

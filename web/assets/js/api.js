@@ -393,6 +393,7 @@
       '/v2/apresentacoes/eixos': 'apresentacoesListarEixos',
       '/v2/apresentacoes/titulo-eixo/enviar': 'apresentacaoEnviarTituloEixo',
       '/v2/apresentacoes/titulo-eixo/revisar': 'apresentacaoRevisarTituloEixo',
+      '/v2/apresentacoes/titulo-eixo/reprovar': 'apresentacaoReprovarTituloEixo',
       '/v2/apresentacoes/material/registrar': 'apresentacaoRegistrarMaterial',
       '/v2/apresentacoes/material/revisar': 'apresentacaoRevisarMaterial',
       '/v2/apresentacoes/pendencias': 'apresentacoesPendenciasDiretoria'

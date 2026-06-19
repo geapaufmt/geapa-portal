@@ -355,6 +355,7 @@
           item.statusMaterial ? '<small>Material: ' + ui.escaparHtml(formatarValor(item.statusMaterial)) + '</small>' : '',
           '</div>',
           '</div>',
+          item.mensagemTituloEixo ? '<p class="presentation-pendency-text">' + ui.escaparHtml(item.mensagemTituloEixo) + '</p>' : '',
           recursos,
           acoes ? '<div class="presentation-card-actions">' + acoes + '</div>' : '',
           '</article>'
@@ -406,32 +407,44 @@
           item.nomePessoaPrincipalPublico ||
           item.apresentador ||
           'Apresentador ainda nao definido';
+        var statusTitulo = obterStatusTituloEixo(item);
+        var statusMaterial = obterStatusMaterial(item);
+        var podeRevisarTitulo = statusPermiteRevisaoTitulo(statusTitulo);
+        var podeRejeitarTitulo = statusPermiteRejeicaoTitulo(statusTitulo);
+        var podeRevisarMaterial = statusPermiteRevisaoMaterial(statusMaterial);
         var acoesTitulo = [
-          acoesGestao.podeAprovarTituloEixo === true
+          acoesGestao.podeAprovarTituloEixo === true && podeRevisarTitulo
             ? botaoAcao('revisar-titulo-aprovar', id, 'Aprovar titulo/eixos', 'primary')
             : '',
-          acaoGestaoAtiva(acoesGestao, ['podeEditarAprovarTituloEixo', 'podeEditarEAprovarTituloEixo'])
+          acaoGestaoAtiva(acoesGestao, ['podeEditarAprovarTituloEixo', 'podeEditarEAprovarTituloEixo']) && podeRevisarTitulo
             ? botaoAcao('revisar-titulo-editar-aprovar', id, 'Editar e aprovar', 'secondary')
             : '',
-          acoesGestao.podeSolicitarAjusteTituloEixo === true
+          acoesGestao.podeSolicitarAjusteTituloEixo === true && podeRevisarTitulo
             ? botaoAcao('revisar-titulo-ajuste', id, 'Solicitar ajuste', 'warning')
             : '',
-          acaoGestaoAtiva(acoesGestao, ['podeReprovarTituloEixo', 'podeRejeitarPropostaTema'])
+          acaoGestaoAtiva(acoesGestao, ['podeReprovarTituloEixo', 'podeRejeitarPropostaTema']) && podeRejeitarTitulo
             ? botaoAcao('revisar-titulo-reprovar', id, 'Rejeitar proposta de tema', 'warning')
             : ''
         ].join('');
         var acoesMaterial = [
-          acoesGestao.podeAprovarMaterial === true
+          acoesGestao.podeAprovarMaterial === true && podeRevisarMaterial
             ? botaoAcao('revisar-material-aprovar', id, 'Aprovar material', 'primary')
             : '',
-          acoesGestao.podeSolicitarAjusteMaterial === true
+          acoesGestao.podeSolicitarAjusteMaterial === true && podeRevisarMaterial
             ? botaoAcao('revisar-material-ajuste', id, 'Solicitar ajuste', 'warning')
             : '',
           acoesGestao.podeDispensarMaterial === true
             ? botaoAcao('revisar-material-dispensar', id, 'Dispensar material', 'warning')
             : ''
         ].join('');
+        var estadoTitulo = !acoesTitulo && statusEhPendente(statusTitulo)
+          ? '<span class="presentation-action-note">Aguardando envio pelo apresentador</span>'
+          : '';
+        var estadoMaterial = !acoesMaterial && statusEhPendente(statusMaterial)
+          ? '<span class="presentation-action-note">Aguardando envio de material</span>'
+          : '';
         var material = renderizarLinkMaterialGestao(item);
+        var blocosContrato = montarBlocosContratoPendencia(item);
 
         return [
           '<article class="presentation-action-card">',
@@ -454,8 +467,11 @@
           '</div>',
           montarDescricoesPendencia(item),
           item.acaoRecomendada ? '<p class="presentation-pendency-action">Acao recomendada: ' + ui.escaparHtml(item.acaoRecomendada) + '</p>' : '',
+          blocosContrato,
           material ? '<div class="presentation-resource-row"><div><strong>Material da apresentacao</strong>' + material + '</div></div>' : '',
-          acoesTitulo || acoesMaterial ? '<div class="presentation-card-actions">' + acoesTitulo + acoesMaterial + '</div>' : '',
+          acoesTitulo || acoesMaterial || estadoTitulo || estadoMaterial
+            ? '<div class="presentation-card-actions">' + acoesTitulo + acoesMaterial + estadoTitulo + estadoMaterial + '</div>'
+            : '',
           '</article>'
         ].join('');
       }).join(''),
@@ -565,6 +581,81 @@
     }).join('');
   }
 
+  function montarBlocosContratoPendencia(item) {
+    var blocos = [
+      montarBlocoContrato('Titulo/eixos', (item || {}).blocoTituloEixos, [
+        ['statusTituloEixo', 'Status'],
+        ['tituloApresentacao', 'Titulo'],
+        ['eixoTematicoPrincipal', 'Eixo principal'],
+        ['eixoTematicoSecundario', 'Eixo secundario'],
+        ['descricaoPendencia', 'Pendencia'],
+        ['acaoRecomendada', 'Acao recomendada']
+      ]),
+      montarBlocoContrato('Material', (item || {}).blocoMaterial, [
+        ['statusMaterial', 'Status'],
+        ['nomeArquivoMaterial', 'Arquivo'],
+        ['versaoMaterial', 'Versao'],
+        ['descricaoPendencia', 'Pendencia'],
+        ['acaoRecomendada', 'Acao recomendada']
+      ]),
+      montarListaInternaPendencias((item || {}).pendenciasInternas)
+    ].filter(Boolean);
+
+    return blocos.length
+      ? '<div class="presentation-contract-blocks">' + blocos.join('') + '</div>'
+      : '';
+  }
+
+  function montarBlocoContrato(titulo, bloco, campos) {
+    if (!bloco || typeof bloco !== 'object' || Array.isArray(bloco)) {
+      return '';
+    }
+
+    var linhas = (campos || []).map(function montar(campo) {
+      var valor = bloco[campo[0]];
+
+      if (valor === undefined || valor === null || valor === '') {
+        return '';
+      }
+
+      return '<span><strong>' + ui.escaparHtml(campo[1]) + ':</strong> ' + ui.escaparHtml(formatarValor(valor)) + '</span>';
+    }).filter(Boolean);
+
+    return linhas.length
+      ? '<section><h4>' + ui.escaparHtml(titulo) + '</h4>' + linhas.join('') + '</section>'
+      : '';
+  }
+
+  function montarListaInternaPendencias(pendencias) {
+    if (!Array.isArray(pendencias) || !pendencias.length) {
+      return '';
+    }
+
+    return [
+      '<section>',
+      '<h4>Pendencias internas</h4>',
+      pendencias.slice(0, 6).map(function montar(pendencia) {
+        return '<span>' + ui.escaparHtml(formatarPendenciaInterna(pendencia)) + '</span>';
+      }).join(''),
+      '</section>'
+    ].join('');
+  }
+
+  function formatarPendenciaInterna(pendencia) {
+    if (!pendencia || typeof pendencia !== 'object' || Array.isArray(pendencia)) {
+      return formatarValor(pendencia);
+    }
+
+    return formatarValor(
+      pendencia.descricao ||
+      pendencia.descricaoPendencia ||
+      pendencia.tipoPendencia ||
+      pendencia.tipo ||
+      pendencia.codigo ||
+      ''
+    );
+  }
+
   function botaoAcao(acao, id, texto, variante) {
     var classe = variante === 'primary'
       ? 'compact-button presentation-action-primary'
@@ -585,6 +676,51 @@
       ui.escaparHtml(texto),
       '</button>'
     ].join('');
+  }
+
+  function obterStatusTituloEixo(item) {
+    return normalizarStatusFluxo((item || {}).statusTituloEixo || (item || {}).statusEixoTematico);
+  }
+
+  function obterStatusMaterial(item) {
+    return normalizarStatusFluxo((item || {}).statusMaterial || (item || {}).statusEnvioMaterial);
+  }
+
+  function normalizarStatusFluxo(valor) {
+    return String(valor || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  }
+
+  function statusEhPendente(status) {
+    return status === 'PENDENTE' || status === 'NAO_ENVIADO' || status === 'NAO_INFORMADO';
+  }
+
+  function statusPermiteRevisaoTitulo(status) {
+    if (!status) {
+      return true;
+    }
+
+    return ['ENVIADO', 'RECEBIDO', 'EM_ANALISE'].indexOf(status) >= 0;
+  }
+
+  function statusPermiteRejeicaoTitulo(status) {
+    if (!status) {
+      return true;
+    }
+
+    return ['ENVIADO', 'RECEBIDO', 'EM_ANALISE'].indexOf(status) >= 0;
+  }
+
+  function statusPermiteRevisaoMaterial(status) {
+    if (!status) {
+      return true;
+    }
+
+    return ['RECEBIDO', 'REENVIADO', 'EM_ANALISE'].indexOf(status) >= 0;
   }
 
   function obterTituloApresentacao(item) {
@@ -621,7 +757,7 @@
     if (url) {
       return [
         '<span class="muted-inline">' + ui.escaparHtml(rotulo + versao) + '</span>',
-        '<a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
+        '<a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
       ].join('');
     }
 
@@ -647,7 +783,7 @@
     var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir material';
 
     return url
-      ? '<span class="muted-inline">' + ui.escaparHtml(rotulo) + '</span><a class="secondary-button compact-button" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
+      ? '<span class="muted-inline">' + ui.escaparHtml(rotulo) + '</span><a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
       : ((item || {}).nomeArquivoMaterial ? '<span class="muted-inline">' + ui.escaparHtml((item || {}).nomeArquivoMaterial) + '</span>' : '');
   }
 
@@ -1088,7 +1224,11 @@
   }
 
   function enviarRevisaoTitulo(id, decisao, observacaoPublica, observacaoInterna) {
-    executarPostApresentacao('/v2/apresentacoes/titulo-eixo/revisar', {
+    var route = decisao === 'REPROVAR'
+      ? '/v2/apresentacoes/titulo-eixo/reprovar'
+      : '/v2/apresentacoes/titulo-eixo/revisar';
+
+    executarPostApresentacao(route, {
       idApresentacao: id,
       decisao: decisao,
       observacaoPublica: observacaoPublica || '',

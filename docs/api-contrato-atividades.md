@@ -309,9 +309,18 @@ frequencia neste pacote.
 Quando habilitado pelo backend, o Portal tambem renderiza
 `podeEditarAprovarTituloEixo` para permitir "Editar e aprovar" e
 `podeReprovarTituloEixo`/`podeRejeitarPropostaTema` para "Rejeitar proposta de
-tema". A rejeicao exige observacao e envia `decisao=REPROVAR` para o endpoint
-de revisao de titulo/eixos; ela nao deve ser interpretada como reprovar a
-apresentacao inteira.
+tema". A rejeicao exige observacao publica e usa
+`POST /v2/apresentacoes/titulo-eixo/reprovar`, que chama
+`atividadesV2_portalReprovarTituloEixoApresentacao(payload, contexto)`; ela nao
+deve ser interpretada como reprovar a apresentacao inteira.
+
+Na tela de gestao, o Portal tambem respeita os status operacionais enviados no
+payload. Acoes de titulo/eixos aparecem apenas para `ENVIADO`, `RECEBIDO` ou
+`EM_ANALISE`; `PENDENTE`, `APROVADO`, `HISTORICO` e `REPROVADO` nao mostram
+aprovar, editar/aprovar, solicitar ajuste nem rejeitar proposta. Acoes de
+revisao de material aparecem apenas para `RECEBIDO`, `REENVIADO` ou
+`EM_ANALISE`; `PENDENTE` mostra estado informativo e pode manter
+`Dispensar material` se o backend enviar a flag.
 
 Para recursos, o Portal renderiza material por `linkMaterialPublico` ou por
 `idArquivoMaterial` como fallback seguro de Drive. A pasta da atividade usa
