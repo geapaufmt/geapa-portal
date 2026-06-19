@@ -1682,6 +1682,10 @@ button:disabled:hover {
   color: var(--muted);
 }
 
+.presentation-action-main p + p {
+  margin-top: 4px;
+}
+
 .presentation-action-main small,
 .presentation-status-stack span,
 .presentation-status-stack small {
@@ -1715,32 +1719,26 @@ button:disabled:hover {
   font-size: 0.86rem;
 }
 
-.presentation-contract-blocks {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+.presentation-pendency-summary {
   margin-top: 12px;
+  color: var(--muted);
 }
 
-.presentation-contract-blocks section {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
-  background: var(--white);
-}
-
-.presentation-contract-blocks h4 {
-  margin: 0 0 8px;
+.presentation-pendency-summary strong {
+  display: block;
+  margin-bottom: 4px;
   color: var(--green-950);
   font-size: 0.9rem;
 }
 
-.presentation-contract-blocks span {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.35;
+.presentation-pendency-summary ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.presentation-pendency-summary li {
+  margin-top: 3px;
+  line-height: 1.42;
 }
 
 .presentation-card-actions {

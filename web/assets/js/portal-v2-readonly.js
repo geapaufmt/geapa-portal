@@ -399,7 +399,7 @@
         var id = String(item.idApresentacao || '').trim();
         var acoesGestao = obterAcoesGestao(item);
         var tituloAtividade = item.tituloAtividade || item.tituloPublico || item.atividade || item.idAtividade || 'Atividade';
-        var titulo = item.tituloApresentacao || item.tema || item.titulo || 'Titulo ainda nao informado';
+        var titulo = obterTituloPendenciaApresentacao(item);
         var apresentador = item.nomeApresentador ||
           item.responsavelSugerido ||
           item.responsavel ||
@@ -437,40 +437,29 @@
             ? botaoAcao('revisar-material-dispensar', id, 'Dispensar material', 'warning')
             : ''
         ].join('');
-        var estadoTitulo = !acoesTitulo && statusEhPendente(statusTitulo)
-          ? '<span class="presentation-action-note">Aguardando envio pelo apresentador</span>'
-          : '';
-        var estadoMaterial = !acoesMaterial && statusEhPendente(statusMaterial)
-          ? '<span class="presentation-action-note">Aguardando envio de material</span>'
-          : '';
+        var acoes = acoesTitulo + acoesMaterial;
         var material = renderizarLinkMaterialGestao(item);
-        var blocosContrato = montarBlocosContratoPendencia(item);
+        var badges = montarBadgesPendencia(item, statusTitulo, statusMaterial);
+        var resumoPendencias = montarResumoPendencias(item, statusTitulo, statusMaterial);
+        var dataPeriodo = montarDataPeriodoPendencia(item);
+        var eixos = obterEixosTexto(item);
 
         return [
           '<article class="presentation-action-card">',
-          '<div class="presentation-card-topline">',
-          (item.gravidade || item.severidade) ? '<span>' + ui.escaparHtml(formatarValor(item.gravidade || item.severidade)) + '</span>' : '',
-          montarTiposPendencia(item),
-          '</div>',
+          badges ? '<div class="presentation-card-topline">' + badges + '</div>' : '',
           '<div class="presentation-action-main">',
           '<div>',
-          '<small>' + ui.escaparHtml(formatarValor(item.dataAtividade)) + (item.rotuloSemestre ? ' | ' + ui.escaparHtml(formatarValor(item.rotuloSemestre)) : '') + '</small>',
+          dataPeriodo ? '<small>' + ui.escaparHtml(dataPeriodo) + '</small>' : '',
           '<p>Atividade: ' + ui.escaparHtml(formatarValor(tituloAtividade)) + '</p>',
-          '<h3>' + ui.escaparHtml(formatarValor(titulo)) + '</h3>',
-          apresentador ? '<p>' + ui.escaparHtml(apresentador) + '</p>' : '',
-          renderizarEixos(item) ? '<p>' + renderizarEixos(item) + '</p>' : '',
-          '</div>',
-          '<div class="presentation-status-stack">',
-          item.statusTituloEixo ? '<small>Titulo/eixos: ' + ui.escaparHtml(formatarValor(item.statusTituloEixo)) + '</small>' : '',
-          item.statusMaterial ? '<small>Material: ' + ui.escaparHtml(formatarValor(item.statusMaterial)) + '</small>' : '',
+          '<h3>' + ui.escaparHtml(titulo) + '</h3>',
+          apresentador ? '<p>Apresentador: ' + ui.escaparHtml(apresentador) + '</p>' : '',
+          '<p>Eixos: ' + ui.escaparHtml(eixos || 'ainda nao informados') + '</p>',
           '</div>',
           '</div>',
-          montarDescricoesPendencia(item),
-          item.acaoRecomendada ? '<p class="presentation-pendency-action">Acao recomendada: ' + ui.escaparHtml(item.acaoRecomendada) + '</p>' : '',
-          blocosContrato,
+          resumoPendencias,
           material ? '<div class="presentation-resource-row"><div><strong>Material da apresentacao</strong>' + material + '</div></div>' : '',
-          acoesTitulo || acoesMaterial || estadoTitulo || estadoMaterial
-            ? '<div class="presentation-card-actions">' + acoesTitulo + acoesMaterial + estadoTitulo + estadoMaterial + '</div>'
+          acoes
+            ? '<div class="presentation-card-actions">' + acoes + '</div>'
             : '',
           '</article>'
         ].join('');
@@ -500,6 +489,8 @@
 
       adicionarUnico(atual.tiposPendencia, item.tipoPendencia || item.tipo);
       adicionarUnico(atual.descricoesPendencia, item.descricaoPendencia);
+      mesclarListaUnica(atual.tiposPendencia, item.badges);
+      mesclarListaUnica(atual.descricoesPendencia, item.pendenciasResumo);
     });
 
     return lista;
@@ -524,7 +515,13 @@
       'nomeArquivoMaterial',
       'linkMaterialPublico',
       'idArquivoMaterial',
-      'acaoRecomendada'
+      'acaoRecomendada',
+      'blocoTituloEixos',
+      'blocoMaterial',
+      'badges',
+      'pendenciasResumo',
+      'detalhesTecnicos',
+      'pendenciasInternas'
     ].forEach(function copiar(campo) {
       if (!destino[campo] && item[campo]) {
         destino[campo] = item[campo];
@@ -540,6 +537,17 @@
     if (texto && lista.indexOf(texto) < 0) {
       lista.push(texto);
     }
+  }
+
+  function mesclarListaUnica(lista, valores) {
+    if (!Array.isArray(valores)) {
+      adicionarUnico(lista, valores);
+      return;
+    }
+
+    valores.forEach(function adicionar(valor) {
+      adicionarUnico(lista, valor);
+    });
   }
 
   function mesclarAcoesGestao(a, b) {
@@ -561,6 +569,231 @@
     return base;
   }
 
+  function montarBadgesPendencia(item, statusTitulo, statusMaterial) {
+    var badges = [];
+
+    adicionarUnico(badges, item.gravidade || item.severidade);
+    mesclarListaUnica(badges, item.badges);
+
+    if (!Array.isArray(item.badges) || !item.badges.length) {
+      mesclarListaUnica(badges, item.tiposPendencia);
+    }
+
+    if (statusTitulo) {
+      adicionarUnico(badges, 'Titulo/eixos ' + rotuloStatusFluxo(statusTitulo));
+    }
+
+    if (statusMaterial) {
+      adicionarUnico(badges, 'Material ' + rotuloStatusFluxo(statusMaterial));
+    }
+
+    return badges
+      .map(limparBadgePendencia)
+      .filter(Boolean)
+      .filter(function unico(valor, indice, lista) {
+        return lista.indexOf(valor) === indice;
+      })
+      .map(function montar(badge) {
+        return '<span>' + ui.escaparHtml(badge) + '</span>';
+      }).join('');
+  }
+
+  function limparBadgePendencia(valor) {
+    var texto = String(valor || '').trim();
+
+    if (!texto || pareceTextoTecnicoData(texto)) {
+      return '';
+    }
+
+    texto = texto
+      .replace(/\|/g, ' ')
+      .replace(/_/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return texto.toUpperCase() === texto
+      ? texto
+      : texto.replace(/^./, function primeira(letra) {
+        return letra.toUpperCase();
+      });
+  }
+
+  function montarResumoPendencias(item, statusTitulo, statusMaterial) {
+    var resumo = [];
+    var resumoBackend = Array.isArray((item || {}).pendenciasResumo)
+      ? item.pendenciasResumo
+      : [];
+
+    resumoBackend.forEach(function adicionar(texto) {
+      adicionarResumoHumano(resumo, texto);
+    });
+
+    if (!resumo.length) {
+      montarDescricoesHumanasPendencia(item).forEach(function adicionar(texto) {
+        adicionarResumoHumano(resumo, texto);
+      });
+    }
+
+    if (!resumo.length || statusEhPendente(statusTitulo)) {
+      if (statusEhPendente(statusTitulo)) {
+        adicionarUnico(resumo, 'Aguardando envio do titulo/eixos pelo apresentador.');
+      }
+    }
+
+    if (statusMaterial === 'PENDENTE' || statusMaterial === 'NAO_ENVIADO' || statusMaterial === 'NAO_INFORMADO') {
+      adicionarUnico(resumo, 'Material ainda nao enviado.');
+    }
+
+    if (statusPermiteRevisaoTitulo(statusTitulo)) {
+      adicionarUnico(resumo, 'Revisar titulo/eixos enviados.');
+    }
+
+    if (statusPermiteRevisaoMaterial(statusMaterial)) {
+      adicionarUnico(resumo, 'Revisar material enviado.');
+    }
+
+    return resumo.length
+      ? '<div class="presentation-pendency-summary"><strong>Pendencias</strong><ul>' +
+        resumo.slice(0, 5).map(function montar(texto) {
+          return '<li>' + ui.escaparHtml(texto) + '</li>';
+        }).join('') +
+        '</ul></div>'
+      : '';
+  }
+
+  function montarDescricoesHumanasPendencia(item) {
+    var descricoes = Array.isArray((item || {}).descricoesPendencia) && item.descricoesPendencia.length
+      ? item.descricoesPendencia
+      : [item.descricaoPendencia].filter(Boolean);
+
+    return descricoes.map(limparDescricaoPendencia).filter(Boolean);
+  }
+
+  function adicionarResumoHumano(lista, valor) {
+    var texto = limparDescricaoPendencia(valor);
+
+    if (texto) {
+      adicionarUnico(lista, texto);
+    }
+  }
+
+  function limparDescricaoPendencia(valor) {
+    var texto = String(valor || '').trim();
+
+    if (!texto || pareceTextoTecnicoData(texto)) {
+      return '';
+    }
+
+    texto = texto
+      .replace(/Status titulo\/eixo:\s*[^.]+\.?/gi, '')
+      .replace(/Status material:\s*[^.]+\.?/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (/^Aguardar ou solicitar titulo\/eixo/i.test(texto)) {
+      return 'Aguardando envio do titulo/eixos pelo apresentador.';
+    }
+
+    if (/^Aguardar ou solicitar envio do material/i.test(texto)) {
+      return 'Material ainda nao enviado.';
+    }
+
+    if (/titulo.*aguard/i.test(texto) || /revisar titulo/i.test(texto)) {
+      return 'Revisar titulo/eixos enviados.';
+    }
+
+    return texto.replace(/^./, function primeira(letra) {
+      return letra.toUpperCase();
+    });
+  }
+
+  function obterTituloPendenciaApresentacao(item) {
+    var titulo = String((item || {}).tituloApresentacao || (item || {}).tema || '').trim();
+
+    return titulo || 'Titulo ainda nao informado';
+  }
+
+  function obterEixosTexto(item) {
+    if ((item || {}).eixos) {
+      return formatarValor((item || {}).eixos);
+    }
+
+    return [
+      (item || {}).eixoTematicoPrincipal,
+      (item || {}).eixoTematicoSecundario
+    ].filter(Boolean).map(formatarValor).join(' / ');
+  }
+
+  function montarDataPeriodoPendencia(item) {
+    var partes = [];
+    var data = formatarDataCurtaPendencia((item || {}).dataAtividade);
+    var horario = (item || {}).horarioCompleto || (item || {}).horario || '';
+    var periodo = formatarPeriodoPendencia(item);
+
+    adicionarUnico(partes, data);
+    adicionarUnico(partes, horario && !pareceTextoTecnicoData(horario) ? horario : '');
+    adicionarUnico(partes, periodo);
+
+    return partes.join(' - ');
+  }
+
+  function formatarDataCurtaPendencia(valor) {
+    var texto = String(valor || '').trim();
+    var partesIso = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    var data;
+
+    if (!texto) {
+      return '';
+    }
+
+    if (partesIso) {
+      return partesIso[3] + '/' + partesIso[2] + '/' + partesIso[1];
+    }
+
+    data = new Date(texto);
+
+    if (Number.isNaN(data.getTime())) {
+      return pareceTextoTecnicoData(texto) ? '' : texto;
+    }
+
+    return data.toLocaleDateString('pt-BR');
+  }
+
+  function formatarPeriodoPendencia(item) {
+    var rotulo = String((item || {}).rotuloSemestre || (item || {}).periodo || '').trim();
+    var ano = String((item || {}).ano || '').trim();
+    var semestre = String((item || {}).semestre || '').trim();
+
+    if (rotulo && !pareceTextoTecnicoData(rotulo)) {
+      return rotulo;
+    }
+
+    return ano && semestre ? ano + '/' + semestre : '';
+  }
+
+  function pareceTextoTecnicoData(valor) {
+    return /\bGMT[+-]\d{4}\b/i.test(String(valor || '')) ||
+      /\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/i.test(String(valor || ''));
+  }
+
+  function rotuloStatusFluxo(status) {
+    var mapa = {
+      PENDENTE: 'pendente',
+      NAO_ENVIADO: 'pendente',
+      NAO_INFORMADO: 'pendente',
+      ENVIADO: 'aguardando analise',
+      RECEBIDO: 'aguardando analise',
+      REENVIADO: 'aguardando analise',
+      EM_ANALISE: 'em analise',
+      APROVADO: 'aprovado',
+      REPROVADO: 'reprovado',
+      HISTORICO: 'historico',
+      DISPENSADO: 'dispensado'
+    };
+
+    return mapa[status] || formatarValor(status).toLowerCase();
+  }
+
   function montarTiposPendencia(item) {
     var tipos = Array.isArray((item || {}).tiposPendencia) && item.tiposPendencia.length
       ? item.tiposPendencia
@@ -579,81 +812,6 @@
     return descricoes.map(function montar(descricao) {
       return '<p class="presentation-pendency-text">' + ui.escaparHtml(descricao) + '</p>';
     }).join('');
-  }
-
-  function montarBlocosContratoPendencia(item) {
-    var blocos = [
-      montarBlocoContrato('Titulo/eixos', (item || {}).blocoTituloEixos, [
-        ['statusTituloEixo', 'Status'],
-        ['tituloApresentacao', 'Titulo'],
-        ['eixoTematicoPrincipal', 'Eixo principal'],
-        ['eixoTematicoSecundario', 'Eixo secundario'],
-        ['descricaoPendencia', 'Pendencia'],
-        ['acaoRecomendada', 'Acao recomendada']
-      ]),
-      montarBlocoContrato('Material', (item || {}).blocoMaterial, [
-        ['statusMaterial', 'Status'],
-        ['nomeArquivoMaterial', 'Arquivo'],
-        ['versaoMaterial', 'Versao'],
-        ['descricaoPendencia', 'Pendencia'],
-        ['acaoRecomendada', 'Acao recomendada']
-      ]),
-      montarListaInternaPendencias((item || {}).pendenciasInternas)
-    ].filter(Boolean);
-
-    return blocos.length
-      ? '<div class="presentation-contract-blocks">' + blocos.join('') + '</div>'
-      : '';
-  }
-
-  function montarBlocoContrato(titulo, bloco, campos) {
-    if (!bloco || typeof bloco !== 'object' || Array.isArray(bloco)) {
-      return '';
-    }
-
-    var linhas = (campos || []).map(function montar(campo) {
-      var valor = bloco[campo[0]];
-
-      if (valor === undefined || valor === null || valor === '') {
-        return '';
-      }
-
-      return '<span><strong>' + ui.escaparHtml(campo[1]) + ':</strong> ' + ui.escaparHtml(formatarValor(valor)) + '</span>';
-    }).filter(Boolean);
-
-    return linhas.length
-      ? '<section><h4>' + ui.escaparHtml(titulo) + '</h4>' + linhas.join('') + '</section>'
-      : '';
-  }
-
-  function montarListaInternaPendencias(pendencias) {
-    if (!Array.isArray(pendencias) || !pendencias.length) {
-      return '';
-    }
-
-    return [
-      '<section>',
-      '<h4>Pendencias internas</h4>',
-      pendencias.slice(0, 6).map(function montar(pendencia) {
-        return '<span>' + ui.escaparHtml(formatarPendenciaInterna(pendencia)) + '</span>';
-      }).join(''),
-      '</section>'
-    ].join('');
-  }
-
-  function formatarPendenciaInterna(pendencia) {
-    if (!pendencia || typeof pendencia !== 'object' || Array.isArray(pendencia)) {
-      return formatarValor(pendencia);
-    }
-
-    return formatarValor(
-      pendencia.descricao ||
-      pendencia.descricaoPendencia ||
-      pendencia.tipoPendencia ||
-      pendencia.tipo ||
-      pendencia.codigo ||
-      ''
-    );
   }
 
   function botaoAcao(acao, id, texto, variante) {
@@ -1394,7 +1552,7 @@
     var eixoSecundario = (item || {}).eixoTematicoSecundario || '';
     var eixos = [eixoPrincipal, eixoSecundario].filter(Boolean).join(' / ');
 
-    return ui.escaparHtml(formatarValor(eixos));
+    return eixos ? ui.escaparHtml(formatarValor(eixos)) : '';
   }
 
   function obterPrimeiroValorPorChaves(item, chaves) {
