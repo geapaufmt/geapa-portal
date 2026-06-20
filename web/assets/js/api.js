@@ -90,7 +90,7 @@
       classificacaoAcesso: 'ABERTA',
       publicoAlvo: 'Membros e convidados',
       contaPresenca: true,
-      contaFalta: false,
+      contaFalta: true,
       geraCertificado: true,
       cargaHoraria: 2,
       statusPublico: 'PUBLICADA',
@@ -109,6 +109,12 @@
       visibilidadePortal: 'PUBLICA',
       podeVerDetalhes: true,
       podeJustificarFalta: false,
+      podeJustificarAusenciaFutura: true,
+      justificativaPreviaEnviada: false,
+      idJustificativaPrevia: '',
+      statusJustificativaPrevia: '',
+      motivoJustificativaPreviaIndisponivel: '',
+      mensagemJustificativaPrevia: 'Voce pode justificar ausencia futura pelo Portal.',
       podeRegistrarChamada: false,
       podeEditar: false
     }
@@ -574,7 +580,9 @@
     if (route.indexOf('/v2/apresentacoes/') === 0 || route.indexOf('/v2/justificativas/') === 0) {
       return Promise.resolve({
         ok: true,
-        message: 'Acao de apresentacao simulada com sucesso.',
+        message: route.indexOf('/v2/justificativas/') === 0
+          ? 'Acao de justificativa simulada com sucesso.'
+          : 'Acao de apresentacao simulada com sucesso.',
         data: {
           route: route,
           modo: 'MOCK'

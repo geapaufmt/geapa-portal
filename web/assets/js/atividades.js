@@ -104,6 +104,8 @@
         fecharModal();
       }
     });
+    document.addEventListener('click', tratarCliqueAtividades);
+    document.addEventListener('submit', tratarSubmitAtividades);
   }
 
   function ehRotaDaTelaAtividades(idRota) {
@@ -122,6 +124,31 @@
     return rota && rota.id === 'historico-atividades'
       ? MODO_ATIVIDADES_HISTORICO
       : MODO_ATIVIDADES_PROXIMAS;
+  }
+
+  function tratarCliqueAtividades(evento) {
+    var botaoJustificar = evento.target.closest('[data-activity-justify-future]');
+    var botaoFechar = evento.target.closest('[data-activity-modal-close]');
+
+    if (botaoJustificar) {
+      abrirModalJustificativaPrevia(botaoJustificar.getAttribute('data-activity-justify-future'));
+      return;
+    }
+
+    if (botaoFechar) {
+      fecharModal();
+    }
+  }
+
+  function tratarSubmitAtividades(evento) {
+    var form = evento.target;
+
+    if (!form || form.getAttribute('data-activity-form') !== 'justificativa-previa') {
+      return;
+    }
+
+    evento.preventDefault();
+    salvarJustificativaPrevia(form);
   }
 
   function configurarTelaAtividades(modo) {
@@ -674,6 +701,23 @@
     }
   }
 
+  function invalidarCacheAtividades() {
+    atividadesBundleCache = null;
+    atividadesBundleCacheSalvoEm = 0;
+    detalhesCache = {};
+    atividadesResumoCache = {};
+
+    try {
+      var chave = obterChaveCacheAtividades();
+
+      if (chave) {
+        window.sessionStorage.removeItem(chave);
+      }
+    } catch (erro) {
+      // O proximo carregamento fara nova consulta ao backend.
+    }
+  }
+
   function atualizarDetalheNoBundleCache(idAtividade, detalhe) {
     var bundle = atividadesBundleCache || normalizarBundleAtividades({});
 
@@ -702,7 +746,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLista.v8.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesLista.v9.' + hashCurto(token + ':' + usuarioId);
   }
 
   function hashCurto(valor) {
@@ -1221,6 +1265,7 @@
       historico ? '' : montarAvisoChamada(atividade, destaque),
       '<div class="activity-actions">',
       montarBotaoDetalhes(atividade),
+      montarAcaoJustificativaPrevia(atividade, modo),
       montarBotaoChamada(atividade, modo),
       '</div>',
       '</article>'
@@ -1511,6 +1556,42 @@
     ].join('');
   }
 
+  function montarAcaoJustificativaPrevia(atividade, modo) {
+    if (modo === MODO_ATIVIDADES_HISTORICO) {
+      return '';
+    }
+
+    if (atividade.justificativaPreviaEnviada === true) {
+      return [
+        '<span class="status-pill status-pill-muted" title="',
+        ui.escaparHtml(atividade.mensagemJustificativaPrevia || 'Acompanhe em Meu vinculo > Minhas justificativas.'),
+        '">',
+        ui.escaparHtml(formatarStatusJustificativaPrevia(atividade.statusJustificativaPrevia)),
+        '</span>'
+      ].join('');
+    }
+
+    if (atividade.podeJustificarAusenciaFutura !== true) {
+      return '';
+    }
+
+    return [
+      '<button class="secondary-button compact-button" type="button" data-activity-justify-future="',
+      ui.escaparHtml(atividade.idAtividade),
+      '">Justificar ausencia futura</button>'
+    ].join('');
+  }
+
+  function formatarStatusJustificativaPrevia(status) {
+    var normalizado = String(status || '').trim();
+
+    if (!normalizado) {
+      return 'Justificativa previa enviada';
+    }
+
+    return 'Justificativa previa: ' + ui.formatarRotulo(normalizado);
+  }
+
   function montarBotaoChamada(atividade, modo) {
     var acao = modo === MODO_ATIVIDADES_HISTORICO
       ? avaliarVisualizacaoChamadaHistorica(atividade)
@@ -1680,6 +1761,141 @@
     return '<button class="secondary-button compact-button" type="button" disabled>' +
       ui.escaparHtml(rotulo) +
       '</button>';
+  }
+
+  function abrirModalJustificativaPrevia(idAtividade) {
+    var atividade = atividadesResumoCache[idAtividade] || {};
+    var modal = document.getElementById('atividade-modal');
+    var conteudo = document.getElementById('atividade-modal-content');
+
+    if (!idAtividade || !modal || !conteudo) {
+      return;
+    }
+
+    definirTituloModal('Justificar ausencia futura');
+    conteudo.innerHTML = [
+      '<p class="eyebrow">Justificativa previa</p>',
+      '<h3>' + ui.escaparHtml(atividade.tituloPublico || 'Atividade') + '</h3>',
+      '<p class="section-note">' + ui.escaparHtml(montarDescricaoAtividadeJustificativaPrevia(atividade)) + '</p>',
+      atividade.mensagemJustificativaPrevia
+        ? '<p class="status-message">' + ui.escaparHtml(atividade.mensagemJustificativaPrevia) + '</p>'
+        : '',
+      '<form class="readonly-form" data-activity-form="justificativa-previa">',
+      '<input type="hidden" name="idAtividade" value="' + ui.escaparHtml(idAtividade) + '">',
+      '<input type="hidden" name="idRegistroPresenca" value="">',
+      '<p class="simulation-warning">Voce esta enviando uma justificativa antes da atividade. Ela sera registrada como justificativa previa e sera analisada pela Diretoria/Secretaria caso a falta seja confirmada na chamada.</p>',
+      '<label>Motivo',
+      '<input name="motivoDeclarado" required>',
+      '</label>',
+      '<label>Descricao da justificativa',
+      '<textarea name="descricaoJustificativa" rows="5" required></textarea>',
+      '</label>',
+      '<label>Possui documento comprobatorio?',
+      '<select name="possuiDocumentoComprobatorio">',
+      '<option value="NAO">Nao</option>',
+      '<option value="SIM">Sim</option>',
+      '</select>',
+      '</label>',
+      '<label>Link do documento',
+      '<input name="linkDocumentoComprobatorio" type="url">',
+      '</label>',
+      '<label>Observacoes',
+      '<textarea name="observacoes" rows="3"></textarea>',
+      '</label>',
+      '<div class="presentation-card-actions">',
+      '<button type="submit">Enviar justificativa previa</button>',
+      '<button class="secondary-button" type="button" data-activity-modal-close>Cancelar</button>',
+      '</div>',
+      '</form>'
+    ].join('');
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+  }
+
+  function montarDescricaoAtividadeJustificativaPrevia(atividade) {
+    var partes = [
+      ui.formatarData(atividade.dataAtividade),
+      montarMetaAtividade(atividade)
+    ].filter(Boolean);
+
+    return partes.length ? partes.join(' - ') : 'Atividade futura';
+  }
+
+  function salvarJustificativaPrevia(form) {
+    var dados = new FormData(form);
+    var possuiDocumento = dados.get('possuiDocumentoComprobatorio') || 'NAO';
+    var linkDocumento = String(dados.get('linkDocumentoComprobatorio') || '').trim();
+
+    if (possuiDocumento === 'SIM' && !linkDocumento) {
+      mostrarErroModalAtividade('Informe o link do documento comprobatorio.');
+      return;
+    }
+
+    ui.mostrarLoading('Enviando justificativa previa...');
+
+    api.apiPost('/v2/justificativas/enviar', {
+      payload: JSON.stringify({
+        idAtividade: dados.get('idAtividade'),
+        idRegistroPresenca: '',
+        motivoDeclarado: dados.get('motivoDeclarado'),
+        descricaoJustificativa: dados.get('descricaoJustificativa'),
+        possuiDocumentoComprobatorio: possuiDocumento,
+        linkDocumentoComprobatorio: linkDocumento,
+        confirmouCienciaForaPrazo: false,
+        observacoes: dados.get('observacoes')
+      })
+    })
+      .then(function tratar(resposta) {
+        if (!resposta.ok) {
+          throw new Error(resposta.message || 'Nao foi possivel enviar a justificativa previa.');
+        }
+
+        fecharModal();
+        invalidarCacheAtividades();
+        notificarJustificativasAtualizadas();
+        recarregarAtividadesAposJustificativa();
+      })
+      .catch(function falhar(erro) {
+        mostrarErroModalAtividade(erro.message || 'Erro controlado ao enviar justificativa previa.');
+      })
+      .then(function finalizar() {
+        ui.ocultarLoading();
+      });
+  }
+
+  function recarregarAtividadesAposJustificativa() {
+    var lista = document.getElementById('atividades-lista');
+    var status = document.getElementById('atividades-status');
+
+    if (lista && status) {
+      carregarAtividadesComLista(lista, status, obterModoAtividadesAtual());
+    }
+  }
+
+  function notificarJustificativasAtualizadas() {
+    try {
+      document.dispatchEvent(new CustomEvent('portal:justificativas-atualizadas'));
+    } catch (erro) {
+      // O evento e apenas uma otimizacao para invalidar caches da aba Meu vinculo.
+    }
+  }
+
+  function mostrarErroModalAtividade(mensagem) {
+    var conteudo = document.getElementById('atividade-modal-content');
+    var alerta = conteudo ? conteudo.querySelector('[data-activity-modal-error]') : null;
+
+    if (!conteudo) {
+      return;
+    }
+
+    if (!alerta) {
+      alerta = document.createElement('p');
+      alerta.className = 'empty-state readonly-error';
+      alerta.setAttribute('data-activity-modal-error', 'true');
+      conteudo.insertBefore(alerta, conteudo.firstChild);
+    }
+
+    alerta.textContent = mensagem;
   }
 
   function carregarDetalheAtividade(idAtividade) {

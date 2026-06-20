@@ -75,7 +75,10 @@ Modelo atual:
 
 - Proximas atividades: tela implementada a partir da antiga aba Atividades.
   Mostra apenas atividades futuras ou em andamento, conforme visibilidade
-  resolvida pelo backend.
+  resolvida pelo backend. Quando o backend enviar
+  `podeJustificarAusenciaFutura = true`, o card mostra a acao "Justificar
+  ausencia futura"; quando `justificativaPreviaEnviada = true`, mostra apenas o
+  status informativo da justificativa previa.
 - Calendario: placeholder para visao futura de agenda mensal, eventos,
   reunioes, simposios, confraternizacoes e apresentacoes.
 - Historico de atividades: tela implementada e restrita a internos do GEAPA.

@@ -639,6 +639,12 @@ Resposta esperada:
       "visibilidadePortal": "MEMBROS",
       "podeVerDetalhes": true,
       "podeJustificarFalta": false,
+      "podeJustificarAusenciaFutura": true,
+      "justificativaPreviaEnviada": false,
+      "idJustificativaPrevia": "",
+      "statusJustificativaPrevia": "",
+      "motivoJustificativaPreviaIndisponivel": "",
+      "mensagemJustificativaPrevia": "",
       "podeRegistrarChamada": false,
       "podeEditar": false
     }
@@ -725,6 +731,10 @@ Contratos de resposta:
   `idRegistroPresenca`, `idAtividade`, `motivoDeclarado`,
   `descricaoJustificativa`, `possuiDocumentoComprobatorio`,
   `linkDocumentoComprobatorio`, `confirmouCienciaForaPrazo` e `observacoes`.
+  Para ausencia futura em `Proximas atividades`, `idRegistroPresenca` e enviado
+  vazio e o backend registra a justificativa como `PREVIA`. Para falta ja
+  registrada em `Minhas justificativas`, o payload deve conter
+  `idRegistroPresenca`.
 - `justificativasPendenciasDiretoria`: retorna justificativas pendentes de
   analise para perfis com `justificativas:analisar`; o backend preferido e
   `atividadesV2_portalListarJustificativasPendentesDiretoria(contexto)`.

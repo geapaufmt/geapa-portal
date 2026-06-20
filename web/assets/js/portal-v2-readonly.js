@@ -124,6 +124,9 @@
     document.addEventListener('click', tratarCliqueReadonly);
     document.addEventListener('submit', tratarSubmitReadonly);
     document.addEventListener('change', tratarChangeReadonly);
+    document.addEventListener('portal:justificativas-atualizadas', function atualizarJustificativas() {
+      invalidarCacheJustificativas();
+    });
 
     document.addEventListener('portal:navigationchange', function aoNavegar(evento) {
       var rota = evento.detail && evento.detail.rota;

@@ -661,7 +661,7 @@ function portalJustificativaEnviarV2(token, payloadJson) {
       'atividadesV2_portalRegistrarJustificativa_'
     ],
     requerDiretoria: false,
-    camposObrigatorios: ['idRegistroPresenca', 'motivoDeclarado', 'descricaoJustificativa']
+    camposObrigatorios: ['idAtividade', 'motivoDeclarado', 'descricaoJustificativa']
   });
 }
 
@@ -1116,6 +1116,10 @@ function portalExecutarAcaoJustificativaAtividadesV2_(token, payloadJson, config
 
   var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
   var resposta = portalChamarAtividadesJustificativasV2_(config.funcoes, dadosPayload, contextoAtividades);
+
+  if (resposta && resposta.ok !== false) {
+    portalInvalidarCachesJustificativasV2_(contexto);
+  }
 
   return portalNormalizarRespostaAcaoJustificativaV2_(resposta, config, inicio);
 }
@@ -2507,7 +2511,13 @@ function portalSanitizarAtividadeReadonlyV2_(item) {
     'tipoPessoaPrincipal',
     'qtdApresentacoes',
     'resumoApresentacoesPublico',
-    'possuiApresentacoes'
+    'possuiApresentacoes',
+    'podeJustificarAusenciaFutura',
+    'justificativaPreviaEnviada',
+    'idJustificativaPrevia',
+    'statusJustificativaPrevia',
+    'motivoJustificativaPreviaIndisponivel',
+    'mensagemJustificativaPrevia'
   ]);
 }
 
@@ -2651,6 +2661,31 @@ function portalSalvarJsonCacheViewsV2_(chave, valor) {
       JSON.stringify(valor),
       PORTAL_CONFIG.cacheViewsV2Segundos
     );
+  } catch (erro) {
+    // Cache e melhoria de desempenho, nao requisito funcional.
+  }
+}
+
+function portalInvalidarCachesJustificativasV2_(contexto) {
+  var identificador = contexto && contexto.identificadorSessao;
+  var contextoAtividades = contexto ? portalMontarContextoAtividadesReadonlyV2_(contexto) : {};
+  var perfilAtividades = contextoAtividades.perfil || 'MEMBRO';
+
+  if (!identificador) {
+    return;
+  }
+
+  try {
+    CacheService.getScriptCache().removeAll([
+      portalCacheKey_('viewsV2r2:minhasJustificativas', identificador),
+      portalCacheKey_('viewsV2r2:minhaFrequencia', identificador),
+      portalCacheKey_('viewsV2r2:justificativasPendenciasDiretoria', identificador),
+      portalCacheKey_('viewsV2r2:pendenciasDiretoria', identificador),
+      portalCacheKey_('viewsV2r1:painelDiretoriaV2', identificador),
+      portalCacheKey_('atividadesLista:v2', identificador + ':' + perfilAtividades),
+      portalCacheKey_('atividadesBundle', identificador + ':' + perfilAtividades),
+      portalCacheKey_('atividadesDetalhesPreload', identificador + ':' + perfilAtividades)
+    ]);
   } catch (erro) {
     // Cache e melhoria de desempenho, nao requisito funcional.
   }

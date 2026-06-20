@@ -126,6 +126,12 @@ Resposta esperada:
       "visibilidadePortal": "MEMBROS",
       "podeVerDetalhes": true,
       "podeJustificarFalta": false,
+      "podeJustificarAusenciaFutura": true,
+      "justificativaPreviaEnviada": false,
+      "idJustificativaPrevia": "",
+      "statusJustificativaPrevia": "",
+      "motivoJustificativaPreviaIndisponivel": "",
+      "mensagemJustificativaPrevia": "",
       "podeRegistrarChamada": true,
       "podeEditar": true
     }
@@ -345,6 +351,14 @@ O Pacote 2 usa o modulo Atividades como fonte operacional. O Portal consome:
 `justificativas`, `resumo` e `ultimaAtualizacao`. `faltasJustificaveis` traz as
 ausencias que ainda podem receber justificativa; `justificativas` traz o
 acompanhamento de envios ja registrados.
+
+Ausencia futura nao entra como falta registrada. Em `Proximas atividades`, o
+card usa os metadados leves `podeJustificarAusenciaFutura`,
+`justificativaPreviaEnviada`, `statusJustificativaPrevia` e
+`mensagemJustificativaPrevia`. Quando permitido, o Portal envia
+`idAtividade` com `idRegistroPresenca` vazio para
+`POST /v2/justificativas/enviar`; o backend registra `STATUS_ANALISE = PREVIA`
+e nao altera presenca nesse momento.
 
 O envio fora do prazo nao e bloqueado no frontend: o card mostra alerta, o
 modal exige ciencia do membro quando `exigeCienciaForaPrazo = true` e o payload
