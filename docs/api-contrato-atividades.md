@@ -332,14 +332,32 @@ Para recursos, o Portal renderiza material por `linkMaterialPublico` ou por
 O front-end mantem cache em memoria de curta duracao para telas V2 privadas e
 invalida os caches relacionados apos qualquer acao de apresentacao.
 
+## Justificativas pelo Portal
+
+O Pacote 2 usa o modulo Atividades como fonte operacional. O Portal consome:
+
+- `GET /v2/minhas-justificativas`
+- `POST /v2/justificativas/enviar`
+- `GET /v2/justificativas/pendencias`
+- `POST /v2/justificativas/analisar`
+
+O envio fora do prazo nao e bloqueado no frontend: o card mostra alerta, o
+modal exige ciencia do membro e o payload envia `foraDoPrazo` e
+`cienciaForaPrazo`. A analise continua cabendo a Diretoria/Secretaria, que pode
+deferir, abonar, indeferir ou solicitar ajuste conforme flags/permissoes do
+backend.
+
+O comprovante inicial e informado por link em
+`linkDocumentoComprobatorio`. O frontend nao altera presenca diretamente, nao
+escreve em `PORTAL_*` e invalida caches de justificativas, frequencia,
+pendencias e painel apos envio ou analise.
+
 ## Endpoints futuros
 
 - `POST /atividades/criar`
 - `POST /atividades/editar`
 - `GET /atividades/chamada?idAtividade=ATV-2026-1-0005`
 - `POST /atividades/registrar-chamada`
-- `POST /atividades/justificar-falta`
-- `GET /justificativas/minhas`
 - `GET /diretoria/pendencias`
 
 As acoes de chamada operacional ja existem em modo DEV no Web App do portal; os

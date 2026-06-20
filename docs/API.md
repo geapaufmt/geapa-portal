@@ -697,6 +697,9 @@ necessario para a tela. O Portal nao escreve diretamente em planilhas.
 acao=minhaFrequencia
 acao=minhasApresentacoes
 acao=minhasJustificativas
+acao=justificativaEnviar
+acao=justificativaAnalisar
+acao=justificativasPendenciasDiretoria
 acao=proximasAtividades
 acao=historicoAtividades
 acao=pendenciasDiretoria
@@ -716,7 +719,18 @@ Contratos de resposta:
   apresentacoes. A tela pessoal renderiza botoes somente a partir de
   `apresentacao.acoesMembro`.
 - `minhasJustificativas`: retorna `data.justificativas`, `data.resumo` e
-  `data.ultimaAtualizacao`.
+  `data.ultimaAtualizacao`; a tela mostra faltas justificaveis e justificativas
+  ja enviadas.
+- `justificativaEnviar`: envia justificativa ao modulo Atividades. Payload:
+  `idRegistroPresenca`, `idAtividade`, `motivoDeclarado`,
+  `descricaoJustificativa`, `possuiDocumentoComprobatorio`,
+  `linkDocumentoComprobatorio`, `observacoes`, `foraDoPrazo` e
+  `cienciaForaPrazo`.
+- `justificativasPendenciasDiretoria`: retorna justificativas pendentes de
+  analise para perfis com `justificativas:analisar`.
+- `justificativaAnalisar`: registra decisao `DEFERIR`, `ABONAR`,
+  `INDEFERIR` ou `SOLICITAR_AJUSTE`; observacao e obrigatoria para indeferir
+  ou solicitar ajuste.
 - `proximasAtividades` e `historicoAtividades`: retornam `data.atividades`,
   `data.resumo` e `data.ultimaAtualizacao`.
 - `pendenciasDiretoria`: retorna `data.pendencias`, `data.resumo` e
@@ -949,9 +963,10 @@ chamadas sem `ReferenceError` e bloqueiam visitante sem token com
 `SESSAO_OBRIGATORIA`. O alias legado `portalRunViewsV2ReadonlyTests()` chama o
 mesmo teste.
 
-Esta etapa nao cria endpoints de escrita. Justificar falta, analisar
-justificativas, editar atividade, emitir certificado, fazer upload e executar
-triggers permanecem fora do contrato do Portal.
+O Pacote 2 inclui envio e analise de justificativas pelo Portal, sempre via
+Apps Script e modulo Atividades. O frontend nao escreve em `PORTAL_*`, nao
+altera chamada/presenca diretamente e nao faz upload de comprovante neste
+pacote; o comprovante inicial e informado por link.
 
 ## Acao: atividadeDetalhe
 

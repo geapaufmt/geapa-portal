@@ -613,6 +613,62 @@ function portalHistoricoAtividadesV2(token) {
   });
 }
 
+function portalJustificativaEnviarV2(token, payloadJson) {
+  return portalExecutarAcaoJustificativaAtividadesV2_(token, payloadJson, {
+    id: 'justificativaEnviar',
+    code: 'JUSTIFICATIVA_ENVIADA',
+    message: 'Justificativa enviada para analise.',
+    funcoes: [
+      'atividadesV2_portalEnviarJustificativa',
+      'atividadesV2_portalEnviarJustificativa_',
+      'atividadesV2_portalRegistrarJustificativa',
+      'atividadesV2_portalRegistrarJustificativa_'
+    ],
+    requerDiretoria: false,
+    camposObrigatorios: ['idRegistroPresenca', 'motivoDeclarado', 'descricaoJustificativa']
+  });
+}
+
+function portalJustificativaAnalisarV2(token, payloadJson) {
+  return portalExecutarAcaoJustificativaAtividadesV2_(token, payloadJson, {
+    id: 'justificativaAnalisar',
+    code: 'JUSTIFICATIVA_ANALISADA',
+    message: 'Analise da justificativa registrada.',
+    funcoes: [
+      'atividadesV2_portalAnalisarJustificativa',
+      'atividadesV2_portalAnalisarJustificativa_'
+    ],
+    requerDiretoria: true,
+    permissoes: [
+      'justificativas:analisar',
+      'diretoria:pendencias',
+      'atividades:gerir',
+      'sistema:admin'
+    ],
+    camposObrigatorios: ['idJustificativa', 'decisao']
+  });
+}
+
+function portalJustificativasPendenciasDiretoriaV2(token) {
+  return portalExecutarConsultaJustificativaAtividadesV2_(token, {
+    id: 'justificativasPendenciasDiretoria',
+    code: 'JUSTIFICATIVAS_PENDENCIAS_DIRETORIA',
+    message: 'Justificativas pendentes carregadas para gestao.',
+    funcoes: [
+      'atividadesV2_portalListarPendenciasJustificativasDiretoria',
+      'atividadesV2_portalListarJustificativasDiretoria',
+      'atividadesV2_portalGetJustificativasPendentesDiretoria'
+    ],
+    requerDiretoria: true,
+    permissoes: [
+      'justificativas:analisar',
+      'diretoria:pendencias',
+      'atividades:gerir',
+      'sistema:admin'
+    ]
+  });
+}
+
 function portalPendenciasDiretoriaV2(token) {
   return portalExecutarLeituraV2_(token, {
     id: 'pendenciasDiretoria',
@@ -973,6 +1029,137 @@ function portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio) {
     return portalRespostaErro_(
       resposta.code || resposta.errorCode || 'ERRO_APRESENTACOES_V2',
       resposta.message || 'Nao foi possivel executar a acao de apresentacao.',
+      {},
+      portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+    );
+  }
+
+  return portalRespostaOk_(
+    config.code,
+    resposta.message || config.message,
+    resposta.data || resposta.dados || resposta || {},
+    portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+  );
+}
+
+function portalExecutarConsultaJustificativaAtividadesV2_(token, config) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var contexto = portalMontarContextoViewsV2_(token, config);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  var resposta = portalChamarAtividadesJustificativasV2_(config.funcoes, null, contextoAtividades);
+
+  return portalNormalizarRespostaAcaoJustificativaV2_(resposta, config, inicio);
+}
+
+function portalExecutarAcaoJustificativaAtividadesV2_(token, payloadJson, config) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var contexto = portalMontarContextoViewsV2_(token, config);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var payload = portalLerPayloadJson_(payloadJson);
+
+  if (!payload.ok) {
+    return payload.resposta;
+  }
+
+  var dadosPayload = portalNormalizarPayloadApresentacaoV2_(payload.data);
+  var validacao = portalValidarPayloadApresentacaoV2_(dadosPayload, config.camposObrigatorios || []);
+
+  if (!validacao.ok) {
+    return validacao.resposta;
+  }
+
+  var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  var resposta = portalChamarAtividadesJustificativasV2_(config.funcoes, dadosPayload, contextoAtividades);
+
+  return portalNormalizarRespostaAcaoJustificativaV2_(resposta, config, inicio);
+}
+
+function portalChamarAtividadesJustificativasV2_(nomesFuncoes, payload, contexto) {
+  var nomes = Array.isArray(nomesFuncoes) ? nomesFuncoes : [nomesFuncoes];
+  var funcoesGlobais = portalFuncoesGlobaisJustificativasV2_();
+
+  for (var i = 0; i < nomes.length; i++) {
+    var nomeFuncao = nomes[i];
+    var funcaoGlobal = funcoesGlobais[nomeFuncao] ||
+      (typeof globalThis !== 'undefined' ? globalThis[nomeFuncao] : null);
+
+    try {
+      if (typeof funcaoGlobal === 'function') {
+        return payload === null
+          ? funcaoGlobal(contexto)
+          : funcaoGlobal(payload, contexto);
+      }
+
+      if (
+        typeof GEAPA_ATIVIDADES !== 'undefined' &&
+        typeof GEAPA_ATIVIDADES[nomeFuncao] === 'function'
+      ) {
+        return payload === null
+          ? GEAPA_ATIVIDADES[nomeFuncao](contexto)
+          : GEAPA_ATIVIDADES[nomeFuncao](payload, contexto);
+      }
+    } catch (erro) {
+      Logger.log('GEAPA-PORTAL-JUSTIFICATIVAS-V2 ' + JSON.stringify({
+        funcao: nomeFuncao,
+        erro: erro && erro.message ? erro.message : String(erro)
+      }));
+
+      return {
+        ok: false,
+        errorCode: 'ERRO_JUSTIFICATIVAS_V2',
+        message: 'Nao foi possivel executar a acao de justificativa.'
+      };
+    }
+  }
+
+  return null;
+}
+
+function portalFuncoesGlobaisJustificativasV2_() {
+  var funcoes = {};
+
+  [
+    'atividadesV2_portalEnviarJustificativa',
+    'atividadesV2_portalEnviarJustificativa_',
+    'atividadesV2_portalRegistrarJustificativa',
+    'atividadesV2_portalRegistrarJustificativa_',
+    'atividadesV2_portalAnalisarJustificativa',
+    'atividadesV2_portalAnalisarJustificativa_',
+    'atividadesV2_portalListarPendenciasJustificativasDiretoria',
+    'atividadesV2_portalListarJustificativasDiretoria',
+    'atividadesV2_portalGetJustificativasPendentesDiretoria'
+  ].forEach(function mapear(nomeFuncao) {
+    if (typeof globalThis !== 'undefined' && typeof globalThis[nomeFuncao] === 'function') {
+      funcoes[nomeFuncao] = globalThis[nomeFuncao];
+    }
+  });
+
+  return funcoes;
+}
+
+function portalNormalizarRespostaAcaoJustificativaV2_(resposta, config, inicio) {
+  if (!resposta) {
+    return portalRespostaErro_(
+      'JUSTIFICATIVAS_V2_INDISPONIVEIS',
+      'A integracao de justificativas V2 ainda nao esta disponivel.',
+      {},
+      portalMetaViewsV2_('geapa-atividades-indisponivel', inicio)
+    );
+  }
+
+  if (resposta.ok === false) {
+    return portalRespostaErro_(
+      resposta.code || resposta.errorCode || 'ERRO_JUSTIFICATIVAS_V2',
+      resposta.message || 'Nao foi possivel executar a acao de justificativa.',
       {},
       portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
     );

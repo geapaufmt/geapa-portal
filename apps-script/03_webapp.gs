@@ -31,6 +31,9 @@ function doGet(e) {
         'minhaFrequencia',
         'minhasApresentacoes',
         'minhasJustificativas',
+        'justificativaEnviar',
+        'justificativaAnalisar',
+        'justificativasPendenciasDiretoria',
         'proximasAtividades',
         'historicoAtividades',
         'pendenciasDiretoria',
@@ -182,6 +185,24 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'minhasJustificativas') {
     return portalMinhasJustificativasV2(requisicao.token || '');
+  }
+
+  if (acao === 'justificativaEnviar') {
+    return portalJustificativaEnviarV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'justificativaAnalisar') {
+    return portalJustificativaAnalisarV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'justificativasPendenciasDiretoria') {
+    return portalJustificativasPendenciasDiretoriaV2(requisicao.token || '');
   }
 
   if (acao === 'proximasAtividades') {

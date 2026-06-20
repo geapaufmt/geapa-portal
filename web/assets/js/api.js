@@ -385,6 +385,9 @@
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',
       '/v2/minhas-justificativas': 'minhasJustificativas',
+      '/v2/justificativas/enviar': 'justificativaEnviar',
+      '/v2/justificativas/analisar': 'justificativaAnalisar',
+      '/v2/justificativas/pendencias': 'justificativasPendenciasDiretoria',
       '/v2/proximas-atividades': 'proximasAtividades',
       '/v2/historico-atividades': 'historicoAtividades',
       '/v2/pendencias-diretoria': 'pendenciasDiretoria',
@@ -493,7 +496,11 @@
     }
 
     if (route === '/v2/minhas-justificativas') {
-      return Promise.resolve(criarRespostaV2Mock('justificativas', []));
+      return Promise.resolve(criarRespostaV2Mock('justificativas', criarMinhasJustificativasMock()));
+    }
+
+    if (route === '/v2/justificativas/pendencias') {
+      return Promise.resolve(criarRespostaV2Mock('justificativas', criarPendenciasJustificativasMock()));
     }
 
     if (route === '/v2/proximas-atividades') {
@@ -564,7 +571,7 @@
       });
     }
 
-    if (route.indexOf('/v2/apresentacoes/') === 0) {
+    if (route.indexOf('/v2/apresentacoes/') === 0 || route.indexOf('/v2/justificativas/') === 0) {
       return Promise.resolve({
         ok: true,
         message: 'Acao de apresentacao simulada com sucesso.',
@@ -622,6 +629,63 @@
 
       return lista;
     }, []);
+  }
+
+  function criarMinhasJustificativasMock() {
+    return [
+      {
+        idRegistroPresenca: 'PRES-MOCK-1',
+        idAtividade: 'ATV-MOCK-1',
+        dataAtividade: '2026-06-25',
+        tituloAtividade: 'Apresentacao de Membro',
+        statusPresenca: 'FALTA',
+        statusJustificativa: 'FALTA_JUSTIFICAVEL',
+        prazoJustificativa: '2026-06-27',
+        prazoAberto: false,
+        foraDoPrazo: true,
+        podeEnviarJustificativa: true,
+        motivosDisponiveis: ['Saude', 'Atividade academica', 'Trabalho', 'Outro']
+      },
+      {
+        idJustificativa: 'JUST-MOCK-1',
+        idRegistroPresenca: 'PRES-MOCK-2',
+        idAtividade: 'ATV-MOCK-2',
+        dataAtividade: '2026-06-18',
+        tituloAtividade: 'Reuniao ordinaria',
+        motivoDeclarado: 'Saude',
+        descricaoJustificativa: 'Atendimento medico no horario da atividade.',
+        statusAnalise: 'ENVIADA',
+        statusJustificativa: 'ENVIADA',
+        dataEnvio: '2026-06-19',
+        prazoJustificativa: '2026-06-20',
+        foraDoPrazo: false
+      }
+    ];
+  }
+
+  function criarPendenciasJustificativasMock() {
+    return [
+      {
+        idJustificativa: 'JUST-MOCK-1',
+        idRegistroPresenca: 'PRES-MOCK-2',
+        idAtividade: 'ATV-MOCK-2',
+        nomeMembro: 'Membro de Teste',
+        dataAtividade: '2026-06-18',
+        tituloAtividade: 'Reuniao ordinaria',
+        motivoDeclarado: 'Saude',
+        descricaoJustificativa: 'Atendimento medico no horario da atividade.',
+        statusAnalise: 'ENVIADA',
+        prazoJustificativa: '2026-06-20',
+        dataEnvio: '2026-06-19',
+        foraDoPrazo: false,
+        acoesGestao: {
+          podeDeferir: true,
+          podeAbonar: true,
+          podeIndeferir: true,
+          podeSolicitarAjuste: true
+        }
+      }
+    ];
   }
 
   function criarEixosTematicosMock() {

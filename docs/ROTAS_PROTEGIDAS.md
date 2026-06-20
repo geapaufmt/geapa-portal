@@ -78,12 +78,13 @@ pelo mesmo guard.
 | `minha-situacao` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, ADMIN | `situacao:ver_propria` | Implementada |
 | `minhas-apresentacoes` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, EGRESSO, ADMIN | `situacao:ver_propria`, `apresentacoes:ver_propria`, `apresentacoes:ver_ate_saida` | Implementada V2 com acoes de titulo/eixos e material |
 | `frequencia` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `presencas:ler` | Implementada, read-only V2 |
-| `justificativas` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `justificativas:ver_proprias` | Implementada, read-only V2 |
+| `justificativas` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `justificativas:ver_proprias` | Implementada V2 com envio de justificativa |
 | `atividades` | Atividades | Todos | `atividades:ver` | Implementada |
 | `gestao-atividades` | Atividades | DIRETORIA, SECRETARIA, COMUNICACAO, ADMIN | `atividades:gerir` | Placeholder |
 | `diretoria` | Gestao | DIRETORIA, ADMIN | `membros:ler`, `atividades:gerir` | Placeholder |
 | `secretaria` | Gestao | SECRETARIA, DIRETORIA, ADMIN | `membros:ler`, `presencas:gerir`, `apresentacoes:gerir` | Placeholder |
 | `comunicacao` | Gestao | COMUNICACAO, DIRETORIA, ADMIN | `atividades:gerir`, `mensageria:ler` | Placeholder |
+| `admin-justificativas` | Gestao | SECRETARIA, DIRETORIA, ADMIN | `justificativas:analisar` | Implementada V2 para analise de justificativas |
 | `admin-apresentacoes` | Gestao | SECRETARIA, DIRETORIA, ADMIN | `apresentacoes:gerir` | Implementada V2 para revisao de titulo/eixos e material |
 | `painel-diretoria-v2` | Gestao | DIRETORIA, SECRETARIA, ADMIN, ADMIN_TECNICO | `diretoria:painel_v2`, `diretoria:pendencias`, `sistema:status_v2`, `sistema:admin`, `atividades:gerir`, `membros:ler`, `justificativas:analisar` | Implementada, read-only V2 |
 | `pendencias-diretoria` | Gestao | DIRETORIA, SECRETARIA, ADMIN | `diretoria:pendencias`, `membros:ler`, `atividades:gerir`, `justificativas:analisar` | Implementada, read-only V2 |
