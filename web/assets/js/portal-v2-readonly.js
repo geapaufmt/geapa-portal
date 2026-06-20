@@ -254,7 +254,9 @@
   }
 
   function montarConteudo(definicao, data, emCache) {
-    var itens = Array.isArray(data[definicao.listaCampo]) ? data[definicao.listaCampo] : [];
+    var itens = definicao.tipo === 'minhas-justificativas'
+      ? montarItensMinhasJustificativasData(data)
+      : (Array.isArray(data[definicao.listaCampo]) ? data[definicao.listaCampo] : []);
     var resumo = data.resumo || {};
     var ultimaAtualizacao = data.ultimaAtualizacao || '';
 
@@ -282,6 +284,17 @@
         ? ''
         : '<p class="empty-state readonly-empty">' + ui.escaparHtml(definicao.vazio) + '</p>'
     ].join('');
+  }
+
+  function montarItensMinhasJustificativasData(data) {
+    var faltas = Array.isArray((data || {}).faltasJustificaveis) ? data.faltasJustificaveis : [];
+    var justificativas = Array.isArray((data || {}).justificativas) ? data.justificativas : [];
+
+    return faltas.map(function marcarFalta(item) {
+      return Object.assign({ tipoJustificativaPortal: 'falta' }, item || {});
+    }).concat(justificativas.map(function marcarJustificativa(item) {
+      return Object.assign({ tipoJustificativaPortal: 'justificativa' }, item || {});
+    }));
   }
 
   function montarResumo(resumo, totalLista, ultimaAtualizacao) {
@@ -501,12 +514,16 @@
         var id = obterIdItem(item);
         var status = obterStatusJustificativa(item);
         var foraPrazo = justificativaForaPrazo(item);
-        var podeEnviar = item.podeEnviarJustificativa === true || item.podeReenviarJustificativa === true || status === 'FALTA_JUSTIFICAVEL' || status === 'AJUSTE_SOLICITADO';
-        var titulo = item.tituloAtividade || item.tituloPublico || item.atividade || 'Atividade';
+        var podeReenviar = item.podeReenviarAjuste === true || item.podeReenviarJustificativa === true;
+        var podeEnviar = item.podeEnviarJustificativa === true || podeReenviar;
+        var titulo = item.tituloPublico || item.tituloAtividade || item.atividade || 'Atividade';
         var data = formatarDataCurtaPendencia(item.dataAtividade);
-        var prazo = formatarDataCurtaPendencia(item.prazoJustificativa || item.dataLimiteJustificativa);
+        var prazo = formatarDataCurtaPendencia(item.dataLimiteJustificativa || item.prazoJustificativa);
+        var motivo = item.motivoCategoria || item.motivoDeclarado;
+        var envio = item.enviadaEm || item.dataEnvio;
+        var decisao = item.decisaoAplicada || item.decisaoAplicadaNaPresenca || item.valorDepois;
         var acao = podeEnviar
-          ? botaoAcao('justificativa-enviar', id, item.podeReenviarJustificativa === true || status === 'AJUSTE_SOLICITADO' ? 'Reenviar justificativa' : (foraPrazo ? 'Enviar justificativa fora do prazo' : 'Enviar justificativa'), 'primary')
+          ? botaoAcao('justificativa-enviar', id, podeReenviar ? 'Reenviar justificativa' : (foraPrazo ? 'Enviar justificativa fora do prazo' : 'Enviar justificativa'), 'primary')
           : '';
 
         estado.itensPorId[id] = item;
@@ -520,10 +537,12 @@
           '<div class="presentation-action-main"><div>',
           data ? '<small>' + ui.escaparHtml(data) + '</small>' : '',
           '<h3>' + ui.escaparHtml(formatarValor(titulo)) + '</h3>',
-          item.motivoDeclarado ? '<p>Motivo: ' + ui.escaparHtml(item.motivoDeclarado) + '</p>' : '',
+          motivo ? '<p>Motivo: ' + ui.escaparHtml(motivo) + '</p>' : '',
           prazo ? '<p>Prazo para justificar: ' + ui.escaparHtml(foraPrazo ? 'encerrado em ' + prazo : 'ate ' + prazo) + '</p>' : '',
-          item.dataEnvio || item.enviadaEm ? '<p>Enviada em: ' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataEnvio || item.enviadaEm)) + '</p>' : '',
-          item.decisaoAplicadaNaPresenca || item.valorDepois ? '<p>Decisao: ' + ui.escaparHtml(formatarValor(item.decisaoAplicadaNaPresenca || item.valorDepois)) + '</p>' : '',
+          envio ? '<p>Enviada em: ' + ui.escaparHtml(formatarDataCurtaPendencia(envio)) + '</p>' : '',
+          decisao ? '<p>Decisao: ' + ui.escaparHtml(formatarValor(decisao)) + '</p>' : '',
+          item.observacaoPublica ? '<p>Observacao: ' + ui.escaparHtml(item.observacaoPublica) + '</p>' : '',
+          item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
           foraPrazo && podeEnviar ? '<p>Voce ainda pode enviar a justificativa, mas ela ficara marcada como fora do prazo e dependera de analise.</p>' : '',
           '</div></div>',
           acao ? '<div class="presentation-card-actions">' + acao + '</div>' : '',
@@ -543,6 +562,9 @@
         var foraPrazo = justificativaForaPrazo(item);
         var status = obterStatusJustificativa(item);
         var documento = normalizarUrlPublica(item.linkDocumentoComprobatorio || item.linkDocumento);
+        var motivo = item.motivoCategoria || item.motivoDeclarado;
+        var prazo = item.dataLimiteJustificativa || item.prazoJustificativa;
+        var envio = item.enviadaEm || item.dataEnvio;
         var botoes = [
           acoes.podeDeferir ? botaoAcao('justificativa-deferir', id, 'Deferir', 'primary') : '',
           acoes.podeAbonar ? botaoAcao('justificativa-abonar', id, 'Abonar', 'primary') : '',
@@ -560,12 +582,13 @@
           '</div>',
           '<div class="presentation-action-main"><div>',
           '<small>' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataAtividade)) + '</small>',
-          '<h3>' + ui.escaparHtml(formatarValor(item.tituloAtividade || item.tituloPublico || 'Atividade')) + '</h3>',
+          '<h3>' + ui.escaparHtml(formatarValor(item.tituloPublico || item.tituloAtividade || 'Atividade')) + '</h3>',
           '<p>Membro: ' + ui.escaparHtml(formatarValor(item.nomeMembro || item.nomePessoa || item.nomeParticipante || item.nome)) + '</p>',
-          item.motivoDeclarado ? '<p>Motivo: ' + ui.escaparHtml(item.motivoDeclarado) + '</p>' : '',
+          motivo ? '<p>Motivo: ' + ui.escaparHtml(motivo) + '</p>' : '',
           item.descricaoJustificativa ? '<p>Descricao: ' + ui.escaparHtml(item.descricaoJustificativa) + '</p>' : '',
-          item.prazoJustificativa || item.dataLimiteJustificativa ? '<p>Prazo limite: ' + ui.escaparHtml(formatarDataCurtaPendencia(item.prazoJustificativa || item.dataLimiteJustificativa)) + '</p>' : '',
-          item.dataEnvio || item.enviadaEm ? '<p>Enviada em: ' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataEnvio || item.enviadaEm)) + '</p>' : '',
+          prazo ? '<p>Prazo limite: ' + ui.escaparHtml(formatarDataCurtaPendencia(prazo)) + '</p>' : '',
+          envio ? '<p>Enviada em: ' + ui.escaparHtml(formatarDataCurtaPendencia(envio)) + '</p>' : '',
+          item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
           documento ? '<p><a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(documento) + '" target="_blank" rel="noopener noreferrer">Abrir comprovante</a></p>' : '',
           '</div></div>',
           botoes ? '<div class="presentation-card-actions">' + botoes + '</div>' : '',
@@ -954,17 +977,21 @@
 
   function obterStatusJustificativa(item) {
     return normalizarStatusFluxo(
-      (item || {}).statusAnalise ||
       (item || {}).statusJustificativa ||
+      (item || {}).statusPublico ||
+      (item || {}).statusAnalise ||
+      (item || {}).statusPresenca ||
       (item || {}).STATUS_ANALISE ||
       ''
     );
   }
 
   function justificativaForaPrazo(item) {
-    var valor = (item || {}).foraDoPrazo !== undefined
-      ? (item || {}).foraDoPrazo
-      : ((item || {}).envioForaDoPrazo !== undefined ? (item || {}).envioForaDoPrazo : (item || {}).classificacaoTemporal);
+    var valor = (item || {}).envioForaDoPrazo !== undefined
+      ? (item || {}).envioForaDoPrazo
+      : ((item || {}).foraDoPrazo !== undefined
+        ? (item || {}).foraDoPrazo
+        : ((item || {}).statusPrazo !== undefined ? (item || {}).statusPrazo : (item || {}).classificacaoTemporal));
     var texto = normalizarStatusFluxo(valor);
 
     return valor === true || texto === 'SIM' || texto === 'FORA_DO_PRAZO' || texto === 'PRAZO_ENCERRADO';
@@ -1381,17 +1408,19 @@
 
   function abrirModalJustificativa(id) {
     var item = estado.itensPorId[id];
-    var foraPrazo = justificativaForaPrazo(item);
 
     if (!item) {
       return;
     }
 
+    var foraPrazo = justificativaForaPrazo(item);
+    var exigeCiencia = item.exigeCienciaForaPrazo === true || foraPrazo;
+
     abrirModalBase('Enviar justificativa', [
-      '<form class="readonly-form" data-portal-v2-form="justificativa-envio" data-fora-prazo="' + (foraPrazo ? 'true' : 'false') + '">',
+      '<form class="readonly-form" data-portal-v2-form="justificativa-envio" data-fora-prazo="' + (foraPrazo ? 'true' : 'false') + '" data-exige-ciencia-fora-prazo="' + (exigeCiencia ? 'true' : 'false') + '">',
       '<input type="hidden" name="idRegistroPresenca" value="' + ui.escaparHtml(item.idRegistroPresenca || id || '') + '">',
       '<input type="hidden" name="idAtividade" value="' + ui.escaparHtml(item.idAtividade || '') + '">',
-      foraPrazo ? '<p class="simulation-warning">Esta justificativa esta sendo enviada fora do prazo previsto. Ela sera registrada, mas a aceitacao dependera de analise da Diretoria/Secretaria.</p>' : '',
+      exigeCiencia ? '<p class="simulation-warning">Esta justificativa esta sendo enviada fora do prazo previsto. Ela sera registrada, mas a aceitacao dependera de analise da Diretoria/Secretaria.</p>' : '',
       montarCampoMotivoJustificativa(item),
       '<label>Descricao da justificativa',
       '<textarea name="descricaoJustificativa" rows="5" required>' + ui.escaparHtml(item.descricaoJustificativa || '') + '</textarea>',
@@ -1408,7 +1437,7 @@
       '<label>Observacoes',
       '<textarea name="observacoes" rows="3"></textarea>',
       '</label>',
-      foraPrazo ? '<label class="checkbox-line"><input name="cienciaForaPrazo" type="checkbox" required> Estou ciente de que esta justificativa esta fora do prazo e podera ser indeferida.</label>' : '',
+      exigeCiencia ? '<label class="checkbox-line"><input name="confirmouCienciaForaPrazo" type="checkbox" required> Estou ciente de que esta justificativa esta fora do prazo e podera ser indeferida.</label>' : '',
       '<div class="presentation-card-actions">',
       '<button type="submit">Enviar</button>',
       '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Cancelar</button>',
@@ -1423,7 +1452,7 @@
     if (!motivos.length) {
       return [
         '<label>Motivo',
-        '<input name="motivoDeclarado" required value="' + ui.escaparHtml((item || {}).motivoDeclarado || '') + '">',
+        '<input name="motivoDeclarado" required value="' + ui.escaparHtml((item || {}).motivoCategoria || (item || {}).motivoDeclarado || '') + '">',
         '</label>'
       ].join('');
     }
@@ -1433,7 +1462,7 @@
       '<select name="motivoDeclarado" required>',
       '<option value="">Selecionar</option>',
       motivos.map(function montar(motivo) {
-        var selecionado = String(motivo || '') === String((item || {}).motivoDeclarado || '') ? ' selected' : '';
+        var selecionado = String(motivo || '') === String((item || {}).motivoCategoria || (item || {}).motivoDeclarado || '') ? ' selected' : '';
         return '<option value="' + ui.escaparHtml(motivo) + '"' + selecionado + '>' + ui.escaparHtml(motivo) + '</option>';
       }).join(''),
       '</select>',
@@ -1640,11 +1669,11 @@
 
   function salvarJustificativa(form) {
     var dados = new FormData(form);
-    var foraPrazo = form.getAttribute('data-fora-prazo') === 'true';
+    var exigeCiencia = form.getAttribute('data-exige-ciencia-fora-prazo') === 'true';
     var possuiDocumento = dados.get('possuiDocumentoComprobatorio') || 'NAO';
     var linkDocumento = String(dados.get('linkDocumentoComprobatorio') || '').trim();
 
-    if (foraPrazo && dados.get('cienciaForaPrazo') !== 'on') {
+    if (exigeCiencia && dados.get('confirmouCienciaForaPrazo') !== 'on') {
       mostrarErroModal('Confirme ciencia do envio fora do prazo.');
       return;
     }
@@ -1661,9 +1690,8 @@
       descricaoJustificativa: dados.get('descricaoJustificativa'),
       possuiDocumentoComprobatorio: possuiDocumento,
       linkDocumentoComprobatorio: linkDocumento,
-      observacoes: dados.get('observacoes'),
-      foraDoPrazo: foraPrazo,
-      cienciaForaPrazo: foraPrazo
+      confirmouCienciaForaPrazo: exigeCiencia ? dados.get('confirmouCienciaForaPrazo') === 'on' : false,
+      observacoes: dados.get('observacoes')
     });
   }
 

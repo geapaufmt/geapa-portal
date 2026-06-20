@@ -341,11 +341,16 @@ O Pacote 2 usa o modulo Atividades como fonte operacional. O Portal consome:
 - `GET /v2/justificativas/pendencias`
 - `POST /v2/justificativas/analisar`
 
+`GET /v2/minhas-justificativas` retorna `faltasJustificaveis`,
+`justificativas`, `resumo` e `ultimaAtualizacao`. `faltasJustificaveis` traz as
+ausencias que ainda podem receber justificativa; `justificativas` traz o
+acompanhamento de envios ja registrados.
+
 O envio fora do prazo nao e bloqueado no frontend: o card mostra alerta, o
-modal exige ciencia do membro e o payload envia `foraDoPrazo` e
-`cienciaForaPrazo`. A analise continua cabendo a Diretoria/Secretaria, que pode
-deferir, abonar, indeferir ou solicitar ajuste conforme flags/permissoes do
-backend.
+modal exige ciencia do membro quando `exigeCienciaForaPrazo = true` e o payload
+envia `confirmouCienciaForaPrazo`. A analise continua cabendo a
+Diretoria/Secretaria, que pode deferir, abonar, indeferir ou solicitar ajuste
+conforme `acoesGestao` e validacao final do backend.
 
 O comprovante inicial e informado por link em
 `linkDocumentoComprobatorio`. O frontend nao altera presenca diretamente, nao

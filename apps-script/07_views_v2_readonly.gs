@@ -533,12 +533,10 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
 }
 
 function portalMinhasJustificativasV2(token) {
-  return portalExecutarLeituraV2_(token, {
+  return portalExecutarMinhasJustificativasV2_(token, {
     id: 'minhasJustificativas',
     code: 'MINHAS_JUSTIFICATIVAS_V2',
     message: 'Minhas justificativas carregadas pelas views V2.',
-    listaCampo: 'justificativas',
-    listaChaves: ['justificativas', 'minhasJustificativas', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'atividades',
     registryKeys: [
@@ -554,25 +552,63 @@ function portalMinhasJustificativasV2(token) {
       'portal.v2.getMinhasJustificativas',
       'portal.getMinhasJustificativas'
     ],
-    campos: [
-      'idJustificativa',
+    camposFaltas: [
+      'idRegistroPresenca',
       'idAtividade',
+      'idPessoa',
+      'rga',
       'dataAtividade',
       'tituloPublico',
-      'tipoPublico',
+      'statusPresenca',
+      'dataLimiteJustificativa',
+      'statusPrazo',
+      'envioForaDoPrazo',
+      'podeEnviarJustificativa',
+      'exigeCienciaForaPrazo',
+      'mensagemPortal',
+      'motivosDisponiveis'
+    ],
+    aliasesFaltas: {
+      tituloPublico: ['tituloAtividade', 'TITULO_ATIVIDADE'],
+      dataLimiteJustificativa: ['prazoJustificativa', 'DATA_LIMITE_JUSTIFICATIVA'],
+      envioForaDoPrazo: ['foraDoPrazo', 'ENVIO_FORA_DO_PRAZO'],
+      motivosDisponiveis: ['motivos', 'MOTIVOS_DISPONIVEIS']
+    },
+    camposJustificativas: [
+      'idJustificativa',
+      'idRegistroPresenca',
+      'idAtividade',
+      'idPessoa',
+      'rga',
+      'dataAtividade',
+      'tituloPublico',
+      'motivoCategoria',
       'statusJustificativa',
       'statusPublico',
-      'motivoCategoria',
+      'decisaoAplicada',
       'enviadaEm',
-      'decididaEm'
+      'dataLimiteJustificativa',
+      'statusPrazo',
+      'envioForaDoPrazo',
+      'podeReenviarAjuste',
+      'observacaoPublica',
+      'mensagemPortal',
+      'ultimaAtualizacao',
+      'descricaoJustificativa',
+      'possuiDocumentoComprobatorio',
+      'linkDocumentoComprobatorio',
+      'motivosDisponiveis'
     ],
-    aliases: {
+    aliasesJustificativas: {
       tituloPublico: ['tituloAtividade', 'TITULO_ATIVIDADE'],
+      motivoCategoria: ['motivoDeclarado', 'MOTIVO_DECLARADO'],
       statusJustificativa: ['statusAnalise', 'STATUS_ANALISE'],
       statusPublico: ['statusAnalise', 'STATUS_ANALISE'],
-      motivoCategoria: ['motivoDeclarado', 'MOTIVO_DECLARADO'],
+      decisaoAplicada: ['decisaoAplicadaNaPresenca', 'valorDepois', 'VALOR_DEPOIS'],
       enviadaEm: ['dataEnvio', 'DATA_ENVIO'],
-      decididaEm: ['dataAnalise', 'DATA_ANALISE']
+      dataLimiteJustificativa: ['prazoJustificativa', 'DATA_LIMITE_JUSTIFICATIVA'],
+      envioForaDoPrazo: ['foraDoPrazo', 'ENVIO_FORA_DO_PRAZO'],
+      motivosDisponiveis: ['motivos', 'MOTIVOS_DISPONIVEIS']
     }
   });
 }
@@ -655,6 +691,7 @@ function portalJustificativasPendenciasDiretoriaV2(token) {
     code: 'JUSTIFICATIVAS_PENDENCIAS_DIRETORIA',
     message: 'Justificativas pendentes carregadas para gestao.',
     funcoes: [
+      'atividadesV2_portalListarJustificativasPendentesDiretoria',
       'atividadesV2_portalListarPendenciasJustificativasDiretoria',
       'atividadesV2_portalListarJustificativasDiretoria',
       'atividadesV2_portalGetJustificativasPendentesDiretoria'
@@ -1134,6 +1171,7 @@ function portalFuncoesGlobaisJustificativasV2_() {
     'atividadesV2_portalRegistrarJustificativa_',
     'atividadesV2_portalAnalisarJustificativa',
     'atividadesV2_portalAnalisarJustificativa_',
+    'atividadesV2_portalListarJustificativasPendentesDiretoria',
     'atividadesV2_portalListarPendenciasJustificativasDiretoria',
     'atividadesV2_portalListarJustificativasDiretoria',
     'atividadesV2_portalGetJustificativasPendentesDiretoria'
@@ -1686,6 +1724,48 @@ function portalExecutarLeituraV2_(token, config) {
   );
 }
 
+function portalExecutarMinhasJustificativasV2_(token, config) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var contexto = portalMontarContextoViewsV2_(token, config);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var cacheKey = portalCacheKey_('viewsV2r2:' + config.id, contexto.identificadorSessao);
+  var cache = portalLerJsonCacheViewsV2_(cacheKey);
+
+  if (cache) {
+    return portalRespostaOk_(
+      config.code + '_CACHE',
+      'Justificativas V2 carregadas em cache temporario.',
+      cache,
+      portalMetaViewsV2_('cache', inicio)
+    );
+  }
+
+  var resposta = portalChamarContratoViewsV2_(config, contexto);
+
+  if (!resposta) {
+    resposta = portalLerViewV2PorRegistry_(config);
+  }
+
+  var normalizada = portalNormalizarMinhasJustificativasV2_(resposta, config, contexto);
+
+  if (!normalizada.ok) {
+    return normalizada.resposta;
+  }
+
+  portalSalvarJsonCacheViewsV2_(cacheKey, normalizada.data);
+
+  return portalRespostaOk_(
+    config.code,
+    config.message,
+    normalizada.data,
+    portalMetaViewsV2_(normalizada.origem || 'geapa-atividades', inicio)
+  );
+}
+
 function portalExecutarLeituraAtividadesV2_(token, config) {
   var inicio = portalAgoraViewsV2Ms_();
   var contexto = portalMontarContextoViewsV2_(token, config);
@@ -2041,6 +2121,10 @@ function portalFuncoesGlobaisViewsV2_() {
     funcoes.portalV2GetMinhasApresentacoes = portalV2GetMinhasApresentacoes;
   }
 
+  if (typeof atividadesV2_portalGetMinhasJustificativas === 'function') {
+    funcoes.atividadesV2_portalGetMinhasJustificativas = atividadesV2_portalGetMinhasJustificativas;
+  }
+
   if (typeof corePortalV2GetMinhasJustificativas === 'function') {
     funcoes.corePortalV2GetMinhasJustificativas = corePortalV2GetMinhasJustificativas;
   }
@@ -2138,6 +2222,64 @@ function portalChamarMetodoObjetoViewsV2_(api, caminho, payload) {
   }
 
   return null;
+}
+
+function portalNormalizarMinhasJustificativasV2_(resposta, config, contexto) {
+  if (!resposta) {
+    return {
+      ok: false,
+      resposta: portalRespostaErro_(
+        'JUSTIFICATIVAS_V2_INDISPONIVEIS',
+        'A integracao de justificativas V2 ainda nao esta disponivel.',
+        {}
+      )
+    };
+  }
+
+  if (resposta.ok === false) {
+    return {
+      ok: false,
+      resposta: portalRespostaErro_(
+        resposta.code || resposta.errorCode || 'ERRO_JUSTIFICATIVAS_V2',
+        resposta.message || 'Nao foi possivel consultar suas justificativas.',
+        {}
+      )
+    };
+  }
+
+  var bruto = resposta.data || resposta.dados || resposta;
+  var faltasBrutas = portalExtrairListaViewsV2_(bruto, [
+    'faltasJustificaveis',
+    'faltas',
+    'faltasPendentes'
+  ]);
+  var justificativasBrutas = portalExtrairListaViewsV2_(bruto, [
+    'justificativas',
+    'minhasJustificativas',
+    'registros',
+    'itens'
+  ]);
+  var faltas = portalFiltrarListaPropriaViewsV2_(faltasBrutas, contexto).map(function sanitizarFalta(item) {
+    return portalSanitizarItemViewsV2_(item, config.camposFaltas, config.aliasesFaltas);
+  });
+  var justificativas = portalFiltrarListaPropriaViewsV2_(justificativasBrutas, contexto).map(function sanitizarJustificativa(item) {
+    return portalSanitizarItemViewsV2_(item, config.camposJustificativas, config.aliasesJustificativas);
+  });
+  var atualizacao = portalObterCampoFlexViewsV2_(bruto, ['ultimaAtualizacao', 'atualizadoEm', 'updatedAt']) ||
+    portalObterUltimaAtualizacaoListaViewsV2_(justificativas) ||
+    portalObterUltimaAtualizacaoListaViewsV2_(faltas);
+
+  return {
+    ok: true,
+    origem: (resposta.meta && resposta.meta.origem) || resposta.origem || 'geapa-atividades',
+    data: {
+      sessao: portalResumoSessaoViewsV2_(contexto),
+      resumo: portalExtrairResumoViewsV2_(bruto, config.resumoChaves),
+      ultimaAtualizacao: atualizacao,
+      faltasJustificaveis: faltas,
+      justificativas: justificativas
+    }
+  };
 }
 
 function portalNormalizarRespostaViewsV2_(resposta, config, contexto) {

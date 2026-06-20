@@ -718,16 +718,16 @@ Contratos de resposta:
   `idPessoa`, `rga` ou e-mail da sessao, sem consumir uma view paralela de
   apresentacoes. A tela pessoal renderiza botoes somente a partir de
   `apresentacao.acoesMembro`.
-- `minhasJustificativas`: retorna `data.justificativas`, `data.resumo` e
-  `data.ultimaAtualizacao`; a tela mostra faltas justificaveis e justificativas
-  ja enviadas.
+- `minhasJustificativas`: retorna `data.faltasJustificaveis`,
+  `data.justificativas`, `data.resumo` e `data.ultimaAtualizacao`; a tela mostra
+  faltas justificaveis e justificativas ja enviadas.
 - `justificativaEnviar`: envia justificativa ao modulo Atividades. Payload:
   `idRegistroPresenca`, `idAtividade`, `motivoDeclarado`,
   `descricaoJustificativa`, `possuiDocumentoComprobatorio`,
-  `linkDocumentoComprobatorio`, `observacoes`, `foraDoPrazo` e
-  `cienciaForaPrazo`.
+  `linkDocumentoComprobatorio`, `confirmouCienciaForaPrazo` e `observacoes`.
 - `justificativasPendenciasDiretoria`: retorna justificativas pendentes de
-  analise para perfis com `justificativas:analisar`.
+  analise para perfis com `justificativas:analisar`; o backend preferido e
+  `atividadesV2_portalListarJustificativasPendentesDiretoria(contexto)`.
 - `justificativaAnalisar`: registra decisao `DEFERIR`, `ABONAR`,
   `INDEFERIR` ou `SOLICITAR_AJUSTE`; observacao e obrigatoria para indeferir
   ou solicitar ajuste.

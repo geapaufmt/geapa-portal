@@ -496,7 +496,7 @@
     }
 
     if (route === '/v2/minhas-justificativas') {
-      return Promise.resolve(criarRespostaV2Mock('justificativas', criarMinhasJustificativasMock()));
+      return Promise.resolve(criarRespostaMinhasJustificativasMock());
     }
 
     if (route === '/v2/justificativas/pendencias') {
@@ -631,36 +631,64 @@
     }, []);
   }
 
-  function criarMinhasJustificativasMock() {
-    return [
-      {
-        idRegistroPresenca: 'PRES-MOCK-1',
-        idAtividade: 'ATV-MOCK-1',
-        dataAtividade: '2026-06-25',
-        tituloAtividade: 'Apresentacao de Membro',
-        statusPresenca: 'FALTA',
-        statusJustificativa: 'FALTA_JUSTIFICAVEL',
-        prazoJustificativa: '2026-06-27',
-        prazoAberto: false,
-        foraDoPrazo: true,
-        podeEnviarJustificativa: true,
-        motivosDisponiveis: ['Saude', 'Atividade academica', 'Trabalho', 'Outro']
+  function criarRespostaMinhasJustificativasMock() {
+    return {
+      ok: true,
+      data: {
+        resumo: {
+          total: 2,
+          pendentes: 1
+        },
+        ultimaAtualizacao: new Date().toISOString(),
+        faltasJustificaveis: [
+          {
+            idRegistroPresenca: 'PRES-MOCK-1',
+            idAtividade: 'ATV-MOCK-1',
+            idPessoa: 'PESSOA-MOCK',
+            rga: '20260001',
+            dataAtividade: '2026-06-25',
+            tituloPublico: 'Apresentacao de Membro',
+            statusPresenca: 'FALTA',
+            dataLimiteJustificativa: '2026-06-27',
+            statusPrazo: 'FORA_DO_PRAZO',
+            envioForaDoPrazo: 'SIM',
+            podeEnviarJustificativa: true,
+            exigeCienciaForaPrazo: true,
+            mensagemPortal: 'Esta justificativa sera analisada pela Diretoria/Secretaria.',
+            motivosDisponiveis: ['Saude', 'Atividade academica', 'Trabalho', 'Outro']
+          }
+        ],
+        justificativas: [
+          {
+            idJustificativa: 'JUST-MOCK-1',
+            idRegistroPresenca: 'PRES-MOCK-2',
+            idAtividade: 'ATV-MOCK-2',
+            idPessoa: 'PESSOA-MOCK',
+            rga: '20260001',
+            dataAtividade: '2026-06-18',
+            tituloPublico: 'Reuniao ordinaria',
+            motivoCategoria: 'Saude',
+            descricaoJustificativa: 'Atendimento medico no horario da atividade.',
+            statusJustificativa: 'ENVIADA',
+            statusPublico: 'Em analise',
+            decisaoAplicada: '',
+            enviadaEm: '2026-06-19',
+            dataLimiteJustificativa: '2026-06-20',
+            statusPrazo: 'DENTRO_DO_PRAZO',
+            envioForaDoPrazo: 'NAO',
+            podeReenviarAjuste: false,
+            observacaoPublica: '',
+            mensagemPortal: 'Aguardando analise.'
+          }
+        ]
       },
-      {
-        idJustificativa: 'JUST-MOCK-1',
-        idRegistroPresenca: 'PRES-MOCK-2',
-        idAtividade: 'ATV-MOCK-2',
-        dataAtividade: '2026-06-18',
-        tituloAtividade: 'Reuniao ordinaria',
-        motivoDeclarado: 'Saude',
-        descricaoJustificativa: 'Atendimento medico no horario da atividade.',
-        statusAnalise: 'ENVIADA',
-        statusJustificativa: 'ENVIADA',
-        dataEnvio: '2026-06-19',
-        prazoJustificativa: '2026-06-20',
-        foraDoPrazo: false
+      meta: {
+        viewsV2: {
+          somenteLeitura: false,
+          origemDados: 'mock'
+        }
       }
-    ];
+    };
   }
 
   function criarPendenciasJustificativasMock() {
@@ -671,13 +699,17 @@
         idAtividade: 'ATV-MOCK-2',
         nomeMembro: 'Membro de Teste',
         dataAtividade: '2026-06-18',
-        tituloAtividade: 'Reuniao ordinaria',
-        motivoDeclarado: 'Saude',
+        tituloPublico: 'Reuniao ordinaria',
+        motivoCategoria: 'Saude',
         descricaoJustificativa: 'Atendimento medico no horario da atividade.',
-        statusAnalise: 'ENVIADA',
-        prazoJustificativa: '2026-06-20',
-        dataEnvio: '2026-06-19',
-        foraDoPrazo: false,
+        statusJustificativa: 'ENVIADA',
+        statusPrazo: 'DENTRO_DO_PRAZO',
+        dataLimiteJustificativa: '2026-06-20',
+        enviadaEm: '2026-06-19',
+        envioForaDoPrazo: 'NAO',
+        possuiDocumentoComprobatorio: 'SIM',
+        linkDocumentoComprobatorio: 'https://example.com/comprovante.pdf',
+        mensagemPortal: 'Analise pendente.',
         acoesGestao: {
           podeDeferir: true,
           podeAbonar: true,
