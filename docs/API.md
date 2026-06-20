@@ -722,7 +722,9 @@ Contratos de resposta:
   `data.ciclos[]`, `data.registros[]` e `data.ultimaAtualizacao`. Cada registro
   pode trazer `acaoJustificativa`, `podeEnviarJustificativa`,
   `podeVerJustificativa`, `podeComplementarJustificativa`, `mensagemPortal` e
-  os identificadores necessarios para abrir o fluxo de justificativa.
+  os identificadores necessarios para abrir o fluxo de justificativa. O contrato
+  esperado e `MINHA_FREQUENCIA_DETALHADA_V2`; payload antigo/resumido nao deve
+  gerar cards de atividade.
 - `minhasApresentacoes`: retorna `data.apresentacoes`, `data.resumo` e
   `data.ultimaAtualizacao`; o backend prefere
   `atividadesV2_portalGetMinhasApresentacoes(contexto)` e filtra por
@@ -945,6 +947,7 @@ Exemplo:
 ```json
 {
   "ok": true,
+  "contrato": "MINHA_FREQUENCIA_DETALHADA_V2",
   "code": "MINHA_FREQUENCIA_V2",
   "message": "Minha frequencia carregada pelas views V2.",
   "data": {
@@ -953,6 +956,7 @@ Exemplo:
       "perfisPortal": ["MEMBRO"],
       "portalAtivo": true
     },
+    "contrato": "MINHA_FREQUENCIA_DETALHADA_V2",
     "resumoGeral": {
       "totalAtividades": 0,
       "totalPresencas": 0,

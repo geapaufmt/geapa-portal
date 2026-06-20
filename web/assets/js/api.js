@@ -730,7 +730,9 @@
 
     return {
       ok: true,
+      contrato: 'MINHA_FREQUENCIA_DETALHADA_V2',
       data: {
+        contrato: 'MINHA_FREQUENCIA_DETALHADA_V2',
         resumoGeral: {
           totalAtividades: 2,
           totalPresencas: 1,

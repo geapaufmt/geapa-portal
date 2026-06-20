@@ -13,13 +13,7 @@ function portalMinhaFrequenciaV2(token) {
     message: 'Minha frequencia carregada pelas views V2.',
     requerDiretoria: false,
     funcoes: [
-      'atividadesV2_portalGetMinhaFrequencia',
-      'corePortalV2GetMinhaFrequencia',
-      'corePortalReadonlyGetMinhaFrequencia',
-      'corePortalMinhaFrequenciaV2',
-      'portalV2GetMinhaFrequencia',
-      'portal.v2.getMinhaFrequencia',
-      'portal.getMinhaFrequencia'
+      'atividadesV2_portalGetMinhaFrequencia'
     ]
   });
 }
@@ -2258,36 +2252,53 @@ function portalNormalizarMinhaFrequenciaV2_(resposta, contexto, inicio) {
   }
 
   var bruto = resposta.data || resposta.dados || resposta;
-  var registros = portalSanitizarRegistrosFrequenciaV2_(
-    portalExtrairListaViewsV2_(bruto, ['registros', 'frequencia', 'itens'])
-  );
+  var contratoInformado = portalObterCampoFlexViewsV2_(resposta, ['contrato']) ||
+    portalObterCampoFlexViewsV2_(bruto, ['contrato']);
+  var registrosBrutos = portalExtrairListaViewsV2_(bruto, ['registros', 'frequencia', 'itens']);
+  var registros = portalSanitizarRegistrosFrequenciaV2_(registrosBrutos)
+    .filter(portalRegistroFrequenciaDetalhadoV2_);
   var ciclos = Array.isArray(bruto.ciclos)
     ? bruto.ciclos.map(portalSanitizarCicloFrequenciaV2_)
     : [];
+  var payloadAntigoDetectado = !Array.isArray(bruto.ciclos) &&
+    registrosBrutos.length > 0 &&
+    registros.length === 0;
+  var contrato = contratoInformado ||
+    (payloadAntigoDetectado ? 'FREQUENCIA_RESUMIDA_LEGADA' : 'MINHA_FREQUENCIA_DETALHADA_V2');
 
-  if (!ciclos.length && registros.length) {
-    ciclos = [{
-      ciclo: bruto.cicloAtual || '',
-      rotuloCiclo: bruto.rotuloCiclo || bruto.cicloAtual || 'Todos os registros',
-      resumo: portalSanitizarResumoFrequenciaV2_(bruto.resumoGeral || bruto.resumo || bruto.totais || {}),
-      registros: registros
-    }];
-  }
+  ciclos = ciclos
+    .map(function limpar(ciclo) {
+      ciclo.registros = (ciclo.registros || []).filter(portalRegistroFrequenciaDetalhadoV2_);
+      return ciclo;
+    })
+    .filter(function manter(ciclo) {
+      return ciclo.registros.length || ciclo.ciclo || ciclo.rotuloCiclo;
+    });
 
-  return portalRespostaOk_(
+  var retorno = portalRespostaOk_(
     'MINHA_FREQUENCIA_V2',
-    resposta.message || 'Minha frequencia carregada pelo modulo Atividades.',
+    payloadAntigoDetectado
+      ? 'A frequencia detalhada ainda nao foi carregada pelo backend.'
+      : (resposta.message || 'Minha frequencia carregada pelo modulo Atividades.'),
     {
+      contrato: contrato,
       sessao: portalResumoSessaoViewsV2_(contexto),
       resumoGeral: portalSanitizarResumoFrequenciaV2_(bruto.resumoGeral || bruto.resumo || bruto.totais || {}),
       cicloAtual: portalObterCampoFlexViewsV2_(bruto, ['cicloAtual', 'ciclo', 'periodoAtual']),
       ciclos: ciclos,
       registros: registros,
+      payloadAntigoDetectado: payloadAntigoDetectado,
+      aviso: payloadAntigoDetectado
+        ? 'A frequencia detalhada ainda nao foi carregada pelo backend. Atualize o backend/deploy da API.'
+        : '',
       ultimaAtualizacao: portalObterCampoFlexViewsV2_(bruto, ['ultimaAtualizacao', 'atualizadoEm', 'updatedAt']) ||
         portalObterUltimaAtualizacaoListaViewsV2_(registros)
     },
     portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
   );
+
+  retorno.contrato = contrato;
+  return retorno;
 }
 
 function portalSanitizarCicloFrequenciaV2_(ciclo) {
@@ -2300,7 +2311,7 @@ function portalSanitizarCicloFrequenciaV2_(ciclo) {
     resumo: portalSanitizarResumoFrequenciaV2_(dados.resumo || dados.resumoGeral || dados.totais || {}),
     registros: portalSanitizarRegistrosFrequenciaV2_(
       Array.isArray(dados.registros) ? dados.registros : portalExtrairListaViewsV2_(dados, ['atividades', 'itens'])
-    )
+    ).filter(portalRegistroFrequenciaDetalhadoV2_)
   };
 }
 
@@ -2348,6 +2359,11 @@ function portalSanitizarRegistrosFrequenciaV2_(registros) {
       'exigeCienciaForaPrazo'
     ]);
   });
+}
+
+function portalRegistroFrequenciaDetalhadoV2_(registro) {
+  var dados = registro || {};
+  return Boolean(dados.idAtividade && dados.dataAtividade && (dados.tituloAtividade || dados.tituloPublico));
 }
 
 function portalNormalizarConfigJustificativasV2_(resposta, config, inicio) {

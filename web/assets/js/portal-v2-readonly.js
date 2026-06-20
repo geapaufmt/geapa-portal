@@ -389,16 +389,21 @@
     var resumo = cicloAtual && Object.keys(cicloAtual.resumo || {}).length
       ? cicloAtual.resumo
       : ((data || {}).resumoGeral || (data || {}).resumo || {});
+    var payloadAntigo = detectarPayloadAntigoFrequencia(data || {}, ciclos, registros);
 
     indexarItensPorId(registros);
 
     return [
       montarResumoFrequencia(resumo, registros.length, (data || {}).ultimaAtualizacao),
       emCache ? '<p class="updated-at">Atualizando em segundo plano...</p>' : '',
-      ciclos.length > 1 ? montarFiltroCicloFrequencia(ciclos, cicloAtual) : '',
-      registros.length
-        ? montarRegistrosFrequencia(registros)
-        : '<p class="empty-state readonly-empty">' + ui.escaparHtml(definicao.vazio) + '</p>'
+      payloadAntigo ? montarAvisoFrequenciaDetalhadaIndisponivel(data || {}) : '',
+      !payloadAntigo && ciclos.length > 1 ? montarFiltroCicloFrequencia(ciclos, cicloAtual) : '',
+      !payloadAntigo && ciclos.length === 1 ? '<p class="updated-at">Ciclo: ' + ui.escaparHtml(cicloAtual.rotuloCiclo || cicloAtual.ciclo || 'Sem ciclo definido') + '</p>' : '',
+      payloadAntigo
+        ? ''
+        : (registros.length
+          ? montarRegistrosFrequencia(registros)
+          : '<p class="empty-state readonly-empty">' + ui.escaparHtml(definicao.vazio) + '</p>')
     ].join('');
   }
 
@@ -406,11 +411,17 @@
     var ciclos = Array.isArray(data.ciclos) ? data.ciclos : [];
 
     if (!ciclos.length) {
+      var registrosDetalhados = normalizarRegistrosFrequencia(data.registros);
+
+      if (!registrosDetalhados.length) {
+        return [];
+      }
+
       return [{
         ciclo: data.cicloAtual || '',
         rotuloCiclo: data.cicloAtual || 'Todos os registros',
         resumo: data.resumoGeral || data.resumo || {},
-        registros: normalizarRegistrosFrequencia(data.registros)
+        registros: registrosDetalhados
       }];
     }
 
@@ -421,11 +432,41 @@
         resumo: (ciclo || {}).resumo || {},
         registros: normalizarRegistrosFrequencia((ciclo || {}).registros)
       });
+    }).filter(function manter(ciclo) {
+      return ciclo.registros.length || ciclo.ciclo || ciclo.rotuloCiclo;
     });
   }
 
   function normalizarRegistrosFrequencia(registros) {
-    return Array.isArray(registros) ? registros : [];
+    return Array.isArray(registros)
+      ? registros.filter(registroFrequenciaDetalhado)
+      : [];
+  }
+
+  function registroFrequenciaDetalhado(registro) {
+    return Boolean(
+      registro &&
+      registro.idAtividade &&
+      registro.dataAtividade &&
+      (registro.tituloAtividade || registro.tituloPublico)
+    );
+  }
+
+  function detectarPayloadAntigoFrequencia(data, ciclos, registros) {
+    var registrosBrutos = Array.isArray((data || {}).registros) ? data.registros : [];
+    var semCiclosDetalhados = !Array.isArray((data || {}).ciclos) || !(data || {}).ciclos.length;
+    var contrato = String((data || {}).contrato || '').trim();
+
+    return (data || {}).payloadAntigoDetectado === true ||
+      (semCiclosDetalhados && registrosBrutos.length > 0 && !registros.length) ||
+      (contrato && contrato !== 'MINHA_FREQUENCIA_DETALHADA_V2' && !ciclos.length);
+  }
+
+  function montarAvisoFrequenciaDetalhadaIndisponivel(data) {
+    var mensagem = data.aviso ||
+      'A frequencia detalhada ainda nao foi carregada pelo backend. Atualize o backend/deploy da API.';
+
+    return '<p class="empty-state readonly-error">' + ui.escaparHtml(mensagem) + '</p>';
   }
 
   function selecionarCicloFrequencia(ciclos, data) {

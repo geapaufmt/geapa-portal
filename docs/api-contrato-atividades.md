@@ -377,10 +377,13 @@ Diretoria/Secretaria, que pode deferir, abonar, indeferir ou solicitar ajuste
 conforme `acoesGestao` e validacao final do backend.
 
 `Minha frequencia` consome `atividadesV2_portalGetMinhaFrequencia(contexto)` e
-preserva `resumoGeral`, `cicloAtual`, `ciclos[]` e `registros[]`. Registros com
+preserva `contrato = MINHA_FREQUENCIA_DETALHADA_V2`, `resumoGeral`,
+`cicloAtual`, `ciclos[]` e `ciclos[].registros[]`. Registros com
 `acaoJustificativa` igual a `ENVIAR_JUSTIFICATIVA`,
 `ENVIAR_JUSTIFICATIVA_FORA_PRAZO` ou `COMPLEMENTAR_JUSTIFICATIVA` abrem o mesmo
-modal de justificativa de falta registrada.
+modal de justificativa de falta registrada. Payload antigo com apenas resumo em
+`registros[]` deve renderizar aviso controlado e nunca lista falsa de
+atividades.
 
 O frontend nao altera presenca diretamente, nao escreve em `PORTAL_*` e invalida
 caches de justificativas, frequencia, pendencias e painel apos envio ou analise.
