@@ -31,6 +31,7 @@ function doGet(e) {
         'minhaFrequencia',
         'minhasApresentacoes',
         'minhasJustificativas',
+        'justificativasConfig',
         'justificativaEnviar',
         'justificativaAnalisar',
         'justificativasPendenciasDiretoria',
@@ -185,6 +186,10 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'minhasJustificativas') {
     return portalMinhasJustificativasV2(requisicao.token || '');
+  }
+
+  if (acao === 'justificativasConfig') {
+    return portalJustificativasConfigV2(requisicao.token || '');
   }
 
   if (acao === 'justificativaEnviar') {

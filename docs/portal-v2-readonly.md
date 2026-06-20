@@ -45,18 +45,19 @@ atualizada.
 
 ## Fora de escopo
 
-Esta etapa nao implementa:
+Esta etapa de leitura V2 nao implementava acoes operacionais. No Pacote 2, o
+Portal passou a consumir acoes de justificativa via Apps Script e modulo
+Atividades, sem escrever em planilhas diretamente. Ainda ficam fora deste fluxo:
 
-- justificativa de falta pelo portal;
-- deferimento ou indeferimento;
 - edicao de atividade;
 - emissao de certificado;
-- upload de arquivos;
 - triggers;
-- escrita nas bases V2.
+- escrita direta nas bases V2 pelo front-end.
 
-As telas novas exibem apenas consulta, loading, vazio e erro controlado. A lista
-de Atividades tambem fica sem botoes operacionais nesta etapa.
+As telas mantem consulta, loading, vazio e erro controlado. A lista de
+Atividades pode exibir `Justificar ausencia futura` quando o backend enviar a
+flag correspondente; `Minha frequencia` e `Minhas justificativas` podem abrir o
+fluxo de justificativa de falta registrada conforme permissoes do backend.
 
 ## Fluxo de dados
 

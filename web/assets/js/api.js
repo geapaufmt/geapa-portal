@@ -391,6 +391,7 @@
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',
       '/v2/minhas-justificativas': 'minhasJustificativas',
+      '/v2/justificativas/config': 'justificativasConfig',
       '/v2/justificativas/enviar': 'justificativaEnviar',
       '/v2/justificativas/analisar': 'justificativaAnalisar',
       '/v2/justificativas/pendencias': 'justificativasPendenciasDiretoria',
@@ -481,16 +482,7 @@
     }
 
     if (route === '/v2/minha-frequencia') {
-      return Promise.resolve(criarRespostaV2Mock('registros', [
-        {
-          dataAtividade: '2026-04-16',
-          tituloPublico: 'Apresentacao de Membro',
-          tipoPublico: 'Apresentacao',
-          statusPresencaRotulo: 'Presente',
-          contaPresenca: true,
-          contaFalta: true
-        }
-      ]));
+      return Promise.resolve(criarRespostaMinhaFrequenciaMock());
     }
 
     if (route === '/v2/minhas-apresentacoes') {
@@ -503,6 +495,10 @@
 
     if (route === '/v2/minhas-justificativas') {
       return Promise.resolve(criarRespostaMinhasJustificativasMock());
+    }
+
+    if (route === '/v2/justificativas/config') {
+      return Promise.resolve(criarRespostaJustificativasConfigMock());
     }
 
     if (route === '/v2/justificativas/pendencias') {
@@ -693,6 +689,116 @@
       meta: {
         viewsV2: {
           somenteLeitura: false,
+          origemDados: 'mock'
+        }
+      }
+    };
+  }
+
+  function criarRespostaMinhaFrequenciaMock() {
+    var registros = [
+      {
+        idRegistroPresenca: 'PRES-MOCK-1',
+        idAtividade: 'ATV-MOCK-1',
+        dataAtividade: '2026-04-16',
+        tituloAtividade: 'Apresentacao de Membro',
+        rotuloSemestre: '2026/1',
+        statusPresenca: 'PRESENTE',
+        statusPresencaRotulo: 'Presente',
+        podeEnviarJustificativa: false,
+        podeVerJustificativa: false,
+        podeComplementarJustificativa: false,
+        acaoJustificativa: '',
+        mensagemPortal: ''
+      },
+      {
+        idRegistroPresenca: 'PRES-MOCK-2',
+        idAtividade: 'ATV-MOCK-2',
+        dataAtividade: '2026-05-20',
+        tituloAtividade: 'Reuniao ordinaria',
+        rotuloSemestre: '2026/1',
+        statusPresenca: 'FALTA',
+        statusPresencaRotulo: 'Falta',
+        statusJustificativa: '',
+        podeEnviarJustificativa: true,
+        podeVerJustificativa: false,
+        podeComplementarJustificativa: false,
+        acaoJustificativa: 'ENVIAR_JUSTIFICATIVA',
+        mensagemPortal: 'Falta justificavel dentro do prazo.'
+      }
+    ];
+
+    return {
+      ok: true,
+      data: {
+        resumoGeral: {
+          totalAtividades: 2,
+          totalPresencas: 1,
+          totalFaltas: 1,
+          faltasLiquidas: 1,
+          percentualFrequencia: '50%',
+          situacaoDisciplinar: 'Regular'
+        },
+        cicloAtual: '2026/1',
+        ciclos: [
+          {
+            ciclo: '2026/1',
+            rotuloCiclo: '2026/1',
+            resumo: {
+              totalAtividades: 2,
+              totalPresencas: 1,
+              totalFaltas: 1,
+              faltasLiquidas: 1,
+              percentualFrequencia: '50%'
+            },
+            registros: registros
+          }
+        ],
+        registros: registros,
+        ultimaAtualizacao: new Date().toISOString()
+      },
+      meta: {
+        viewsV2: {
+          somenteLeitura: true,
+          origemDados: 'mock'
+        }
+      }
+    };
+  }
+
+  function criarRespostaJustificativasConfigMock() {
+    return {
+      ok: true,
+      data: {
+        motivos: [
+          { valor: 'SAUDE', rotulo: 'Saude', descricaoResumida: 'Atendimento, tratamento ou questao medica.' },
+          { valor: 'COMPROMISSO_ACADEMICO', rotulo: 'Compromisso academico' },
+          { valor: 'COMPROMISSO_PROFISSIONAL', rotulo: 'Compromisso profissional' },
+          { valor: 'MOTIVO_PESSOAL_RELEVANTE', rotulo: 'Motivo pessoal relevante' },
+          { valor: 'FORCA_MAIOR', rotulo: 'Forca maior' },
+          { valor: 'OUTRO', rotulo: 'Outro' }
+        ],
+        upload: {
+          formatosAceitos: ['PDF', 'JPG', 'JPEG', 'PNG', 'DOC', 'DOCX'],
+          mimeTypesAceitos: [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          ],
+          tamanhoMaximoBytes: 10 * 1024 * 1024
+        },
+        regras: {
+          descricaoMinimaOutro: 20,
+          permiteLinkDocumento: true,
+          permiteUploadDocumento: true
+        },
+        ultimaAtualizacao: new Date().toISOString()
+      },
+      meta: {
+        viewsV2: {
+          somenteLeitura: true,
           origemDados: 'mock'
         }
       }

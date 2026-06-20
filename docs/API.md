@@ -7,8 +7,9 @@ Nesta etapa, a API ja resolve sessoes pelo `GEAPA_CORE`, autentica pelo Firebase
 ou por codigo temporario, carrega a tela "Minha situacao", integra atividades
 operacionais e expoe endpoints V2 somente leitura para frequencia,
 apresentacoes, justificativas, atividades, pendencias, painel da diretoria e
-status das views. Certificados, upload, decisao de justificativa e edicao de
-atividade seguem fora do contrato do Portal.
+status das views. O upload de comprovante de justificativa passa pelo Apps
+Script e pelo modulo Atividades. Certificados e edicao de atividade seguem fora
+do contrato do Portal.
 
 O backend prioriza o resolvedor oficial de sessao do GEAPA-CORE:
 
@@ -703,6 +704,7 @@ necessario para a tela. O Portal nao escreve diretamente em planilhas.
 acao=minhaFrequencia
 acao=minhasApresentacoes
 acao=minhasJustificativas
+acao=justificativasConfig
 acao=justificativaEnviar
 acao=justificativaAnalisar
 acao=justificativasPendenciasDiretoria
@@ -716,8 +718,11 @@ token=sessao-temporaria
 
 Contratos de resposta:
 
-- `minhaFrequencia`: retorna `data.registros`, `data.resumo` e
-  `data.ultimaAtualizacao`.
+- `minhaFrequencia`: retorna `data.resumoGeral`, `data.cicloAtual`,
+  `data.ciclos[]`, `data.registros[]` e `data.ultimaAtualizacao`. Cada registro
+  pode trazer `acaoJustificativa`, `podeEnviarJustificativa`,
+  `podeVerJustificativa`, `podeComplementarJustificativa`, `mensagemPortal` e
+  os identificadores necessarios para abrir o fluxo de justificativa.
 - `minhasApresentacoes`: retorna `data.apresentacoes`, `data.resumo` e
   `data.ultimaAtualizacao`; o backend prefere
   `atividadesV2_portalGetMinhasApresentacoes(contexto)` e filtra por
@@ -727,10 +732,17 @@ Contratos de resposta:
 - `minhasJustificativas`: retorna `data.faltasJustificaveis`,
   `data.justificativas`, `data.resumo` e `data.ultimaAtualizacao`; a tela mostra
   faltas justificaveis e justificativas ja enviadas.
+- `justificativasConfig`: retorna motivos padronizados e regras de comprovante.
+  Motivos aceitos: `SAUDE`, `COMPROMISSO_ACADEMICO`,
+  `COMPROMISSO_PROFISSIONAL`, `MOTIVO_PESSOAL_RELEVANTE`, `FORCA_MAIOR` e
+  `OUTRO`. Upload aceito inicialmente: PDF, JPG/JPEG, PNG, DOC/DOCX ate 10 MB,
+  conforme configuracao do backend.
 - `justificativaEnviar`: envia justificativa ao modulo Atividades. Payload:
   `idRegistroPresenca`, `idAtividade`, `motivoDeclarado`,
   `descricaoJustificativa`, `possuiDocumentoComprobatorio`,
-  `linkDocumentoComprobatorio`, `confirmouCienciaForaPrazo` e `observacoes`.
+  `linkDocumentoComprobatorio`, `documentoComprobatorio`,
+  `confirmouCienciaForaPrazo` e `observacoes`.
+  `documentoComprobatorio` usa `{ nomeArquivo, mimeType, conteudoBase64 }`.
   Para ausencia futura em `Proximas atividades`, `idRegistroPresenca` e enviado
   vazio e o backend registra a justificativa como `PREVIA`. Para falta ja
   registrada em `Minhas justificativas`, o payload deve conter
@@ -941,9 +953,14 @@ Exemplo:
       "perfisPortal": ["MEMBRO"],
       "portalAtivo": true
     },
-    "resumo": {
-      "total": 0
+    "resumoGeral": {
+      "totalAtividades": 0,
+      "totalPresencas": 0,
+      "totalFaltas": 0,
+      "percentualFrequencia": "100%"
     },
+    "cicloAtual": "2026/1",
+    "ciclos": [],
     "registros": [],
     "ultimaAtualizacao": "2026-06-14T12:00:00.000Z"
   },
@@ -974,9 +991,10 @@ chamadas sem `ReferenceError` e bloqueiam visitante sem token com
 mesmo teste.
 
 O Pacote 2 inclui envio e analise de justificativas pelo Portal, sempre via
-Apps Script e modulo Atividades. O frontend nao escreve em `PORTAL_*`, nao
-altera chamada/presenca diretamente e nao faz upload de comprovante neste
-pacote; o comprovante inicial e informado por link.
+Apps Script e modulo Atividades. O frontend nao escreve em `PORTAL_*` e nao
+altera chamada/presenca diretamente. O comprovante pode ser enviado como arquivo
+base64 em `documentoComprobatorio` ou, quando permitido, por
+`linkDocumentoComprobatorio`.
 
 ## Acao: atividadeDetalhe
 

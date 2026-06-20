@@ -343,6 +343,7 @@ invalida os caches relacionados apos qualquer acao de apresentacao.
 O Pacote 2 usa o modulo Atividades como fonte operacional. O Portal consome:
 
 - `GET /v2/minhas-justificativas`
+- `GET /v2/justificativas/config`
 - `POST /v2/justificativas/enviar`
 - `GET /v2/justificativas/pendencias`
 - `POST /v2/justificativas/analisar`
@@ -351,6 +352,15 @@ O Pacote 2 usa o modulo Atividades como fonte operacional. O Portal consome:
 `justificativas`, `resumo` e `ultimaAtualizacao`. `faltasJustificaveis` traz as
 ausencias que ainda podem receber justificativa; `justificativas` traz o
 acompanhamento de envios ja registrados.
+
+`GET /v2/justificativas/config` retorna os motivos padronizados e as regras de
+comprovante. O Portal renderiza select com `SAUDE`,
+`COMPROMISSO_ACADEMICO`, `COMPROMISSO_PROFISSIONAL`,
+`MOTIVO_PESSOAL_RELEVANTE`, `FORCA_MAIOR` e `OUTRO`, usando os rotulos enviados
+pelo backend quando existirem. Upload de comprovante segue a configuracao do
+backend e envia `documentoComprobatorio` com `nomeArquivo`, `mimeType` e
+`conteudoBase64`; link externo continua como alternativa quando aceito pelo
+backend.
 
 Ausencia futura nao entra como falta registrada. Em `Proximas atividades`, o
 card usa os metadados leves `podeJustificarAusenciaFutura`,
@@ -366,10 +376,14 @@ envia `confirmouCienciaForaPrazo`. A analise continua cabendo a
 Diretoria/Secretaria, que pode deferir, abonar, indeferir ou solicitar ajuste
 conforme `acoesGestao` e validacao final do backend.
 
-O comprovante inicial e informado por link em
-`linkDocumentoComprobatorio`. O frontend nao altera presenca diretamente, nao
-escreve em `PORTAL_*` e invalida caches de justificativas, frequencia,
-pendencias e painel apos envio ou analise.
+`Minha frequencia` consome `atividadesV2_portalGetMinhaFrequencia(contexto)` e
+preserva `resumoGeral`, `cicloAtual`, `ciclos[]` e `registros[]`. Registros com
+`acaoJustificativa` igual a `ENVIAR_JUSTIFICATIVA`,
+`ENVIAR_JUSTIFICATIVA_FORA_PRAZO` ou `COMPLEMENTAR_JUSTIFICATIVA` abrem o mesmo
+modal de justificativa de falta registrada.
+
+O frontend nao altera presenca diretamente, nao escreve em `PORTAL_*` e invalida
+caches de justificativas, frequencia, pendencias e painel apos envio ou analise.
 
 ## Endpoints futuros
 

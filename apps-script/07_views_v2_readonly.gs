@@ -7,17 +7,10 @@
  */
 
 function portalMinhaFrequenciaV2(token) {
-  return portalExecutarLeituraV2_(token, {
+  return portalExecutarMinhaFrequenciaAtividadesV2_(token, {
     id: 'minhaFrequencia',
     code: 'MINHA_FREQUENCIA_V2',
     message: 'Minha frequencia carregada pelas views V2.',
-    listaCampo: 'registros',
-    listaChaves: ['registros', 'frequencia', 'minhaFrequencia', 'itens'],
-    resumoChaves: ['resumo', 'totais'],
-    destino: 'atividades',
-    registryKeys: [
-      'ATIVIDADES_V2_PORTAL_FREQUENCIA_MEMBROS'
-    ],
     requerDiretoria: false,
     funcoes: [
       'atividadesV2_portalGetMinhaFrequencia',
@@ -27,25 +20,7 @@ function portalMinhaFrequenciaV2(token) {
       'portalV2GetMinhaFrequencia',
       'portal.v2.getMinhaFrequencia',
       'portal.getMinhaFrequencia'
-    ],
-    campos: [
-      'ciclo',
-      'totalPresencas',
-      'totalFaltas',
-      'totalJustificadas',
-      'totalAbonadas',
-      'faltasLiquidas',
-      'limiteFaltasPeriodo',
-      'percentualFrequencia',
-      'percentualUsoLimite',
-      'situacaoDisciplinar',
-      'cargaHorariaTotal',
-      'elegivelCertificado',
-      'motivoInelegibilidade',
-      'mensagemPortal',
-      'ultimaAtualizacao'
-    ],
-    aliases: {}
+    ]
   });
 }
 
@@ -706,6 +681,20 @@ function portalJustificativasPendenciasDiretoriaV2(token) {
   });
 }
 
+function portalJustificativasConfigV2(token) {
+  return portalExecutarConsultaJustificativaAtividadesV2_(token, {
+    id: 'justificativasConfig',
+    code: 'JUSTIFICATIVAS_CONFIG_V2',
+    message: 'Configuracao de justificativas carregada.',
+    funcoes: [
+      'atividadesV2_portalGetJustificativasConfig',
+      'atividadesV2_portalGetJustificativasConfig_'
+    ],
+    requerDiretoria: false,
+    normalizar: portalNormalizarConfigJustificativasV2_
+  });
+}
+
 function portalPendenciasDiretoriaV2(token) {
   return portalExecutarLeituraV2_(token, {
     id: 'pendenciasDiretoria',
@@ -1079,6 +1068,21 @@ function portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio) {
   );
 }
 
+function portalExecutarMinhaFrequenciaAtividadesV2_(token, config) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var contexto = portalMontarContextoViewsV2_(token, config);
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  var resposta = portalChamarAtividadesJustificativasV2_(config.funcoes, null, contextoAtividades);
+  var normalizada = portalNormalizarMinhaFrequenciaV2_(resposta, contexto, inicio);
+
+  return normalizada;
+}
+
 function portalExecutarConsultaJustificativaAtividadesV2_(token, config) {
   var inicio = portalAgoraViewsV2Ms_();
   var contexto = portalMontarContextoViewsV2_(token, config);
@@ -1089,6 +1093,10 @@ function portalExecutarConsultaJustificativaAtividadesV2_(token, config) {
 
   var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
   var resposta = portalChamarAtividadesJustificativasV2_(config.funcoes, null, contextoAtividades);
+
+  if (typeof config.normalizar === 'function') {
+    return config.normalizar(resposta, config, inicio);
+  }
 
   return portalNormalizarRespostaAcaoJustificativaV2_(resposta, config, inicio);
 }
@@ -1175,6 +1183,8 @@ function portalFuncoesGlobaisJustificativasV2_() {
     'atividadesV2_portalRegistrarJustificativa_',
     'atividadesV2_portalAnalisarJustificativa',
     'atividadesV2_portalAnalisarJustificativa_',
+    'atividadesV2_portalGetJustificativasConfig',
+    'atividadesV2_portalGetJustificativasConfig_',
     'atividadesV2_portalListarJustificativasPendentesDiretoria',
     'atividadesV2_portalListarPendenciasJustificativasDiretoria',
     'atividadesV2_portalListarJustificativasDiretoria',
@@ -2226,6 +2236,207 @@ function portalChamarMetodoObjetoViewsV2_(api, caminho, payload) {
   }
 
   return null;
+}
+
+function portalNormalizarMinhaFrequenciaV2_(resposta, contexto, inicio) {
+  if (!resposta) {
+    return portalRespostaErro_(
+      'FREQUENCIA_V2_INDISPONIVEL',
+      'A integracao de frequencia V2 ainda nao esta disponivel.',
+      {},
+      portalMetaViewsV2_('geapa-atividades-indisponivel', inicio)
+    );
+  }
+
+  if (resposta.ok === false) {
+    return portalRespostaErro_(
+      resposta.code || resposta.errorCode || 'ERRO_FREQUENCIA_V2',
+      resposta.message || 'Nao foi possivel consultar sua frequencia.',
+      {},
+      portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+    );
+  }
+
+  var bruto = resposta.data || resposta.dados || resposta;
+  var registros = portalSanitizarRegistrosFrequenciaV2_(
+    portalExtrairListaViewsV2_(bruto, ['registros', 'frequencia', 'itens'])
+  );
+  var ciclos = Array.isArray(bruto.ciclos)
+    ? bruto.ciclos.map(portalSanitizarCicloFrequenciaV2_)
+    : [];
+
+  if (!ciclos.length && registros.length) {
+    ciclos = [{
+      ciclo: bruto.cicloAtual || '',
+      rotuloCiclo: bruto.rotuloCiclo || bruto.cicloAtual || 'Todos os registros',
+      resumo: portalSanitizarResumoFrequenciaV2_(bruto.resumoGeral || bruto.resumo || bruto.totais || {}),
+      registros: registros
+    }];
+  }
+
+  return portalRespostaOk_(
+    'MINHA_FREQUENCIA_V2',
+    resposta.message || 'Minha frequencia carregada pelo modulo Atividades.',
+    {
+      sessao: portalResumoSessaoViewsV2_(contexto),
+      resumoGeral: portalSanitizarResumoFrequenciaV2_(bruto.resumoGeral || bruto.resumo || bruto.totais || {}),
+      cicloAtual: portalObterCampoFlexViewsV2_(bruto, ['cicloAtual', 'ciclo', 'periodoAtual']),
+      ciclos: ciclos,
+      registros: registros,
+      ultimaAtualizacao: portalObterCampoFlexViewsV2_(bruto, ['ultimaAtualizacao', 'atualizadoEm', 'updatedAt']) ||
+        portalObterUltimaAtualizacaoListaViewsV2_(registros)
+    },
+    portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+  );
+}
+
+function portalSanitizarCicloFrequenciaV2_(ciclo) {
+  var dados = ciclo || {};
+  return {
+    ciclo: portalObterCampoFlexViewsV2_(dados, ['ciclo', 'idCiclo', 'periodo']) || '',
+    rotuloCiclo: portalObterCampoFlexViewsV2_(dados, ['rotuloCiclo', 'rotuloSemestre', 'periodoLetivo', 'ciclo']) || '',
+    ano: portalObterCampoFlexViewsV2_(dados, ['ano', 'anoLetivo']) || '',
+    semestre: portalObterCampoFlexViewsV2_(dados, ['semestre', 'semestreLetivo']) || '',
+    resumo: portalSanitizarResumoFrequenciaV2_(dados.resumo || dados.resumoGeral || dados.totais || {}),
+    registros: portalSanitizarRegistrosFrequenciaV2_(
+      Array.isArray(dados.registros) ? dados.registros : portalExtrairListaViewsV2_(dados, ['atividades', 'itens'])
+    )
+  };
+}
+
+function portalSanitizarResumoFrequenciaV2_(resumo) {
+  return portalSanitizarObjetoBasicoViewsV2_(resumo || {}, [
+    'total',
+    'totalAtividades',
+    'totalPresencas',
+    'totalFaltas',
+    'totalJustificadas',
+    'totalAbonadas',
+    'faltasLiquidas',
+    'limiteFaltasPeriodo',
+    'percentualFrequencia',
+    'percentualUsoLimite',
+    'situacaoDisciplinar',
+    'cargaHorariaTotal',
+    'elegivelCertificado',
+    'motivoInelegibilidade',
+    'mensagemPortal'
+  ]);
+}
+
+function portalSanitizarRegistrosFrequenciaV2_(registros) {
+  return (registros || []).map(function sanitizar(item) {
+    return portalSanitizarObjetoBasicoViewsV2_(item || {}, [
+      'idRegistroPresenca',
+      'idAtividade',
+      'dataAtividade',
+      'tituloAtividade',
+      'tituloPublico',
+      'rotuloSemestre',
+      'statusPresenca',
+      'statusPresencaRotulo',
+      'idJustificativa',
+      'statusJustificativa',
+      'podeEnviarJustificativa',
+      'podeVerJustificativa',
+      'podeComplementarJustificativa',
+      'acaoJustificativa',
+      'mensagemPortal',
+      'dataLimiteJustificativa',
+      'prazoJustificativa',
+      'envioForaDoPrazo',
+      'exigeCienciaForaPrazo'
+    ]);
+  });
+}
+
+function portalNormalizarConfigJustificativasV2_(resposta, config, inicio) {
+  if (!resposta) {
+    return portalRespostaErro_(
+      'JUSTIFICATIVAS_CONFIG_INDISPONIVEL',
+      'A configuracao de justificativas V2 ainda nao esta disponivel.',
+      {},
+      portalMetaViewsV2_('geapa-atividades-indisponivel', inicio)
+    );
+  }
+
+  if (resposta.ok === false) {
+    return portalRespostaErro_(
+      resposta.code || resposta.errorCode || 'ERRO_JUSTIFICATIVAS_CONFIG',
+      resposta.message || 'Nao foi possivel carregar a configuracao de justificativas.',
+      {},
+      portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+    );
+  }
+
+  return portalRespostaOk_(
+    config.code,
+    resposta.message || config.message,
+    portalSanitizarConfigJustificativasV2_(resposta.data || resposta.dados || resposta || {}),
+    portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+  );
+}
+
+function portalSanitizarConfigJustificativasV2_(config) {
+  var dados = config || {};
+  return {
+    motivos: portalSanitizarMotivosJustificativaV2_(dados.motivos || dados.motivosDisponiveis || dados.motivosPadronizados),
+    upload: portalSanitizarUploadJustificativasV2_(dados.upload || dados.regrasUpload || dados.documentoComprobatorio || dados),
+    regras: portalSanitizarObjetoBasicoViewsV2_(dados.regras || dados, [
+      'descricaoMinimaOutro',
+      'exigeDescricaoOutro',
+      'permiteLinkDocumento',
+      'permiteUploadDocumento'
+    ]),
+    ultimaAtualizacao: portalObterCampoFlexViewsV2_(dados, ['ultimaAtualizacao', 'atualizadoEm', 'updatedAt'])
+  };
+}
+
+function portalSanitizarMotivosJustificativaV2_(motivos) {
+  var lista = Array.isArray(motivos) ? motivos : [];
+  return lista.map(function sanitizar(motivo) {
+    if (typeof motivo === 'string') {
+      return {
+        valor: motivo,
+        rotulo: motivo
+      };
+    }
+
+    return portalSanitizarObjetoBasicoViewsV2_(motivo || {}, [
+      'valor',
+      'codigo',
+      'rotulo',
+      'label',
+      'descricao',
+      'descricaoResumida'
+    ]);
+  }).filter(function filtrar(motivo) {
+    return motivo.valor || motivo.codigo;
+  });
+}
+
+function portalSanitizarUploadJustificativasV2_(upload) {
+  var dados = upload || {};
+  return {
+    formatosAceitos: portalGarantirListaStringsV2_(dados.formatosAceitos || dados.extensoesAceitas || ['PDF', 'JPG', 'JPEG', 'PNG', 'DOC', 'DOCX']),
+    mimeTypesAceitos: portalGarantirListaStringsV2_(dados.mimeTypesAceitos || dados.mimesAceitos || []),
+    tamanhoMaximoBytes: Number(dados.tamanhoMaximoBytes || dados.limiteBytes || dados.maxBytes || 10 * 1024 * 1024)
+  };
+}
+
+function portalGarantirListaStringsV2_(valor) {
+  if (Array.isArray(valor)) {
+    return valor.map(function texto(item) {
+      return String(item || '').trim();
+    }).filter(Boolean);
+  }
+
+  return String(valor || '')
+    .split(/[;,]/)
+    .map(function texto(item) {
+      return item.trim();
+    })
+    .filter(Boolean);
 }
 
 function portalNormalizarMinhasJustificativasV2_(resposta, config, contexto) {

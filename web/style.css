@@ -1746,6 +1746,14 @@ button:disabled:hover {
   margin-top: 12px;
 }
 
+.modal-panel .presentation-card-actions {
+  position: sticky;
+  bottom: -22px;
+  z-index: 2;
+  padding: 12px 0 0;
+  background: var(--white);
+}
+
 .presentation-action-note {
   display: inline-flex;
   align-items: center;
@@ -1822,6 +1830,22 @@ button:disabled:hover {
 
 .readonly-form .checkbox-line input {
   margin-top: 3px;
+}
+
+.readonly-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.readonly-filters label {
+  display: grid;
+  gap: 6px;
+  min-width: min(280px, 100%);
+  color: var(--green-800);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .eixo-help {
@@ -2095,11 +2119,16 @@ button:disabled:hover {
 }
 
 .modal-topbar {
+  position: sticky;
+  top: -22px;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
   margin-bottom: 16px;
+  padding: 0 0 10px;
+  background: var(--white);
 }
 
 .modal-panel h3 {

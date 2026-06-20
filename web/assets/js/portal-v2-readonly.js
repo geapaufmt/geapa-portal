@@ -15,6 +15,7 @@
       intro: 'Consulta propria de presencas e faltas nas views V2.',
       endpoint: '/v2/minha-frequencia',
       listaCampo: 'registros',
+      tipo: 'minha-frequencia',
       vazio: 'Nenhum registro de frequencia disponivel nesta etapa.',
       colunas: [
         ['ciclo', 'Ciclo'],
@@ -111,10 +112,33 @@
     eixos: null,
     eixosExpiraEm: 0,
     eixosPromise: null,
+    justificativasConfig: null,
+    justificativasConfigExpiraEm: 0,
+    justificativasConfigPromise: null,
+    frequenciaCicloSelecionado: '',
     cache: {}
   };
   var TTL_CACHE_PRIVADO_MS = 60000;
   var TTL_CACHE_EIXOS_MS = 20 * 60 * 1000;
+  var MOTIVOS_JUSTIFICATIVA_PADRAO = [
+    { valor: 'SAUDE', rotulo: 'Saude' },
+    { valor: 'COMPROMISSO_ACADEMICO', rotulo: 'Compromisso academico' },
+    { valor: 'COMPROMISSO_PROFISSIONAL', rotulo: 'Compromisso profissional' },
+    { valor: 'MOTIVO_PESSOAL_RELEVANTE', rotulo: 'Motivo pessoal relevante' },
+    { valor: 'FORCA_MAIOR', rotulo: 'Forca maior' },
+    { valor: 'OUTRO', rotulo: 'Outro' }
+  ];
+  var JUSTIFICATIVA_UPLOAD_PADRAO = {
+    formatosAceitos: ['PDF', 'JPG', 'JPEG', 'PNG', 'DOC', 'DOCX'],
+    mimeTypesAceitos: [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ],
+    tamanhoMaximoBytes: 10 * 1024 * 1024
+  };
 
   function iniciar() {
     if (!api || !ui || !navigation) {
@@ -257,6 +281,10 @@
   }
 
   function montarConteudo(definicao, data, emCache) {
+    if (definicao.tipo === 'minha-frequencia') {
+      return montarMinhaFrequencia(data || {}, emCache, definicao);
+    }
+
     var itens = definicao.tipo === 'minhas-justificativas'
       ? montarItensMinhasJustificativasData(data)
       : (Array.isArray(data[definicao.listaCampo]) ? data[definicao.listaCampo] : []);
@@ -352,6 +380,173 @@
       '</table>',
       '</div>'
     ].join('');
+  }
+
+  function montarMinhaFrequencia(data, emCache, definicao) {
+    var ciclos = normalizarCiclosFrequencia(data || {});
+    var cicloAtual = selecionarCicloFrequencia(ciclos, data || {});
+    var registros = cicloAtual ? cicloAtual.registros : normalizarRegistrosFrequencia((data || {}).registros);
+    var resumo = cicloAtual && Object.keys(cicloAtual.resumo || {}).length
+      ? cicloAtual.resumo
+      : ((data || {}).resumoGeral || (data || {}).resumo || {});
+
+    indexarItensPorId(registros);
+
+    return [
+      montarResumoFrequencia(resumo, registros.length, (data || {}).ultimaAtualizacao),
+      emCache ? '<p class="updated-at">Atualizando em segundo plano...</p>' : '',
+      ciclos.length > 1 ? montarFiltroCicloFrequencia(ciclos, cicloAtual) : '',
+      registros.length
+        ? montarRegistrosFrequencia(registros)
+        : '<p class="empty-state readonly-empty">' + ui.escaparHtml(definicao.vazio) + '</p>'
+    ].join('');
+  }
+
+  function normalizarCiclosFrequencia(data) {
+    var ciclos = Array.isArray(data.ciclos) ? data.ciclos : [];
+
+    if (!ciclos.length) {
+      return [{
+        ciclo: data.cicloAtual || '',
+        rotuloCiclo: data.cicloAtual || 'Todos os registros',
+        resumo: data.resumoGeral || data.resumo || {},
+        registros: normalizarRegistrosFrequencia(data.registros)
+      }];
+    }
+
+    return ciclos.map(function normalizar(ciclo) {
+      return Object.assign({}, ciclo || {}, {
+        ciclo: String((ciclo || {}).ciclo || (ciclo || {}).rotuloCiclo || '').trim(),
+        rotuloCiclo: String((ciclo || {}).rotuloCiclo || (ciclo || {}).rotuloSemestre || (ciclo || {}).ciclo || '').trim(),
+        resumo: (ciclo || {}).resumo || {},
+        registros: normalizarRegistrosFrequencia((ciclo || {}).registros)
+      });
+    });
+  }
+
+  function normalizarRegistrosFrequencia(registros) {
+    return Array.isArray(registros) ? registros : [];
+  }
+
+  function selecionarCicloFrequencia(ciclos, data) {
+    var alvo = estado.frequenciaCicloSelecionado || (data || {}).cicloAtual || '';
+    var selecionado = ciclos.filter(function comparar(ciclo) {
+      return String(ciclo.ciclo || ciclo.rotuloCiclo || '') === String(alvo || '');
+    })[0];
+
+    return selecionado || ciclos[0] || null;
+  }
+
+  function montarFiltroCicloFrequencia(ciclos, cicloAtual) {
+    var valorAtual = String((cicloAtual || {}).ciclo || (cicloAtual || {}).rotuloCiclo || '');
+
+    return [
+      '<div class="readonly-filters">',
+      '<label>Ciclo ou semestre',
+      '<select data-frequencia-ciclo>',
+      ciclos.map(function montar(ciclo) {
+        var valor = String(ciclo.ciclo || ciclo.rotuloCiclo || '');
+        var rotulo = ciclo.rotuloCiclo || ciclo.ciclo || 'Sem ciclo definido';
+        var selecionado = valor === valorAtual ? ' selected' : '';
+
+        return '<option value="' + ui.escaparHtml(valor) + '"' + selecionado + '>' + ui.escaparHtml(rotulo) + '</option>';
+      }).join(''),
+      '</select>',
+      '</label>',
+      '</div>'
+    ].join('');
+  }
+
+  function montarResumoFrequencia(resumo, totalRegistros, ultimaAtualizacao) {
+    var dados = resumo || {};
+    var partes = [
+      ['Registros', dados.totalAtividades || dados.total || totalRegistros]
+    ];
+
+    [
+      ['Presencas', dados.totalPresencas],
+      ['Faltas', dados.totalFaltas],
+      ['Justificadas', dados.totalJustificadas],
+      ['Abonadas', dados.totalAbonadas],
+      ['Faltas liquidas', dados.faltasLiquidas],
+      ['Frequencia', dados.percentualFrequencia],
+      ['Situacao', dados.situacaoDisciplinar]
+    ].forEach(function adicionar(item) {
+      if (item[1] !== undefined && item[1] !== null && item[1] !== '') {
+        partes.push(item);
+      }
+    });
+
+    return [
+      '<div class="readonly-summary">',
+      partes.map(function montar(item) {
+        return [
+          '<div class="summary-item">',
+          '<dt>' + ui.escaparHtml(item[0]) + '</dt>',
+          '<dd>' + ui.escaparHtml(formatarValor(item[1])) + '</dd>',
+          '</div>'
+        ].join('');
+      }).join(''),
+      '</div>',
+      dados.mensagemPortal ? '<p class="status-message">' + ui.escaparHtml(dados.mensagemPortal) + '</p>' : '',
+      ultimaAtualizacao
+        ? '<p class="updated-at">Atualizado em: ' + ui.escaparHtml(formatarValor(ultimaAtualizacao)) + '</p>'
+        : ''
+    ].join('');
+  }
+
+  function montarRegistrosFrequencia(registros) {
+    return [
+      '<div class="presentation-actions-list">',
+      registros.map(function montar(registro) {
+        var id = obterIdItem(registro);
+        var titulo = registro.tituloAtividade || registro.tituloPublico || registro.idAtividade || 'Atividade';
+        var status = registro.statusPresencaRotulo || registro.statusPresenca || 'Registro';
+        var acao = montarAcaoJustificativaFrequencia(registro, id);
+
+        estado.itensPorId[id] = registro;
+
+        return [
+          '<article class="presentation-action-card">',
+          '<div class="presentation-card-topline">',
+          '<span>' + ui.escaparHtml(formatarDataCurtaPendencia(registro.dataAtividade) || formatarValor(registro.dataAtividade)) + '</span>',
+          registro.rotuloSemestre ? '<span>' + ui.escaparHtml(formatarValor(registro.rotuloSemestre)) + '</span>' : '',
+          '<span>' + ui.escaparHtml(formatarValor(status)) + '</span>',
+          '</div>',
+          '<div class="presentation-action-main"><div>',
+          '<h3>' + ui.escaparHtml(formatarValor(titulo)) + '</h3>',
+          registro.statusJustificativa ? '<p>Justificativa: ' + ui.escaparHtml(formatarValor(registro.statusJustificativa)) + '</p>' : '',
+          registro.mensagemPortal ? '<p>' + ui.escaparHtml(registro.mensagemPortal) + '</p>' : '',
+          '</div></div>',
+          acao ? '<div class="presentation-card-actions">' + acao + '</div>' : '',
+          '</article>'
+        ].join('');
+      }).join(''),
+      '</div>'
+    ].join('');
+  }
+
+  function montarAcaoJustificativaFrequencia(registro, id) {
+    var acao = String((registro || {}).acaoJustificativa || '').toUpperCase();
+    var podeEnviar = (registro || {}).podeEnviarJustificativa === true ||
+      (registro || {}).podeComplementarJustificativa === true ||
+      acao === 'ENVIAR_JUSTIFICATIVA' ||
+      acao === 'ENVIAR_JUSTIFICATIVA_FORA_PRAZO' ||
+      acao === 'COMPLEMENTAR_JUSTIFICATIVA';
+
+    if (!podeEnviar) {
+      return '';
+    }
+
+    if ((registro || {}).podeComplementarJustificativa === true || acao === 'COMPLEMENTAR_JUSTIFICATIVA') {
+      return botaoAcao('justificativa-enviar', id, 'Complementar justificativa', 'primary');
+    }
+
+    if (acao === 'ENVIAR_JUSTIFICATIVA_FORA_PRAZO') {
+      return botaoAcao('justificativa-enviar', id, 'Enviar justificativa fora do prazo', 'primary');
+    }
+
+    return botaoAcao('justificativa-enviar', id, 'Enviar justificativa', 'primary');
   }
 
   function indexarItensPorId(itens) {
@@ -1292,11 +1487,19 @@
   function tratarChangeReadonly(evento) {
     var alvo = evento.target;
 
-    if (!alvo || !alvo.matches('[data-eixo-select]')) {
+    if (!alvo) {
       return;
     }
 
-    atualizarAjudaEixo(alvo);
+    if (alvo.matches('[data-eixo-select]')) {
+      atualizarAjudaEixo(alvo);
+      return;
+    }
+
+    if (alvo.matches('[data-frequencia-ciclo]')) {
+      estado.frequenciaCicloSelecionado = alvo.value || '';
+      carregarTela('frequencia');
+    }
   }
 
   function abrirModalTituloEixo(id) {
@@ -1416,15 +1619,26 @@
       return;
     }
 
+    abrirModalBase('Enviar justificativa', '<p class="empty-state readonly-skeleton">Carregando configuracao de justificativas...</p>');
+    carregarJustificativasConfig()
+      .then(function renderizar(config) {
+        renderizarModalJustificativa(item, id, config);
+      })
+      .catch(function renderizarFallback() {
+        renderizarModalJustificativa(item, id, normalizarJustificativasConfig({}));
+      });
+  }
+
+  function renderizarModalJustificativa(item, id, config) {
     var foraPrazo = justificativaForaPrazo(item);
     var exigeCiencia = item.exigeCienciaForaPrazo === true || foraPrazo;
 
-    abrirModalBase('Enviar justificativa', [
+    atualizarModalConteudo([
       '<form class="readonly-form" data-portal-v2-form="justificativa-envio" data-fora-prazo="' + (foraPrazo ? 'true' : 'false') + '" data-exige-ciencia-fora-prazo="' + (exigeCiencia ? 'true' : 'false') + '">',
       '<input type="hidden" name="idRegistroPresenca" value="' + ui.escaparHtml(item.idRegistroPresenca || id || '') + '">',
       '<input type="hidden" name="idAtividade" value="' + ui.escaparHtml(item.idAtividade || '') + '">',
       exigeCiencia ? '<p class="simulation-warning">Esta justificativa esta sendo enviada fora do prazo previsto. Ela sera registrada, mas a aceitacao dependera de analise da Diretoria/Secretaria.</p>' : '',
-      montarCampoMotivoJustificativa(item),
+      montarCampoMotivoJustificativa(item, config),
       '<label>Descricao da justificativa',
       '<textarea name="descricaoJustificativa" rows="5" required>' + ui.escaparHtml(item.descricaoJustificativa || '') + '</textarea>',
       '</label>',
@@ -1434,9 +1648,7 @@
       '<option value="SIM">Sim</option>',
       '</select>',
       '</label>',
-      '<label>Link do documento',
-      '<input name="linkDocumentoComprobatorio" type="url" value="' + ui.escaparHtml(item.linkDocumentoComprobatorio || '') + '">',
-      '</label>',
+      montarCamposDocumentoJustificativa(config, item),
       '<label>Observacoes',
       '<textarea name="observacoes" rows="3"></textarea>',
       '</label>',
@@ -1449,27 +1661,41 @@
     ].join(''));
   }
 
-  function montarCampoMotivoJustificativa(item) {
-    var motivos = Array.isArray((item || {}).motivosDisponiveis) ? item.motivosDisponiveis : [];
-
-    if (!motivos.length) {
-      return [
-        '<label>Motivo',
-        '<input name="motivoDeclarado" required value="' + ui.escaparHtml((item || {}).motivoCategoria || (item || {}).motivoDeclarado || '') + '">',
-        '</label>'
-      ].join('');
-    }
+  function montarCampoMotivoJustificativa(item, config) {
+    var motivos = obterMotivosJustificativa(config);
+    var atual = String((item || {}).motivoCategoria || (item || {}).motivoDeclarado || '').trim();
 
     return [
       '<label>Motivo',
       '<select name="motivoDeclarado" required>',
       '<option value="">Selecionar</option>',
       motivos.map(function montar(motivo) {
-        var selecionado = String(motivo || '') === String((item || {}).motivoCategoria || (item || {}).motivoDeclarado || '') ? ' selected' : '';
-        return '<option value="' + ui.escaparHtml(motivo) + '"' + selecionado + '>' + ui.escaparHtml(motivo) + '</option>';
+        var valor = String(motivo.valor || motivo.codigo || motivo.rotulo || motivo.label || motivo || '').trim();
+        var rotulo = motivo.rotulo || motivo.label || valor;
+        var selecionado = valor === atual ? ' selected' : '';
+        return '<option value="' + ui.escaparHtml(valor) + '"' + selecionado + '>' + ui.escaparHtml(rotulo) + '</option>';
       }).join(''),
       '</select>',
       '</label>'
+    ].join('');
+  }
+
+  function montarCamposDocumentoJustificativa(config, item) {
+    var upload = obterUploadJustificativa(config);
+    var formatos = obterFormatosJustificativa(upload);
+    var accept = formatos.map(function montar(extensao) {
+      return '.' + extensao.toLowerCase();
+    }).join(',');
+    var limiteMb = Math.round((upload.tamanhoMaximoBytes || JUSTIFICATIVA_UPLOAD_PADRAO.tamanhoMaximoBytes) / 1024 / 1024);
+
+    return [
+      '<label>Arquivo comprobatorio',
+      '<input name="arquivoDocumentoComprobatorio" type="file" accept="' + ui.escaparHtml(accept) + '">',
+      '</label>',
+      '<label>Link do documento',
+      '<input name="linkDocumentoComprobatorio" type="url" value="' + ui.escaparHtml((item || {}).linkDocumentoComprobatorio || '') + '">',
+      '</label>',
+      '<p class="muted-inline">Formatos aceitos: ' + ui.escaparHtml(formatos.join(', ')) + '. Limite: ' + ui.escaparHtml(limiteMb) + ' MB. Use arquivo ou link quando houver comprovante.</p>'
     ].join('');
   }
 
@@ -1522,6 +1748,84 @@
       });
 
     return estado.eixosPromise;
+  }
+
+  function carregarJustificativasConfig() {
+    if (estado.justificativasConfig && estado.justificativasConfigExpiraEm > Date.now()) {
+      return Promise.resolve(estado.justificativasConfig);
+    }
+
+    if (estado.justificativasConfigPromise) {
+      return estado.justificativasConfigPromise;
+    }
+
+    estado.justificativasConfigPromise = api.apiGet('/v2/justificativas/config', {})
+      .then(function tratar(resposta) {
+        if (!resposta.ok) {
+          throw new Error(resposta.message || 'Nao foi possivel carregar configuracao de justificativas.');
+        }
+
+        estado.justificativasConfig = normalizarJustificativasConfig(resposta.data || {});
+        estado.justificativasConfigExpiraEm = Date.now() + TTL_CACHE_EIXOS_MS;
+        return estado.justificativasConfig;
+      })
+      .finally(function limpar() {
+        estado.justificativasConfigPromise = null;
+      });
+
+    return estado.justificativasConfigPromise;
+  }
+
+  function normalizarJustificativasConfig(config) {
+    var dados = config || {};
+    var upload = Object.assign({}, JUSTIFICATIVA_UPLOAD_PADRAO, dados.upload || dados.regrasUpload || {});
+
+    return {
+      motivos: obterMotivosJustificativa(dados),
+      upload: upload,
+      regras: Object.assign({
+        descricaoMinimaOutro: 20,
+        permiteLinkDocumento: true,
+        permiteUploadDocumento: true
+      }, dados.regras || {})
+    };
+  }
+
+  function obterMotivosJustificativa(config) {
+    var motivos = (config && Array.isArray(config.motivos) && config.motivos.length)
+      ? config.motivos
+      : MOTIVOS_JUSTIFICATIVA_PADRAO;
+
+    return motivos.map(function normalizar(motivo) {
+      if (typeof motivo === 'string') {
+        return {
+          valor: motivo,
+          rotulo: motivo
+        };
+      }
+
+      return {
+        valor: String((motivo || {}).valor || (motivo || {}).codigo || (motivo || {}).rotulo || '').trim(),
+        rotulo: String((motivo || {}).rotulo || (motivo || {}).label || (motivo || {}).valor || (motivo || {}).codigo || '').trim(),
+        descricao: String((motivo || {}).descricaoResumida || (motivo || {}).descricao || '').trim()
+      };
+    }).filter(function filtrar(motivo) {
+      return motivo.valor;
+    });
+  }
+
+  function obterUploadJustificativa(config) {
+    return Object.assign({}, JUSTIFICATIVA_UPLOAD_PADRAO, (config || {}).upload || {});
+  }
+
+  function obterFormatosJustificativa(upload) {
+    var formatos = Array.isArray((upload || {}).formatosAceitos)
+      ? upload.formatosAceitos
+      : JUSTIFICATIVA_UPLOAD_PADRAO.formatosAceitos;
+
+    return formatos.map(function normalizar(formato) {
+      return String(formato || '').replace(/^\./, '').toUpperCase();
+    }).filter(Boolean);
   }
 
   function extrairListaEixos(data) {
@@ -1675,27 +1979,54 @@
     var exigeCiencia = form.getAttribute('data-exige-ciencia-fora-prazo') === 'true';
     var possuiDocumento = dados.get('possuiDocumentoComprobatorio') || 'NAO';
     var linkDocumento = String(dados.get('linkDocumentoComprobatorio') || '').trim();
+    var motivo = String(dados.get('motivoDeclarado') || '').trim();
+    var descricao = String(dados.get('descricaoJustificativa') || '').trim();
+    var arquivo = dados.get('arquivoDocumentoComprobatorio');
+    var config = estado.justificativasConfig || normalizarJustificativasConfig({});
 
     if (exigeCiencia && dados.get('confirmouCienciaForaPrazo') !== 'on') {
       mostrarErroModal('Confirme ciencia do envio fora do prazo.');
       return;
     }
 
-    if (possuiDocumento === 'SIM' && !linkDocumento) {
-      mostrarErroModal('Informe o link do documento comprobatorio.');
+    if (motivo === 'OUTRO' && descricao.length < obterDescricaoMinimaOutro(config)) {
+      mostrarErroModal('Descreva melhor o motivo quando selecionar Outro.');
       return;
     }
 
-    executarPostJustificativa('/v2/justificativas/enviar', {
-      idRegistroPresenca: dados.get('idRegistroPresenca'),
-      idAtividade: dados.get('idAtividade'),
-      motivoDeclarado: dados.get('motivoDeclarado'),
-      descricaoJustificativa: dados.get('descricaoJustificativa'),
-      possuiDocumentoComprobatorio: possuiDocumento,
-      linkDocumentoComprobatorio: linkDocumento,
-      confirmouCienciaForaPrazo: exigeCiencia ? dados.get('confirmouCienciaForaPrazo') === 'on' : false,
-      observacoes: dados.get('observacoes')
-    });
+    if (possuiDocumento === 'SIM' && (!arquivo || !arquivo.name) && !linkDocumento) {
+      mostrarErroModal('Anexe um arquivo ou informe o link do documento comprobatorio.');
+      return;
+    }
+
+    if (arquivo && arquivo.name && !arquivoJustificativaPermitido(arquivo, config)) {
+      mostrarErroModal('Formato ou tamanho do comprovante nao permitido.');
+      return;
+    }
+
+    montarPayloadDocumentoJustificativa(arquivo, config)
+      .then(function enviar(documentoComprobatorio) {
+        var payload = {
+          idRegistroPresenca: dados.get('idRegistroPresenca'),
+          idAtividade: dados.get('idAtividade'),
+          motivoDeclarado: motivo,
+          descricaoJustificativa: descricao,
+          possuiDocumentoComprobatorio: possuiDocumento,
+          linkDocumentoComprobatorio: linkDocumento,
+          confirmouCienciaForaPrazo: exigeCiencia ? dados.get('confirmouCienciaForaPrazo') === 'on' : false,
+          observacoes: dados.get('observacoes')
+        };
+
+        if (documentoComprobatorio) {
+          payload.documentoComprobatorio = documentoComprobatorio;
+        }
+
+        return executarPostJustificativa('/v2/justificativas/enviar', payload);
+      })
+      .catch(function falhar(erro) {
+        ui.ocultarLoading();
+        mostrarErroModal(erro.message || 'Nao foi possivel preparar o comprovante.');
+      });
   }
 
   function salvarAnaliseJustificativa(form) {
@@ -1799,6 +2130,71 @@
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         'application/vnd.oasis.opendocument.presentation'
       ].indexOf(tipo) >= 0;
+  }
+
+  function arquivoJustificativaPermitido(arquivo, config) {
+    var upload = obterUploadJustificativa(config);
+    var nome = String((arquivo && arquivo.name) || '').toLowerCase();
+    var tipo = String((arquivo && arquivo.type) || '').toLowerCase();
+    var formatos = obterFormatosJustificativa(upload).map(function minusculo(formato) {
+      return formato.toLowerCase();
+    });
+    var mimeTypes = Array.isArray(upload.mimeTypesAceitos) && upload.mimeTypesAceitos.length
+      ? upload.mimeTypesAceitos.map(function minusculo(mime) {
+        return String(mime || '').toLowerCase();
+      })
+      : JUSTIFICATIVA_UPLOAD_PADRAO.mimeTypesAceitos;
+    var limite = Number(upload.tamanhoMaximoBytes || JUSTIFICATIVA_UPLOAD_PADRAO.tamanhoMaximoBytes);
+    var extensaoOk = formatos.some(function comparar(formato) {
+      return nome.endsWith('.' + formato);
+    });
+    var mimeOk = !tipo || tipo === 'application/octet-stream' || mimeTypes.indexOf(tipo) >= 0;
+
+    return arquivo && arquivo.name && arquivo.size <= limite && extensaoOk && mimeOk;
+  }
+
+  function montarPayloadDocumentoJustificativa(arquivo, config) {
+    if (!arquivo || !arquivo.name) {
+      return Promise.resolve(null);
+    }
+
+    ui.mostrarLoading('Lendo comprovante...');
+    return lerArquivoBase64(arquivo).then(function montar(conteudoBase64) {
+      return {
+        nomeArquivo: arquivo.name,
+        mimeType: arquivo.type || inferirMimeJustificativa(arquivo.name),
+        conteudoBase64: conteudoBase64
+      };
+    });
+  }
+
+  function inferirMimeJustificativa(nomeArquivo) {
+    var nome = String(nomeArquivo || '').toLowerCase();
+
+    if (nome.endsWith('.pdf')) {
+      return 'application/pdf';
+    }
+    if (nome.endsWith('.jpg') || nome.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    }
+    if (nome.endsWith('.png')) {
+      return 'image/png';
+    }
+    if (nome.endsWith('.docx')) {
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+    if (nome.endsWith('.doc')) {
+      return 'application/msword';
+    }
+
+    return '';
+  }
+
+  function obterDescricaoMinimaOutro(config) {
+    var regras = (config || {}).regras || {};
+    var minimo = Number(regras.descricaoMinimaOutro || 20);
+
+    return Number.isFinite(minimo) && minimo > 0 ? minimo : 20;
   }
 
   function lerArquivoBase64(arquivo) {

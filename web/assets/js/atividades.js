@@ -36,6 +36,29 @@
   var detalhesPreloadEmExecucao = false;
   var detalhesIntersectionObserver = null;
   var chamadaAtual = null;
+  var justificativasConfig = null;
+  var justificativasConfigExpiraEm = 0;
+  var justificativasConfigPromise = null;
+  var JUSTIFICATIVAS_CONFIG_TTL_MS = 20 * 60 * 1000;
+  var MOTIVOS_JUSTIFICATIVA_PADRAO = [
+    { valor: 'SAUDE', rotulo: 'Saude' },
+    { valor: 'COMPROMISSO_ACADEMICO', rotulo: 'Compromisso academico' },
+    { valor: 'COMPROMISSO_PROFISSIONAL', rotulo: 'Compromisso profissional' },
+    { valor: 'MOTIVO_PESSOAL_RELEVANTE', rotulo: 'Motivo pessoal relevante' },
+    { valor: 'FORCA_MAIOR', rotulo: 'Forca maior' },
+    { valor: 'OUTRO', rotulo: 'Outro' }
+  ];
+  var JUSTIFICATIVA_UPLOAD_PADRAO = {
+    formatosAceitos: ['PDF', 'JPG', 'JPEG', 'PNG', 'DOC', 'DOCX'],
+    mimeTypesAceitos: [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ],
+    tamanhoMaximoBytes: 10 * 1024 * 1024
+  };
   var STATUS_CHAMADA = [
     { valor: '', rotulo: 'Sem marcação', codigo: '' },
     { valor: 'PRESENTE_PRESENCIAL', rotulo: 'Presente presencial', codigo: 'P' },
@@ -1773,6 +1796,26 @@
     }
 
     definirTituloModal('Justificar ausencia futura');
+    conteudo.innerHTML = '<p class="empty-state readonly-skeleton">Carregando configuracao de justificativas...</p>';
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+
+    carregarJustificativasConfig()
+      .then(function renderizar(config) {
+        renderizarModalJustificativaPrevia(idAtividade, atividade, config);
+      })
+      .catch(function renderizarFallback() {
+        renderizarModalJustificativaPrevia(idAtividade, atividade, normalizarJustificativasConfig({}));
+      });
+  }
+
+  function renderizarModalJustificativaPrevia(idAtividade, atividade, config) {
+    var conteudo = document.getElementById('atividade-modal-content');
+
+    if (!conteudo) {
+      return;
+    }
+
     conteudo.innerHTML = [
       '<p class="eyebrow">Justificativa previa</p>',
       '<h3>' + ui.escaparHtml(atividade.tituloPublico || 'Atividade') + '</h3>',
@@ -1784,9 +1827,7 @@
       '<input type="hidden" name="idAtividade" value="' + ui.escaparHtml(idAtividade) + '">',
       '<input type="hidden" name="idRegistroPresenca" value="">',
       '<p class="simulation-warning">Voce esta enviando uma justificativa antes da atividade. Ela sera registrada como justificativa previa e sera analisada pela Diretoria/Secretaria caso a falta seja confirmada na chamada.</p>',
-      '<label>Motivo',
-      '<input name="motivoDeclarado" required>',
-      '</label>',
+      montarCampoMotivoJustificativa(config, ''),
       '<label>Descricao da justificativa',
       '<textarea name="descricaoJustificativa" rows="5" required></textarea>',
       '</label>',
@@ -1796,9 +1837,7 @@
       '<option value="SIM">Sim</option>',
       '</select>',
       '</label>',
-      '<label>Link do documento',
-      '<input name="linkDocumentoComprobatorio" type="url">',
-      '</label>',
+      montarCamposDocumentoJustificativa(config, {}),
       '<label>Observacoes',
       '<textarea name="observacoes" rows="3"></textarea>',
       '</label>',
@@ -1808,8 +1847,117 @@
       '</div>',
       '</form>'
     ].join('');
-    modal.hidden = false;
-    document.body.classList.add('modal-open');
+  }
+
+  function carregarJustificativasConfig() {
+    if (justificativasConfig && justificativasConfigExpiraEm > Date.now()) {
+      return Promise.resolve(justificativasConfig);
+    }
+
+    if (justificativasConfigPromise) {
+      return justificativasConfigPromise;
+    }
+
+    justificativasConfigPromise = api.apiGet('/v2/justificativas/config', {})
+      .then(function tratar(resposta) {
+        if (!resposta.ok) {
+          throw new Error(resposta.message || 'Nao foi possivel carregar configuracao de justificativas.');
+        }
+
+        justificativasConfig = normalizarJustificativasConfig(resposta.data || {});
+        justificativasConfigExpiraEm = Date.now() + JUSTIFICATIVAS_CONFIG_TTL_MS;
+        return justificativasConfig;
+      })
+      .finally(function limpar() {
+        justificativasConfigPromise = null;
+      });
+
+    return justificativasConfigPromise;
+  }
+
+  function normalizarJustificativasConfig(config) {
+    var dados = config || {};
+
+    return {
+      motivos: obterMotivosJustificativa(dados),
+      upload: Object.assign({}, JUSTIFICATIVA_UPLOAD_PADRAO, dados.upload || dados.regrasUpload || {}),
+      regras: Object.assign({
+        descricaoMinimaOutro: 20,
+        permiteLinkDocumento: true,
+        permiteUploadDocumento: true
+      }, dados.regras || {})
+    };
+  }
+
+  function obterMotivosJustificativa(config) {
+    var motivos = (config && Array.isArray(config.motivos) && config.motivos.length)
+      ? config.motivos
+      : MOTIVOS_JUSTIFICATIVA_PADRAO;
+
+    return motivos.map(function normalizar(motivo) {
+      if (typeof motivo === 'string') {
+        return {
+          valor: motivo,
+          rotulo: motivo
+        };
+      }
+
+      return {
+        valor: String((motivo || {}).valor || (motivo || {}).codigo || (motivo || {}).rotulo || '').trim(),
+        rotulo: String((motivo || {}).rotulo || (motivo || {}).label || (motivo || {}).valor || (motivo || {}).codigo || '').trim()
+      };
+    }).filter(function filtrar(motivo) {
+      return motivo.valor;
+    });
+  }
+
+  function montarCampoMotivoJustificativa(config, valorAtual) {
+    var motivos = obterMotivosJustificativa(config);
+
+    return [
+      '<label>Motivo',
+      '<select name="motivoDeclarado" required>',
+      '<option value="">Selecionar</option>',
+      motivos.map(function montar(motivo) {
+        var selecionado = motivo.valor === valorAtual ? ' selected' : '';
+        return '<option value="' + ui.escaparHtml(motivo.valor) + '"' + selecionado + '>' + ui.escaparHtml(motivo.rotulo || motivo.valor) + '</option>';
+      }).join(''),
+      '</select>',
+      '</label>'
+    ].join('');
+  }
+
+  function montarCamposDocumentoJustificativa(config, item) {
+    var upload = obterUploadJustificativa(config);
+    var formatos = obterFormatosJustificativa(upload);
+    var limiteMb = Math.round((upload.tamanhoMaximoBytes || JUSTIFICATIVA_UPLOAD_PADRAO.tamanhoMaximoBytes) / 1024 / 1024);
+    var accept = formatos.map(function montar(extensao) {
+      return '.' + extensao.toLowerCase();
+    }).join(',');
+
+    return [
+      '<label>Arquivo comprobatorio',
+      '<input name="arquivoDocumentoComprobatorio" type="file" accept="' + ui.escaparHtml(accept) + '">',
+      '</label>',
+      '<label>Link do documento',
+      '<input name="linkDocumentoComprobatorio" type="url" value="' + ui.escaparHtml((item || {}).linkDocumentoComprobatorio || '') + '">',
+      '</label>',
+      '<p class="muted-inline">Formatos aceitos: ' + ui.escaparHtml(formatos.join(', ')) + '. Limite: ' + ui.escaparHtml(limiteMb) + ' MB. Use arquivo ou link quando houver comprovante.</p>'
+    ].join('');
+  }
+
+  function obterUploadJustificativa(config) {
+    return Object.assign({}, JUSTIFICATIVA_UPLOAD_PADRAO, (config || {}).upload || {});
+  }
+
+  function obterFormatosJustificativa(upload) {
+    var formatos = Array.isArray((upload || {}).formatosAceitos)
+      ? upload.formatosAceitos
+      : JUSTIFICATIVA_UPLOAD_PADRAO.formatosAceitos;
+
+    return formatos.map(function normalizar(formato) {
+      return String(formato || '').replace(/^\./, '').toUpperCase();
+    }).filter(Boolean);
   }
 
   function montarDescricaoAtividadeJustificativaPrevia(atividade) {
@@ -1821,30 +1969,131 @@
     return partes.length ? partes.join(' - ') : 'Atividade futura';
   }
 
+  function arquivoJustificativaPermitido(arquivo, config) {
+    var upload = obterUploadJustificativa(config);
+    var nome = String((arquivo && arquivo.name) || '').toLowerCase();
+    var tipo = String((arquivo && arquivo.type) || '').toLowerCase();
+    var formatos = obterFormatosJustificativa(upload).map(function minusculo(formato) {
+      return formato.toLowerCase();
+    });
+    var mimeTypes = Array.isArray(upload.mimeTypesAceitos) && upload.mimeTypesAceitos.length
+      ? upload.mimeTypesAceitos.map(function minusculo(mime) {
+        return String(mime || '').toLowerCase();
+      })
+      : JUSTIFICATIVA_UPLOAD_PADRAO.mimeTypesAceitos;
+    var limite = Number(upload.tamanhoMaximoBytes || JUSTIFICATIVA_UPLOAD_PADRAO.tamanhoMaximoBytes);
+    var extensaoOk = formatos.some(function comparar(formato) {
+      return nome.endsWith('.' + formato);
+    });
+    var mimeOk = !tipo || tipo === 'application/octet-stream' || mimeTypes.indexOf(tipo) >= 0;
+
+    return arquivo && arquivo.name && arquivo.size <= limite && extensaoOk && mimeOk;
+  }
+
+  function montarPayloadDocumentoJustificativa(arquivo) {
+    if (!arquivo || !arquivo.name) {
+      return Promise.resolve(null);
+    }
+
+    ui.mostrarLoading('Lendo comprovante...');
+    return lerArquivoBase64(arquivo).then(function montar(conteudoBase64) {
+      return {
+        nomeArquivo: arquivo.name,
+        mimeType: arquivo.type || inferirMimeJustificativa(arquivo.name),
+        conteudoBase64: conteudoBase64
+      };
+    });
+  }
+
+  function lerArquivoBase64(arquivo) {
+    return new Promise(function criar(resolve, reject) {
+      var leitor = new FileReader();
+
+      leitor.onload = function aoCarregar() {
+        resolve(String(leitor.result || '').split(',').pop() || '');
+      };
+      leitor.onerror = function aoErro() {
+        reject(new Error('Nao foi possivel ler o arquivo.'));
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+  }
+
+  function inferirMimeJustificativa(nomeArquivo) {
+    var nome = String(nomeArquivo || '').toLowerCase();
+
+    if (nome.endsWith('.pdf')) {
+      return 'application/pdf';
+    }
+    if (nome.endsWith('.jpg') || nome.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    }
+    if (nome.endsWith('.png')) {
+      return 'image/png';
+    }
+    if (nome.endsWith('.docx')) {
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+    if (nome.endsWith('.doc')) {
+      return 'application/msword';
+    }
+
+    return '';
+  }
+
+  function obterDescricaoMinimaOutro(config) {
+    var regras = (config || {}).regras || {};
+    var minimo = Number(regras.descricaoMinimaOutro || 20);
+
+    return Number.isFinite(minimo) && minimo > 0 ? minimo : 20;
+  }
+
   function salvarJustificativaPrevia(form) {
     var dados = new FormData(form);
     var possuiDocumento = dados.get('possuiDocumentoComprobatorio') || 'NAO';
     var linkDocumento = String(dados.get('linkDocumentoComprobatorio') || '').trim();
+    var motivo = String(dados.get('motivoDeclarado') || '').trim();
+    var descricao = String(dados.get('descricaoJustificativa') || '').trim();
+    var arquivo = dados.get('arquivoDocumentoComprobatorio');
+    var config = justificativasConfig || normalizarJustificativasConfig({});
 
-    if (possuiDocumento === 'SIM' && !linkDocumento) {
-      mostrarErroModalAtividade('Informe o link do documento comprobatorio.');
+    if (motivo === 'OUTRO' && descricao.length < obterDescricaoMinimaOutro(config)) {
+      mostrarErroModalAtividade('Descreva melhor o motivo quando selecionar Outro.');
       return;
     }
 
-    ui.mostrarLoading('Enviando justificativa previa...');
+    if (possuiDocumento === 'SIM' && (!arquivo || !arquivo.name) && !linkDocumento) {
+      mostrarErroModalAtividade('Anexe um arquivo ou informe o link do documento comprobatorio.');
+      return;
+    }
 
-    api.apiPost('/v2/justificativas/enviar', {
-      payload: JSON.stringify({
+    if (arquivo && arquivo.name && !arquivoJustificativaPermitido(arquivo, config)) {
+      mostrarErroModalAtividade('Formato ou tamanho do comprovante nao permitido.');
+      return;
+    }
+
+    montarPayloadDocumentoJustificativa(arquivo, config)
+      .then(function enviar(documentoComprobatorio) {
+        var payload = {
         idAtividade: dados.get('idAtividade'),
         idRegistroPresenca: '',
-        motivoDeclarado: dados.get('motivoDeclarado'),
-        descricaoJustificativa: dados.get('descricaoJustificativa'),
+          motivoDeclarado: motivo,
+          descricaoJustificativa: descricao,
         possuiDocumentoComprobatorio: possuiDocumento,
         linkDocumentoComprobatorio: linkDocumento,
         confirmouCienciaForaPrazo: false,
         observacoes: dados.get('observacoes')
+        };
+
+        if (documentoComprobatorio) {
+          payload.documentoComprobatorio = documentoComprobatorio;
+        }
+
+        ui.mostrarLoading('Enviando justificativa previa...');
+        return api.apiPost('/v2/justificativas/enviar', {
+          payload: JSON.stringify(payload)
+        });
       })
-    })
       .then(function tratar(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Nao foi possivel enviar a justificativa previa.');
