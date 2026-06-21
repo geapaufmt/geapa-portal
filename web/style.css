@@ -2145,7 +2145,7 @@ button:disabled:hover {
 
 .attendance-summary {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -2188,11 +2188,29 @@ button:disabled:hover {
   gap: 10px;
 }
 
+.attendance-toolbar {
+  display: grid;
+  gap: 10px;
+}
+
+.attendance-filters,
+.attendance-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attendance-filters .is-active {
+  border-color: var(--green-700);
+  color: var(--white);
+  background: var(--green-700);
+}
+
 .attendance-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(150px, 0.8fr) minmax(180px, 1fr);
+  grid-template-columns: minmax(180px, 1.2fr) minmax(220px, 0.9fr) minmax(180px, 1fr);
   gap: 10px;
-  align-items: end;
+  align-items: center;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
@@ -2232,6 +2250,40 @@ button:disabled:hover {
 .attendance-field input,
 .attendance-field select {
   min-height: 40px;
+}
+
+.attendance-toggle-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.attendance-mark-button {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--green-950);
+  background: var(--white);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.attendance-mark-button:hover,
+.attendance-mark-button:focus-visible {
+  border-color: var(--green-700);
+  outline: none;
+}
+
+.attendance-mark-button.is-active {
+  border-color: var(--green-700);
+  color: var(--white);
+  background: var(--green-700);
+}
+
+.attendance-mark-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .attendance-footer {
@@ -2395,6 +2447,21 @@ button:disabled:hover {
 
   .public-person-card {
     grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .attendance-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .attendance-toolbar,
+  .attendance-actions {
+    justify-content: stretch;
+  }
+
+  .attendance-toolbar button,
+  .attendance-actions button {
+    width: 100%;
   }
 
   .public-person-card img,

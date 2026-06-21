@@ -561,14 +561,25 @@
     });
   }
 
-  function apiPostMock(route) {
+  function apiPostMock(route, params) {
     if (route === '/atividades/chamada/salvar') {
+      var payload = lerPayloadMock(params);
+      var operacao = String(payload.operacao || 'SALVAR').toUpperCase();
+      var finalizada = operacao === 'FINALIZAR';
       return Promise.resolve({
         ok: true,
-        message: 'Chamada simulada salva com sucesso.',
+        message: operacao === 'REABRIR'
+          ? 'Chamada simulada reaberta com sucesso.'
+          : finalizada
+            ? 'Chamada simulada finalizada com sucesso.'
+            : 'Rascunho de chamada simulado salvo com sucesso.',
         data: {
           route: route,
-          modo: 'MOCK'
+          modo: 'MOCK',
+          statusChamada: operacao === 'REABRIR' ? 'REABERTA' : (finalizada ? 'FINALIZADA' : 'SALVA'),
+          statusChamadaRotulo: operacao === 'REABRIR' ? 'Chamada reaberta' : (finalizada ? 'Chamada finalizada' : 'Rascunho salvo'),
+          chamadaFinalizada: finalizada,
+          statusChamadaAtualizadoEm: new Date().toISOString()
         }
       });
     }
@@ -593,6 +604,20 @@
         route: route
       }
     });
+  }
+
+  function lerPayloadMock(params) {
+    if (!params || !params.payload) {
+      return {};
+    }
+
+    try {
+      return typeof params.payload === 'string'
+        ? JSON.parse(params.payload)
+        : params.payload;
+    } catch (erro) {
+      return {};
+    }
   }
 
   function criarMinhasApresentacoesMock() {

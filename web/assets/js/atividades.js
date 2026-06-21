@@ -36,6 +36,7 @@
   var detalhesPreloadEmExecucao = false;
   var detalhesIntersectionObserver = null;
   var chamadaAtual = null;
+  var filtroChamadaAtual = 'TODOS';
   var justificativasConfig = null;
   var justificativasConfigExpiraEm = 0;
   var justificativasConfigPromise = null;
@@ -60,11 +61,8 @@
     tamanhoMaximoBytes: 10 * 1024 * 1024
   };
   var STATUS_CHAMADA = [
-    { valor: '', rotulo: 'Sem marcação', codigo: '' },
     { valor: 'PRESENTE_PRESENCIAL', rotulo: 'Presente presencial', codigo: 'P' },
-    { valor: 'PRESENTE_REMOTO', rotulo: 'Presente remoto', codigo: 'R' },
-    { valor: 'FALTA', rotulo: 'Falta', codigo: 'F' },
-    { valor: 'NAO_SE_APLICA', rotulo: 'Não se aplica', codigo: 'N/A' }
+    { valor: 'PRESENTE_REMOTO', rotulo: 'Presente remoto', codigo: 'R' }
   ];
 
   function iniciarAtividades() {
@@ -2268,6 +2266,7 @@
   function renderizarChamada(chamada) {
     var conteudo = document.getElementById('atividade-modal-content');
     var atividade = chamada.atividade || {};
+    var participantesVisiveis = filtrarParticipantesChamada(chamada.participantes || []);
 
     definirTituloModal(chamada.chamadaFinalizada ? 'Visualizar chamada' : 'Registrar chamada');
     conteudo.innerHTML = [
@@ -2278,16 +2277,18 @@
       ui.escaparHtml([
         ui.formatarData(atividade.dataAtividade),
         atividade.horarioCompleto,
-        atividade.local
+        atividade.local,
+        atividade.formato
       ].filter(Boolean).join(' · ')),
       '</p>',
       '<p class="simulation-warning">Registro em modo ' + ui.escaparHtml(chamada.modo || 'DEV') + '. A chamada é salva somente pela API do Apps Script.</p>',
       montarEstadoChamada(chamada),
       montarResumoChamada(calcularResumoChamada(chamada.participantes)),
+      montarFerramentasChamada(chamada),
       '<div class="attendance-list">',
-      chamada.participantes.length
-        ? chamada.participantes.map(montarParticipanteChamada).join('')
-        : '<p class="empty-state">Nenhum participante aplicável foi localizado para esta atividade.</p>',
+      participantesVisiveis.length
+        ? participantesVisiveis.map(montarParticipanteChamada).join('')
+        : '<p class="empty-state">Nenhum participante atende ao filtro selecionado.</p>',
       '</div>',
       '<div class="attendance-footer">',
       '<p id="chamada-status" class="section-note" role="status" aria-live="polite"></p>',
@@ -2298,7 +2299,7 @@
       !chamada.chamadaFinalizada
         ? '<button class="secondary-button compact-button" type="button" data-save-attendance ' +
           (chamada.podeSalvar ? '' : 'disabled') +
-          '>Salvar chamada</button>'
+          '>Salvar rascunho</button>'
         : '',
       !chamada.chamadaFinalizada
         ? '<button class="primary-button compact-button" type="button" data-finalize-attendance ' +
@@ -2339,12 +2340,41 @@
   function montarResumoChamada(resumo) {
     return [
       '<dl class="attendance-summary" data-attendance-summary>',
-      montarFato('Participantes', resumo.totalParticipantes),
-      montarFato('Presentes', resumo.totalPresentes),
-      montarFato('Faltas', resumo.totalFaltas),
+      montarFato('Total', resumo.totalParticipantes),
+      montarFato('Presenciais', resumo.totalPresenciais),
+      montarFato('Remotos', resumo.totalRemotos),
+      montarFato('Faltas previstas', resumo.totalFaltasPrevistas),
       montarFato('N/A', resumo.totalNaoSeAplica),
       montarFato('Sem marcação', resumo.totalSemMarcacao),
       '</dl>'
+    ].join('');
+  }
+
+  function montarFerramentasChamada(chamada) {
+    var filtros = [
+      ['TODOS', 'Todos'],
+      ['SEM_MARCACAO', 'Sem marcação'],
+      ['PRESENCIAL', 'Presencial'],
+      ['REMOTO', 'Remoto'],
+      ['FALTA', 'Falta']
+    ];
+
+    return [
+      '<div class="attendance-toolbar">',
+      '<div class="attendance-filters" aria-label="Filtros da chamada">',
+      filtros.map(function montarFiltro(filtro) {
+        return '<button class="secondary-button compact-button ' + (filtroChamadaAtual === filtro[0] ? 'is-active' : '') + '" type="button" data-attendance-filter="' + ui.escaparHtml(filtro[0]) + '">' +
+          ui.escaparHtml(filtro[1]) +
+          '</button>';
+      }).join(''),
+      '</div>',
+      !chamada.chamadaFinalizada
+        ? '<div class="attendance-bulk-actions">' +
+          '<button class="secondary-button compact-button" type="button" data-attendance-bulk="PRESENTE_PRESENCIAL">Marcar todos como presencial</button>' +
+          '<button class="secondary-button compact-button" type="button" data-attendance-bulk="LIMPAR">Limpar marcações</button>' +
+          '</div>'
+        : '',
+      '</div>'
     ].join('');
   }
 
@@ -2354,24 +2384,21 @@
     var desabilitado = bloqueado || somenteLeitura;
 
     return [
-      '<article class="attendance-row" data-attendance-row data-index="' + participante.indice + '">',
+      '<article class="attendance-row" data-attendance-row data-index="' + participante.indice + '" data-status-presenca="' + ui.escaparHtml(statusLeituraChamada(participante.statusPresenca)) + '">',
       '<div class="attendance-person">',
       '<strong>' + ui.escaparHtml(participante.nome) + '</strong>',
       '<small>' + ui.escaparHtml(montarSubtituloParticipante(participante)) + '</small>',
       bloqueado
         ? '<small class="attendance-lock">' + ui.escaparHtml(participante.motivoBloqueio || 'Não aplicável nesta data.') + '</small>'
         : '',
+      !bloqueado && rotuloStatusNaoOperacionalChamada(participante.statusPresenca)
+        ? '<small class="attendance-lock">' + ui.escaparHtml(rotuloStatusNaoOperacionalChamada(participante.statusPresenca)) + '</small>'
+        : '',
       '</div>',
-      '<label class="attendance-field">',
-      '<span>Presença</span>',
-      '<select data-attendance-status ' + (desabilitado ? 'disabled' : '') + '>',
-      STATUS_CHAMADA.map(function montarOpcao(opcao) {
-        return '<option value="' + ui.escaparHtml(opcao.valor) + '" ' +
-          (opcao.valor === participante.statusPresenca ? 'selected' : '') +
-          '>' + ui.escaparHtml(opcao.rotulo) + '</option>';
-      }).join(''),
-      '</select>',
-      '</label>',
+      '<div class="attendance-toggle-group" role="group" aria-label="Presença de ' + ui.escaparHtml(participante.nome) + '">',
+      montarBotaoMarcacaoChamada(participante, 'PRESENTE_PRESENCIAL', 'Presencial', desabilitado),
+      montarBotaoMarcacaoChamada(participante, 'PRESENTE_REMOTO', 'Remoto', desabilitado),
+      '</div>',
       '<label class="attendance-field attendance-note">',
       '<span>Observação</span>',
       '<input data-attendance-note type="text" maxlength="300" value="' + ui.escaparHtml(participante.observacoes) + '" ' +
@@ -2380,6 +2407,26 @@
       '</label>',
       '</article>'
     ].join('');
+  }
+
+  function montarBotaoMarcacaoChamada(participante, status, rotulo, desabilitado) {
+    var ativo = participante.statusPresenca === status;
+
+    return '<button class="attendance-mark-button ' + (ativo ? 'is-active' : '') + '" type="button" data-attendance-mark="' + ui.escaparHtml(status) + '" aria-pressed="' + (ativo ? 'true' : 'false') + '" ' +
+      (desabilitado ? 'disabled' : '') +
+      '>' + ui.escaparHtml(rotulo) + '</button>';
+  }
+
+  function rotuloStatusNaoOperacionalChamada(status) {
+    if (status === 'FALTA') {
+      return 'Falta registrada';
+    }
+
+    if (status === 'NAO_SE_APLICA') {
+      return 'Não se aplica';
+    }
+
+    return '';
   }
 
   function montarSubtituloParticipante(participante) {
@@ -2394,10 +2441,38 @@
 
   function registrarEventosChamada(container) {
     Array.prototype.forEach.call(
-      container.querySelectorAll('[data-attendance-status], [data-attendance-note]'),
+      container.querySelectorAll('[data-attendance-note]'),
       function registrarCampo(campo) {
-        campo.addEventListener('change', atualizarResumoChamada);
         campo.addEventListener('input', atualizarResumoChamada);
+      }
+    );
+
+    Array.prototype.forEach.call(
+      container.querySelectorAll('[data-attendance-mark]'),
+      function registrarBotao(botao) {
+        botao.addEventListener('click', function marcar() {
+          alternarMarcacaoParticipante(botao);
+        });
+      }
+    );
+
+    Array.prototype.forEach.call(
+      container.querySelectorAll('[data-attendance-filter]'),
+      function registrarFiltro(botao) {
+        botao.addEventListener('click', function filtrar() {
+          filtroChamadaAtual = botao.getAttribute('data-attendance-filter') || 'TODOS';
+          sincronizarParticipantesChamadaDoModal();
+          renderizarChamada(chamadaAtual);
+        });
+      }
+    );
+
+    Array.prototype.forEach.call(
+      container.querySelectorAll('[data-attendance-bulk]'),
+      function registrarAcaoMassa(botao) {
+        botao.addEventListener('click', function executar() {
+          aplicarAcaoMassaChamada(botao.getAttribute('data-attendance-bulk'));
+        });
       }
     );
 
@@ -2421,9 +2496,66 @@
     }
   }
 
+  function alternarMarcacaoParticipante(botao) {
+    var linha = botao.closest('[data-attendance-row]');
+    var status = botao.getAttribute('data-attendance-mark') || '';
+
+    if (!linha || botao.disabled) {
+      return;
+    }
+
+    Array.prototype.forEach.call(linha.querySelectorAll('[data-attendance-mark]'), function limpar(outro) {
+      var ativo = outro === botao && !outro.classList.contains('is-active');
+      outro.classList.toggle('is-active', ativo);
+      outro.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+    });
+
+    if (botao.classList.contains('is-active')) {
+      linha.setAttribute('data-status-presenca', status);
+    } else {
+      linha.setAttribute('data-status-presenca', '');
+    }
+
+    atualizarResumoChamada();
+  }
+
+  function aplicarAcaoMassaChamada(acao) {
+    var linhas = document.querySelectorAll('[data-attendance-row]');
+
+    Array.prototype.forEach.call(linhas, function aplicar(linha) {
+      var indice = Number(linha.getAttribute('data-index'));
+      var participante = chamadaAtual && chamadaAtual.participantes[indice];
+
+      if (!participante || participante.bloqueado || participante.aplicavelNaData === false || chamadaAtual.chamadaFinalizada) {
+        return;
+      }
+
+      if (acao === 'LIMPAR') {
+        definirMarcacaoLinhaChamada(linha, '');
+        return;
+      }
+
+      if (acao === 'PRESENTE_PRESENCIAL') {
+        definirMarcacaoLinhaChamada(linha, 'PRESENTE_PRESENCIAL');
+      }
+    });
+
+    atualizarResumoChamada();
+  }
+
+  function definirMarcacaoLinhaChamada(linha, status) {
+    Array.prototype.forEach.call(linha.querySelectorAll('[data-attendance-mark]'), function atualizar(botao) {
+      var ativo = Boolean(status) && botao.getAttribute('data-attendance-mark') === status;
+      botao.classList.toggle('is-active', ativo);
+      botao.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+    });
+
+    linha.setAttribute('data-status-presenca', status || '');
+  }
+
   function atualizarResumoChamada() {
-    var participantes = lerParticipantesChamadaDoModal();
-    var resumo = calcularResumoChamada(participantes);
+    sincronizarParticipantesChamadaDoModal();
+    var resumo = calcularResumoChamada(chamadaAtual ? chamadaAtual.participantes : []);
     var containerResumo = document.querySelector('[data-attendance-summary]');
 
     if (containerResumo) {
@@ -2438,9 +2570,8 @@
     return Array.prototype.map.call(linhas, function lerLinha(linha) {
       var indice = Number(linha.getAttribute('data-index'));
       var base = participantesBase[indice] || {};
-      var status = linha.querySelector('[data-attendance-status]');
       var observacao = linha.querySelector('[data-attendance-note]');
-      var statusValor = status ? status.value : base.statusPresenca;
+      var statusValor = linha.getAttribute('data-status-presenca') || '';
 
       return Object.assign({}, base, {
         statusPresenca: statusValor,
@@ -2450,28 +2581,43 @@
     });
   }
 
+  function sincronizarParticipantesChamadaDoModal() {
+    var participantes = lerParticipantesChamadaDoModal();
+
+    participantes.forEach(function atualizar(participante) {
+      if (chamadaAtual && chamadaAtual.participantes[participante.indice]) {
+        chamadaAtual.participantes[participante.indice] = participante;
+      }
+    });
+  }
+
   function calcularResumoChamada(participantes) {
     var resumo = {
       totalParticipantes: participantes.length,
-      totalPresentes: 0,
-      totalFaltas: 0,
+      totalPresenciais: 0,
+      totalRemotos: 0,
+      totalFaltasPrevistas: 0,
       totalNaoSeAplica: 0,
       totalSemMarcacao: 0
     };
 
     participantes.forEach(function contarParticipante(participante) {
       if (participante.bloqueado || participante.aplicavelNaData === false) {
+        resumo.totalNaoSeAplica++;
         return;
       }
 
-      if (participante.statusPresenca === 'PRESENTE_PRESENCIAL' || participante.statusPresenca === 'PRESENTE_REMOTO') {
-        resumo.totalPresentes++;
+      if (participante.statusPresenca === 'PRESENTE_PRESENCIAL') {
+        resumo.totalPresenciais++;
+      } else if (participante.statusPresenca === 'PRESENTE_REMOTO') {
+        resumo.totalRemotos++;
       } else if (participante.statusPresenca === 'FALTA') {
-        resumo.totalFaltas++;
+        resumo.totalFaltasPrevistas++;
       } else if (participante.statusPresenca === 'NAO_SE_APLICA') {
         resumo.totalNaoSeAplica++;
       } else {
         resumo.totalSemMarcacao++;
+        resumo.totalFaltasPrevistas++;
       }
     });
 
@@ -2479,11 +2625,57 @@
   }
 
   function obterCodigoPresenca(status) {
-    var encontrado = STATUS_CHAMADA.find(function encontrarStatus(opcao) {
-      return opcao.valor === status;
-    });
+    if (status === 'PRESENTE_PRESENCIAL') {
+      return 'P';
+    }
 
-    return encontrado ? encontrado.codigo : '';
+    if (status === 'PRESENTE_REMOTO') {
+      return 'R';
+    }
+
+    return '';
+  }
+
+  function statusOperacionalChamada(status) {
+    return status === 'PRESENTE_PRESENCIAL' || status === 'PRESENTE_REMOTO'
+      ? status
+      : '';
+  }
+
+  function statusLeituraChamada(status) {
+    return status === 'PRESENTE_PRESENCIAL' ||
+      status === 'PRESENTE_REMOTO' ||
+      status === 'FALTA' ||
+      status === 'NAO_SE_APLICA'
+      ? status
+      : '';
+  }
+
+  function filtrarParticipantesChamada(participantes) {
+    var filtro = filtroChamadaAtual || 'TODOS';
+
+    return (participantes || []).filter(function filtrar(participante) {
+      var status = participante.statusPresenca || '';
+      var bloqueado = participante.bloqueado || participante.aplicavelNaData === false || status === 'NAO_SE_APLICA';
+
+      if (filtro === 'SEM_MARCACAO') {
+        return !bloqueado && !statusOperacionalChamada(status) && status !== 'FALTA';
+      }
+
+      if (filtro === 'PRESENCIAL') {
+        return status === 'PRESENTE_PRESENCIAL';
+      }
+
+      if (filtro === 'REMOTO') {
+        return status === 'PRESENTE_REMOTO';
+      }
+
+      if (filtro === 'FALTA') {
+        return !bloqueado && (status === 'FALTA' || !statusOperacionalChamada(status));
+      }
+
+      return true;
+    });
   }
 
   function formatarDataHoraCurta(valor) {
@@ -2508,23 +2700,19 @@
     }
 
     var operacaoNormalizada = operacao === 'FINALIZAR' ? 'FINALIZAR' : 'SALVAR';
-    var participantes = lerParticipantesChamadaDoModal();
+    sincronizarParticipantesChamadaDoModal();
+    var participantes = chamadaAtual.participantes || [];
     var resumo = calcularResumoChamada(participantes);
     var status = document.getElementById('chamada-status');
     var botao = document.querySelector(operacaoNormalizada === 'FINALIZAR'
       ? '[data-finalize-attendance]'
       : '[data-save-attendance]');
 
-    if (resumo.totalSemMarcacao > 0) {
-      if (status) {
-        status.textContent = 'Marque todos os participantes antes de ' +
-          (operacaoNormalizada === 'FINALIZAR' ? 'finalizar' : 'salvar') +
-          ' a chamada.';
-      }
+    if (operacaoNormalizada === 'FINALIZAR' && resumo.totalSemMarcacao > 0 && !global.confirm('Os membros sem marcação serão registrados como falta. Deseja finalizar a chamada?')) {
       return;
     }
 
-    var payload = montarPayloadSalvarChamada(chamadaAtual.atividade.idAtividade, participantes);
+    var payload = montarPayloadSalvarChamada(chamadaAtual.atividade.idAtividade, participantes, operacaoNormalizada);
     payload.operacao = operacaoNormalizada;
     var inicio = obterTempoAtual();
 
@@ -2565,7 +2753,7 @@
     }).then(function finalizar() {
       if (botao) {
         botao.disabled = false;
-        botao.textContent = operacaoNormalizada === 'FINALIZAR' ? 'Finalizar chamada' : 'Salvar chamada';
+        botao.textContent = operacaoNormalizada === 'FINALIZAR' ? 'Finalizar chamada' : 'Salvar rascunho';
       }
     });
   }
@@ -2653,15 +2841,18 @@
     }
   }
 
-  function montarPayloadSalvarChamada(idAtividade, participantes) {
+  function montarPayloadSalvarChamada(idAtividade, participantes, operacao) {
     var payload = {
       idAtividade: idAtividade,
+      operacao: operacao === 'FINALIZAR' ? 'FINALIZAR' : 'SALVAR',
       registros: [],
       externos: []
     };
 
     participantes.forEach(function adicionarParticipante(participante) {
-      if (participante.bloqueado || participante.aplicavelNaData === false || !participante.statusPresenca) {
+      var status = statusOperacionalChamada(participante.statusPresenca);
+
+      if (participante.bloqueado || participante.aplicavelNaData === false || !status) {
         return;
       }
 
@@ -2670,8 +2861,8 @@
         idPessoa: participante.idPessoa,
         rga: participante.rga,
         nome: participante.nome,
-        statusPresenca: participante.statusPresenca,
-        codigoPresenca: participante.codigoPresenca,
+        statusPresenca: status,
+        codigoPresenca: obterCodigoPresenca(status),
         observacoes: participante.observacoes
       };
 

@@ -1121,10 +1121,16 @@ estrutural.
 
 Operacoes aceitas:
 
-- `SALVAR`: grava ou atualiza a chamada;
-- `FINALIZAR`: grava, valida que todos os participantes estejam marcados e muda
-  o estado para chamada finalizada;
+- `SALVAR`: grava rascunho parcial com apenas participantes marcados como
+  `PRESENTE_PRESENCIAL`/`P` ou `PRESENTE_REMOTO`/`R`;
+- `FINALIZAR`: grava marcacoes P/R, confirma que sem marcacao virara falta no
+  backend e muda o estado para chamada finalizada;
 - `REABRIR`: reabre uma chamada finalizada para ajustes autorizados.
+
+O Portal nao envia manualmente pela tela de chamada estados de justificativa
+como `JUSTIFICADA`, `ABONADA`, `DEFERIDA`, `INDEFERIDA` ou
+`AJUSTE_SOLICITADO`. Tambem nao envia `FALTA` no rascunho; na finalizacao, os
+membros aplicaveis sem marcacao sao tratados pelo backend como `FALTA`/`F`.
 
 O salvamento ocorre somente pela API do Apps Script e pelo modulo
 `geapa-atividades`, usando a base v2 DEV. O front-end nao escreve diretamente em

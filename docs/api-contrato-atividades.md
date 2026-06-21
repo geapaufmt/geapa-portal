@@ -423,7 +423,10 @@ do usuario.
 
 O payload de salvamento e enviado em lote, com `registros` para membros e
 `externos` para convidados/externos ja presentes na chamada retornada pelo
-backend. O Portal nao escreve diretamente em planilhas.
+backend. No Pacote 3A, a interface simplificada envia apenas marcacoes
+operacionais `PRESENTE_PRESENCIAL`/`P` e `PRESENTE_REMOTO`/`R`; sem marcacao
+fica fora do rascunho e so vira falta quando o backend processa `FINALIZAR`.
+O Portal nao escreve diretamente em planilhas.
 
 Cada participante retornado pelo backend deve priorizar `idPessoa` como chave
 tecnica da pessoa. O campo `rga` continua aceito como apoio legado e para
@@ -445,9 +448,14 @@ compatibilidade durante a migracao:
 
 O campo `operacao` controla o estado operacional:
 
-- `SALVAR`: grava ou atualiza registros e deixa a chamada como salva;
-- `FINALIZAR`: grava registros e marca a chamada como finalizada;
+- `SALVAR`: grava rascunho parcial e nao gera faltas para sem marcacao;
+- `FINALIZAR`: confirma no Portal que sem marcacao virara falta, grava marcacoes
+  P/R e deixa o backend registrar faltas/N/A conforme membros aplicaveis;
 - `REABRIR`: reabre uma chamada finalizada para ajustes autorizados.
+
+A tela de chamada nao usa dropdown de status e nao envia estados de
+justificativa (`JUSTIFICADA`, `ABONADA`, `DEFERIDA`, `INDEFERIDA`,
+`AJUSTE_SOLICITADO`). Esses estados pertencem ao fluxo de justificativas.
 
 Quando a chamada esta finalizada, o front-end troca o botao da lista para
 "Visualizar chamada" e abre a tela em modo somente leitura. O status operacional
