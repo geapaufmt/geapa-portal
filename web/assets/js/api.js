@@ -579,7 +579,19 @@
           statusChamada: operacao === 'REABRIR' ? 'REABERTA' : (finalizada ? 'FINALIZADA' : 'SALVA'),
           statusChamadaRotulo: operacao === 'REABRIR' ? 'Chamada reaberta' : (finalizada ? 'Chamada finalizada' : 'Rascunho salvo'),
           chamadaFinalizada: finalizada,
-          statusChamadaAtualizadoEm: new Date().toISOString()
+          rascunhoSalvo: !finalizada && operacao !== 'REABRIR',
+          rascunhoSalvoEm: !finalizada && operacao !== 'REABRIR' ? new Date().toISOString() : '',
+          statusChamadaAtualizadoEm: new Date().toISOString(),
+          escrita: {
+            rascunhoPortalAcoes: !finalizada && operacao !== 'REABRIR',
+            presencasOficiais: finalizada ? (payload.registros || []).length + (payload.externos || []).length : 0
+          },
+          performance: {
+            totalMs: 120,
+            etapas: [
+              { etapa: 'mock_chamada_salvar', ms: 120, totalMs: 120 }
+            ]
+          }
         }
       });
     }
@@ -972,6 +984,20 @@
           totalSemMarcacao: 1
         },
         podeSalvar: true,
+        podeFinalizar: true,
+        podeReabrir: false,
+        statusChamada: 'SALVA',
+        statusChamadaRotulo: 'Rascunho salvo',
+        chamadaFinalizada: false,
+        rascunhoRestaurado: true,
+        rascunhoSalvoEm: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+        rascunhoSalvoPor: 'Operador mock',
+        performance: {
+          totalMs: 95,
+          etapas: [
+            { etapa: 'mock_chamada_carregar', ms: 95, totalMs: 95 }
+          ]
+        },
         modo: 'MOCK',
         ultimaAtualizacao: new Date().toISOString()
       }

@@ -426,7 +426,23 @@ O payload de salvamento e enviado em lote, com `registros` para membros e
 backend. No Pacote 3A, a interface simplificada envia apenas marcacoes
 operacionais `PRESENTE_PRESENCIAL`/`P` e `PRESENTE_REMOTO`/`R`; sem marcacao
 fica fora do rascunho e so vira falta quando o backend processa `FINALIZAR`.
+No Pacote 3.1, `SALVAR` nao grava presenca oficial: ele persiste apenas um
+snapshot em `Portal_Acoes` com `TIPO_ACAO = CHAMADA_RASCUNHO_SALVO`.
 O Portal nao escreve diretamente em planilhas.
+
+Ao abrir uma chamada ainda nao finalizada, o backend pode restaurar o ultimo
+rascunho salvo e retornar:
+
+```json
+{
+  "rascunhoRestaurado": true,
+  "rascunhoSalvoEm": "2026-06-22T14:00:00.000Z",
+  "rascunhoSalvoPor": "Operador"
+}
+```
+
+Se a chamada estiver finalizada, os registros oficiais de
+`Atividades_Presencas_Registros` prevalecem sobre rascunhos antigos.
 
 Cada participante retornado pelo backend deve priorizar `idPessoa` como chave
 tecnica da pessoa. O campo `rga` continua aceito como apoio legado e para
@@ -448,9 +464,12 @@ compatibilidade durante a migracao:
 
 O campo `operacao` controla o estado operacional:
 
-- `SALVAR`: grava rascunho parcial e nao gera faltas para sem marcacao;
+- `SALVAR`: grava somente rascunho parcial em `Portal_Acoes`, nao gera faltas,
+  nao altera Minha frequencia e nao promove justificativas previas;
 - `FINALIZAR`: confirma no Portal que sem marcacao virara falta, grava marcacoes
-  P/R e deixa o backend registrar faltas/N/A conforme membros aplicaveis;
+  P/R e deixa o backend registrar faltas/N/A conforme membros aplicaveis. E o
+  unico fluxo que grava presenca oficial; se `registros` vier vazio, o backend
+  pode tentar recuperar o ultimo rascunho salvo;
 - `REABRIR`: reabre uma chamada finalizada para ajustes autorizados.
 
 A tela de chamada nao usa dropdown de status e nao envia estados de
@@ -461,6 +480,10 @@ Quando a chamada esta finalizada, o front-end troca o botao da lista para
 "Visualizar chamada" e abre a tela em modo somente leitura. O status operacional
 fica registrado em `Portal_Acoes`; os registros de presenca continuam em
 `Atividades_Presencas_Registros`.
+
+Os endpoints de chamada podem retornar diagnostico DEV em `performance`, com
+`totalMs` e etapas. O Portal usa esse dado apenas como informacao operacional e
+nao cria regra de negocio a partir dele.
 
 ## Integração atual do portal
 

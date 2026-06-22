@@ -808,8 +808,11 @@
     var meta = resposta && resposta.meta ? resposta.meta : {};
     var desempenho = meta.desempenho || {};
     var atividades = meta.atividades || {};
+    var performanceBackend = resposta && resposta.data && resposta.data.performance
+      ? resposta.data.performance
+      : {};
     var dados = Object.assign({}, detalhes || {});
-    var tempoBackend = Number(desempenho.tempoMs);
+    var tempoBackend = Number(desempenho.tempoMs || performanceBackend.totalMs);
     var origemBackend = desempenho.origemDados || atividades.origemDados || '';
 
     if (!Number.isNaN(tempoBackend) && tempoBackend >= 0) {
@@ -818,6 +821,10 @@
 
     if (origemBackend) {
       dados.origemBackend = origemBackend;
+    }
+
+    if (Array.isArray(performanceBackend.etapas)) {
+      dados.etapasBackend = performanceBackend.etapas.length;
     }
 
     return dados;
@@ -2257,9 +2264,15 @@
       chamadaFinalizada: origem.chamadaFinalizada === true,
       statusChamadaAtualizadoEm: origem.statusChamadaAtualizadoEm || '',
       statusChamadaAtualizadoPor: origem.statusChamadaAtualizadoPor || '',
+      rascunhoRestaurado: origem.rascunhoRestaurado === true,
+      temRascunhoSalvo: origem.rascunhoRestaurado === true || origem.rascunhoSalvo === true || Boolean(origem.rascunhoSalvoEm),
+      rascunhoSalvoEm: origem.rascunhoSalvoEm || '',
+      rascunhoSalvoPor: origem.rascunhoSalvoPor || '',
       resumoSalvo: origem.resumoSalvo || {},
+      performance: origem.performance || {},
       modo: origem.modo || 'DEV',
-      ultimaAtualizacao: origem.ultimaAtualizacao || ''
+      ultimaAtualizacao: origem.ultimaAtualizacao || '',
+      mensagemOperacao: ''
     };
   }
 
@@ -2291,7 +2304,7 @@
         : '<p class="empty-state">Nenhum participante atende ao filtro selecionado.</p>',
       '</div>',
       '<div class="attendance-footer">',
-      '<p id="chamada-status" class="section-note" role="status" aria-live="polite"></p>',
+      '<p id="chamada-status" class="section-note" role="status" aria-live="polite">' + ui.escaparHtml(chamada.mensagemOperacao || '') + '</p>',
       '<div class="attendance-actions">',
       chamada.chamadaFinalizada && chamada.podeReabrir
         ? '<button class="secondary-button compact-button" type="button" data-reopen-attendance>Reabrir chamada</button>'
@@ -2329,12 +2342,36 @@
       partes.push('<small>Por ' + ui.escaparHtml(chamada.statusChamadaAtualizadoPor) + '</small>');
     }
 
+    if (!chamada.chamadaFinalizada && chamada.rascunhoRestaurado) {
+      partes.push('<small>Rascunho restaurado' + montarSufixoRascunhoChamada(chamada) + '.</small>');
+    } else if (!chamada.chamadaFinalizada && chamada.temRascunhoSalvo) {
+      partes.push('<small>Rascunho salvo' + montarSufixoRascunhoChamada(chamada) + '. A frequencia so muda ao finalizar.</small>');
+    }
+
     if (chamada.chamadaFinalizada) {
       partes.push('<small>Esta chamada está finalizada e aberta apenas para consulta.</small>');
     }
 
+    if (chamada.performance && Number(chamada.performance.totalMs) >= 0) {
+      partes.push('<small>Backend DEV: ' + ui.escaparHtml(Math.round(Number(chamada.performance.totalMs))) + ' ms.</small>');
+    }
+
     partes.push('</div>');
     return partes.join('');
+  }
+
+  function montarSufixoRascunhoChamada(chamada) {
+    var partes = [];
+
+    if (chamada.rascunhoSalvoEm) {
+      partes.push('em ' + formatarDataHoraCurta(chamada.rascunhoSalvoEm));
+    }
+
+    if (chamada.rascunhoSalvoPor) {
+      partes.push('por ' + chamada.rascunhoSalvoPor);
+    }
+
+    return partes.length ? ' ' + partes.join(' ') : '';
   }
 
   function montarResumoChamada(resumo) {
@@ -2718,12 +2755,12 @@
 
     if (botao) {
       botao.disabled = true;
-      botao.textContent = operacaoNormalizada === 'FINALIZAR' ? 'Finalizando...' : 'Salvando...';
+      botao.textContent = operacaoNormalizada === 'FINALIZAR' ? 'Finalizando...' : 'Salvando rascunho...';
     }
     if (status) {
       status.textContent = operacaoNormalizada === 'FINALIZAR'
-        ? 'Finalizando chamada na base DEV.'
-        : 'Salvando chamada na base DEV.';
+        ? 'Finalizando chamada oficial na base DEV.'
+        : 'Salvando rascunho na base DEV. Isso nao altera a frequencia.';
     }
 
     api.apiPost('/atividades/chamada/salvar', {
@@ -2734,10 +2771,13 @@
       }
 
       chamadaAtual.participantes = participantes;
-      aplicarStatusChamadaAtual(resposta.data || {});
+      aplicarStatusChamadaAtual(resposta.data || {}, operacaoNormalizada);
       sincronizarStatusChamadaNaLista(chamadaAtual.atividade.idAtividade, chamadaAtual);
-      if (status) {
-        status.textContent = resposta.message || 'Chamada salva com sucesso.';
+      chamadaAtual.mensagemOperacao = resposta.message || (operacaoNormalizada === 'FINALIZAR'
+        ? 'Chamada finalizada com sucesso.'
+        : 'Rascunho salvo. A frequencia so sera atualizada quando a chamada for finalizada.');
+      if (operacaoNormalizada === 'FINALIZAR') {
+        notificarJustificativasAtualizadas();
       }
       renderizarChamada(chamadaAtual);
       registrarPerfAtividades('atividades.chamada.salva', inicio, mesclarMetaPerfAtividades(resposta, {
@@ -2787,8 +2827,9 @@
         throw new Error(resposta.message || 'Não foi possível reabrir a chamada.');
       }
 
-      aplicarStatusChamadaAtual(resposta.data || {});
+      aplicarStatusChamadaAtual(resposta.data || {}, 'REABRIR');
       sincronizarStatusChamadaNaLista(chamadaAtual.atividade.idAtividade, chamadaAtual);
+      chamadaAtual.mensagemOperacao = resposta.message || 'Chamada reaberta para ajustes.';
       renderizarChamada(chamadaAtual);
     }).catch(function tratarErro(erro) {
       if (status) {
@@ -2802,12 +2843,22 @@
     });
   }
 
-  function aplicarStatusChamadaAtual(dados) {
-    chamadaAtual.statusChamada = dados.statusChamada || chamadaAtual.statusChamada;
-    chamadaAtual.statusChamadaRotulo = dados.statusChamadaRotulo || chamadaAtual.statusChamadaRotulo;
-    chamadaAtual.chamadaFinalizada = dados.chamadaFinalizada === true;
-    chamadaAtual.statusChamadaAtualizadoEm = dados.statusChamadaAtualizadoEm || new Date().toISOString();
+  function aplicarStatusChamadaAtual(dados, operacao) {
+    var statusRecebido = String(dados.statusChamada || '').toUpperCase();
+    var finalizada = dados.chamadaFinalizada === true || operacao === 'FINALIZAR' || statusRecebido === 'FINALIZADA';
+    var rascunhoSalvo = dados.rascunhoSalvo === true || operacao === 'SALVAR';
+    var reaberta = operacao === 'REABRIR';
+
+    chamadaAtual.statusChamada = dados.statusChamada || (finalizada ? 'FINALIZADA' : (reaberta ? 'REABERTA' : (rascunhoSalvo ? 'SALVA' : chamadaAtual.statusChamada)));
+    chamadaAtual.statusChamadaRotulo = dados.statusChamadaRotulo || (finalizada ? 'Chamada finalizada' : (reaberta ? 'Chamada reaberta' : (rascunhoSalvo ? 'Rascunho salvo' : chamadaAtual.statusChamadaRotulo)));
+    chamadaAtual.chamadaFinalizada = finalizada;
+    chamadaAtual.statusChamadaAtualizadoEm = dados.statusChamadaAtualizadoEm || dados.rascunhoSalvoEm || new Date().toISOString();
     chamadaAtual.statusChamadaAtualizadoPor = dados.statusChamadaAtualizadoPor || chamadaAtual.statusChamadaAtualizadoPor;
+    chamadaAtual.rascunhoRestaurado = false;
+    chamadaAtual.temRascunhoSalvo = !finalizada && (rascunhoSalvo || Boolean(dados.rascunhoSalvoEm) || (chamadaAtual.temRascunhoSalvo && !reaberta));
+    chamadaAtual.rascunhoSalvoEm = dados.rascunhoSalvoEm || (rascunhoSalvo ? chamadaAtual.statusChamadaAtualizadoEm : chamadaAtual.rascunhoSalvoEm);
+    chamadaAtual.rascunhoSalvoPor = dados.rascunhoSalvoPor || chamadaAtual.rascunhoSalvoPor;
+    chamadaAtual.performance = dados.performance || chamadaAtual.performance || {};
     chamadaAtual.podeSalvar = !chamadaAtual.chamadaFinalizada;
     chamadaAtual.podeFinalizar = !chamadaAtual.chamadaFinalizada;
     chamadaAtual.podeReabrir = chamadaAtual.chamadaFinalizada;

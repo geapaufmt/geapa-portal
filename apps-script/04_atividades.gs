@@ -612,10 +612,20 @@ function portalNormalizarRespostaObjetoAtividades_(resposta) {
     };
   }
 
+  var dados = resposta.data || {};
+
+  if (resposta.performance && !dados.performance) {
+    dados.performance = resposta.performance;
+  }
+
+  if (resposta.escrita && !dados.escrita) {
+    dados.escrita = resposta.escrita;
+  }
+
   return {
     ok: true,
     message: resposta.message || '',
-    data: resposta.data || {}
+    data: dados
   };
 }
 

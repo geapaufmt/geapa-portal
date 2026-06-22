@@ -1069,9 +1069,16 @@ Resposta esperada:
     "statusChamada": "SALVA",
     "statusChamadaRotulo": "Chamada salva",
     "chamadaFinalizada": false,
+    "rascunhoRestaurado": true,
+    "rascunhoSalvoEm": "2026-06-22T14:00:00.000Z",
+    "rascunhoSalvoPor": "Operador",
     "podeSalvar": true,
     "podeFinalizar": true,
     "podeReabrir": false,
+    "performance": {
+      "totalMs": 1234,
+      "etapas": []
+    },
     "modo": "DEV"
   }
 }
@@ -1080,7 +1087,11 @@ Resposta esperada:
 Essa acao e operacional e somente perfis autorizados podem usa-la. O backend do
 portal valida a sessao e repassa o contexto ao `geapa-atividades`, que valida a
 permissao real, busca membros aplicaveis pela data da atividade e mescla
-registros ja existentes.
+registros ja existentes. Quando a chamada ainda nao foi finalizada, o backend
+pode restaurar o ultimo rascunho salvo em `Portal_Acoes` e informar
+`rascunhoRestaurado`, `rascunhoSalvoEm` e `rascunhoSalvoPor`. Quando a chamada
+esta finalizada, os registros oficiais prevalecem sobre qualquer rascunho
+antigo.
 
 ## Acao: atividadeSalvarChamada
 
@@ -1121,10 +1132,15 @@ estrutural.
 
 Operacoes aceitas:
 
-- `SALVAR`: grava rascunho parcial com apenas participantes marcados como
-  `PRESENTE_PRESENCIAL`/`P` ou `PRESENTE_REMOTO`/`R`;
-- `FINALIZAR`: grava marcacoes P/R, confirma que sem marcacao virara falta no
-  backend e muda o estado para chamada finalizada;
+- `SALVAR`: grava apenas um rascunho parcial em `Portal_Acoes` com
+  `TIPO_ACAO = CHAMADA_RASCUNHO_SALVO`, contendo apenas participantes marcados
+  como `PRESENTE_PRESENCIAL`/`P` ou `PRESENTE_REMOTO`/`R`. Nao grava presenca
+  oficial, nao altera Minha frequencia, nao gera falta justificavel e nao
+  promove justificativas previas;
+- `FINALIZAR`: e o unico ponto que grava presenca oficial em
+  `Atividades_Presencas_Registros`; confirma que sem marcacao virara falta no
+  backend e muda o estado para chamada finalizada. Se o payload vier sem
+  registros, o backend pode tentar usar o ultimo rascunho salvo;
 - `REABRIR`: reabre uma chamada finalizada para ajustes autorizados.
 
 O Portal nao envia manualmente pela tela de chamada estados de justificativa
@@ -1132,12 +1148,28 @@ como `JUSTIFICADA`, `ABONADA`, `DEFERIDA`, `INDEFERIDA` ou
 `AJUSTE_SOLICITADO`. Tambem nao envia `FALTA` no rascunho; na finalizacao, os
 membros aplicaveis sem marcacao sao tratados pelo backend como `FALTA`/`F`.
 
+O retorno de `SALVAR` pode ser enxuto, por exemplo:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "rascunhoSalvo": true,
+    "chamadaFinalizada": false
+  },
+  "escrita": {
+    "rascunhoPortalAcoes": true,
+    "presencasOficiais": 0
+  }
+}
+```
+
 O salvamento ocorre somente pela API do Apps Script e pelo modulo
 `geapa-atividades`, usando a base v2 DEV. O front-end nao escreve diretamente em
 planilhas. O modulo revalida permissao, atividade, membros aplicaveis, status
 de presenca, `LockService` e logs. Registros de presenca ficam em
-`Atividades_Presencas_Registros`; o estado da chamada fica auditado em
-`Portal_Acoes`.
+`Atividades_Presencas_Registros` somente apos `FINALIZAR`; rascunhos e estado
+operacional ficam auditados em `Portal_Acoes`.
 
 ## Codigos de erro previstos
 
