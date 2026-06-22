@@ -549,6 +549,19 @@ renderiza a lista e a proxima atividade em destaque, e so depois prepara
 detalhes em segundo plano. O bundle completo nao deve bloquear a primeira
 renderizacao.
 
+Controle de concorrencia no front-end:
+
+- preloads oportunistas de detalhes sao limitados a 2 atividades prioritarias;
+- a fila executa no maximo 2 detalhes simultaneos;
+- detalhes por `idAtividade` usam cache-first e mapa de promise em voo, evitando
+  dois `fallback_backend` simultaneos para o mesmo ID;
+- abrir, salvar, finalizar ou reabrir chamada pausa novos preloads e bloqueia
+  fallback de detalhe nao essencial enquanto a chamada esta ativa;
+- logs esperados incluem `atividades.detalhe.cache_memoria`,
+  `atividades.detalhe.cache_sessao`, `atividades.detalhe.inflight_reuse`,
+  `atividades.detalhe.preload_skip_chamada_ativa` e
+  `atividades.detalhe.fallback_backend`.
+
 As respostas de Atividades podem incluir `meta.desempenho` com:
 
 - `origemDados`: `geapa-atividades-bundle`, `fallback-lista`,

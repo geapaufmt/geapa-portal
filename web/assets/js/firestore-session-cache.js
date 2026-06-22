@@ -20,6 +20,7 @@ import {
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
   var STORAGE_KEY = 'geapaPortal.safeUserSummary';
   var firestore = null;
+  var validacaoOficialEmVoo = null;
 
   function obterConfig() {
     return global.PortalGeapaConfig || {};
@@ -147,11 +148,21 @@ import {
       return null;
     }
 
-    try {
-      return await validar(idToken);
-    } finally {
-      registrarPerf('portalLogin.validacaoOficial', inicio, {});
+    if (validacaoOficialEmVoo) {
+      registrarPerf('portalLogin.validacaoOficial_reuso', inicio, {});
+      return validacaoOficialEmVoo;
     }
+
+    validacaoOficialEmVoo = Promise.resolve()
+      .then(function validarAgora() {
+        return validar(idToken);
+      })
+      .finally(function limparValidacao() {
+        registrarPerf('portalLogin.validacaoOficial', inicio, {});
+        validacaoOficialEmVoo = null;
+      });
+
+    return validacaoOficialEmVoo;
   }
 
   function salvarResumoSeguro(sessao) {

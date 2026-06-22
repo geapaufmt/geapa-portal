@@ -13,7 +13,8 @@
   var ATIVIDADES_CACHE_TTL_MS = 5 * 60 * 1000;
   var CHAMADA_ANTECEDENCIA_PADRAO_MINUTOS = 60;
   var CHAMADA_TOLERANCIA_PADRAO_MINUTOS = 240;
-  var PRELOAD_DETALHES_LIMITE_PADRAO = 5;
+  var PRELOAD_DETALHES_LIMITE_PADRAO = 2;
+  var PRELOAD_DETALHES_CONCORRENCIA = 2;
   var MODO_ATIVIDADES_PROXIMAS = 'proximas';
   var MODO_ATIVIDADES_HISTORICO = 'historico';
   var detalhesCache = {};
@@ -33,9 +34,13 @@
   var detalhesPreloadTimer = null;
   var detalhesPreloadFila = [];
   var detalhesPreloadIds = {};
-  var detalhesPreloadEmExecucao = false;
+  var detalhesPreloadEmExecucao = 0;
+  var detalhesRequisicoesEmVoo = {};
   var detalhesIntersectionObserver = null;
   var chamadaAtual = null;
+  var isChamadaLoading = false;
+  var isChamadaSaving = false;
+  var isChamadaFinalizing = false;
   var filtroChamadaAtual = 'TODOS';
   var justificativasConfig = null;
   var justificativasConfigExpiraEm = 0;
@@ -411,6 +416,14 @@
   function iniciarPreloadDetalhesAtividades(bundle, status) {
     var dados = normalizarBundleAtividades(bundle);
 
+    if (chamadaOperacionalAtiva()) {
+      registrarPerfAtividades('atividades.detalhe.preload_skip_chamada_ativa', obterTempoAtual(), {
+        origemPreload: 'iniciar',
+        fila: detalhesPreloadFila.length
+      });
+      return;
+    }
+
     if (!dados.calendario.length || todosDetalhesCarregados(dados.calendario)) {
       return;
     }
@@ -425,13 +438,23 @@
 
     detalhesPreloadTimer = global.setTimeout(function iniciarDepoisDaPintura() {
       detalhesPreloadTimer = null;
-      planejarPreloadDetalhesPrioritarios(dados, status);
+      agendarQuandoOcioso(function planejarQuandoOcioso() {
+        planejarPreloadDetalhesPrioritarios(dados, status);
+      }, 1200);
     }, 900);
   }
 
   function planejarPreloadDetalhesPrioritarios(bundle, status) {
     var dados = normalizarBundleAtividades(bundle);
     var prioridade = obterAtividadesParaPreload(dados.calendario);
+
+    if (chamadaOperacionalAtiva()) {
+      registrarPerfAtividades('atividades.detalhe.preload_skip_chamada_ativa', obterTempoAtual(), {
+        origemPreload: 'planejar',
+        candidatos: prioridade.length
+      });
+      return;
+    }
 
     prioridade.forEach(function enfileirar(atividade) {
       if (atividade && atividade.idAtividade) {
@@ -509,7 +532,19 @@
   function enfileirarPreloadDetalhe(idAtividade, origem) {
     var id = String(idAtividade || '').trim();
 
-    if (!id || detalhesCache[id] || detalhesPreloadIds[id]) {
+    if (!id) {
+      return;
+    }
+
+    if (chamadaOperacionalAtiva()) {
+      registrarPerfAtividades('atividades.detalhe.preload_skip_chamada_ativa', obterTempoAtual(), {
+        idAtividade: id,
+        origemPreload: origem || 'background'
+      });
+      return;
+    }
+
+    if (obterDetalheAtividadeCacheValido(id).detalhe || detalhesPreloadIds[id] || detalhesRequisicoesEmVoo[id]) {
       return;
     }
 
@@ -518,49 +553,87 @@
       idAtividade: id,
       origem: origem || 'background'
     });
-    processarFilaPreloadDetalhes();
+    agendarProcessamentoPreloadDetalhes(0);
   }
 
   function processarFilaPreloadDetalhes() {
-    var item;
-    var inicio;
+    return processarFilaPreloadDetalhesControlada();
+  }
 
-    if (detalhesPreloadEmExecucao || !detalhesPreloadFila.length) {
+  function agendarProcessamentoPreloadDetalhes(atrasoMs) {
+    if (chamadaOperacionalAtiva()) {
+      registrarPerfAtividades('atividades.detalhe.preload_pausado_chamada_ativa', obterTempoAtual(), {
+        fila: detalhesPreloadFila.length,
+        emExecucao: detalhesPreloadEmExecucao
+      });
       return;
     }
 
-    item = detalhesPreloadFila.shift();
-    detalhesPreloadEmExecucao = true;
-    inicio = obterTempoAtual();
+    global.setTimeout(processarFilaPreloadDetalhesControlada, Number(atrasoMs) || 0);
+  }
 
-    api.apiGet('/atividades/detalhe', {
-      idAtividade: item.idAtividade
-    }).then(function tratarResposta(resposta) {
-      if (!resposta.ok) {
-        throw new Error(resposta.message || 'Não foi possível preparar o detalhe.');
+  function processarFilaPreloadDetalhesControlada() {
+    var item;
+
+    if (chamadaOperacionalAtiva()) {
+      registrarPerfAtividades('atividades.detalhe.preload_pausado_chamada_ativa', obterTempoAtual(), {
+        fila: detalhesPreloadFila.length,
+        emExecucao: detalhesPreloadEmExecucao
+      });
+      return;
+    }
+
+    while (detalhesPreloadEmExecucao < PRELOAD_DETALHES_CONCORRENCIA && detalhesPreloadFila.length) {
+      item = detalhesPreloadFila.shift();
+
+      if (!item || obterDetalheAtividadeCacheValido(item.idAtividade).detalhe) {
+        if (item && item.idAtividade) {
+          delete detalhesPreloadIds[item.idAtividade];
+        }
+        continue;
       }
 
-      detalhesCache[item.idAtividade] = resposta.data;
-      atualizarDetalheNoBundleCache(item.idAtividade, resposta.data);
-      registrarPerfAtividades('atividades.detalhe.preload_unitario', inicio, mesclarMetaPerfAtividades(resposta, {
-        idAtividade: item.idAtividade,
-        origemPreload: item.origem,
-        payloadBytes: estimarPayloadBytes(resposta.data || {})
-      }));
-    }).catch(function tratarErro(erro) {
-      registrarPerfAtividades('atividades.detalhe.preload_unitario_falhou', inicio, {
-        idAtividade: item.idAtividade,
-        origemPreload: item.origem,
-        erro: erro.message
+      executarPreloadDetalhe(item);
+    }
+  }
+
+  function executarPreloadDetalhe(item) {
+    var inicio = obterTempoAtual();
+
+    detalhesPreloadEmExecucao += 1;
+    carregarDetalheAtividadeBackend(item.idAtividade, 'preload:' + (item.origem || 'background'))
+      .then(function tratarResultado(resultado) {
+        if (!resultado || resultado.reutilizada) {
+          return;
+        }
+
+        registrarPerfAtividades('atividades.detalhe.preload_unitario', inicio, mesclarMetaPerfAtividades(resultado.resposta, {
+          idAtividade: item.idAtividade,
+          origemPreload: item.origem,
+          payloadBytes: estimarPayloadBytes(resultado.detalhe || {})
+        }));
+      }).catch(function tratarErro(erro) {
+        registrarPerfAtividades('atividades.detalhe.preload_unitario_falhou', inicio, {
+          idAtividade: item.idAtividade,
+          origemPreload: item.origem,
+          erro: erro.message
+        });
+      }).then(function finalizarPreload() {
+        detalhesPreloadEmExecucao = Math.max(detalhesPreloadEmExecucao - 1, 0);
+        delete detalhesPreloadIds[item.idAtividade];
+        agendarProcessamentoPreloadDetalhes(350);
       });
-    }).then(function finalizarPreload() {
-      detalhesPreloadEmExecucao = false;
-      global.setTimeout(processarFilaPreloadDetalhes, 350);
-    });
   }
 
   function executarPreloadDetalhesAtividades(status) {
     var inicio = obterTempoAtual();
+
+    if (chamadaOperacionalAtiva()) {
+      registrarPerfAtividades('atividades.detalhe.preload_skip_chamada_ativa', inicio, {
+        origemPreload: 'preload_lote'
+      });
+      return;
+    }
 
     detalhesPreloadPromise = api.apiGet('/atividades/detalhes-preload', {})
       .then(function tratarResposta(resposta) {
@@ -591,8 +664,79 @@
 
   function todosDetalhesCarregados(calendario) {
     return calendario.every(function verificarDetalhe(atividade) {
-      return atividade && atividade.idAtividade && detalhesCache[atividade.idAtividade];
+      return atividade && atividade.idAtividade && obterDetalheAtividadeCacheValido(atividade.idAtividade).detalhe;
     });
+  }
+
+  function obterDetalheAtividadeCacheValido(idAtividade) {
+    var id = String(idAtividade || '').trim();
+    var bundle;
+
+    if (!id) {
+      return { detalhe: null, origem: '' };
+    }
+
+    if (cacheAtividadesMemoriaValido() && detalhesCache[id]) {
+      return {
+        detalhe: detalhesCache[id],
+        origem: 'cache_memoria'
+      };
+    }
+
+    bundle = lerBundleAtividadesCacheValido();
+
+    if (bundle && bundle.detalhesPorId && bundle.detalhesPorId[id]) {
+      detalhesCache[id] = bundle.detalhesPorId[id];
+      return {
+        detalhe: bundle.detalhesPorId[id],
+        origem: 'cache_sessao'
+      };
+    }
+
+    return { detalhe: null, origem: '' };
+  }
+
+  function carregarDetalheAtividadeBackend(idAtividade, origemSolicitante) {
+    var id = String(idAtividade || '').trim();
+    var inicio = obterTempoAtual();
+    var promise;
+
+    if (!id) {
+      return Promise.reject(new Error('Informe a atividade para carregar detalhes.'));
+    }
+
+    if (detalhesRequisicoesEmVoo[id]) {
+      registrarPerfAtividades('atividades.detalhe.inflight_reuse', inicio, {
+        idAtividade: id,
+        origemSolicitante: origemSolicitante || ''
+      });
+      return detalhesRequisicoesEmVoo[id].then(function marcarReuso(resultado) {
+        return Object.assign({}, resultado, {
+          reutilizada: true
+        });
+      });
+    }
+
+    promise = api.apiGet('/atividades/detalhe', {
+      idAtividade: id
+    }).then(function tratarResposta(resposta) {
+      if (!resposta.ok) {
+        throw new Error(resposta.message || 'Nao foi possivel carregar detalhes.');
+      }
+
+      detalhesCache[id] = resposta.data;
+      atualizarDetalheNoBundleCache(id, resposta.data);
+      return {
+        resposta: resposta,
+        detalhe: resposta.data,
+        reutilizada: false
+      };
+    }).finally(function limparInflight() {
+      delete detalhesRequisicoesEmVoo[id];
+    });
+
+    detalhesRequisicoesEmVoo[id] = promise;
+    return promise;
   }
 
   function mesclarDetalhesNoCache(detalhesPorId, ultimaAtualizacao) {
@@ -792,6 +936,52 @@
 
   function obterTempoCacheAtual() {
     return Date.now();
+  }
+
+  function chamadaOperacionalAtiva() {
+    return isChamadaLoading || isChamadaSaving || isChamadaFinalizing;
+  }
+
+  function pausarPreloadsPorChamada(motivo) {
+    if (detalhesPreloadTimer) {
+      global.clearTimeout(detalhesPreloadTimer);
+      detalhesPreloadTimer = null;
+    }
+
+    registrarPerfAtividades('atividades.detalhe.preload_pausado_chamada_ativa', obterTempoAtual(), {
+      motivo: motivo || 'chamada',
+      fila: detalhesPreloadFila.length,
+      emExecucao: detalhesPreloadEmExecucao
+    });
+  }
+
+  function retomarPreloadsAposChamada() {
+    if (!chamadaOperacionalAtiva() && detalhesPreloadFila.length) {
+      agendarProcessamentoPreloadDetalhes(600);
+    }
+  }
+
+  function agendarQuandoOcioso(callback, timeoutMs) {
+    if (typeof callback !== 'function') {
+      return;
+    }
+
+    if (global.requestIdleCallback) {
+      global.requestIdleCallback(function executarOcioso() {
+        if (!chamadaOperacionalAtiva()) {
+          callback();
+        }
+      }, {
+        timeout: timeoutMs || 1200
+      });
+      return;
+    }
+
+    global.setTimeout(function executarFallbackOcioso() {
+      if (!chamadaOperacionalAtiva()) {
+        callback();
+      }
+    }, Math.min(Number(timeoutMs) || 1200, 1200));
   }
 
   function registrarPerfAtividades(evento, inicio, detalhes) {
@@ -2154,48 +2344,63 @@
 
   function carregarDetalheAtividade(idAtividade) {
     var inicio = obterTempoAtual();
-    var detalheCache = cacheAtividadesMemoriaValido() ? detalhesCache[idAtividade] : null;
+    var cache = obterDetalheAtividadeCacheValido(idAtividade);
+    var detalheCache = cache.detalhe;
     var resumo = atividadesResumoCache[idAtividade];
 
     definirTituloModal('Detalhes da atividade');
 
     if (detalheCache) {
       abrirModal(detalheCache);
-      registrarPerfAtividades('atividades.detalhe.cache', inicio, {
+      registrarPerfAtividades('atividades.detalhe.' + (cache.origem || 'cache_memoria'), inicio, {
         idAtividade: idAtividade,
         payloadBytes: estimarPayloadBytes(detalheCache)
       });
       return;
     }
 
-    abrirModalCarregando(idAtividade, resumo);
-
-    api.apiGet('/atividades/detalhe', {
-      idAtividade: idAtividade
-    }).then(function tratarResposta(resposta) {
-      if (!resposta.ok) {
-        throw new Error(resposta.message || 'Não foi possível carregar detalhes.');
-      }
-
-      detalhesCache[idAtividade] = resposta.data;
-      atualizarDetalheNoBundleCache(idAtividade, resposta.data);
-      abrirModal(resposta.data);
-      registrarPerfAtividades('atividades.detalhe.fallback_backend', inicio, mesclarMetaPerfAtividades(resposta, {
-        idAtividade: idAtividade,
-        payloadBytes: estimarPayloadBytes(resposta.data)
-      }));
-    }).catch(function tratarErro(erro) {
+    if (chamadaOperacionalAtiva()) {
       abrirModal({
         idAtividade: idAtividade,
-        tituloPublico: 'Erro ao carregar atividade',
-        descricaoPublica: erro.message
+        tituloPublico: 'Detalhes temporariamente adiados',
+        descricaoPublica: 'A chamada operacional esta em andamento. Aguarde a chamada carregar ou salvar para buscar detalhes da atividade.'
       });
-    });
+      registrarPerfAtividades('atividades.detalhe.fallback_skip_chamada_ativa', inicio, {
+        idAtividade: idAtividade
+      });
+      return;
+    }
+
+    abrirModalCarregando(idAtividade, resumo);
+
+    carregarDetalheAtividadeBackend(idAtividade, 'fallback')
+      .then(function tratarResultado(resultado) {
+        var resposta = resultado.resposta;
+
+        abrirModal(resultado.detalhe);
+
+        if (resultado.reutilizada) {
+          return;
+        }
+
+        registrarPerfAtividades('atividades.detalhe.fallback_backend', inicio, mesclarMetaPerfAtividades(resposta, {
+          idAtividade: idAtividade,
+          payloadBytes: estimarPayloadBytes(resultado.detalhe)
+        }));
+      }).catch(function tratarErro(erro) {
+        abrirModal({
+          idAtividade: idAtividade,
+          tituloPublico: 'Erro ao carregar atividade',
+          descricaoPublica: erro.message
+        });
+      });
   }
 
   function carregarChamadaAtividade(idAtividade) {
     var inicio = obterTempoAtual();
 
+    isChamadaLoading = true;
+    pausarPreloadsPorChamada('carregar_chamada');
     definirTituloModal('Registrar chamada');
     abrirModal({
       idAtividade: idAtividade,
@@ -2225,6 +2430,9 @@
         tituloPublico: 'Erro ao carregar chamada',
         descricaoPublica: erro.message
       });
+    }).then(function finalizarCarregamentoChamada() {
+      isChamadaLoading = false;
+      retomarPreloadsAposChamada();
     });
   }
 
@@ -2753,6 +2961,10 @@
     payload.operacao = operacaoNormalizada;
     var inicio = obterTempoAtual();
 
+    isChamadaSaving = operacaoNormalizada !== 'FINALIZAR';
+    isChamadaFinalizing = operacaoNormalizada === 'FINALIZAR';
+    pausarPreloadsPorChamada(operacaoNormalizada === 'FINALIZAR' ? 'finalizar_chamada' : 'salvar_rascunho');
+
     if (botao) {
       botao.disabled = true;
       botao.textContent = operacaoNormalizada === 'FINALIZAR' ? 'Finalizando...' : 'Salvando rascunho...';
@@ -2791,6 +3003,9 @@
         status.textContent = erro.message;
       }
     }).then(function finalizar() {
+      isChamadaSaving = false;
+      isChamadaFinalizing = false;
+      retomarPreloadsAposChamada();
       if (botao) {
         botao.disabled = false;
         botao.textContent = operacaoNormalizada === 'FINALIZAR' ? 'Finalizar chamada' : 'Salvar rascunho';
@@ -2811,6 +3026,9 @@
       registros: [],
       externos: []
     };
+
+    isChamadaSaving = true;
+    pausarPreloadsPorChamada('reabrir_chamada');
 
     if (botao) {
       botao.disabled = true;
@@ -2836,6 +3054,8 @@
         status.textContent = erro.message;
       }
     }).then(function finalizar() {
+      isChamadaSaving = false;
+      retomarPreloadsAposChamada();
       if (botao) {
         botao.disabled = false;
         botao.textContent = 'Reabrir chamada';
