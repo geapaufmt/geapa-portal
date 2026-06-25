@@ -687,6 +687,30 @@ cadastrada no Registry como `ATIVIDADES_V2_DB`. A listagem usa
 `ID_ATIVIDADE`, exposto no JSON como `idAtividade`, no padrão
 `ATV-AAAA-S-NNNN`.
 
+### Criar atividade
+
+O Pacote 4A expoe a criacao segura de atividade pelo Apps Script:
+
+```text
+POST /atividades/criar
+acao=atividadeCriar
+```
+
+O front-end envia `payload` JSON com `dryRun: true` e `atividade`. O backend
+`geapa-atividades` valida contexto/permissao, gera a previa de `ID_ATIVIDADE` e
+retorna os defaults seguros. Apos confirmacao do usuario, o Portal reenvia o
+mesmo payload com `dryRun: false`.
+
+Campos obrigatorios do formulario: `tituloPublico`, `dataAtividade`,
+`horarioInicio`, `horarioFim`, `tipoAtividade`, `subtipoAtividade`, `formato`,
+`local`, `contaPresenca`, `contaFalta`, `geraCertificado`, `cargaHoraria`,
+`exigeListaPresenca` e `permiteJustificativa`.
+
+O Portal nao gera ID, nao publica a atividade, nao altera chamada, frequencia ou
+justificativas e nao escreve diretamente em `PORTAL_*`. A atividade nasce como
+`PLANEJADA`, `RASCUNHO` e `DIRETORIA`. Apos criacao real, o Portal invalida cache
+local de atividades e recarrega a lista pelo backend.
+
 Apresentacoes nao sao consumidas por view propria no Portal. Cards, agenda e
 historico usam os campos publicos do calendario (`eixoTematicoPrincipal`,
 `eixoTematicoSecundario`, `nomePessoaPrincipalPublico`,

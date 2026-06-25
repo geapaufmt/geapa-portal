@@ -28,6 +28,7 @@ function doGet(e) {
         'atividadeDetalhe',
         'atividadeChamada',
         'atividadeSalvarChamada',
+        'atividadeCriar',
         'minhaFrequencia',
         'minhasApresentacoes',
         'minhasJustificativas',
@@ -171,6 +172,13 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'atividadeSalvarChamada') {
     return portalSalvarChamadaAtividade(
+      requisicao.token || '',
+      requisicao.payload || ''
+    );
+  }
+
+  if (acao === 'atividadeCriar') {
+    return portalCriarAtividade(
       requisicao.token || '',
       requisicao.payload || ''
     );

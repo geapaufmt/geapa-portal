@@ -307,6 +307,62 @@ function portalSalvarChamadaAtividade(token, payloadJson) {
   );
 }
 
+/**
+ * Cria uma atividade como rascunho seguro via modulo geapa-atividades.
+ *
+ * A permissao real, a geracao de ID, os defaults de status/visibilidade e a
+ * escrita na base operacional pertencem ao modulo Atividades. O Portal apenas
+ * valida sessao, repassa contexto seguro e limpa caches locais apos criacao
+ * real.
+ *
+ * @param {string} token Token temporario do portal.
+ * @param {string|Object} payloadJson Payload JSON enviado pelo front-end.
+ * @return {Object} Resposta padronizada da API.
+ */
+function portalCriarAtividade(token, payloadJson) {
+  var inicio = portalAgoraAtividadesMs_();
+  var contexto = portalMontarContextoAtividades_(token);
+  var meta;
+
+  if (!contexto.ok) {
+    return contexto.resposta;
+  }
+
+  var payload = portalLerPayloadJson_(payloadJson);
+
+  if (!payload.ok) {
+    return payload.resposta;
+  }
+
+  var resposta = portalChamarAtividadesCriar_(
+    payload.data,
+    contexto.contextoAtividades
+  );
+  var normalizada = portalNormalizarRespostaObjetoAtividades_(resposta);
+
+  if (!normalizada.ok) {
+    return normalizada.resposta;
+  }
+
+  if (payload.data && payload.data.dryRun === false) {
+    portalInvalidarCachesAtividadesAposCriacao_(contexto);
+  }
+
+  meta = portalMetaAtividades_('geapa-atividades-criar', inicio);
+  meta.avisos = normalizada.avisos || [];
+
+  return portalRespostaOk_(
+    payload.data && payload.data.dryRun === false
+      ? 'ATIVIDADE_CRIADA'
+      : 'ATIVIDADE_PREVIA_VALIDADA',
+    normalizada.message || (payload.data && payload.data.dryRun === false
+      ? 'Atividade criada como rascunho.'
+      : 'Previa de atividade validada.'),
+    normalizada.data,
+    meta
+  );
+}
+
 function portalInvalidarCachesAtividadesAposChamada_(contexto, payload) {
   var operacao = String((payload || {}).operacao || '').trim().toUpperCase();
   var identificador = contexto && contexto.identificadorSessao;
@@ -325,6 +381,27 @@ function portalInvalidarCachesAtividadesAposChamada_(contexto, payload) {
       portalCacheKey_('viewsV2r2:justificativasPendenciasDiretoria', identificador),
       portalCacheKey_('viewsV2r2:pendenciasDiretoria', identificador),
       portalCacheKey_('viewsV2r1:painelDiretoriaV2', identificador),
+      portalCacheKey_('atividadesLista:v2', identificador + ':' + perfilAtividades),
+      portalCacheKey_('atividadesBundle', identificador + ':' + perfilAtividades),
+      portalCacheKey_('atividadesDetalhesPreload', identificador + ':' + perfilAtividades)
+    ]);
+  } catch (erro) {
+    // Cache e melhoria de desempenho, nao requisito funcional.
+  }
+}
+
+function portalInvalidarCachesAtividadesAposCriacao_(contexto) {
+  var identificador = contexto && contexto.identificadorSessao;
+  var perfilAtividades = contexto && contexto.contextoAtividades
+    ? contexto.contextoAtividades.perfil
+    : 'MEMBRO';
+
+  if (!identificador) {
+    return;
+  }
+
+  try {
+    CacheService.getScriptCache().removeAll([
       portalCacheKey_('atividadesLista:v2', identificador + ':' + perfilAtividades),
       portalCacheKey_('atividadesBundle', identificador + ':' + perfilAtividades),
       portalCacheKey_('atividadesDetalhesPreload', identificador + ':' + perfilAtividades)
@@ -559,6 +636,21 @@ function portalChamarAtividadesSalvarChamada_(payload, contexto) {
   return null;
 }
 
+function portalChamarAtividadesCriar_(payload, contexto) {
+  if (typeof atividadesV2_portalCriarAtividade === 'function') {
+    return atividadesV2_portalCriarAtividade(payload, contexto);
+  }
+
+  if (
+    typeof GEAPA_ATIVIDADES !== 'undefined' &&
+    typeof GEAPA_ATIVIDADES.atividadesV2_portalCriarAtividade === 'function'
+  ) {
+    return GEAPA_ATIVIDADES.atividadesV2_portalCriarAtividade(payload, contexto);
+  }
+
+  return null;
+}
+
 function portalChamarAtividadesBundle_(contexto) {
   if (typeof atividadesV2_portalGetAtividadesBundle === 'function') {
     return atividadesV2_portalGetAtividadesBundle(contexto);
@@ -631,12 +723,18 @@ function portalNormalizarRespostaObjetoAtividades_(resposta) {
   }
 
   if (resposta.ok !== true) {
+    var dadosErro = resposta.data || {};
+
+    if (resposta.fieldErrors && !dadosErro.fieldErrors) {
+      dadosErro.fieldErrors = resposta.fieldErrors;
+    }
+
     return {
       ok: false,
       resposta: portalRespostaErro_(
         resposta.errorCode || 'ERRO_ATIVIDADES',
         resposta.message || 'Nao foi possivel consultar atividades.',
-        {}
+        dadosErro
       )
     };
   }
@@ -654,7 +752,11 @@ function portalNormalizarRespostaObjetoAtividades_(resposta) {
   return {
     ok: true,
     message: resposta.message || '',
-    data: dados
+    data: dados,
+    avisos: resposta.avisos ||
+      (resposta.meta && resposta.meta.avisos) ||
+      (dados.meta && dados.meta.avisos) ||
+      []
   };
 }
 

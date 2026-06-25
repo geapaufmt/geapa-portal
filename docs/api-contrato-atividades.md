@@ -399,9 +399,58 @@ atividades.
 O frontend nao altera presenca diretamente, nao escreve em `PORTAL_*` e invalida
 caches de justificativas, frequencia, pendencias e painel apos envio ou analise.
 
+## Criacao segura de atividade pelo Portal
+
+O Pacote 4A habilita a criacao de atividade apenas como rascunho seguro. O
+Portal chama o Apps Script, que valida sessao, monta contexto e repassa para o
+modulo `geapa-atividades`:
+
+```text
+POST /atividades/criar
+acao=atividadeCriar
+payload={...json...}
+```
+
+Payload enviado pelo front-end:
+
+```json
+{
+  "dryRun": true,
+  "atividade": {
+    "tituloPublico": "Atividade teste DEV",
+    "dataAtividade": "2026-06-25",
+    "horarioInicio": "18h45",
+    "horarioFim": "20h45",
+    "tipoAtividade": "REUNIAO",
+    "subtipoAtividade": "REUNIAO_ORDINARIA",
+    "formato": "PRESENCIAL",
+    "local": "Sala GEAPA",
+    "contaPresenca": "SIM",
+    "contaFalta": "SIM",
+    "geraCertificado": "NAO",
+    "cargaHoraria": "2",
+    "exigeListaPresenca": "SIM",
+    "permiteJustificativa": "SIM"
+  }
+}
+```
+
+O primeiro envio sempre usa `dryRun: true`. Se o backend validar e retornar a
+previa, o Portal pede confirmacao e reenviara o mesmo payload com
+`dryRun: false`. O Portal nao gera `ID_ATIVIDADE`, nao define status editavel e
+nao escreve em `PORTAL_*`. A atividade nasce no backend como:
+
+- `STATUS_OPERACIONAL = PLANEJADA`
+- `STATUS_PUBLICACAO_PORTAL = RASCUNHO`
+- `VISIBILIDADE_PORTAL = DIRETORIA`
+
+Somente `DIRETORIA`, `SECRETARIO` e `ADMIN_TECNICO` devem conseguir concluir a
+criacao. O botao e ocultado para membros comuns, mas a autorizacao real continua
+no backend. Apos sucesso real, o Portal invalida cache local/sessionStorage e
+recarrega a lista de atividades.
+
 ## Endpoints futuros
 
-- `POST /atividades/criar`
 - `POST /atividades/editar`
 - `GET /atividades/chamada?idAtividade=ATV-2026-1-0005`
 - `POST /atividades/registrar-chamada`

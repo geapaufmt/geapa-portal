@@ -41,6 +41,7 @@
   var isChamadaLoading = false;
   var isChamadaSaving = false;
   var isChamadaFinalizing = false;
+  var isCriandoAtividade = false;
   var filtroChamadaAtual = 'TODOS';
   var justificativasConfig = null;
   var justificativasConfigExpiraEm = 0;
@@ -153,8 +154,14 @@
   }
 
   function tratarCliqueAtividades(evento) {
+    var botaoCriar = evento.target.closest('[data-create-activity]');
     var botaoJustificar = evento.target.closest('[data-activity-justify-future]');
     var botaoFechar = evento.target.closest('[data-activity-modal-close]');
+
+    if (botaoCriar) {
+      abrirModalCriarAtividade();
+      return;
+    }
 
     if (botaoJustificar) {
       abrirModalJustificativaPrevia(botaoJustificar.getAttribute('data-activity-justify-future'));
@@ -168,13 +175,22 @@
 
   function tratarSubmitAtividades(evento) {
     var form = evento.target;
+    var tipoFormulario = form ? form.getAttribute('data-activity-form') : '';
 
-    if (!form || form.getAttribute('data-activity-form') !== 'justificativa-previa') {
+    if (!form || !tipoFormulario) {
       return;
     }
 
     evento.preventDefault();
-    salvarJustificativaPrevia(form);
+
+    if (tipoFormulario === 'justificativa-previa') {
+      salvarJustificativaPrevia(form);
+      return;
+    }
+
+    if (tipoFormulario === 'criar-atividade') {
+      salvarNovaAtividade(form);
+    }
   }
 
   function configurarTelaAtividades(modo) {
@@ -211,8 +227,10 @@
     }
 
     botaoCriar.hidden = modo === MODO_ATIVIDADES_HISTORICO || !auth.canCreateActivity();
-    botaoCriar.disabled = true;
-    botaoCriar.title = 'Criação de atividades ainda não está disponível pelo portal.';
+    botaoCriar.disabled = botaoCriar.hidden;
+    botaoCriar.title = botaoCriar.hidden
+      ? 'Criacao permitida apenas para Diretoria, Secretaria ou Admin tecnico.'
+      : 'Criar uma nova atividade como rascunho visivel apenas para Diretoria.';
   }
 
   function mostrarTelaAtividades() {
@@ -2050,6 +2068,396 @@
       '</button>';
   }
 
+  function abrirModalCriarAtividade() {
+    var modal = document.getElementById('atividade-modal');
+    var conteudo = document.getElementById('atividade-modal-content');
+
+    if (!modal || !conteudo || !auth.canCreateActivity()) {
+      return;
+    }
+
+    definirTituloModal('Nova atividade');
+    conteudo.innerHTML = montarFormularioCriarAtividade();
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+  }
+
+  function montarFormularioCriarAtividade() {
+    return [
+      '<p class="eyebrow">Gestao de atividades</p>',
+      '<h3>Criar atividade</h3>',
+      '<p class="section-note">A atividade sera criada como rascunho, visivel apenas para Diretoria. Publicacao, edicao avancada e anexos ficam para outro pacote.</p>',
+      '<form class="readonly-form activity-create-form" data-activity-form="criar-atividade">',
+      '<section class="activity-detail-section">',
+      '<h4>Dados principais</h4>',
+      '<label>Titulo publico',
+      '<input name="tituloPublico" type="text" required maxlength="180">',
+      '</label>',
+      '<label>Descricao publica',
+      '<textarea name="descricaoPublica" rows="3"></textarea>',
+      '</label>',
+      '<label>Descricao interna',
+      '<textarea name="descricaoInterna" rows="3"></textarea>',
+      '</label>',
+      '<label>Tipo de atividade',
+      '<select name="tipoAtividade" required>',
+      montarOpcoesSelecao([
+        ['REUNIAO', 'Reuniao'],
+        ['PALESTRA', 'Palestra'],
+        ['OFICINA', 'Oficina'],
+        ['CURSO', 'Curso'],
+        ['APRESENTACAO', 'Apresentacao'],
+        ['EVENTO', 'Evento'],
+        ['OUTRA', 'Outra']
+      ], ''),
+      '</select>',
+      '</label>',
+      '<label>Subtipo de atividade',
+      '<input name="subtipoAtividade" type="text" required placeholder="Ex.: REUNIAO_ORDINARIA">',
+      '</label>',
+      '<label>Formato',
+      '<select name="formato" required>',
+      montarOpcoesSelecao([
+        ['PRESENCIAL', 'Presencial'],
+        ['REMOTO', 'Remoto'],
+        ['HIBRIDO', 'Hibrido']
+      ], 'PRESENCIAL'),
+      '</select>',
+      '</label>',
+      '<label>Local',
+      '<input name="local" type="text" required>',
+      '</label>',
+      '</section>',
+      '<section class="activity-detail-section">',
+      '<h4>Data e horario</h4>',
+      '<label>Data da atividade',
+      '<input name="dataAtividade" type="date" required>',
+      '</label>',
+      '<label>Horario de inicio',
+      '<input name="horarioInicio" type="time" required>',
+      '</label>',
+      '<label>Horario de fim',
+      '<input name="horarioFim" type="time" required>',
+      '</label>',
+      '<label>Carga horaria',
+      '<input name="cargaHoraria" type="number" min="0.25" step="0.25" required>',
+      '</label>',
+      '</section>',
+      '<section class="activity-detail-section">',
+      '<h4>Presenca, falta e certificado</h4>',
+      montarSelectSimNao('contaPresenca', 'Conta presenca?', 'SIM'),
+      montarSelectSimNao('contaFalta', 'Conta falta?', 'SIM'),
+      montarSelectSimNao('geraCertificado', 'Gera certificado?', 'NAO'),
+      montarSelectSimNao('exigeListaPresenca', 'Exige lista de presenca?', 'SIM'),
+      montarSelectSimNao('permiteJustificativa', 'Permite justificativa?', 'SIM'),
+      '</section>',
+      '<section class="activity-detail-section">',
+      '<h4>Campos opcionais</h4>',
+      '<label>Eixo tematico principal',
+      '<input name="eixoTematicoPrincipal" type="text">',
+      '</label>',
+      '<label>Eixo tematico secundario',
+      '<input name="eixoTematicoSecundario" type="text">',
+      '</label>',
+      '<label>Nome da pessoa principal',
+      '<input name="nomePessoaPrincipalPublico" type="text">',
+      '</label>',
+      '<label>ID da pessoa principal',
+      '<input name="idPessoaPrincipal" type="text">',
+      '</label>',
+      '<label>RGA da pessoa principal',
+      '<input name="rgaPessoaPrincipal" type="text">',
+      '</label>',
+      '<label>E-mail da pessoa principal',
+      '<input name="emailPessoaPrincipal" type="email">',
+      '</label>',
+      '<label>Tipo da pessoa principal',
+      '<input name="tipoPessoaPrincipal" type="text" placeholder="Ex.: MEMBRO, CONVIDADO">',
+      '</label>',
+      '<label>Papel da pessoa principal',
+      '<input name="papelPessoaPrincipal" type="text" placeholder="Ex.: PALESTRANTE">',
+      '</label>',
+      '<label>Instituicao da pessoa principal',
+      '<input name="instituicaoPessoaPrincipal" type="text">',
+      '</label>',
+      '<label>Responsavel interno',
+      '<input name="responsavelInterno" type="text">',
+      '</label>',
+      '<label>E-mail do responsavel',
+      '<input name="responsavelEmail" type="email">',
+      '</label>',
+      '<label>Publico-alvo',
+      '<input name="publicoAlvo" type="text">',
+      '</label>',
+      '<label>Classificacao de acesso',
+      '<select name="classificacaoAcesso">',
+      montarOpcoesSelecao([
+        ['INTERNA', 'Interna'],
+        ['ABERTA', 'Aberta'],
+        ['RESTRITA', 'Restrita']
+      ], 'INTERNA'),
+      '</select>',
+      '</label>',
+      '<label>Observacoes internas',
+      '<textarea name="observacoes" rows="3"></textarea>',
+      '</label>',
+      '</section>',
+      '<section class="activity-detail-section">',
+      '<h4>Publicacao inicial</h4>',
+      '<dl class="activity-detail-grid">',
+      montarFato('Status operacional', 'Planejada'),
+      montarFato('Publicacao no portal', 'Rascunho'),
+      montarFato('Visibilidade', 'Diretoria'),
+      '</dl>',
+      '<p class="simulation-warning">Esses valores sao fixos neste pacote e serao validados novamente pelo backend.</p>',
+      '</section>',
+      '<div class="presentation-card-actions">',
+      '<button type="submit">Validar e criar rascunho</button>',
+      '<button class="secondary-button" type="button" data-activity-modal-close>Cancelar</button>',
+      '</div>',
+      '</form>'
+    ].join('');
+  }
+
+  function montarSelectSimNao(nome, rotulo, valorPadrao) {
+    return [
+      '<label>' + ui.escaparHtml(rotulo),
+      '<select name="' + ui.escaparHtml(nome) + '" required>',
+      montarOpcoesSelecao([
+        ['SIM', 'Sim'],
+        ['NAO', 'Nao']
+      ], valorPadrao || 'NAO'),
+      '</select>',
+      '</label>'
+    ].join('');
+  }
+
+  function montarOpcoesSelecao(opcoes, valorAtual) {
+    return (opcoes || []).map(function montar(opcao) {
+      var valor = opcao[0];
+      var rotulo = opcao[1];
+      var selecionado = valor === valorAtual ? ' selected' : '';
+
+      return '<option value="' + ui.escaparHtml(valor) + '"' + selecionado + '>' +
+        ui.escaparHtml(rotulo) +
+        '</option>';
+    }).join('');
+  }
+
+  function salvarNovaAtividade(form) {
+    var payload;
+    var erros;
+
+    if (isCriandoAtividade) {
+      return;
+    }
+
+    payload = montarPayloadCriarAtividade(form, true);
+    erros = validarPayloadCriarAtividade(payload.atividade);
+
+    if (erros.length) {
+      mostrarErroModalAtividade(erros.join(' '));
+      return;
+    }
+
+    isCriandoAtividade = true;
+    alternarFormularioAtividadeOcupado(form, true);
+    ui.mostrarLoading('Validando atividade...');
+
+    api.apiPost('/atividades/criar', {
+      payload: JSON.stringify(payload)
+    }).then(function tratarPrevia(resposta) {
+      if (!resposta.ok) {
+        throw criarErroAtividade(resposta);
+      }
+
+      if (!confirm(montarMensagemConfirmacaoCriarAtividade(resposta.data || {}))) {
+        throw criarErroAtividade({
+          ok: false,
+          message: 'Criacao cancelada pelo usuario.',
+          cancelado: true
+        });
+      }
+
+      ui.mostrarLoading('Criando atividade...');
+      return api.apiPost('/atividades/criar', {
+        payload: JSON.stringify({
+          dryRun: false,
+          atividade: Object.assign({}, payload.atividade)
+        })
+      });
+    }).then(function tratarCriacao(resposta) {
+      if (!resposta.ok) {
+        throw criarErroAtividade(resposta);
+      }
+
+      fecharModal();
+      invalidarCacheAtividades();
+      recarregarAtividadesAposCriacao();
+      mostrarStatusCriacaoAtividade(resposta);
+    }).catch(function falhar(erro) {
+      if (!erro.cancelado) {
+        mostrarErroModalAtividade(erro.message || 'Nao foi possivel criar a atividade.');
+      }
+    }).finally(function finalizar() {
+      isCriandoAtividade = false;
+      alternarFormularioAtividadeOcupado(form, false);
+      ui.ocultarLoading();
+    });
+  }
+
+  function montarPayloadCriarAtividade(form, dryRun) {
+    var dados = new FormData(form);
+    var atividade = {
+      tituloPublico: obterValorFormulario(dados, 'tituloPublico'),
+      dataAtividade: obterValorFormulario(dados, 'dataAtividade'),
+      horarioInicio: normalizarHorarioFormulario(obterValorFormulario(dados, 'horarioInicio')),
+      horarioFim: normalizarHorarioFormulario(obterValorFormulario(dados, 'horarioFim')),
+      tipoAtividade: obterValorFormulario(dados, 'tipoAtividade'),
+      subtipoAtividade: obterValorFormulario(dados, 'subtipoAtividade'),
+      formato: obterValorFormulario(dados, 'formato'),
+      local: obterValorFormulario(dados, 'local'),
+      contaPresenca: obterValorFormulario(dados, 'contaPresenca'),
+      contaFalta: obterValorFormulario(dados, 'contaFalta'),
+      geraCertificado: obterValorFormulario(dados, 'geraCertificado'),
+      cargaHoraria: obterValorFormulario(dados, 'cargaHoraria'),
+      exigeListaPresenca: obterValorFormulario(dados, 'exigeListaPresenca'),
+      permiteJustificativa: obterValorFormulario(dados, 'permiteJustificativa')
+    };
+    var opcionais = [
+      'descricaoPublica',
+      'descricaoInterna',
+      'eixoTematicoPrincipal',
+      'eixoTematicoSecundario',
+      'idPessoaPrincipal',
+      'nomePessoaPrincipalPublico',
+      'rgaPessoaPrincipal',
+      'emailPessoaPrincipal',
+      'tipoPessoaPrincipal',
+      'papelPessoaPrincipal',
+      'instituicaoPessoaPrincipal',
+      'responsavelInterno',
+      'responsavelEmail',
+      'publicoAlvo',
+      'observacoes',
+      'classificacaoAcesso'
+    ];
+
+    opcionais.forEach(function copiar(campo) {
+      var valor = obterValorFormulario(dados, campo);
+
+      if (valor) {
+        atividade[campo] = valor;
+      }
+    });
+
+    return {
+      dryRun: dryRun === true,
+      atividade: atividade
+    };
+  }
+
+  function validarPayloadCriarAtividade(atividade) {
+    var erros = [];
+    var inicio = converterHorarioMinutos(atividade.horarioInicio);
+    var fim = converterHorarioMinutos(atividade.horarioFim);
+    var carga = Number(atividade.cargaHoraria);
+
+    [
+      ['tituloPublico', 'Informe o titulo da atividade.'],
+      ['dataAtividade', 'Informe a data da atividade.'],
+      ['horarioInicio', 'Informe o horario de inicio.'],
+      ['horarioFim', 'Informe o horario de fim.'],
+      ['tipoAtividade', 'Informe o tipo de atividade.'],
+      ['subtipoAtividade', 'Informe o subtipo de atividade.'],
+      ['formato', 'Informe o formato.'],
+      ['local', 'Informe o local.']
+    ].forEach(function validar(item) {
+      if (!atividade[item[0]]) {
+        erros.push(item[1]);
+      }
+    });
+
+    if (!Number.isFinite(carga) || carga <= 0) {
+      erros.push('Informe carga horaria positiva.');
+    }
+
+    if (inicio >= 0 && fim >= 0 && fim <= inicio) {
+      erros.push('O horario de fim deve ser posterior ao inicio.');
+    }
+
+    return erros;
+  }
+
+  function criarErroAtividade(resposta) {
+    var erro = new Error(resposta.message || 'Nao foi possivel criar a atividade.');
+    var fieldErrors = resposta.fieldErrors ||
+      (resposta.data && resposta.data.fieldErrors) ||
+      {};
+    var mensagens = Object.keys(fieldErrors || {}).map(function montar(campo) {
+      return fieldErrors[campo];
+    }).filter(Boolean);
+
+    if (mensagens.length) {
+      erro.message = mensagens.join(' ');
+    }
+
+    erro.cancelado = resposta.cancelado === true;
+    return erro;
+  }
+
+  function montarMensagemConfirmacaoCriarAtividade(preview) {
+    return [
+      'Criar atividade como rascunho visivel apenas para Diretoria?',
+      '',
+      'ID previsto: ' + (preview.idAtividade || 'gerado pelo backend'),
+      'Titulo: ' + (preview.tituloPublico || 'nao informado'),
+      'Data: ' + (preview.dataAtividade || 'nao informada'),
+      'Horario: ' + [preview.horarioInicio, preview.horarioFim].filter(Boolean).join(' as '),
+      'Status: ' + (preview.statusOperacional || 'PLANEJADA') + ' / ' + (preview.statusPublicacaoPortal || 'RASCUNHO')
+    ].join('\n');
+  }
+
+  function mostrarStatusCriacaoAtividade(resposta) {
+    var status = document.getElementById('atividades-status');
+    var avisos = resposta && resposta.meta && resposta.meta.avisos
+      ? resposta.meta.avisos
+      : [];
+
+    if (status) {
+      status.textContent = (resposta && resposta.message) || 'Atividade criada como rascunho.';
+      if (Array.isArray(avisos) && avisos.length) {
+        status.textContent += ' Avisos: ' + avisos.join(' ');
+      }
+    }
+  }
+
+  function alternarFormularioAtividadeOcupado(form, ocupado) {
+    Array.prototype.forEach.call(form.elements || [], function alternar(campo) {
+      campo.disabled = ocupado;
+    });
+  }
+
+  function obterValorFormulario(dados, campo) {
+    return String(dados.get(campo) || '').trim();
+  }
+
+  function normalizarHorarioFormulario(valor) {
+    return String(valor || '').trim().replace(':', 'h');
+  }
+
+  function converterHorarioMinutos(valor) {
+    var partes = String(valor || '').trim().replace('h', ':').split(':');
+    var horas = Number(partes[0]);
+    var minutos = Number(partes[1]);
+
+    if (!Number.isFinite(horas) || !Number.isFinite(minutos)) {
+      return -1;
+    }
+
+    return horas * 60 + minutos;
+  }
+
   function abrirModalJustificativaPrevia(idAtividade) {
     var atividade = atividadesResumoCache[idAtividade] || {};
     var modal = document.getElementById('atividade-modal');
@@ -3231,6 +3639,15 @@
 
     if (lista && status) {
       carregarAtividadesComLista(lista, status, obterModoAtividadesAtual());
+    }
+  }
+
+  function recarregarAtividadesAposCriacao() {
+    var lista = document.getElementById('atividades-lista');
+    var status = document.getElementById('atividades-status');
+
+    if (lista && status) {
+      carregarAtividadesComLista(lista, status, MODO_ATIVIDADES_PROXIMAS);
     }
   }
 

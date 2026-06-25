@@ -393,6 +393,7 @@
       '/atividades/detalhe': 'atividadeDetalhe',
       '/atividades/chamada': 'atividadeChamada',
       '/atividades/chamada/salvar': 'atividadeSalvarChamada',
+      '/atividades/criar': 'atividadeCriar',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',
@@ -568,6 +569,10 @@
   }
 
   function apiPostMock(route, params) {
+    if (route === '/atividades/criar') {
+      return Promise.resolve(criarAtividadeMock(params));
+    }
+
     if (route === '/atividades/chamada/salvar') {
       var payload = lerPayloadMock(params);
       var operacao = String(payload.operacao || 'SALVAR').toUpperCase();
@@ -638,6 +643,60 @@
     });
   }
 
+  function criarAtividadeMock(params) {
+    var payload = lerPayloadMock(params);
+    var atividade = Object.assign({}, payload.atividade || {});
+    var dryRun = payload.dryRun !== false;
+    var idAtividade = gerarIdAtividadeMock(atividade.dataAtividade);
+    var anoSemestre = obterAnoSemestreMock(atividade.dataAtividade);
+    var respostaAtividade = Object.assign({}, atividade, {
+      idAtividade: idAtividade,
+      ano: anoSemestre.ano,
+      semestre: anoSemestre.semestre,
+      rotuloSemestre: anoSemestre.rotuloSemestre,
+      statusOperacional: 'PLANEJADA',
+      statusPublicacaoPortal: 'RASCUNHO',
+      statusPublico: 'RASCUNHO',
+      visibilidadePortal: 'DIRETORIA',
+      dryRun: dryRun,
+      linhaPreview: true
+    });
+
+    if (!dryRun) {
+      atividadesMock.push(Object.assign({}, respostaAtividade, {
+        tipoPublico: respostaAtividade.tipoAtividade,
+        contaPresenca: respostaAtividade.contaPresenca === 'SIM',
+        contaFalta: respostaAtividade.contaFalta === 'SIM',
+        geraCertificado: respostaAtividade.geraCertificado === 'SIM',
+        qtdApresentacoes: 0,
+        possuiApresentacoes: false,
+        podeVerDetalhes: true,
+        podeRegistrarChamada: true
+      }));
+      detalhesMock[idAtividade] = Object.assign({}, respostaAtividade, {
+        descricaoPublica: respostaAtividade.descricaoPublica || '',
+        horarioCompleto: [
+          respostaAtividade.horarioInicio,
+          respostaAtividade.horarioFim
+        ].filter(Boolean).join(' as '),
+        apresentacoesPublicas: [],
+        envolvidosPublicos: []
+      });
+    }
+
+    return {
+      ok: true,
+      message: dryRun
+        ? 'Previa de atividade validada.'
+        : 'Atividade criada como rascunho.',
+      data: respostaAtividade,
+      meta: {
+        escrita: !dryRun,
+        modo: 'mock'
+      }
+    };
+  }
+
   function lerPayloadMock(params) {
     if (!params || !params.payload) {
       return {};
@@ -650,6 +709,27 @@
     } catch (erro) {
       return {};
     }
+  }
+
+  function gerarIdAtividadeMock(dataAtividade) {
+    var anoSemestre = obterAnoSemestreMock(dataAtividade);
+    var sequencial = String(atividadesMock.length + 1).padStart(4, '0');
+
+    return 'ATV-' + anoSemestre.ano + '-' + anoSemestre.semestre + '-' + sequencial;
+  }
+
+  function obterAnoSemestreMock(dataAtividade) {
+    var texto = String(dataAtividade || '').trim();
+    var matchIso = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    var data = matchIso ? new Date(texto + 'T00:00:00') : new Date(texto);
+    var ano = Number.isNaN(data.getTime()) ? new Date().getFullYear() : data.getFullYear();
+    var semestre = Number.isNaN(data.getTime()) ? 1 : (data.getMonth() <= 5 ? 1 : 2);
+
+    return {
+      ano: ano,
+      semestre: semestre,
+      rotuloSemestre: ano + '/' + semestre
+    };
   }
 
   function atualizarStatusAtividadeMock(idAtividade, statusOperacional) {
