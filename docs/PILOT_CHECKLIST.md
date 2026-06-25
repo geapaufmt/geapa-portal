@@ -29,7 +29,9 @@ Validar, com poucos membros, se o portal:
 - [ ] Confirmar que `GEAPA_CORE` está configurado como biblioteca.
 - [ ] Confirmar se `GEAPA_CORE` ainda está em `developmentMode` ou se já usa versão fixa.
 - [ ] Confirmar que `PORTAL_ENVIO_EMAIL_HABILITADO=true`.
-- [ ] Revisar `PORTAL_EMAILS_TESTE` com apenas e-mails autorizados para o piloto.
+- [ ] Confirmar `PORTAL_MODO_ACESSO` no Core (`TESTE` ou `MEMBROS_ATIVOS`).
+- [ ] Se `PORTAL_MODO_ACESSO=TESTE`, revisar `PORTAL_EMAILS_TESTE` com apenas e-mails autorizados para o piloto.
+- [ ] Se `PORTAL_MODO_ACESSO=MEMBROS_ATIVOS`, confirmar que membros ativos com `portal:acessar` entram sem depender de `PORTAL_EMAILS_TESTE`.
 - [ ] Confirmar que `PORTAL_CODIGO_SALT` está configurado fora do repositório.
 - [ ] Confirmar que `PORTAL_MEMBROS_TESTE_JSON`, se existir, não contém dados sensíveis desnecessários.
 - [ ] Conferir a matriz de dados em `docs/DATA_MATRIX.md`.
@@ -40,6 +42,7 @@ Configurar no projeto Apps Script do portal:
 
 ```text
 PORTAL_ENVIO_EMAIL_HABILITADO=true
+PORTAL_MODO_ACESSO=TESTE
 PORTAL_EMAILS_TESTE=email1@exemplo.org,email2@exemplo.org
 PORTAL_CODIGO_SALT=valor-aleatorio-longo
 GEAPA_FIREBASE_WEB_API_KEY=api-key-publica-do-firebase-web

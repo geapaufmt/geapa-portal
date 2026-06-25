@@ -519,7 +519,7 @@
 
   function renderAccessDenied(rota, reason) {
     var container = document.getElementById('access-denied-content');
-    var mensagem = obterMensagemAcessoNegado(reason);
+    var mensagem = obterMensagemAcessoNegado(reason, getSessaoAtual());
     var destino = reason === MOTIVOS_ACESSO.NOT_AUTHENTICATED ? 'login' : 'inicio';
     var rotuloBotao = reason === MOTIVOS_ACESSO.NOT_AUTHENTICATED ? 'Voltar para o login' : 'Ir para o início';
 
@@ -543,13 +543,15 @@
     ].join('');
   }
 
-  function obterMensagemAcessoNegado(reason) {
+  function obterMensagemAcessoNegado(reason, sessao) {
     if (reason === MOTIVOS_ACESSO.NOT_AUTHENTICATED) {
       return 'Faça login para acessar esta área.';
     }
 
     if (reason === MOTIVOS_ACESSO.PORTAL_INATIVO) {
-      return 'Seu acesso ao Portal GEAPA está inativo no momento.';
+      return sessao && sessao.mensagemBloqueio
+        ? sessao.mensagemBloqueio
+        : 'Seu e-mail nao esta liberado para acessar o Portal GEAPA ou nao possui vinculo ativo no grupo. Entre com o mesmo e-mail cadastrado junto ao GEAPA.';
     }
 
     if (reason === MOTIVOS_ACESSO.PERMISSAO_INSUFICIENTE) {
@@ -576,7 +578,10 @@
       perfisPortal: [PERFIS.VISITANTE],
       permissoes: [],
       permissoesMapa: {},
-      portalAtivo: true
+      portalAtivo: true,
+      modoAcesso: '',
+      motivoBloqueio: '',
+      mensagemBloqueio: ''
     };
   }
 

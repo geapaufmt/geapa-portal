@@ -61,8 +61,10 @@ Fluxo previsto para etapa futura:
 8. O Apps Script valida codigo, expiracao e tentativas.
 9. O Apps Script emite uma sessao ou token temporario.
 
-Nesta etapa, o fluxo ja envia codigos reais, mas somente para e-mails
-autorizados em `PORTAL_EMAILS_TESTE`.
+Nesta etapa, o fluxo envia codigos reais e a liberacao final pertence ao
+GEAPA-CORE. `PORTAL_EMAILS_TESTE` deve ser aplicado apenas quando o Core
+retornar/usar `PORTAL_MODO_ACESSO = TESTE`; em `MEMBROS_ATIVOS`, membros ativos
+autorizados pelo Core nao dependem de whitelist local do Portal.
 
 ## Fluxo da tela "Minha situacao"
 

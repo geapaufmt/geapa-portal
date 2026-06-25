@@ -345,6 +345,10 @@ function portalResposta_(ok, code, message, data, metaExtra) {
   };
 }
 
+function portalMensagemBloqueioPadrao_() {
+  return 'Seu e-mail nao esta liberado para acessar o Portal GEAPA ou nao possui vinculo ativo no grupo. Entre com o mesmo e-mail cadastrado junto ao GEAPA.';
+}
+
 /**
  * Cria uma resposta JSON padronizada para o Web App.
  *

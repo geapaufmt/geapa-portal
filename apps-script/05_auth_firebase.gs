@@ -21,7 +21,8 @@ function portalLoginFirebase(idToken) {
       autorizacao.code || 'ACESSO_NAO_AUTORIZADO',
       autorizacao.message || 'Acesso nao autorizado para este e-mail.',
       {
-        email: autorizacao.email ? portalMascararEmail_(autorizacao.email) : ''
+        email: autorizacao.email ? portalMascararEmail_(autorizacao.email) : '',
+        sessao: autorizacao.sessao || null
       },
       portalMetaDesempenho_('login-recusado', inicio)
     );
@@ -340,7 +341,7 @@ function portalAutorizarFirebaseViaGeapaCore_(usuario) {
       return {
         authorized: false,
         code: sessao.motivoBloqueio || 'MEMBRO_NAO_AUTORIZADO_PORTAL',
-        message: 'E-mail autenticado nao autorizado para o portal.',
+        message: sessao.mensagemBloqueio || portalMensagemBloqueioPadrao_(),
         email: usuario.email,
         uid: usuario.uid,
         sessao: sessao

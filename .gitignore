@@ -5,6 +5,7 @@
 node_modules/
 dist/
 build/
+.firebase/
 
 # Segredos e credenciais locais.
 .env

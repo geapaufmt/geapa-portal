@@ -1252,6 +1252,7 @@ Configurar em **Project Settings > Script properties**:
 
 ```text
 PORTAL_ENVIO_EMAIL_HABILITADO=true
+PORTAL_MODO_ACESSO=TESTE
 PORTAL_EMAILS_TESTE=email1@exemplo.org,email2@exemplo.org
 PORTAL_CODIGO_SALT=valor-aleatorio-longo
 GEAPA_FIREBASE_WEB_API_KEY=api-key-publica-do-firebase-web
@@ -1259,7 +1260,9 @@ PORTAL_MEMBROS_TESTE_JSON=[{"emailCadastrado":"email1@exemplo.org","rga":"RGA-TE
 PORTAL_DIAGNOSTICO_IDENTIFICADOR=email-ou-rga-para-teste
 ```
 
-Esses valores nao devem ser versionados no GitHub.
+Esses valores nao devem ser versionados no GitHub. `PORTAL_EMAILS_TESTE` so
+deve restringir acesso quando o Core estiver em modo `TESTE`; em
+`MEMBROS_ATIVOS`, a autorizacao vem da sessao oficial resolvida pelo Core.
 
 ## Validade de codigo e sessao
 
@@ -1319,7 +1322,7 @@ Antes de executar, configure a Script Property privada
 `PORTAL_DIAGNOSTICO_IDENTIFICADOR` com o e-mail ou RGA de teste. A funcao
 retorna apenas diagnostico mascarado, como origem do cadastro, e-mail mascarado,
 RGA mascarado, status de envio de e-mail e se o e-mail cadastrado esta liberado
-em `PORTAL_EMAILS_TESTE`.
+em `PORTAL_EMAILS_TESTE` quando o ambiente estiver em modo de teste.
 
 Erros futuros deverao usar codigos estaveis, sem expor detalhes sensiveis ao
 front-end.

@@ -24,6 +24,9 @@ que uma acao precisar atualizar a navegacao do Portal.
   "perfisPortal": ["MEMBRO"],
   "permissoes": ["portal:acessar", "situacao:ver_propria"],
   "portalAtivo": true,
+  "modoAcesso": "MEMBROS_ATIVOS",
+  "motivoBloqueio": "",
+  "mensagemBloqueio": "",
   "tipoVinculoAtual": "MEMBRO",
   "statusVinculoAtual": "ATIVO",
   "cargoFuncaoAtual": "",
@@ -40,10 +43,15 @@ Campos obrigatorios para autorizacao visual:
 - `perfisPortal`: perfis efetivos ja resolvidos pelo CORE.
 - `permissoes`: permissoes efetivas no formato canonico `dominio:acao`.
 - `portalAtivo`: se o usuario pode acessar o Portal.
+- `modoAcesso`: modo de acesso decidido pelo CORE, como `TESTE` ou
+  `MEMBROS_ATIVOS`.
 
 Campos complementares:
 
 - `email`: e-mail autenticado ou e-mail seguro para exibicao controlada.
+- `motivoBloqueio`: codigo operacional de bloqueio retornado pelo CORE.
+- `mensagemBloqueio`: mensagem segura para exibir ao usuario quando o CORE
+  negar acesso.
 - `tipoVinculoAtual`: vinculo atual ja resolvido pelo CORE.
 - `statusVinculoAtual`: status atual do vinculo.
 - `cargoFuncaoAtual`: resumo textual de cargo ou funcao atual.
@@ -80,6 +88,13 @@ O Portal nao pode:
 - conceder `ADMIN` por conta propria;
 - calcular permissoes a partir de `CARGOS_CONFIG`;
 - ler `PORTAL_PERMISSOES` diretamente, salvo se isso vier por API segura do CORE.
+- aplicar whitelist local de e-mails no front-end.
+- decidir localmente se `PORTAL_EMAILS_TESTE` deve bloquear alguem.
+
+Quando o CORE retornar `modoAcesso = TESTE`, a aplicacao de
+`PORTAL_EMAILS_TESTE` e responsabilidade do backend/Core. Quando retornar
+`modoAcesso = MEMBROS_ATIVOS`, o Portal deve ignorar qualquer cache ou texto
+legado de homologacao e respeitar a sessao oficial recebida.
 
 ## ADMIN
 
@@ -124,3 +139,15 @@ resolvida para aplicar:
 
 Rotas sem acesso nao aparecem no menu e tambem sao bloqueadas quando acessadas
 diretamente por hash.
+
+## Testes manuais de acesso
+
+- Membro ativo comum autorizado: deve entrar, ver telas proprias e nao ver
+  gestao administrativa.
+- Diretoria/Secretaria/Admin autorizado: deve entrar e ver apenas rotas que as
+  permissoes efetivas do CORE autorizarem.
+- Usuario sem vinculo ou com e-mail diferente do cadastrado: deve ser bloqueado
+  com `mensagemBloqueio` do backend ou fallback amigavel.
+- Modo `TESTE`: deve respeitar a whitelist definida no Core.
+- Modo `MEMBROS_ATIVOS`: deve liberar membro ativo autorizado sem depender de
+  whitelist local do Portal.

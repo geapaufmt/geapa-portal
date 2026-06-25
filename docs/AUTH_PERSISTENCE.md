@@ -42,6 +42,7 @@ roda.
 
 Campos permitidos:
 
+- `schemaVersion`
 - `idPessoa`
 - `nomeExibicao`
 - `email` mascarado ou vazio
@@ -49,6 +50,9 @@ Campos permitidos:
 - `perfilPortalEfetivo`
 - `perfisPortal`
 - `portalAtivo`
+- `modoAcesso`
+- `motivoBloqueio`
+- `mensagemBloqueio`
 - `tipoVinculoAtual`
 - `statusVinculoAtual`
 - `cargoFuncaoAtual`
@@ -104,6 +108,12 @@ Se o CORE negar acesso:
 2. remove `geapaPortal.safeUserSummary`;
 3. limpa o contexto visual;
 4. mostra a tela de acesso com mensagem de autorizacao alterada.
+
+O resumo seguro usa schema versionado. Mudancas em regra de acesso, como a
+entrada de `PORTAL_MODO_ACESSO = TESTE` ou `MEMBROS_ATIVOS`, devem invalidar
+resumos antigos para obrigar nova validacao oficial pelo Core. O Portal nao
+mantem whitelist local de e-mails e nao decide se `PORTAL_EMAILS_TESTE` se
+aplica; essa decisao pertence ao GEAPA-CORE.
 
 ## Logout
 

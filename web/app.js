@@ -636,7 +636,14 @@ function limparResumoSeguroLocal() {
  * @return {string} Mensagem da resposta.
  */
 function obterMensagem(resposta) {
-  return resposta.message || resposta.mensagem || '';
+  const data = resposta && resposta.data ? resposta.data : {};
+  const sessao = data.sessao || data.session || data.usuarioAtual || {};
+
+  return resposta.message ||
+    resposta.mensagem ||
+    data.mensagemBloqueio ||
+    sessao.mensagemBloqueio ||
+    '';
 }
 
 /**
@@ -855,6 +862,9 @@ function normalizarUsuario(usuario, dadosSituacao, sessao) {
         ? dadosSessao.cargosAtuais.map(normalizarCargoUsuario)
         : [],
     portalAtivo: dados.portalAtivo !== false && dadosSessao.portalAtivo !== false,
+    modoAcesso: String(dados.modoAcesso || dadosSessao.modoAcesso || '').trim(),
+    motivoBloqueio: String(dados.motivoBloqueio || dadosSessao.motivoBloqueio || '').trim(),
+    mensagemBloqueio: String(dados.mensagemBloqueio || dadosSessao.mensagemBloqueio || '').trim(),
     tipoVinculoAtual: String(dados.tipoVinculoAtual || dadosSessao.tipoVinculoAtual || '').trim(),
     statusVinculoAtual: String(dados.statusVinculoAtual || dadosSessao.statusVinculoAtual || '').trim(),
     cargoFuncaoAtual: String(dados.cargoFuncaoAtual || dadosSessao.cargoFuncaoAtual || '').trim(),

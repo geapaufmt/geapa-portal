@@ -83,6 +83,9 @@
         ? dados.cargosAtuais.slice()
         : [],
       portalAtivo: dados.portalAtivo !== false,
+      modoAcesso: dados.modoAcesso || '',
+      motivoBloqueio: dados.motivoBloqueio || '',
+      mensagemBloqueio: dados.mensagemBloqueio || '',
       tipoVinculoAtual: dados.tipoVinculoAtual || '',
       statusVinculoAtual: dados.statusVinculoAtual || '',
       cargoFuncaoAtual: dados.cargoFuncaoAtual || '',

@@ -65,6 +65,9 @@ Script e das permissoes do usuario/projeto que executa o script no Google Cloud.
 - `email`
 - `rga`
 - `portalAtivo`
+- `modoAcesso`
+- `motivoBloqueio`
+- `mensagemBloqueio`
 - `perfilPortalEfetivo`
 - `perfisPortal`
 - `permissoes`
@@ -75,7 +78,7 @@ Script e das permissoes do usuario/projeto que executa o script no Google Cloud.
 - `sourceUpdatedAt`
 - `cacheUpdatedAt`
 - `cacheExpiresAt`
-- `schemaVersion: "portal-user-v1"`
+- `schemaVersion: "portal-user-v2"`
 
 Nao colocar CPF, telefone, data de nascimento, observacoes internas, logs,
 pendencias detalhadas, corpo de e-mail, tokens, segredos, senhas, chaves

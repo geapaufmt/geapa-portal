@@ -617,13 +617,15 @@ function portalNormalizarSessaoPortalCore_(sessao) {
     perfisPortal: perfis,
     permissoes: permissoes,
     portalAtivo: ok && sessao.portalAtivo !== false,
+    modoAcesso: String(sessao.modoAcesso || sessao.portalModoAcesso || '').trim(),
     tipoVinculoAtual: String(sessao.tipoVinculoAtual || '').trim(),
     statusVinculoAtual: String(sessao.statusVinculoAtual || '').trim(),
     cargoFuncaoAtual: String(sessao.cargoFuncaoAtual || '').trim(),
     cargosAtuais: Array.isArray(sessao.cargosAtuais)
       ? sessao.cargosAtuais.map(portalNormalizarCargoUsuario_)
       : [],
-    motivoBloqueio: String(sessao.motivoBloqueio || '').trim()
+    motivoBloqueio: String(sessao.motivoBloqueio || '').trim(),
+    mensagemBloqueio: String(sessao.mensagemBloqueio || '').trim()
   };
 }
 

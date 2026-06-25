@@ -16,7 +16,7 @@ import {
  * Apps Script/GEAPA-CORE antes de qualquer acao sensivel.
  */
 (function configurarFirestoreSessionCache(global) {
-  var SCHEMA_VERSION = 'portal-user-v1';
+  var SCHEMA_VERSION = 'portal-user-v2';
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
   var STORAGE_KEY = 'geapaPortal.safeUserSummary';
   var firestore = null;
@@ -129,6 +129,9 @@ import {
       email: String(snapshot.email || '').trim(),
       rga: String(snapshot.rga || '').trim(),
       portalAtivo: snapshot.portalAtivo === true,
+      modoAcesso: String(snapshot.modoAcesso || snapshot.portalModoAcesso || '').trim(),
+      motivoBloqueio: String(snapshot.motivoBloqueio || '').trim(),
+      mensagemBloqueio: String(snapshot.mensagemBloqueio || '').trim(),
       perfilPortalEfetivo: String(snapshot.perfilPortalEfetivo || '').trim(),
       perfisPortal: normalizarLista(snapshot.perfisPortal),
       permissoes: normalizarLista(snapshot.permissoes),
@@ -170,6 +173,7 @@ import {
 
     try {
       global.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        schemaVersion: SCHEMA_VERSION,
         idPessoa: String(dados.idPessoa || '').trim(),
         nomeExibicao: String(dados.nomeExibicao || '').trim(),
         email: mascararEmail(String(dados.email || '').trim()),
@@ -177,6 +181,9 @@ import {
         perfilPortalEfetivo: String(dados.perfilPortalEfetivo || dados.perfilPrincipal || '').trim(),
         perfisPortal: normalizarLista(dados.perfisPortal || dados.perfis),
         portalAtivo: dados.portalAtivo === true,
+        modoAcesso: String(dados.modoAcesso || '').trim(),
+        motivoBloqueio: String(dados.motivoBloqueio || '').trim(),
+        mensagemBloqueio: String(dados.mensagemBloqueio || '').trim(),
         tipoVinculoAtual: String(dados.tipoVinculoAtual || '').trim(),
         statusVinculoAtual: String(dados.statusVinculoAtual || '').trim(),
         cargoFuncaoAtual: String(dados.cargoFuncaoAtual || '').trim(),
@@ -203,6 +210,7 @@ import {
 
     return Boolean(
       resumo &&
+      resumo.schemaVersion === SCHEMA_VERSION &&
       resumo.portalAtivo === true &&
       (
         (expiresAt && Date.now() <= expiresAt) ||
@@ -230,6 +238,9 @@ import {
       email: String(resumo.email || '').trim(),
       rga: String(resumo.rga || '').trim(),
       portalAtivo: resumo.portalAtivo === true,
+      modoAcesso: String(resumo.modoAcesso || '').trim(),
+      motivoBloqueio: String(resumo.motivoBloqueio || '').trim(),
+      mensagemBloqueio: String(resumo.mensagemBloqueio || '').trim(),
       perfilPortalEfetivo: String(resumo.perfilPortalEfetivo || '').trim(),
       perfisPortal: normalizarLista(resumo.perfisPortal),
       permissoes: [],

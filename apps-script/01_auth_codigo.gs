@@ -186,7 +186,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
   )) {
     return portalRespostaErro_(
       sessaoResolvida.motivoBloqueio || 'PORTAL_INATIVO',
-      'Seu acesso ao Portal GEAPA nao esta ativo no momento.',
+      sessaoResolvida.mensagemBloqueio || portalMensagemBloqueioPadrao_(),
       {
         sessao: sessaoResolvida
       },
