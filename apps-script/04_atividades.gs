@@ -297,12 +297,41 @@ function portalSalvarChamadaAtividade(token, payloadJson) {
     return normalizada.resposta;
   }
 
+  portalInvalidarCachesAtividadesAposChamada_(contexto, payload.data);
+
   return portalRespostaOk_(
     'ATIVIDADE_CHAMADA_SALVA',
     normalizada.message || 'Chamada salva com sucesso na base DEV.',
     normalizada.data,
     portalMetaAtividades_('geapa-atividades-chamada', inicio)
   );
+}
+
+function portalInvalidarCachesAtividadesAposChamada_(contexto, payload) {
+  var operacao = String((payload || {}).operacao || '').trim().toUpperCase();
+  var identificador = contexto && contexto.identificadorSessao;
+  var perfilAtividades = contexto && contexto.contextoAtividades
+    ? contexto.contextoAtividades.perfil
+    : 'MEMBRO';
+
+  if (['FINALIZAR', 'REABRIR'].indexOf(operacao) < 0 || !identificador) {
+    return;
+  }
+
+  try {
+    CacheService.getScriptCache().removeAll([
+      portalCacheKey_('viewsV2r2:minhasJustificativas', identificador),
+      portalCacheKey_('viewsV2r2:minhaFrequencia', identificador),
+      portalCacheKey_('viewsV2r2:justificativasPendenciasDiretoria', identificador),
+      portalCacheKey_('viewsV2r2:pendenciasDiretoria', identificador),
+      portalCacheKey_('viewsV2r1:painelDiretoriaV2', identificador),
+      portalCacheKey_('atividadesLista:v2', identificador + ':' + perfilAtividades),
+      portalCacheKey_('atividadesBundle', identificador + ':' + perfilAtividades),
+      portalCacheKey_('atividadesDetalhesPreload', identificador + ':' + perfilAtividades)
+    ]);
+  } catch (erro) {
+    // Cache e melhoria de desempenho, nao requisito funcional.
+  }
 }
 
 function portalMontarContextoAtividades_(token) {
@@ -708,6 +737,7 @@ function portalNormalizarRespostaBundleAtividades_(resposta) {
     message: resposta.message || 'Atividades carregadas em pacote unico.',
     origem: 'geapa-atividades-bundle',
     data: {
+      modo: dados.modo || 'LEVE',
       calendario: calendario,
       detalhesPorId: detalhesPorId,
       ultimaAtualizacao: dados.ultimaAtualizacao || new Date().toISOString()

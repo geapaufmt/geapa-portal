@@ -528,6 +528,7 @@ Resposta esperada:
   "code": "ATIVIDADES_BUNDLE_CARREGADO",
   "message": "Atividades carregadas em pacote unico.",
   "data": {
+    "modo": "LEVE",
     "calendario": [],
     "detalhesPorId": {},
     "ultimaAtualizacao": "2026-05-29T12:00:00.000Z"
@@ -637,6 +638,7 @@ Resposta esperada:
       "contaFalta": true,
       "geraCertificado": true,
       "cargaHoraria": 2,
+      "statusOperacional": "REALIZADA",
       "statusPublico": "REALIZADA",
       "eixoTematicoPrincipal": "Direito Penal",
       "eixoTematicoSecundario": "Criminologia",
@@ -674,6 +676,11 @@ retornado pelo GEAPA-CORE:
 - `DIRETORIA` ou `PRESIDENCIA` vira `DIRETORIA`;
 - demais usuários seguem como `MEMBRO`.
 
+`statusOperacional` é a fonte preferencial para badges, filtros de status e
+histórico visual. O Portal apenas exibe o valor retornado pelo backend/views e
+não infere `REALIZADA` por data/hora. `statusPublico` continua disponível como
+compatibilidade visual quando `statusOperacional` ainda não vier no payload.
+
 A origem atual da leitura real é a base **ATIVIDADES INTERNAS GEAPA v2 - DEV**,
 cadastrada no Registry como `ATIVIDADES_V2_DB`. A listagem usa
 `PORTAL_ATIVIDADES_CALENDARIO`. O único ID estrutural retornado é
@@ -691,10 +698,13 @@ detalhe/modal usa `PORTAL_ATIVIDADES_DETALHES`, especialmente
 `linkPastaDrive`, `linkAtaPublica` e `linkFotosPublico`. A aba de proximas atividades filtra
 apenas atividades futuras ou em andamento. O historico nao aplica corte fixo de
 ciclo no front-end e oferece filtros por ciclo/semestre, tipo/subtipo,
-apresentacoes e eixo tematico. O filtro de semestre usa `rotuloSemestre` e,
-como fallback, `ano` + "/" + `semestre`; quando nada vier no payload, o Portal
-usa "Sem semestre definido". O Portal nao infere semestre letivo por divisao
-civil do ano. Cards da lista mostram apenas o resumo agregado do calendario; a
+apresentacoes e eixo tematico. O filtro de semestre usa `rotuloSemestre` apenas
+quando o valor final segue `AAAA/1` ou `AAAA/2`; valores de fuso, horario, data
+ou texto livre sao ignorados. Como fallback, o Portal tenta `ano` + "/" +
+`semestre`; quando nada valido vier no payload, usa "Sem semestre definido". O
+Portal nao infere semestre letivo por divisao civil do ano, exceto como fallback
+visual temporario quando o backend nao enviar ano/semestre validos. Cards da
+lista mostram apenas o resumo agregado do calendario; a
 lista completa de apresentacoes fica restrita ao detalhe/modal.
 
 No detalhe, `linkMaterialPublico` no nivel da atividade e o material geral da

@@ -2718,6 +2718,7 @@ function portalSanitizarAtividadeReadonlyV2_(item) {
     'contaFalta',
     'geraCertificado',
     'cargaHoraria',
+    'statusOperacional',
     'statusPublico',
     'visibilidadePortal',
     'podeVerDetalhes',
@@ -2808,10 +2809,20 @@ function portalResumoSessaoViewsV2_(contexto) {
 }
 
 function portalAtividadeV2EhProxima_(atividade) {
-  var status = String(atividade.statusPublico || '').toUpperCase();
+  var status = portalStatusOperacionalAtividadeViewsV2_(atividade);
   var inicio = portalTimestampAtividadeViewsV2_(atividade);
 
-  if (['REALIZADA', 'ENCERRADA', 'FINALIZADA', 'CANCELADA', 'CANCELADO'].indexOf(status) >= 0) {
+  if ([
+    'REALIZADA',
+    'ENCERRADA',
+    'FINALIZADA',
+    'ARQUIVADA',
+    'CANCELADA',
+    'CANCELADO',
+    'INATIVA',
+    'EXCLUIDA',
+    'SUSPENSA'
+  ].indexOf(status) >= 0) {
     return false;
   }
 
@@ -2819,18 +2830,22 @@ function portalAtividadeV2EhProxima_(atividade) {
 }
 
 function portalAtividadeV2EhHistorico_(atividade) {
-  var status = String(atividade.statusPublico || '').toUpperCase();
+  var status = portalStatusOperacionalAtividadeViewsV2_(atividade);
   var inicio = portalTimestampAtividadeViewsV2_(atividade);
 
-  if (['CANCELADA', 'CANCELADO'].indexOf(status) >= 0) {
+  if (['CANCELADA', 'CANCELADO', 'INATIVA', 'EXCLUIDA', 'SUSPENSA'].indexOf(status) >= 0) {
     return false;
   }
 
-  if (['REALIZADA', 'ENCERRADA', 'FINALIZADA'].indexOf(status) >= 0) {
+  if (['REALIZADA', 'ENCERRADA', 'FINALIZADA', 'ARQUIVADA'].indexOf(status) >= 0) {
     return true;
   }
 
   return inicio && inicio < portalAgoraViewsV2Ms_();
+}
+
+function portalStatusOperacionalAtividadeViewsV2_(atividade) {
+  return String((atividade && (atividade.statusOperacional || atividade.statusPublico || atividade.status)) || '').toUpperCase();
 }
 
 function portalTimestampAtividadeViewsV2_(atividade) {

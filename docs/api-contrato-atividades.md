@@ -233,6 +233,7 @@ Campos minimos esperados na lista/calendario:
 - `nomePessoaPrincipalPublico`
 - `papelPessoaPrincipal`
 - `tipoPessoaPrincipal`
+- `statusOperacional`
 - `qtdApresentacoes`
 - `resumoApresentacoesPublico`
 - `possuiApresentacoes`
@@ -240,6 +241,12 @@ Campos minimos esperados na lista/calendario:
 - `ano`
 - `semestre`
 - `rotuloSemestre`
+
+`statusOperacional` vem de `Atividades.STATUS_OPERACIONAL` e e a fonte
+preferencial para badges e filtros operacionais como `PLANEJADA`, `REALIZADA`,
+`CANCELADA` e `ARQUIVADA`. O Portal nao calcula `REALIZADA` por data/hora; ele
+apenas reflete o valor retornado pelo backend. `statusPublico` permanece como
+fallback visual para contratos antigos.
 
 Campos minimos esperados no detalhe:
 
@@ -259,9 +266,13 @@ a secao correspondente. A aba de proximas atividades mostra apenas atividades
 futuras ou em andamento. O historico e sempre historico de atividades, sem corte
 fixo por ciclo no front-end, com filtros de ciclo/semestre, tipo/subtipo,
 somente apresentacoes e eixo tematico. O filtro de ciclo/semestre deve usar
-`rotuloSemestre`; se esse campo nao vier, usa `ano` + "/" + `semestre`; se nada
-vier, mostra "Sem semestre definido". O Portal nao infere semestre civil. Um filtro por pessoa
-principal/apresentador esta previsto para fase futura.
+`rotuloSemestre` somente quando o valor seguir `AAAA/1` ou `AAAA/2`; valores de
+fuso, horario, data, `Invalid Date`, `GEAPA_2026` ou texto livre sao ignorados.
+Se o rotulo valido nao vier, usa `ano` + "/" + `semestre`; se nada valido vier,
+mostra "Sem semestre definido". O Portal nao infere semestre civil como regra de
+negocio, apenas como fallback visual temporario quando o payload antigo nao
+trouxer ano/semestre validos. Um filtro por pessoa principal/apresentador esta
+previsto para fase futura.
 
 Cards da lista e do historico usam apenas os agregados do calendario:
 `possuiApresentacoes`, `qtdApresentacoes` e `resumoApresentacoesPublico`. A

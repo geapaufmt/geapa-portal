@@ -766,6 +766,7 @@
       : [];
 
     return {
+      modo: origem.modo || 'LEVE',
       calendario: calendario,
       detalhesPorId: normalizarDetalhesPorId(origem.detalhesPorId),
       ultimaAtualizacao: origem.ultimaAtualizacao || ''
@@ -1412,16 +1413,68 @@
       'semestreAtividade',
       'semestreLetivo'
     ]);
+    var rotuloNormalizado = normalizarRotuloCicloSemestre(rotulo);
+    var rotuloPorAnoSemestre = montarRotuloCicloSemestre(ano, semestre);
+    var rotuloPorData = montarRotuloCicloSemestrePorData(atividade);
 
-    if (rotulo) {
-      return rotulo;
+    if (rotuloNormalizado) {
+      return rotuloNormalizado;
     }
 
-    if (ano && semestre && ano !== semestre) {
-      return ano + '/' + semestre;
+    if (rotuloPorAnoSemestre) {
+      return rotuloPorAnoSemestre;
     }
 
-    return 'Sem semestre definido';
+    return rotuloPorData || 'Sem semestre definido';
+  }
+
+  function normalizarRotuloCicloSemestre(valor) {
+    var texto = String(valor || '').trim();
+
+    return /^\d{4}\/[12]$/.test(texto) ? texto : '';
+  }
+
+  function montarRotuloCicloSemestre(ano, semestre) {
+    var anoNormalizado = String(ano || '').trim();
+    var semestreNormalizado = String(semestre || '').trim();
+    var rotulo;
+
+    if (!/^\d{4}$/.test(anoNormalizado) || !/^[12]$/.test(semestreNormalizado)) {
+      return '';
+    }
+
+    rotulo = anoNormalizado + '/' + semestreNormalizado;
+    return normalizarRotuloCicloSemestre(rotulo);
+  }
+
+  function montarRotuloCicloSemestrePorData(atividade) {
+    var data = String((atividade && (atividade.dataAtividade || atividade.data)) || '').trim();
+    var matchIso = data.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    var matchBr = data.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    var dataHora;
+    var ano;
+    var semestre;
+
+    if (matchIso) {
+      ano = matchIso[1];
+      semestre = Number(matchIso[2]) <= 6 ? '1' : '2';
+      return montarRotuloCicloSemestre(ano, semestre);
+    }
+
+    if (matchBr) {
+      ano = matchBr[3];
+      semestre = Number(matchBr[2]) <= 6 ? '1' : '2';
+      return montarRotuloCicloSemestre(ano, semestre);
+    }
+
+    dataHora = new Date(data);
+    if (Number.isNaN(dataHora.getTime())) {
+      return '';
+    }
+
+    ano = String(dataHora.getFullYear());
+    semestre = dataHora.getMonth() <= 5 ? '1' : '2';
+    return montarRotuloCicloSemestre(ano, semestre);
   }
 
   function ehAtividadeRealizadaOuCancelada(atividade) {
@@ -1429,22 +1482,38 @@
   }
 
   function ehAtividadeRealizadaOuEncerrada(atividade) {
-    var status = String((atividade && (atividade.statusPublico || atividade.status)) || '').trim().toUpperCase();
+    var status = obterStatusAtividadeNormalizado(atividade);
 
     return [
       'REALIZADA',
       'ENCERRADA',
-      'FINALIZADA'
+      'FINALIZADA',
+      'ARQUIVADA'
     ].indexOf(status) >= 0;
   }
 
   function ehAtividadeCancelada(atividade) {
-    var status = String((atividade && (atividade.statusPublico || atividade.status)) || '').trim().toUpperCase();
+    var status = obterStatusAtividadeNormalizado(atividade);
 
     return [
       'CANCELADA',
-      'CANCELADO'
+      'CANCELADO',
+      'INATIVA',
+      'EXCLUIDA',
+      'SUSPENSA'
     ].indexOf(status) >= 0;
+  }
+
+  function obterStatusAtividade(atividade) {
+    return obterCampoTextoAtividade(atividade, [
+      'statusOperacional',
+      'statusPublico',
+      'status'
+    ]);
+  }
+
+  function obterStatusAtividadeNormalizado(atividade) {
+    return String(obterStatusAtividade(atividade) || '').trim().toUpperCase();
   }
 
   function montarCardAtividade(atividade, destaque, modo) {
@@ -1462,7 +1531,7 @@
       '<p class="activity-meta">' + ui.escaparHtml(montarMetaAtividade(atividade)) + '</p>',
       '</div>',
       '<div class="activity-status-stack">',
-      '<span class="status-pill">' + ui.escaparHtml(ui.formatarRotulo(atividade.statusPublico)) + '</span>',
+      '<span class="status-pill">' + ui.escaparHtml(ui.formatarRotulo(obterStatusAtividade(atividade))) + '</span>',
       atividade.statusChamadaRotulo
         ? '<span class="status-pill status-pill-muted">' + ui.escaparHtml(atividade.statusChamadaRotulo) + '</span>'
         : '',
@@ -2472,6 +2541,8 @@
       chamadaFinalizada: origem.chamadaFinalizada === true,
       statusChamadaAtualizadoEm: origem.statusChamadaAtualizadoEm || '',
       statusChamadaAtualizadoPor: origem.statusChamadaAtualizadoPor || '',
+      statusOperacional: obterCampoTextoAtividade(origem, ['statusOperacional', 'statusAtividadeOperacional']),
+      statusPublico: obterCampoTextoAtividade(origem, ['statusPublico']),
       rascunhoRestaurado: origem.rascunhoRestaurado === true,
       temRascunhoSalvo: origem.rascunhoRestaurado === true || origem.rascunhoSalvo === true || Boolean(origem.rascunhoSalvoEm),
       rascunhoSalvoEm: origem.rascunhoSalvoEm || '',
@@ -2990,8 +3061,12 @@
         : 'Rascunho salvo. A frequencia so sera atualizada quando a chamada for finalizada.');
       if (operacaoNormalizada === 'FINALIZAR') {
         notificarJustificativasAtualizadas();
+        invalidarCacheAtividades();
       }
       renderizarChamada(chamadaAtual);
+      if (operacaoNormalizada === 'FINALIZAR') {
+        recarregarAtividadesAposChamada();
+      }
       registrarPerfAtividades('atividades.chamada.salva', inicio, mesclarMetaPerfAtividades(resposta, {
         idAtividade: payload.idAtividade,
         totalRegistros: payload.registros.length + payload.externos.length,
@@ -3048,7 +3123,9 @@
       aplicarStatusChamadaAtual(resposta.data || {}, 'REABRIR');
       sincronizarStatusChamadaNaLista(chamadaAtual.atividade.idAtividade, chamadaAtual);
       chamadaAtual.mensagemOperacao = resposta.message || 'Chamada reaberta para ajustes.';
+      invalidarCacheAtividades();
       renderizarChamada(chamadaAtual);
+      recarregarAtividadesAposChamada();
     }).catch(function tratarErro(erro) {
       if (status) {
         status.textContent = erro.message;
@@ -3074,6 +3151,7 @@
     chamadaAtual.chamadaFinalizada = finalizada;
     chamadaAtual.statusChamadaAtualizadoEm = dados.statusChamadaAtualizadoEm || dados.rascunhoSalvoEm || new Date().toISOString();
     chamadaAtual.statusChamadaAtualizadoPor = dados.statusChamadaAtualizadoPor || chamadaAtual.statusChamadaAtualizadoPor;
+    aplicarStatusOperacionalChamadaAtual(dados);
     chamadaAtual.rascunhoRestaurado = false;
     chamadaAtual.temRascunhoSalvo = !finalizada && (rascunhoSalvo || Boolean(dados.rascunhoSalvoEm) || (chamadaAtual.temRascunhoSalvo && !reaberta));
     chamadaAtual.rascunhoSalvoEm = dados.rascunhoSalvoEm || (rascunhoSalvo ? chamadaAtual.statusChamadaAtualizadoEm : chamadaAtual.rascunhoSalvoEm);
@@ -3082,6 +3160,29 @@
     chamadaAtual.podeSalvar = !chamadaAtual.chamadaFinalizada;
     chamadaAtual.podeFinalizar = !chamadaAtual.chamadaFinalizada;
     chamadaAtual.podeReabrir = chamadaAtual.chamadaFinalizada;
+  }
+
+  function aplicarStatusOperacionalChamadaAtual(dados) {
+    var origem = dados || {};
+    var atividade = origem.atividade || {};
+    var statusOperacional = obterCampoTextoAtividade(origem, ['statusOperacional', 'statusAtividadeOperacional']) ||
+      obterCampoTextoAtividade(atividade, ['statusOperacional', 'statusAtividadeOperacional']);
+    var statusPublico = obterCampoTextoAtividade(origem, ['statusPublico']) ||
+      obterCampoTextoAtividade(atividade, ['statusPublico']);
+
+    if (statusOperacional) {
+      chamadaAtual.statusOperacional = statusOperacional;
+      if (chamadaAtual.atividade) {
+        chamadaAtual.atividade.statusOperacional = statusOperacional;
+      }
+    }
+
+    if (statusPublico) {
+      chamadaAtual.statusPublico = statusPublico;
+      if (chamadaAtual.atividade) {
+        chamadaAtual.atividade.statusPublico = statusPublico;
+      }
+    }
   }
 
   function sincronizarStatusChamadaNaLista(idAtividade, chamada) {
@@ -3093,6 +3194,12 @@
       resumo.statusChamadaRotulo = chamada.statusChamadaRotulo;
       resumo.chamadaFinalizada = chamada.chamadaFinalizada;
       resumo.statusChamadaAtualizadoEm = chamada.statusChamadaAtualizadoEm;
+      if (chamada.statusOperacional) {
+        resumo.statusOperacional = chamada.statusOperacional;
+      }
+      if (chamada.statusPublico) {
+        resumo.statusPublico = chamada.statusPublico;
+      }
     }
 
     if (atividadesBundleCache && Array.isArray(atividadesBundleCache.calendario)) {
@@ -3102,6 +3209,12 @@
           item.statusChamadaRotulo = chamada.statusChamadaRotulo;
           item.chamadaFinalizada = chamada.chamadaFinalizada;
           item.statusChamadaAtualizadoEm = chamada.statusChamadaAtualizadoEm;
+          if (chamada.statusOperacional) {
+            item.statusOperacional = chamada.statusOperacional;
+          }
+          if (chamada.statusPublico) {
+            item.statusPublico = chamada.statusPublico;
+          }
         }
       });
       salvarBundleAtividadesCache(atividadesBundleCache);
@@ -3109,6 +3222,15 @@
 
     if (lista && atividadesBundleCache && Array.isArray(atividadesBundleCache.calendario)) {
       renderizarAtividades(lista, atividadesBundleCache.calendario, obterModoAtividadesAtual());
+    }
+  }
+
+  function recarregarAtividadesAposChamada() {
+    var lista = document.getElementById('atividades-lista');
+    var status = document.getElementById('atividades-status');
+
+    if (lista && status) {
+      carregarAtividadesComLista(lista, status, obterModoAtividadesAtual());
     }
   }
 
@@ -3169,6 +3291,7 @@
       contaFalta: resumo && resumo.contaFalta,
       geraCertificado: resumo && resumo.geraCertificado,
       cargaHoraria: resumo && resumo.cargaHoraria,
+      statusOperacional: resumo && resumo.statusOperacional,
       statusPublico: resumo && resumo.statusPublico,
       carregando: true
     });
@@ -3203,7 +3326,7 @@
       montarFato('Conta falta', ui.formatarBooleano(detalhe.contaFalta)),
       montarFato('Gera certificado', ui.formatarBooleano(detalhe.geraCertificado)),
       montarFato('Carga horária', detalhe.cargaHoraria ? detalhe.cargaHoraria + ' h' : '-'),
-      montarFato('Status', ui.formatarRotulo(detalhe.statusPublico)),
+      montarFato('Status', ui.formatarRotulo(obterStatusAtividade(detalhe))),
       '</dl>',
       montarLinksPublicosDetalhe(detalhe),
       montarEnvolvidosPublicosDetalhe(detalhe),

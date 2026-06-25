@@ -27,6 +27,7 @@
       contaFalta: true,
       geraCertificado: true,
       cargaHoraria: 2,
+      statusOperacional: 'REALIZADA',
       statusPublico: 'REALIZADA',
       rotuloSemestre: '2026/1',
       eixoTematicoPrincipal: 'Direito Penal',
@@ -63,6 +64,7 @@
       contaFalta: true,
       geraCertificado: false,
       cargaHoraria: 1.5,
+      statusOperacional: 'PLANEJADA',
       statusPublico: 'PLANEJADA',
       rotuloSemestre: '2026/1',
       qtdApresentacoes: 0,
@@ -93,6 +95,7 @@
       contaFalta: true,
       geraCertificado: true,
       cargaHoraria: 2,
+      statusOperacional: 'PUBLICADA',
       statusPublico: 'PUBLICADA',
       rotuloSemestre: '2026/2',
       eixoTematicoPrincipal: 'Direitos Humanos',
@@ -138,6 +141,7 @@
       contaFalta: true,
       geraCertificado: true,
       cargaHoraria: 2,
+      statusOperacional: 'REALIZADA',
       statusPublico: 'REALIZADA',
       eixoTematicoPrincipal: 'Direito Penal',
       eixoTematicoSecundario: 'Criminologia',
@@ -197,6 +201,7 @@
       contaFalta: true,
       geraCertificado: false,
       cargaHoraria: 1.5,
+      statusOperacional: 'PLANEJADA',
       statusPublico: 'PLANEJADA',
       qtdApresentacoes: 0,
       resumoApresentacoesPublico: '',
@@ -231,6 +236,7 @@
       contaFalta: false,
       geraCertificado: true,
       cargaHoraria: 2,
+      statusOperacional: 'PUBLICADA',
       statusPublico: 'PUBLICADA',
       eixoTematicoPrincipal: 'Direitos Humanos',
       eixoTematicoSecundario: 'Sistema Penal',
@@ -566,6 +572,13 @@
       var payload = lerPayloadMock(params);
       var operacao = String(payload.operacao || 'SALVAR').toUpperCase();
       var finalizada = operacao === 'FINALIZAR';
+      var atividade = detalhesMock[payload.idAtividade] || {};
+      var statusOperacional = finalizada ? 'REALIZADA' : (atividade.statusOperacional || atividade.statusPublico || '');
+
+      if (finalizada && payload.idAtividade) {
+        atualizarStatusAtividadeMock(payload.idAtividade, 'REALIZADA');
+      }
+
       return Promise.resolve({
         ok: true,
         message: operacao === 'REABRIR'
@@ -579,6 +592,13 @@
           statusChamada: operacao === 'REABRIR' ? 'REABERTA' : (finalizada ? 'FINALIZADA' : 'SALVA'),
           statusChamadaRotulo: operacao === 'REABRIR' ? 'Chamada reaberta' : (finalizada ? 'Chamada finalizada' : 'Rascunho salvo'),
           chamadaFinalizada: finalizada,
+          statusOperacional: statusOperacional,
+          statusPublico: finalizada ? 'REALIZADA' : (atividade.statusPublico || statusOperacional),
+          atividade: {
+            idAtividade: payload.idAtividade || '',
+            statusOperacional: statusOperacional,
+            statusPublico: finalizada ? 'REALIZADA' : (atividade.statusPublico || statusOperacional)
+          },
           rascunhoSalvo: !finalizada && operacao !== 'REABRIR',
           rascunhoSalvoEm: !finalizada && operacao !== 'REABRIR' ? new Date().toISOString() : '',
           statusChamadaAtualizadoEm: new Date().toISOString(),
@@ -629,6 +649,27 @@
         : params.payload;
     } catch (erro) {
       return {};
+    }
+  }
+
+  function atualizarStatusAtividadeMock(idAtividade, statusOperacional) {
+    var id = String(idAtividade || '').trim();
+    var status = String(statusOperacional || '').trim();
+
+    if (!id || !status) {
+      return;
+    }
+
+    atividadesMock.forEach(function atualizar(atividade) {
+      if (atividade && atividade.idAtividade === id) {
+        atividade.statusOperacional = status;
+        atividade.statusPublico = status;
+      }
+    });
+
+    if (detalhesMock[id]) {
+      detalhesMock[id].statusOperacional = status;
+      detalhesMock[id].statusPublico = status;
     }
   }
 
@@ -942,6 +983,7 @@
           horarioCompleto: atividade.horarioCompleto,
           local: atividade.local,
           formato: atividade.formato,
+          statusOperacional: atividade.statusOperacional,
           statusPublico: atividade.statusPublico,
           contaPresenca: atividade.contaPresenca,
           contaFalta: atividade.contaFalta
