@@ -53,6 +53,9 @@ function portalDiagnosticarBuscaMembro_(emailOuRga) {
     encontrado: false,
     emailMascarado: '',
     rgaMascarado: '',
+    modoAcesso: '',
+    whitelistTesteAplicada: false,
+    emailNaListaTeste: false,
     liberadoParaTeste: false,
     envioEmailHabilitado: false
   };
@@ -62,6 +65,8 @@ function portalDiagnosticarBuscaMembro_(emailOuRga) {
     var config = portalGetAuthRuntimeConfig_();
 
     resultado.envioEmailHabilitado = config.envioEmailHabilitado;
+    resultado.modoAcesso = config.modoAcesso || '';
+    resultado.whitelistTesteAplicada = portalModoAcessoTeste_(config);
 
     if (!membro) {
       return resultado;
@@ -74,10 +79,13 @@ function portalDiagnosticarBuscaMembro_(emailOuRga) {
     resultado.encontrado = true;
     resultado.emailMascarado = portalMascararEmail_(membro.emailCadastrado);
     resultado.rgaMascarado = portalMascararRga_(membro.rga);
-    resultado.liberadoParaTeste = portalEmailPermitidoParaTeste_(
+    resultado.emailNaListaTeste = portalEmailPermitidoParaTeste_(
       membro.emailCadastrado,
       config.emailsTeste
     );
+    resultado.liberadoParaTeste = resultado.whitelistTesteAplicada
+      ? resultado.emailNaListaTeste
+      : true;
 
     return resultado;
   } catch (erro) {

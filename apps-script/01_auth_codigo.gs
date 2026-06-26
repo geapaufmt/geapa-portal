@@ -1,26 +1,19 @@
 /**
  * Fluxo inicial de autenticacao por codigo temporario.
  *
- * Esta etapa permite envio real de codigo apenas para e-mails de teste
- * configurados nas propriedades do Apps Script. Ainda nao ha consulta real a
- * planilhas, validacao de cadastro oficial ou autorizacao definitiva.
+ * O Portal resolve identidade e autorizacao pelo GEAPA-CORE. A lista
+ * PORTAL_EMAILS_TESTE so e aplicada quando PORTAL_MODO_ACESSO=TESTE.
  */
 
 /**
  * Solicita um codigo temporario para o e-mail cadastrado do membro.
- *
- * Futuramente:
- * - aceitar e-mail ou RGA;
- * - localizar o cadastro oficial via GEAPA-CORE;
- * - gerar codigo temporario;
- * - enviar o codigo ao e-mail cadastrado;
- * - armazenar somente dados temporarios e com expiracao.
  *
  * @param {string} emailOuRga E-mail ou RGA informado pelo membro.
  * @return {Object} Resultado simulado da solicitacao.
  */
 function portalSolicitarCodigo(emailOuRga) {
   var identificador = portalNormalizarIdentificador_(emailOuRga);
+  var inicio = portalAgoraMs_();
 
   if (!identificador) {
     return portalRespostaErro_(
@@ -30,7 +23,45 @@ function portalSolicitarCodigo(emailOuRga) {
     );
   }
 
-  var membro = portalBuscarMembroPorEmailOuRga_(identificador);
+  var config = portalGetAuthRuntimeConfig_();
+  var modoTeste = portalModoAcessoTeste_(config);
+  var sessaoResolvida = portalResolverSessaoAtualViaGeapaCore_(identificador, {
+    origem: 'solicitarCodigo'
+  });
+
+  if (sessaoResolvida && (
+    sessaoResolvida.ok === false ||
+    sessaoResolvida.autenticado === false ||
+    sessaoResolvida.portalAtivo === false
+  )) {
+    return portalRespostaErro_(
+      sessaoResolvida.motivoBloqueio || 'PORTAL_INATIVO',
+      sessaoResolvida.mensagemBloqueio || portalMensagemBloqueioPadrao_(),
+      {
+        sessao: sessaoResolvida
+      },
+      portalMetaDesempenho_('sessao-core-bloqueada', inicio)
+    );
+  }
+
+  var membro = sessaoResolvida
+    ? portalMontarMembroDeSessaoPortal_(sessaoResolvida, 'GEAPA_CORE.session')
+    : null;
+
+  if (!membro && modoTeste) {
+    membro = portalBuscarMembroPorEmailOuRga_(identificador);
+  }
+
+  if (!membro && !modoTeste) {
+    return portalRespostaErro_(
+      'CORE_SESSAO_NAO_RESOLVIDA',
+      'Nao foi possivel validar seu acesso no GEAPA-CORE. Tente novamente em instantes ou procure a secretaria do GEAPA.',
+      {
+        modoAcesso: config.modoAcesso || ''
+      },
+      portalMetaDesempenho_('sessao-core-ausente', inicio)
+    );
+  }
 
   if (!membro) {
     return portalRespostaErro_(
@@ -40,8 +71,6 @@ function portalSolicitarCodigo(emailOuRga) {
     );
   }
 
-  var config = portalGetAuthRuntimeConfig_();
-
   if (!config.envioEmailHabilitado) {
     return portalRespostaErro_(
       'ENVIO_EMAIL_DESABILITADO',
@@ -50,7 +79,7 @@ function portalSolicitarCodigo(emailOuRga) {
     );
   }
 
-  if (!portalEmailPermitidoParaTeste_(membro.emailCadastrado, config.emailsTeste)) {
+  if (modoTeste && !portalEmailPermitidoParaTeste_(membro.emailCadastrado, config.emailsTeste)) {
     return portalRespostaErro_(
       'EMAIL_FORA_DA_LISTA_TESTE',
       'Este e-mail não está liberado para testes do portal.',
@@ -87,8 +116,11 @@ function portalSolicitarCodigo(emailOuRga) {
     {
       identificadorRecebido: identificador,
       destino: portalMascararEmail_(membro.emailCadastrado),
-      validadeMinutos: PORTAL_CONFIG.validadeCodigoMinutos
-    }
+      validadeMinutos: PORTAL_CONFIG.validadeCodigoMinutos,
+      modoAcesso: config.modoAcesso || '',
+      sessao: sessaoResolvida
+    },
+    portalMetaDesempenho_(sessaoResolvida ? 'sessao-core' : 'fallback-teste', inicio)
   );
 }
 
@@ -223,12 +255,34 @@ function portalGetAuthRuntimeConfig_() {
   var envio = propriedades.getProperty(
     PORTAL_CONFIG.propriedades.envioEmailHabilitado
   );
+  var modoAcesso = propriedades.getProperty(PORTAL_CONFIG.propriedades.modoAcesso);
   var emails = propriedades.getProperty(PORTAL_CONFIG.propriedades.emailsTeste);
 
   return {
     envioEmailHabilitado: String(envio || '').toLowerCase() === 'true',
+    modoAcesso: portalNormalizarModoAcesso_(modoAcesso),
     emailsTeste: portalSepararLista_(emails)
   };
+}
+
+/**
+ * Normaliza o modo de acesso operacional do Portal.
+ *
+ * @param {string} valor Valor bruto vindo das Script Properties.
+ * @return {string} Modo normalizado.
+ */
+function portalNormalizarModoAcesso_(valor) {
+  return String(valor || '').trim().toUpperCase();
+}
+
+/**
+ * Indica se o backend deve aplicar a lista de e-mails de teste.
+ *
+ * @param {Object} config Configuracao de autenticacao.
+ * @return {boolean} Verdadeiro somente em modo TESTE explicito.
+ */
+function portalModoAcessoTeste_(config) {
+  return String((config && config.modoAcesso) || '').trim().toUpperCase() === 'TESTE';
 }
 
 /**

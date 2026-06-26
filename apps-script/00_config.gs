@@ -80,6 +80,7 @@ var PORTAL_CONFIG = {
    */
   propriedades: {
     envioEmailHabilitado: 'PORTAL_ENVIO_EMAIL_HABILITADO',
+    modoAcesso: 'PORTAL_MODO_ACESSO',
     emailsTeste: 'PORTAL_EMAILS_TESTE',
     membrosTeste: 'PORTAL_MEMBROS_TESTE_JSON',
     codigoSalt: 'PORTAL_CODIGO_SALT',

@@ -132,14 +132,19 @@ function portalRunDiagnosticoSessaoCore() {
       perfilPortalEfetivo: sessao.perfilPortalEfetivo,
       perfisPortal: sessao.perfisPortal,
       permissoes: sessao.permissoes,
+      possuiPermissaoPortalAcessar: Array.isArray(sessao.permissoes)
+        ? sessao.permissoes.indexOf('portal:acessar') >= 0
+        : false,
       portalAtivo: sessao.portalAtivo,
+      modoAcesso: sessao.modoAcesso,
       tipoVinculoAtual: sessao.tipoVinculoAtual,
       statusVinculoAtual: sessao.statusVinculoAtual,
       cargoFuncaoAtual: sessao.cargoFuncaoAtual,
       quantidadeCargosAtuais: Array.isArray(sessao.cargosAtuais)
         ? sessao.cargosAtuais.length
         : 0,
-      motivoBloqueio: sessao.motivoBloqueio
+      motivoBloqueio: sessao.motivoBloqueio,
+      mensagemBloqueio: sessao.mensagemBloqueio
     } : null,
     cenariosManuais: [
       'MEMBRO',
