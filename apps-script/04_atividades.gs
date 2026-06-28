@@ -399,6 +399,27 @@ function portalObterModeloAtividade(token, idConfig) {
   );
 }
 
+/** Lista membros ativos e sua elegibilidade de apresentacao no ciclo. */
+function portalListarMembrosApresentadoresAtividade(token, idConfig, referencia) {
+  var inicio = portalAgoraAtividadesMs_();
+  var contexto = portalMontarContextoAtividades_(token);
+  if (!contexto.ok) return contexto.resposta;
+
+  var resposta = portalChamarAtividadesMembrosApresentadores_(
+    idConfig,
+    referencia,
+    contexto.contextoAtividades
+  );
+  var normalizada = portalNormalizarRespostaObjetoAtividades_(resposta);
+  if (!normalizada.ok) return normalizada.resposta;
+  return portalRespostaOk_(
+    'ATIVIDADE_MEMBROS_APRESENTADORES_LISTADOS',
+    normalizada.message || 'Membros apresentadores carregados.',
+    normalizada.data,
+    portalMetaAtividades_('geapa-atividades-membros-apresentadores', inicio)
+  );
+}
+
 /** Executa o dry-run obrigatorio da criacao orientada por modelo. */
 function portalValidarCriacaoAtividadePorModelo(token, payloadJson) {
   var inicio = portalAgoraAtividadesMs_();
@@ -765,6 +786,19 @@ function portalChamarAtividadesObterModelo_(idConfig, contexto) {
   }
   if (typeof GEAPA_ATIVIDADES !== 'undefined' && typeof GEAPA_ATIVIDADES.atividades_obterModeloCriacaoPortal === 'function') {
     return GEAPA_ATIVIDADES.atividades_obterModeloCriacaoPortal(idConfig, contexto);
+  }
+  return null;
+}
+
+function portalChamarAtividadesMembrosApresentadores_(idConfig, referencia, contexto) {
+  if (typeof atividades_listarMembrosApresentadoresElegiveis === 'function') {
+    return atividades_listarMembrosApresentadoresElegiveis(idConfig, referencia, contexto);
+  }
+  if (
+    typeof GEAPA_ATIVIDADES !== 'undefined' &&
+    typeof GEAPA_ATIVIDADES.atividades_listarMembrosApresentadoresElegiveis === 'function'
+  ) {
+    return GEAPA_ATIVIDADES.atividades_listarMembrosApresentadoresElegiveis(idConfig, referencia, contexto);
   }
   return null;
 }

@@ -195,6 +195,14 @@ function portalExecutarAcao_(requisicao) {
     );
   }
 
+  if (acao === 'atividadeMembrosApresentadores') {
+    return portalListarMembrosApresentadoresAtividade(
+      requisicao.token || '',
+      requisicao.idConfig || '',
+      requisicao.referencia || requisicao.dataAtividade || ''
+    );
+  }
+
   if (acao === 'atividadeModeloValidar') {
     return portalValidarCriacaoAtividadePorModelo(
       requisicao.token || '',

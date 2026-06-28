@@ -45,6 +45,7 @@
   var modelosCriacaoAtividadeCache = [];
   var modelosCriacaoAtividadeExpiraEm = 0;
   var modelosCriacaoAtividadePromise = null;
+  var membrosApresentadoresCache = {};
   var filtroChamadaAtual = 'TODOS';
   var justificativasConfig = null;
   var justificativasConfigExpiraEm = 0;
@@ -2094,7 +2095,20 @@
       var select = form && form.querySelector('[name="idConfig"]');
       if (select) {
         select.addEventListener('change', function atualizarModelo() {
-          atualizarFormularioCriacaoPorModelo(form, obterModeloCriacaoPorId(select.value));
+          var modelo = obterModeloCriacaoPorId(select.value);
+          atualizarFormularioCriacaoPorModelo(form, modelo);
+          if (ehModeloApresentacaoMembro(modelo)) {
+            carregarMembrosApresentadores(form, modelo).catch(function ignorarFalhaExibida() {});
+          }
+        });
+      }
+      var campoData = form && form.elements.dataAtividade;
+      if (campoData) {
+        campoData.addEventListener('change', function atualizarMembrosPorCiclo() {
+          var modelo = obterModeloCriacaoPorId(form.elements.idConfig.value);
+          if (ehModeloApresentacaoMembro(modelo)) {
+            carregarMembrosApresentadores(form, modelo, true).catch(function ignorarFalhaExibida() {});
+          }
         });
       }
     }).catch(function falhar(erro) {
@@ -2135,7 +2149,7 @@
       '<form class="readonly-form activity-create-form" data-activity-form="criar-atividade">',
       '<section class="activity-detail-section">',
       '<h4>Modelo da atividade</h4>',
-      '<label>Modelo',
+      '<label><span>Modelo <span class="required-marker">*</span></span>',
       '<select name="idConfig" required>',
       '<option value="">Selecione um modelo homologado</option>',
       montarOpcoesModelosCriacao(modelos),
@@ -2145,16 +2159,16 @@
       '</section>',
       '<section class="activity-detail-section">',
       '<h4>Dados da ocorrencia</h4>',
-      '<label>Titulo publico',
+      '<label data-modelo-titulo><span>Titulo publico <span class="required-marker" data-required-titulo>*</span></span>',
       '<input name="tituloPublico" type="text" required maxlength="180">',
       '</label>',
-      '<label>Descricao publica',
+      '<label data-modelo-descricao-publica>Descricao publica',
       '<textarea name="descricaoPublica" rows="3"></textarea>',
       '</label>',
-      '<label>Descricao interna',
+      '<label data-modelo-descricao-interna>Descricao interna',
       '<textarea name="descricaoInterna" rows="3"></textarea>',
       '</label>',
-      '<label>Formato',
+      '<label><span>Formato <span class="required-marker">*</span></span>',
       '<select name="formato" required>',
       montarOpcoesSelecao([
         ['PRESENCIAL', 'Presencial'],
@@ -2163,25 +2177,25 @@
       ], 'PRESENCIAL'),
       '</select>',
       '</label>',
-      '<label>Local',
+      '<label><span>Local <span class="required-marker">*</span></span>',
       '<input name="local" type="text" required>',
       '</label>',
       '</section>',
       '<section class="activity-detail-section">',
       '<h4>Data e horario</h4>',
-      '<label>Data da atividade',
+      '<label><span>Data da atividade <span class="required-marker">*</span></span>',
       '<input name="dataAtividade" type="date" required>',
       '</label>',
-      '<label>Horario de inicio',
+      '<label><span>Horario de inicio <span class="required-marker">*</span></span>',
       '<input name="horarioInicio" type="time" required>',
       '</label>',
-      '<label>Horario de fim',
+      '<label><span>Horario de fim <span class="required-marker">*</span></span>',
       '<input name="horarioFim" type="time" required>',
       '</label>',
       '</section>',
       '<section class="activity-detail-section" data-modelo-eixos hidden>',
       '<h4>Eixo tematico</h4>',
-      '<label data-modelo-eixo-principal>Eixo tematico principal',
+      '<label data-modelo-eixo-principal><span>Eixo tematico principal <span class="required-marker" data-required-eixo>*</span></span>',
       '<input name="eixoTematicoPrincipal" type="text">',
       '</label>',
       '<label data-modelo-eixo-secundario>Eixo tematico secundario',
@@ -2189,11 +2203,15 @@
       '</label>',
       '</section>',
       '<section class="activity-detail-section" data-modelo-pessoa hidden>',
-      '<h4>Pessoa principal</h4>',
-      '<label>Tipo da pessoa principal',
+      '<h4 data-modelo-pessoa-titulo>Pessoa principal</h4>',
+      '<label data-modelo-membro-apresentador hidden><span>Membro apresentador <span class="required-marker">*</span></span>',
+      '<select data-modelo-membro-select><option value="">Selecione o membro apresentador</option></select>',
+      '<small data-modelo-membro-status></small>',
+      '</label>',
+      '<label data-modelo-tipo-pessoa><span>Tipo da pessoa principal <span class="required-marker" data-required-tipo-pessoa>*</span></span>',
       '<select name="tipoPessoaPrincipal"></select>',
       '</label>',
-      '<label>Nome publico da pessoa principal',
+      '<label data-modelo-nome-pessoa><span>Nome publico da pessoa principal <span class="required-marker" data-required-pessoa>*</span></span>',
       '<input name="nomePessoaPrincipalPublico" type="text">',
       '</label>',
       '<label data-modelo-id-pessoa>ID_PESSOA do membro',
@@ -2202,25 +2220,22 @@
       '<label data-modelo-rga-pessoa>RGA para conferencia',
       '<input name="rgaPessoaPrincipal" type="text">',
       '</label>',
-      '<label>E-mail da pessoa principal',
+      '<label data-modelo-email-pessoa><span>E-mail da pessoa principal <span class="required-marker" data-required-email-pessoa>*</span></span>',
       '<input name="emailPessoaPrincipal" type="email">',
       '</label>',
-      '<label>Tipo da pessoa principal',
-      '<input name="tipoPessoaPrincipal" type="text" placeholder="Ex.: MEMBRO, CONVIDADO">',
-      '</label>',
-      '<label>Papel da pessoa principal',
+      '<label data-modelo-papel-pessoa>Papel da pessoa principal',
       '<input name="papelPessoaPrincipal" type="text" placeholder="Ex.: PALESTRANTE">',
       '</label>',
-      '<label>Instituicao da pessoa principal',
+      '<label data-modelo-instituicao-pessoa><span>Instituicao da pessoa principal <span class="required-marker" data-required-instituicao-pessoa>*</span></span>',
       '<input name="instituicaoPessoaPrincipal" type="text">',
       '</label>',
       '</section>',
       '<section class="activity-detail-section">',
       '<h4>Dados complementares</h4>',
-      '<label>Responsavel interno',
+      '<label data-modelo-responsavel-interno>Responsavel interno',
       '<input name="responsavelInterno" type="text">',
       '</label>',
-      '<label>E-mail do responsavel',
+      '<label data-modelo-responsavel-email>E-mail do responsavel',
       '<input name="responsavelEmail" type="email">',
       '</label>',
       '<label>Publico-alvo',
@@ -2239,6 +2254,7 @@
       '</dl>',
       '<p class="simulation-warning">Esses valores sao fixos neste pacote e serao validados novamente pelo backend.</p>',
       '</section>',
+      '<p class="section-note"><span class="required-marker">*</span> campo obrigatorio</p>',
       '<div class="presentation-card-actions">',
       '<button type="submit">Validar e criar rascunho</button>',
       '<button class="secondary-button" type="button" data-activity-modal-close>Cancelar</button>',
@@ -2288,6 +2304,21 @@
     var nomePessoa = form.elements.nomePessoaPrincipalPublico;
     var emailPessoa = form.elements.emailPessoaPrincipal;
     var instituicaoPessoa = form.elements.instituicaoPessoaPrincipal;
+    var isMemberPresentation = ehModeloApresentacaoMembro(modelo);
+    var tipoPessoaLabel = form.querySelector('[data-modelo-tipo-pessoa]');
+    var nomePessoaLabel = form.querySelector('[data-modelo-nome-pessoa]');
+    var idPessoaLabel = form.querySelector('[data-modelo-id-pessoa]');
+    var rgaPessoaLabel = form.querySelector('[data-modelo-rga-pessoa]');
+    var emailPessoaLabel = form.querySelector('[data-modelo-email-pessoa]');
+    var papelPessoaLabel = form.querySelector('[data-modelo-papel-pessoa]');
+    var instituicaoPessoaLabel = form.querySelector('[data-modelo-instituicao-pessoa]');
+    var membroApresentadorLabel = form.querySelector('[data-modelo-membro-apresentador]');
+    var pessoaTitulo = form.querySelector('[data-modelo-pessoa-titulo]');
+    var responsavelInternoLabel = form.querySelector('[data-modelo-responsavel-interno]');
+    var responsavelEmailLabel = form.querySelector('[data-modelo-responsavel-email]');
+    var tituloLabel = form.querySelector('[data-modelo-titulo]');
+    var descricaoPublicaLabel = form.querySelector('[data-modelo-descricao-publica]');
+    var descricaoInternaLabel = form.querySelector('[data-modelo-descricao-interna]');
 
     if (!modelo) {
       painel.innerHTML = '<p class="section-note">Selecione um modelo para conferir os padroes aplicados.</p>';
@@ -2297,19 +2328,54 @@
     }
 
     painel.innerHTML = montarPainelPadroesModelo(modelo);
-    titulo.required = modelo.exigeTituloPublico === true;
-    secaoEixos.hidden = !modelo.exigeEixoTematico && !modelo.permiteEixoSecundario;
-    eixoPrincipal.required = modelo.exigeEixoTematico === true;
-    eixoSecundario.closest('label').hidden = modelo.permiteEixoSecundario !== true;
+    titulo.required = !isMemberPresentation && modelo.exigeTituloPublico === true;
+    tituloLabel.hidden = isMemberPresentation;
+    descricaoPublicaLabel.hidden = isMemberPresentation;
+    descricaoInternaLabel.hidden = isMemberPresentation;
+    if (isMemberPresentation) {
+      titulo.value = '';
+      form.elements.descricaoPublica.value = '';
+      form.elements.descricaoInterna.value = '';
+    }
+    form.querySelector('[data-required-titulo]').hidden = !titulo.required;
+    secaoEixos.hidden = isMemberPresentation || (!modelo.exigeEixoTematico && !modelo.permiteEixoSecundario);
+    eixoPrincipal.required = !isMemberPresentation && modelo.exigeEixoTematico === true;
+    form.querySelector('[data-required-eixo]').hidden = !eixoPrincipal.required;
+    eixoSecundario.closest('label').hidden = isMemberPresentation || modelo.permiteEixoSecundario !== true;
 
     secaoPessoa.hidden = modelo.exigePessoaPrincipal !== true;
-    nomePessoa.required = modelo.exigePessoaPrincipal === true;
-    emailPessoa.required = modelo.exigeEmailPessoaPrincipal === true;
-    instituicaoPessoa.required = modelo.exigeInstituicaoPessoaPrincipal === true;
+    pessoaTitulo.textContent = isMemberPresentation ? 'Membro apresentador' : 'Pessoa principal';
+    membroApresentadorLabel.hidden = !isMemberPresentation;
+    tipoPessoaLabel.hidden = isMemberPresentation || (modelo.tipoPessoaPrincipalPadrao || []).length === 1;
+    nomePessoaLabel.hidden = isMemberPresentation;
+    idPessoaLabel.hidden = isMemberPresentation;
+    rgaPessoaLabel.hidden = isMemberPresentation;
+    emailPessoaLabel.hidden = isMemberPresentation;
+    papelPessoaLabel.hidden = isMemberPresentation;
+    instituicaoPessoaLabel.hidden = isMemberPresentation;
+    nomePessoa.required = !isMemberPresentation && modelo.exigePessoaPrincipal === true;
+    emailPessoa.required = !isMemberPresentation && modelo.exigeEmailPessoaPrincipal === true;
+    instituicaoPessoa.required = !isMemberPresentation && modelo.exigeInstituicaoPessoaPrincipal === true;
     montarTiposPessoaPrincipal(tipoPessoa, modelo.tipoPessoaPrincipalPadrao || []);
-    idPessoa.required = modelo.exigePessoaPrincipal === true &&
+    idPessoa.required = !isMemberPresentation && (modelo.exigePessoaPrincipal === true &&
       (modelo.tipoPessoaPrincipalPadrao || []).indexOf('MEMBRO') >= 0 &&
-      (modelo.tipoPessoaPrincipalPadrao || []).length === 1;
+      (modelo.tipoPessoaPrincipalPadrao || []).length === 1);
+    form.querySelector('[data-required-pessoa]').hidden = !nomePessoa.required;
+    form.querySelector('[data-required-email-pessoa]').hidden = !emailPessoa.required;
+    form.querySelector('[data-required-instituicao-pessoa]').hidden = !instituicaoPessoa.required;
+    form.querySelector('[data-required-tipo-pessoa]').hidden = !tipoPessoa.required;
+    responsavelInternoLabel.hidden = isMemberPresentation;
+    responsavelEmailLabel.hidden = isMemberPresentation;
+    if (isMemberPresentation) {
+      preencherMembroApresentadorSelecionado(form, '');
+      form.elements.responsavelInterno.value = 'Secretaria GEAPA';
+      form.elements.responsavelEmail.value = '';
+      tipoPessoa.value = 'MEMBRO';
+      form.elements.papelPessoaPrincipal.value = 'APRESENTADOR';
+    } else if (form._membrosApresentadores) {
+      preencherMembroApresentadorSelecionado(form, '');
+      form._membrosApresentadores = null;
+    }
   }
 
   function montarTiposPessoaPrincipal(select, tipos) {
@@ -2319,6 +2385,80 @@
     }).join('');
     if (lista.length === 1) select.value = lista[0];
     select.required = lista.length > 1;
+  }
+
+  function ehModeloApresentacaoMembro(modelo) {
+    return !!modelo && String(modelo.subtipoAtividade || '').toUpperCase() === 'APRESENTACAO_MEMBRO';
+  }
+
+  function carregarMembrosApresentadores(form, modelo, forceRefresh) {
+    var select = form.querySelector('[data-modelo-membro-select]');
+    var status = form.querySelector('[data-modelo-membro-status]');
+    var referencia = form.elements.dataAtividade.value || '';
+    var cacheKey = modelo.idConfig + '|' + (referencia || 'ATUAL');
+    if (!forceRefresh && membrosApresentadoresCache[cacheKey]) {
+      aplicarMembrosApresentadoresNoFormulario(form, membrosApresentadoresCache[cacheKey]);
+      return Promise.resolve(membrosApresentadoresCache[cacheKey]);
+    }
+
+    form._membrosApresentadores = [];
+    preencherMembroApresentadorSelecionado(form, '');
+    select.disabled = true;
+    select.innerHTML = '<option value="">Carregando membros...</option>';
+    status.textContent = '';
+    return api.apiGet('/atividades/modelo/membros-apresentadores', {
+      idConfig: modelo.idConfig,
+      referencia: referencia
+    }).then(function tratar(resposta) {
+      if (!resposta.ok) throw criarErroAtividade(resposta);
+      var membros = resposta.data && Array.isArray(resposta.data.membros) ? resposta.data.membros : [];
+      membrosApresentadoresCache[cacheKey] = membros;
+      aplicarMembrosApresentadoresNoFormulario(form, membros);
+      return membros;
+    }).catch(function falhar(erro) {
+      select.innerHTML = '<option value="">Nao foi possivel carregar os membros</option>';
+      status.textContent = erro.message || 'Falha ao carregar membros apresentadores.';
+      throw erro;
+    }).finally(function finalizar() {
+      select.disabled = false;
+    });
+  }
+
+  function aplicarMembrosApresentadoresNoFormulario(form, membros) {
+    var select = form.querySelector('[data-modelo-membro-select]');
+    var status = form.querySelector('[data-modelo-membro-status]');
+    form._membrosApresentadores = membros || [];
+    preencherMembroApresentadorSelecionado(form, '');
+    select.innerHTML = '<option value="">Selecione o membro apresentador</option>' +
+      (membros || []).map(function montar(member) {
+        var suffix = member.elegivelApresentacao ? '' : ' - ja possui apresentacao no ciclo';
+        return '<option value="' + ui.escaparHtml(member.idPessoa) + '"' +
+          (member.elegivelApresentacao ? '' : ' disabled') + '>' +
+          ui.escaparHtml(member.nomeExibicao + (member.rga ? ' (' + member.rga + ')' : '') + suffix) +
+          '</option>';
+      }).join('');
+    select.required = true;
+    var totalElegiveis = (membros || []).filter(function(member) {
+      return member.elegivelApresentacao === true;
+    }).length;
+    status.textContent = totalElegiveis
+      ? 'Selecione pelo nome. O RGA aparece apenas para conferencia.'
+      : 'Nenhum membro elegivel foi encontrado para o ciclo.';
+    select.onchange = function selecionar() {
+      preencherMembroApresentadorSelecionado(form, select.value);
+    };
+  }
+
+  function preencherMembroApresentadorSelecionado(form, idPessoa) {
+    var member = (form._membrosApresentadores || []).find(function encontrar(item) {
+      return item.idPessoa === idPessoa;
+    }) || {};
+    form.elements.idPessoaPrincipal.value = member.idPessoa || '';
+    form.elements.nomePessoaPrincipalPublico.value = member.nomeExibicao || '';
+    form.elements.rgaPessoaPrincipal.value = member.rga || '';
+    form.elements.emailPessoaPrincipal.value = member.email || '';
+    form.elements.tipoPessoaPrincipal.value = member.idPessoa ? 'MEMBRO' : '';
+    form.elements.papelPessoaPrincipal.value = member.idPessoa ? 'APRESENTADOR' : '';
   }
 
   function montarPainelPadroesModelo(modelo) {
@@ -2333,10 +2473,12 @@
       montarFato('Gera certificado', rotuloSimNao(modelo.geraCertificadoPadrao)),
       montarFato('Permite justificativa', rotuloSimNao(modelo.permiteJustificativa)),
       montarFato('Carga horaria padrao', modelo.cargaHorariaPadrao || 'Calculada pelo horario'),
-      montarFato('Exige eixo', rotuloSimNao(modelo.exigeEixoTematico)),
+      montarFato('Exige eixo no agendamento', rotuloSimNao(modelo.exigeEixoTematico)),
       montarFato('Exige pessoa principal', rotuloSimNao(modelo.exigePessoaPrincipal)),
       montarFato('Papel principal', modelo.papelPadraoPessoaPrincipal || 'Nao aplicavel'),
-      montarFato('Exige material', rotuloSimNao(modelo.exigeMaterialPadrao)),
+      montarFato('Exige material no agendamento', rotuloSimNao(modelo.exigeMaterialPadrao)),
+      montarFato('Titulo/eixo posterior', rotuloSimNao(modelo.tituloEixoPosterior)),
+      montarFato('Material posterior', rotuloSimNao(modelo.materialPosterior)),
       montarFato('Arquivos permitidos', arquivos),
       montarFato('Limite do material', modelo.tamanhoMaxMaterialMb ? modelo.tamanhoMaxMaterialMb + ' MB' : 'Nao informado'),
       montarFato('Publicacao inicial', modelo.statusPublicacaoPortalPadrao || 'RASCUNHO'),
@@ -2480,9 +2622,12 @@
       erros.push('O horario de fim deve ser posterior ao inicio.');
     }
 
-    if (modelo && modelo.exigeTituloPublico && !atividade.tituloPublico) erros.push('Informe o titulo publico.');
-    if (modelo && modelo.exigeEixoTematico && !atividade.eixoTematicoPrincipal) erros.push('Informe o eixo tematico principal.');
-    if (modelo && modelo.exigePessoaPrincipal && !atividade.idPessoaPrincipal && !atividade.nomePessoaPrincipalPublico) {
+    var isMemberPresentation = ehModeloApresentacaoMembro(modelo);
+    if (modelo && !isMemberPresentation && modelo.exigeTituloPublico && !atividade.tituloPublico) erros.push('Informe o titulo publico.');
+    if (modelo && !isMemberPresentation && modelo.exigeEixoTematico && !atividade.eixoTematicoPrincipal) erros.push('Informe o eixo tematico principal.');
+    if (isMemberPresentation && !atividade.idPessoaPrincipal) {
+      erros.push('Selecione o membro apresentador.');
+    } else if (modelo && modelo.exigePessoaPrincipal && !atividade.idPessoaPrincipal && !atividade.nomePessoaPrincipalPublico) {
       erros.push('Informe a pessoa principal.');
     }
     if (modelo && modelo.exigeEmailPessoaPrincipal && !atividade.emailPessoaPrincipal) erros.push('Informe o e-mail da pessoa principal.');

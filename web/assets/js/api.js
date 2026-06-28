@@ -396,6 +396,7 @@
       '/atividades/criar': 'atividadeCriar',
       '/atividades/modelos': 'atividadeModelosListar',
       '/atividades/modelo': 'atividadeModeloObter',
+      '/atividades/modelo/membros-apresentadores': 'atividadeMembrosApresentadores',
       '/atividades/modelo/validar': 'atividadeModeloValidar',
       '/atividades/modelo/criar': 'atividadeModeloCriar',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
@@ -453,6 +454,41 @@
       return Promise.resolve(modelo
         ? { ok: true, data: { modelo: modelo, ambiente: 'MOCK' } }
         : { ok: false, errorCode: 'MODELO_NAO_ENCONTRADO', message: 'Modelo nao encontrado.' });
+    }
+
+    if (route === '/atividades/modelo/membros-apresentadores') {
+      return Promise.resolve({
+        ok: true,
+        data: {
+          idConfig: String((params || {}).idConfig || 'CFG-APRESENTACAO-MEMBRO'),
+          ciclo: 'GEAPA_2026',
+          ano: '2026',
+          semestre: '1',
+          rotuloSemestre: '2026/1',
+          membros: [
+            {
+              idPessoa: 'PES-MOCK-001',
+              nomeExibicao: 'Membro Elegivel',
+              rga: '202611801001',
+              email: 'membro.elegivel@example.org',
+              situacaoApresentacaoNoCiclo: 'SEM_APRESENTACAO_MARCADA',
+              elegivelApresentacao: true
+            },
+            {
+              idPessoa: 'PES-MOCK-002',
+              nomeExibicao: 'Membro Ja Agendado',
+              rga: '202611801002',
+              email: 'membro.agendado@example.org',
+              situacaoApresentacaoNoCiclo: 'JA_POSSUI_APRESENTACAO_MARCADA',
+              elegivelApresentacao: false
+            }
+          ],
+          total: 2,
+          totalElegiveis: 1,
+          ambiente: 'MOCK'
+        },
+        avisos: []
+      });
     }
 
     if (route === '/atividades/bundle') {
@@ -735,11 +771,16 @@
   function criarModelosAtividadeMock() {
     return [
       criarModeloAtividadeMock('CFG-APRESENTACAO-MEMBRO', 'Apresentacao de membro', 'Academicas', 'APRESENTACAO_MEMBRO', {
-        exigeEixoTematico: true,
+        exigeTituloPublico: false,
+        exigeEixoTematico: false,
+        permiteEixoSecundario: false,
         exigePessoaPrincipal: true,
         tipoPessoaPrincipalPadrao: ['MEMBRO'],
         papelPadraoPessoaPrincipal: 'APRESENTADOR',
-        exigeMaterialPadrao: true,
+        exigeMaterialPadrao: false,
+        tituloEixoPosterior: true,
+        materialPosterior: true,
+        responsavelInternoAutomatico: 'Secretaria GEAPA',
         tiposArquivoMaterialPermitidos: ['PDF', 'PPTX'],
         tamanhoMaxMaterialMb: 20
       }),

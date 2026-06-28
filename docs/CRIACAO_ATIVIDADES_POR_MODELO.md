@@ -6,6 +6,7 @@ O Portal GEAPA deixou de usar tipo, subtipo e regras de frequencia livres no for
 
 - `GET /atividades/modelos`;
 - `GET /atividades/modelo?idConfig=...`;
+- `GET /atividades/modelo/membros-apresentadores?idConfig=...&referencia=...`;
 - `POST /atividades/modelo/validar`;
 - `POST /atividades/modelo/criar`.
 
@@ -24,6 +25,14 @@ O formulario:
 
 A rota antiga `/atividades/criar` permanece no Apps Script por compatibilidade, mas a interface normal usa somente as rotas por modelo.
 
+### Apresentacao de membro
+
+Para `APRESENTACAO_MEMBRO`, o formulario mostra apenas data, horarios, formato, local e o seletor `Membro apresentador *`. Titulo, descricoes, eixos, material, tipo/papel/e-mail/instituicao da pessoa e responsavel interno nao sao solicitados no agendamento.
+
+O seletor consulta o backend e usa `ID_PESSOA` como chave. Nome e RGA servem para exibicao/conferencia; e-mail, tipo `MEMBRO` e papel `APRESENTADOR` sao preenchidos internamente no payload. O backend revalida a pessoa, gera o titulo inicial e atribui a responsabilidade a `Secretaria GEAPA`.
+
+Membros com apresentacao ativa no mesmo ciclo aparecem indisponiveis. O Portal nao concede excecao: o backend retorna `EXCECAO_NECESSARIA` para tratamento futuro. Titulo/eixos e material seguem como pendencias posteriores do fluxo de apresentacao.
+
 ## Homologacao
 
-Validar `APRESENTACAO_MEMBRO`, `PALESTRA`, `ABERTURA_PERIODO` e `FECHAMENTO_PERIODO`, incluindo usuario sem permissao, modelo inativo e tentativa de adulterar regra sensivel. Depois da criacao, confirmar a atualizacao da agenda, historico e detalhes.
+Validar `APRESENTACAO_MEMBRO`, `PALESTRA`, `ABERTURA_PERIODO` e `FECHAMENTO_PERIODO`, incluindo usuario sem permissao, modelo inativo e tentativa de adulterar regra sensivel. Para apresentacao de membro, confirmar que existe apenas um campo `tipoPessoaPrincipal`, que o seletor preenche `ID_PESSOA`, que titulo/eixo/material nao bloqueiam o agendamento e que membro ja agendado exige excecao. Depois da criacao, confirmar a atualizacao da agenda, historico e detalhes.
