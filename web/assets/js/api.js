@@ -394,6 +394,10 @@
       '/atividades/chamada': 'atividadeChamada',
       '/atividades/chamada/salvar': 'atividadeSalvarChamada',
       '/atividades/criar': 'atividadeCriar',
+      '/atividades/modelos': 'atividadeModelosListar',
+      '/atividades/modelo': 'atividadeModeloObter',
+      '/atividades/modelo/validar': 'atividadeModeloValidar',
+      '/atividades/modelo/criar': 'atividadeModeloCriar',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',
@@ -428,6 +432,29 @@
   }
 
   function apiGetMock(route, params) {
+    if (route === '/atividades/modelos') {
+      var modelos = criarModelosAtividadeMock();
+      return Promise.resolve({
+        ok: true,
+        data: {
+          modelos: modelos,
+          grupos: [],
+          total: modelos.length,
+          ambiente: 'MOCK',
+          ultimaAtualizacao: new Date().toISOString()
+        }
+      });
+    }
+
+    if (route === '/atividades/modelo') {
+      var modelo = criarModelosAtividadeMock().find(function encontrar(item) {
+        return item.idConfig === String((params || {}).idConfig || '');
+      });
+      return Promise.resolve(modelo
+        ? { ok: true, data: { modelo: modelo, ambiente: 'MOCK' } }
+        : { ok: false, errorCode: 'MODELO_NAO_ENCONTRADO', message: 'Modelo nao encontrado.' });
+    }
+
     if (route === '/atividades/bundle') {
       return Promise.resolve({
         ok: true,
@@ -569,6 +596,14 @@
   }
 
   function apiPostMock(route, params) {
+    if (route === '/atividades/modelo/validar') {
+      return Promise.resolve(criarAtividadePorModeloMock(params, true));
+    }
+
+    if (route === '/atividades/modelo/criar') {
+      return Promise.resolve(criarAtividadePorModeloMock(params, false));
+    }
+
     if (route === '/atividades/criar') {
       return Promise.resolve(criarAtividadeMock(params));
     }
@@ -694,6 +729,116 @@
         escrita: !dryRun,
         modo: 'mock'
       }
+    };
+  }
+
+  function criarModelosAtividadeMock() {
+    return [
+      criarModeloAtividadeMock('CFG-APRESENTACAO-MEMBRO', 'Apresentacao de membro', 'Academicas', 'APRESENTACAO_MEMBRO', {
+        exigeEixoTematico: true,
+        exigePessoaPrincipal: true,
+        tipoPessoaPrincipalPadrao: ['MEMBRO'],
+        papelPadraoPessoaPrincipal: 'APRESENTADOR',
+        exigeMaterialPadrao: true,
+        tiposArquivoMaterialPermitidos: ['PDF', 'PPTX'],
+        tamanhoMaxMaterialMb: 20
+      }),
+      criarModeloAtividadeMock('CFG-PALESTRA', 'Palestra', 'Academicas', 'PALESTRA', {
+        exigeEixoTematico: true,
+        exigePessoaPrincipal: true,
+        tipoPessoaPrincipalPadrao: ['PROFESSOR', 'EXTERNO'],
+        papelPadraoPessoaPrincipal: 'PALESTRANTE',
+        exigeEmailPessoaPrincipal: true,
+        exigeInstituicaoPessoaPrincipal: true,
+        exigeMaterialPadrao: true,
+        tiposArquivoMaterialPermitidos: ['PDF', 'PPTX', 'DOCX'],
+        tamanhoMaxMaterialMb: 25
+      }),
+      criarModeloAtividadeMock('CFG-ABERTURA-PERIODO', 'Abertura de periodo', 'Organizacionais', 'ABERTURA_PERIODO', {}),
+      criarModeloAtividadeMock('CFG-FECHAMENTO-PERIODO', 'Fechamento de periodo', 'Organizacionais', 'FECHAMENTO_PERIODO', {})
+    ];
+  }
+
+  function criarModeloAtividadeMock(idConfig, nome, grupo, subtipo, extras) {
+    return Object.assign({
+      idConfig: idConfig,
+      nomeModeloPortal: nome,
+      descricaoModeloPortal: '',
+      grupoModelo: grupo,
+      ordemExibicao: 10,
+      tipoAtividade: grupo === 'Academicas' ? 'ACADEMICA' : 'ORGANIZACIONAL',
+      subtipoAtividade: subtipo,
+      classificacaoReuniao: '',
+      tipoPublico: nome,
+      cargaHorariaPadrao: 2,
+      exigeTituloPublico: true,
+      exigeEixoTematico: false,
+      permiteEixoSecundario: true,
+      exigePessoaPrincipal: false,
+      papelPadraoPessoaPrincipal: '',
+      tipoPessoaPrincipalPadrao: [],
+      permitePessoaExternaPrincipal: false,
+      permiteMembroComoPrincipal: true,
+      permiteProfessorComoPrincipal: false,
+      exigeEmailPessoaPrincipal: false,
+      exigeInstituicaoPessoaPrincipal: false,
+      contaPresencaPadrao: true,
+      contaFaltaPadrao: true,
+      geraCertificadoPadrao: false,
+      permiteJustificativa: true,
+      exigeMaterialPadrao: false,
+      tiposArquivoMaterialPermitidos: [],
+      tamanhoMaxMaterialMb: 0,
+      instrucaoUploadMaterial: '',
+      visibilidadePortalPadrao: 'DIRETORIA',
+      statusPublicacaoPortalPadrao: 'RASCUNHO',
+      exibeNoCalendario: true,
+      exibeEmProximasAtividades: true,
+      exigeRevisaoAntesPublicar: true,
+      versaoConfigModelo: 'MODELO-MOCK-V1'
+    }, extras || {});
+  }
+
+  function criarAtividadePorModeloMock(params, dryRun) {
+    var payload = lerPayloadMock(params);
+    var atividade = Object.assign({}, payload.atividade || {});
+    var modelo = criarModelosAtividadeMock().find(function encontrar(item) {
+      return item.idConfig === String(payload.idConfig || atividade.idConfig || '');
+    });
+    if (!modelo) return { ok: false, errorCode: 'MODELO_NAO_ENCONTRADO', message: 'Modelo nao encontrado.' };
+
+    var idAtividade = gerarIdAtividadeMock(atividade.dataAtividade);
+    var preview = Object.assign({}, atividade, {
+      idAtividade: idAtividade,
+      idConfig: modelo.idConfig,
+      nomeModeloPortal: modelo.nomeModeloPortal,
+      versaoConfigModelo: modelo.versaoConfigModelo,
+      statusOperacional: 'PLANEJADA',
+      statusPublicacaoPortal: 'RASCUNHO',
+      visibilidadePortal: 'DIRETORIA',
+      modeloAplicado: modelo
+    });
+    if (dryRun) {
+      return {
+        ok: true,
+        message: 'Criacao por modelo validada.',
+        data: {
+          modeloAplicado: modelo,
+          camposHerdados: {},
+          camposDaOcorrencia: atividade,
+          excecoesDetectadas: [],
+          excecaoNecessaria: false,
+          atividadePreview: preview,
+          confirmacaoToken: 'CONFIRMACAO-MOCK',
+          dryRun: true
+        }
+      };
+    }
+    return {
+      ok: true,
+      message: 'Atividade criada pelo modelo homologado como rascunho.',
+      data: preview,
+      meta: { escrita: true, modo: 'mock' }
     };
   }
 

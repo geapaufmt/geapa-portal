@@ -42,6 +42,9 @@
   var isChamadaSaving = false;
   var isChamadaFinalizing = false;
   var isCriandoAtividade = false;
+  var modelosCriacaoAtividadeCache = [];
+  var modelosCriacaoAtividadeExpiraEm = 0;
+  var modelosCriacaoAtividadePromise = null;
   var filtroChamadaAtual = 'TODOS';
   var justificativasConfig = null;
   var justificativasConfigExpiraEm = 0;
@@ -2077,19 +2080,71 @@
     }
 
     definirTituloModal('Nova atividade');
-    conteudo.innerHTML = montarFormularioCriarAtividade();
+    conteudo.innerHTML = '<p class="loading-state">Carregando modelos homologados...</p>';
     modal.hidden = false;
     document.body.classList.add('modal-open');
+
+    carregarModelosCriacaoAtividade().then(function renderizar(modelos) {
+      if (!modelos.length) {
+        conteudo.innerHTML = '<p class="empty-state">Nenhum modelo homologado esta disponivel para seu perfil.</p>';
+        return;
+      }
+      conteudo.innerHTML = montarFormularioCriarAtividade(modelos);
+      var form = conteudo.querySelector('[data-activity-form="criar-atividade"]');
+      var select = form && form.querySelector('[name="idConfig"]');
+      if (select) {
+        select.addEventListener('change', function atualizarModelo() {
+          atualizarFormularioCriacaoPorModelo(form, obterModeloCriacaoPorId(select.value));
+        });
+      }
+    }).catch(function falhar(erro) {
+      conteudo.innerHTML = '<p class="error-state">' + ui.escaparHtml(erro.message || 'Nao foi possivel carregar os modelos.') + '</p>';
+    });
   }
 
-  function montarFormularioCriarAtividade() {
+  function carregarModelosCriacaoAtividade() {
+    if (modelosCriacaoAtividadeCache.length && modelosCriacaoAtividadeExpiraEm > Date.now()) {
+      return Promise.resolve(modelosCriacaoAtividadeCache.slice());
+    }
+    if (modelosCriacaoAtividadePromise) return modelosCriacaoAtividadePromise;
+
+    modelosCriacaoAtividadePromise = api.apiGet('/atividades/modelos', {}).then(function tratar(resposta) {
+      if (!resposta.ok) throw criarErroAtividade(resposta);
+      modelosCriacaoAtividadeCache = resposta.data && Array.isArray(resposta.data.modelos)
+        ? resposta.data.modelos.slice()
+        : [];
+      modelosCriacaoAtividadeExpiraEm = Date.now() + ATIVIDADES_CACHE_TTL_MS;
+      return modelosCriacaoAtividadeCache.slice();
+    }).finally(function finalizar() {
+      modelosCriacaoAtividadePromise = null;
+    });
+    return modelosCriacaoAtividadePromise;
+  }
+
+  function obterModeloCriacaoPorId(idConfig) {
+    return modelosCriacaoAtividadeCache.find(function encontrar(modelo) {
+      return modelo.idConfig === idConfig;
+    }) || null;
+  }
+
+  function montarFormularioCriarAtividade(modelos) {
     return [
       '<p class="eyebrow">Gestao de atividades</p>',
-      '<h3>Criar atividade</h3>',
-      '<p class="section-note">A atividade sera criada como rascunho, visivel apenas para Diretoria. Publicacao, edicao avancada e anexos ficam para outro pacote.</p>',
+      '<h3>Criar atividade por modelo</h3>',
+      '<p class="section-note">As regras desta atividade vem do modelo homologado. Alteracoes sensiveis devem seguir fluxo de excecao.</p>',
       '<form class="readonly-form activity-create-form" data-activity-form="criar-atividade">',
       '<section class="activity-detail-section">',
-      '<h4>Dados principais</h4>',
+      '<h4>Modelo da atividade</h4>',
+      '<label>Modelo',
+      '<select name="idConfig" required>',
+      '<option value="">Selecione um modelo homologado</option>',
+      montarOpcoesModelosCriacao(modelos),
+      '</select>',
+      '</label>',
+      '<div data-modelo-padroes><p class="section-note">Selecione um modelo para conferir os padroes aplicados.</p></div>',
+      '</section>',
+      '<section class="activity-detail-section">',
+      '<h4>Dados da ocorrencia</h4>',
       '<label>Titulo publico',
       '<input name="tituloPublico" type="text" required maxlength="180">',
       '</label>',
@@ -2098,22 +2153,6 @@
       '</label>',
       '<label>Descricao interna',
       '<textarea name="descricaoInterna" rows="3"></textarea>',
-      '</label>',
-      '<label>Tipo de atividade',
-      '<select name="tipoAtividade" required>',
-      montarOpcoesSelecao([
-        ['REUNIAO', 'Reuniao'],
-        ['PALESTRA', 'Palestra'],
-        ['OFICINA', 'Oficina'],
-        ['CURSO', 'Curso'],
-        ['APRESENTACAO', 'Apresentacao'],
-        ['EVENTO', 'Evento'],
-        ['OUTRA', 'Outra']
-      ], ''),
-      '</select>',
-      '</label>',
-      '<label>Subtipo de atividade',
-      '<input name="subtipoAtividade" type="text" required placeholder="Ex.: REUNIAO_ORDINARIA">',
       '</label>',
       '<label>Formato',
       '<select name="formato" required>',
@@ -2139,33 +2178,28 @@
       '<label>Horario de fim',
       '<input name="horarioFim" type="time" required>',
       '</label>',
-      '<label>Carga horaria',
-      '<input name="cargaHoraria" type="number" min="0.25" step="0.25" required>',
-      '</label>',
       '</section>',
-      '<section class="activity-detail-section">',
-      '<h4>Presenca, falta e certificado</h4>',
-      montarSelectSimNao('contaPresenca', 'Conta presenca?', 'SIM'),
-      montarSelectSimNao('contaFalta', 'Conta falta?', 'SIM'),
-      montarSelectSimNao('geraCertificado', 'Gera certificado?', 'NAO'),
-      montarSelectSimNao('exigeListaPresenca', 'Exige lista de presenca?', 'SIM'),
-      montarSelectSimNao('permiteJustificativa', 'Permite justificativa?', 'SIM'),
-      '</section>',
-      '<section class="activity-detail-section">',
-      '<h4>Campos opcionais</h4>',
-      '<label>Eixo tematico principal',
+      '<section class="activity-detail-section" data-modelo-eixos hidden>',
+      '<h4>Eixo tematico</h4>',
+      '<label data-modelo-eixo-principal>Eixo tematico principal',
       '<input name="eixoTematicoPrincipal" type="text">',
       '</label>',
-      '<label>Eixo tematico secundario',
+      '<label data-modelo-eixo-secundario>Eixo tematico secundario',
       '<input name="eixoTematicoSecundario" type="text">',
       '</label>',
-      '<label>Nome da pessoa principal',
+      '</section>',
+      '<section class="activity-detail-section" data-modelo-pessoa hidden>',
+      '<h4>Pessoa principal</h4>',
+      '<label>Tipo da pessoa principal',
+      '<select name="tipoPessoaPrincipal"></select>',
+      '</label>',
+      '<label>Nome publico da pessoa principal',
       '<input name="nomePessoaPrincipalPublico" type="text">',
       '</label>',
-      '<label>ID da pessoa principal',
+      '<label data-modelo-id-pessoa>ID_PESSOA do membro',
       '<input name="idPessoaPrincipal" type="text">',
       '</label>',
-      '<label>RGA da pessoa principal',
+      '<label data-modelo-rga-pessoa>RGA para conferencia',
       '<input name="rgaPessoaPrincipal" type="text">',
       '</label>',
       '<label>E-mail da pessoa principal',
@@ -2180,6 +2214,9 @@
       '<label>Instituicao da pessoa principal',
       '<input name="instituicaoPessoaPrincipal" type="text">',
       '</label>',
+      '</section>',
+      '<section class="activity-detail-section">',
+      '<h4>Dados complementares</h4>',
       '<label>Responsavel interno',
       '<input name="responsavelInterno" type="text">',
       '</label>',
@@ -2188,15 +2225,6 @@
       '</label>',
       '<label>Publico-alvo',
       '<input name="publicoAlvo" type="text">',
-      '</label>',
-      '<label>Classificacao de acesso',
-      '<select name="classificacaoAcesso">',
-      montarOpcoesSelecao([
-        ['INTERNA', 'Interna'],
-        ['ABERTA', 'Aberta'],
-        ['RESTRITA', 'Restrita']
-      ], 'INTERNA'),
-      '</select>',
       '</label>',
       '<label>Observacoes internas',
       '<textarea name="observacoes" rows="3"></textarea>',
@@ -2219,17 +2247,21 @@
     ].join('');
   }
 
-  function montarSelectSimNao(nome, rotulo, valorPadrao) {
-    return [
-      '<label>' + ui.escaparHtml(rotulo),
-      '<select name="' + ui.escaparHtml(nome) + '" required>',
-      montarOpcoesSelecao([
-        ['SIM', 'Sim'],
-        ['NAO', 'Nao']
-      ], valorPadrao || 'NAO'),
-      '</select>',
-      '</label>'
-    ].join('');
+  function montarOpcoesModelosCriacao(modelos) {
+    var grupos = {};
+    (modelos || []).forEach(function agrupar(modelo) {
+      var grupo = modelo.grupoModelo || 'Outros';
+      if (!grupos[grupo]) grupos[grupo] = [];
+      grupos[grupo].push(modelo);
+    });
+    return Object.keys(grupos).sort().map(function montarGrupo(grupo) {
+      var opcoes = grupos[grupo].map(function montarModelo(modelo) {
+        return '<option value="' + ui.escaparHtml(modelo.idConfig) + '">' +
+          ui.escaparHtml(modelo.nomeModeloPortal) +
+          '</option>';
+      }).join('');
+      return '<optgroup label="' + ui.escaparHtml(grupo) + '">' + opcoes + '</optgroup>';
+    }).join('');
   }
 
   function montarOpcoesSelecao(opcoes, valorAtual) {
@@ -2244,6 +2276,80 @@
     }).join('');
   }
 
+  function atualizarFormularioCriacaoPorModelo(form, modelo) {
+    var painel = form.querySelector('[data-modelo-padroes]');
+    var secaoEixos = form.querySelector('[data-modelo-eixos]');
+    var secaoPessoa = form.querySelector('[data-modelo-pessoa]');
+    var eixoPrincipal = form.elements.eixoTematicoPrincipal;
+    var eixoSecundario = form.elements.eixoTematicoSecundario;
+    var titulo = form.elements.tituloPublico;
+    var tipoPessoa = form.elements.tipoPessoaPrincipal;
+    var idPessoa = form.elements.idPessoaPrincipal;
+    var nomePessoa = form.elements.nomePessoaPrincipalPublico;
+    var emailPessoa = form.elements.emailPessoaPrincipal;
+    var instituicaoPessoa = form.elements.instituicaoPessoaPrincipal;
+
+    if (!modelo) {
+      painel.innerHTML = '<p class="section-note">Selecione um modelo para conferir os padroes aplicados.</p>';
+      secaoEixos.hidden = true;
+      secaoPessoa.hidden = true;
+      return;
+    }
+
+    painel.innerHTML = montarPainelPadroesModelo(modelo);
+    titulo.required = modelo.exigeTituloPublico === true;
+    secaoEixos.hidden = !modelo.exigeEixoTematico && !modelo.permiteEixoSecundario;
+    eixoPrincipal.required = modelo.exigeEixoTematico === true;
+    eixoSecundario.closest('label').hidden = modelo.permiteEixoSecundario !== true;
+
+    secaoPessoa.hidden = modelo.exigePessoaPrincipal !== true;
+    nomePessoa.required = modelo.exigePessoaPrincipal === true;
+    emailPessoa.required = modelo.exigeEmailPessoaPrincipal === true;
+    instituicaoPessoa.required = modelo.exigeInstituicaoPessoaPrincipal === true;
+    montarTiposPessoaPrincipal(tipoPessoa, modelo.tipoPessoaPrincipalPadrao || []);
+    idPessoa.required = modelo.exigePessoaPrincipal === true &&
+      (modelo.tipoPessoaPrincipalPadrao || []).indexOf('MEMBRO') >= 0 &&
+      (modelo.tipoPessoaPrincipalPadrao || []).length === 1;
+  }
+
+  function montarTiposPessoaPrincipal(select, tipos) {
+    var lista = Array.isArray(tipos) ? tipos : [];
+    select.innerHTML = '<option value="">Selecione</option>' + lista.map(function montar(tipo) {
+      return '<option value="' + ui.escaparHtml(tipo) + '">' + ui.escaparHtml(tipo) + '</option>';
+    }).join('');
+    if (lista.length === 1) select.value = lista[0];
+    select.required = lista.length > 1;
+  }
+
+  function montarPainelPadroesModelo(modelo) {
+    var arquivos = (modelo.tiposArquivoMaterialPermitidos || []).join(', ') || 'Nao informado';
+    return [
+      '<div class="activity-detail-section">',
+      '<h4>Padroes aplicados</h4>',
+      '<dl class="activity-detail-grid">',
+      montarFato('Tipo / subtipo', [modelo.tipoAtividade, modelo.subtipoAtividade].filter(Boolean).join(' / ')),
+      montarFato('Conta presenca', rotuloSimNao(modelo.contaPresencaPadrao)),
+      montarFato('Conta falta', rotuloSimNao(modelo.contaFaltaPadrao)),
+      montarFato('Gera certificado', rotuloSimNao(modelo.geraCertificadoPadrao)),
+      montarFato('Permite justificativa', rotuloSimNao(modelo.permiteJustificativa)),
+      montarFato('Carga horaria padrao', modelo.cargaHorariaPadrao || 'Calculada pelo horario'),
+      montarFato('Exige eixo', rotuloSimNao(modelo.exigeEixoTematico)),
+      montarFato('Exige pessoa principal', rotuloSimNao(modelo.exigePessoaPrincipal)),
+      montarFato('Papel principal', modelo.papelPadraoPessoaPrincipal || 'Nao aplicavel'),
+      montarFato('Exige material', rotuloSimNao(modelo.exigeMaterialPadrao)),
+      montarFato('Arquivos permitidos', arquivos),
+      montarFato('Limite do material', modelo.tamanhoMaxMaterialMb ? modelo.tamanhoMaxMaterialMb + ' MB' : 'Nao informado'),
+      montarFato('Publicacao inicial', modelo.statusPublicacaoPortalPadrao || 'RASCUNHO'),
+      montarFato('Visibilidade inicial', modelo.visibilidadePortalPadrao || 'DIRETORIA'),
+      '</dl>',
+      '</div>'
+    ].join('');
+  }
+
+  function rotuloSimNao(value) {
+    return value === true ? 'Sim' : 'Nao';
+  }
+
   function salvarNovaAtividade(form) {
     var payload;
     var erros;
@@ -2252,8 +2358,8 @@
       return;
     }
 
-    payload = montarPayloadCriarAtividade(form, true);
-    erros = validarPayloadCriarAtividade(payload.atividade);
+    payload = montarPayloadCriarAtividade(form);
+    erros = validarPayloadCriarAtividade(payload, obterModeloCriacaoPorId(payload.idConfig));
 
     if (erros.length) {
       mostrarErroModalAtividade(erros.join(' '));
@@ -2264,14 +2370,15 @@
     alternarFormularioAtividadeOcupado(form, true);
     ui.mostrarLoading('Validando atividade...');
 
-    api.apiPost('/atividades/criar', {
+    api.apiPost('/atividades/modelo/validar', {
       payload: JSON.stringify(payload)
     }).then(function tratarPrevia(resposta) {
       if (!resposta.ok) {
         throw criarErroAtividade(resposta);
       }
 
-      if (!confirm(montarMensagemConfirmacaoCriarAtividade(resposta.data || {}))) {
+      var dadosPrevia = resposta.data || {};
+      if (!confirm(montarMensagemConfirmacaoCriarAtividade(dadosPrevia.atividadePreview || {}))) {
         throw criarErroAtividade({
           ok: false,
           message: 'Criacao cancelada pelo usuario.',
@@ -2280,11 +2387,11 @@
       }
 
       ui.mostrarLoading('Criando atividade...');
-      return api.apiPost('/atividades/criar', {
-        payload: JSON.stringify({
+      return api.apiPost('/atividades/modelo/criar', {
+        payload: JSON.stringify(Object.assign({}, payload, {
           dryRun: false,
-          atividade: Object.assign({}, payload.atividade)
-        })
+          confirmacaoToken: dadosPrevia.confirmacaoToken || ''
+        }))
       });
     }).then(function tratarCriacao(resposta) {
       if (!resposta.ok) {
@@ -2306,23 +2413,15 @@
     });
   }
 
-  function montarPayloadCriarAtividade(form, dryRun) {
+  function montarPayloadCriarAtividade(form) {
     var dados = new FormData(form);
     var atividade = {
       tituloPublico: obterValorFormulario(dados, 'tituloPublico'),
       dataAtividade: obterValorFormulario(dados, 'dataAtividade'),
       horarioInicio: normalizarHorarioFormulario(obterValorFormulario(dados, 'horarioInicio')),
       horarioFim: normalizarHorarioFormulario(obterValorFormulario(dados, 'horarioFim')),
-      tipoAtividade: obterValorFormulario(dados, 'tipoAtividade'),
-      subtipoAtividade: obterValorFormulario(dados, 'subtipoAtividade'),
       formato: obterValorFormulario(dados, 'formato'),
-      local: obterValorFormulario(dados, 'local'),
-      contaPresenca: obterValorFormulario(dados, 'contaPresenca'),
-      contaFalta: obterValorFormulario(dados, 'contaFalta'),
-      geraCertificado: obterValorFormulario(dados, 'geraCertificado'),
-      cargaHoraria: obterValorFormulario(dados, 'cargaHoraria'),
-      exigeListaPresenca: obterValorFormulario(dados, 'exigeListaPresenca'),
-      permiteJustificativa: obterValorFormulario(dados, 'permiteJustificativa')
+      local: obterValorFormulario(dados, 'local')
     };
     var opcionais = [
       'descricaoPublica',
@@ -2339,8 +2438,7 @@
       'responsavelInterno',
       'responsavelEmail',
       'publicoAlvo',
-      'observacoes',
-      'classificacaoAcesso'
+      'observacoes'
     ];
 
     opcionais.forEach(function copiar(campo) {
@@ -2352,24 +2450,24 @@
     });
 
     return {
-      dryRun: dryRun === true,
+      idConfig: obterValorFormulario(dados, 'idConfig'),
+      dryRun: true,
       atividade: atividade
     };
   }
 
-  function validarPayloadCriarAtividade(atividade) {
+  function validarPayloadCriarAtividade(payload, modelo) {
     var erros = [];
+    var atividade = payload.atividade || {};
     var inicio = converterHorarioMinutos(atividade.horarioInicio);
     var fim = converterHorarioMinutos(atividade.horarioFim);
-    var carga = Number(atividade.cargaHoraria);
+
+    if (!payload.idConfig || !modelo) erros.push('Selecione um modelo homologado.');
 
     [
-      ['tituloPublico', 'Informe o titulo da atividade.'],
       ['dataAtividade', 'Informe a data da atividade.'],
       ['horarioInicio', 'Informe o horario de inicio.'],
       ['horarioFim', 'Informe o horario de fim.'],
-      ['tipoAtividade', 'Informe o tipo de atividade.'],
-      ['subtipoAtividade', 'Informe o subtipo de atividade.'],
       ['formato', 'Informe o formato.'],
       ['local', 'Informe o local.']
     ].forEach(function validar(item) {
@@ -2378,12 +2476,18 @@
       }
     });
 
-    if (!Number.isFinite(carga) || carga <= 0) {
-      erros.push('Informe carga horaria positiva.');
-    }
-
     if (inicio >= 0 && fim >= 0 && fim <= inicio) {
       erros.push('O horario de fim deve ser posterior ao inicio.');
+    }
+
+    if (modelo && modelo.exigeTituloPublico && !atividade.tituloPublico) erros.push('Informe o titulo publico.');
+    if (modelo && modelo.exigeEixoTematico && !atividade.eixoTematicoPrincipal) erros.push('Informe o eixo tematico principal.');
+    if (modelo && modelo.exigePessoaPrincipal && !atividade.idPessoaPrincipal && !atividade.nomePessoaPrincipalPublico) {
+      erros.push('Informe a pessoa principal.');
+    }
+    if (modelo && modelo.exigeEmailPessoaPrincipal && !atividade.emailPessoaPrincipal) erros.push('Informe o e-mail da pessoa principal.');
+    if (modelo && modelo.exigeInstituicaoPessoaPrincipal && !atividade.instituicaoPessoaPrincipal) {
+      erros.push('Informe a instituicao da pessoa principal.');
     }
 
     return erros;

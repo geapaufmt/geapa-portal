@@ -184,6 +184,31 @@ function portalExecutarAcao_(requisicao) {
     );
   }
 
+  if (acao === 'atividadeModelosListar') {
+    return portalListarModelosAtividade(requisicao.token || '');
+  }
+
+  if (acao === 'atividadeModeloObter') {
+    return portalObterModeloAtividade(
+      requisicao.token || '',
+      requisicao.idConfig || ''
+    );
+  }
+
+  if (acao === 'atividadeModeloValidar') {
+    return portalValidarCriacaoAtividadePorModelo(
+      requisicao.token || '',
+      requisicao.payload || ''
+    );
+  }
+
+  if (acao === 'atividadeModeloCriar') {
+    return portalCriarAtividadePorModelo(
+      requisicao.token || '',
+      requisicao.payload || ''
+    );
+  }
+
   if (acao === 'minhaFrequencia') {
     return portalMinhaFrequenciaV2(requisicao.token || '');
   }

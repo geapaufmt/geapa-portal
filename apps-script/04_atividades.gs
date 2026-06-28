@@ -363,6 +363,104 @@ function portalCriarAtividade(token, payloadJson) {
   );
 }
 
+/** Lista modelos homologados disponiveis para o usuario autenticado. */
+function portalListarModelosAtividade(token) {
+  var inicio = portalAgoraAtividadesMs_();
+  var contexto = portalMontarContextoAtividades_(token);
+  if (!contexto.ok) return contexto.resposta;
+
+  var resposta = portalChamarAtividadesListarModelos_(contexto.contextoAtividades);
+  var normalizada = portalNormalizarRespostaObjetoAtividades_(resposta);
+  if (!normalizada.ok) return normalizada.resposta;
+
+  return portalRespostaOk_(
+    'ATIVIDADE_MODELOS_LISTADOS',
+    normalizada.message || 'Modelos de atividade carregados.',
+    normalizada.data,
+    portalMetaAtividades_('geapa-atividades-modelos-listar', inicio)
+  );
+}
+
+/** Retorna um modelo homologado depois de revalidar sessao e permissao. */
+function portalObterModeloAtividade(token, idConfig) {
+  var inicio = portalAgoraAtividadesMs_();
+  var contexto = portalMontarContextoAtividades_(token);
+  if (!contexto.ok) return contexto.resposta;
+
+  var resposta = portalChamarAtividadesObterModelo_(idConfig, contexto.contextoAtividades);
+  var normalizada = portalNormalizarRespostaObjetoAtividades_(resposta);
+  if (!normalizada.ok) return normalizada.resposta;
+
+  return portalRespostaOk_(
+    'ATIVIDADE_MODELO_OBTIDO',
+    normalizada.message || 'Modelo de atividade carregado.',
+    normalizada.data,
+    portalMetaAtividades_('geapa-atividades-modelo-obter', inicio)
+  );
+}
+
+/** Executa o dry-run obrigatorio da criacao orientada por modelo. */
+function portalValidarCriacaoAtividadePorModelo(token, payloadJson) {
+  var inicio = portalAgoraAtividadesMs_();
+  var contexto = portalMontarContextoAtividades_(token);
+  if (!contexto.ok) return contexto.resposta;
+  var payload = portalLerPayloadJson_(payloadJson);
+  if (!payload.ok) return payload.resposta;
+
+  var resposta = portalChamarAtividadesValidarModelo_(payload.data, contexto.contextoAtividades);
+  return portalNormalizarRespostaCriacaoModelo_(resposta, 'ATIVIDADE_MODELO_PREVIA_VALIDADA', inicio);
+}
+
+/** Confirma a criacao real usando o token emitido pelo dry-run. */
+function portalCriarAtividadePorModelo(token, payloadJson) {
+  var inicio = portalAgoraAtividadesMs_();
+  var contexto = portalMontarContextoAtividades_(token);
+  if (!contexto.ok) return contexto.resposta;
+  var payload = portalLerPayloadJson_(payloadJson);
+  if (!payload.ok) return payload.resposta;
+
+  payload.data.dryRun = false;
+  var resposta = portalChamarAtividadesCriarPorModelo_(payload.data, contexto.contextoAtividades);
+  var normalizada = portalNormalizarRespostaCriacaoModelo_(resposta, 'ATIVIDADE_MODELO_CRIADA', inicio);
+  if (normalizada && normalizada.ok === true) portalInvalidarCachesAtividadesAposCriacao_(contexto);
+  return normalizada;
+}
+
+function portalNormalizarRespostaCriacaoModelo_(resposta, successCode, inicio) {
+  if (!resposta || resposta.ok !== true) {
+    var errorData = resposta ? {
+      fieldErrors: resposta.fieldErrors || {},
+      mensagens: resposta.mensagens || [],
+      avisos: resposta.avisos || [],
+      excecaoNecessaria: resposta.excecaoNecessaria === true,
+      camposDivergentes: resposta.camposDivergentes || [],
+      excecoesDetectadas: resposta.excecoesDetectadas || [],
+      aprovacaoExigida: resposta.aprovacaoExigida || '',
+      perfisAprovadores: resposta.perfisAprovadores || [],
+      qtdAprovadores: resposta.qtdAprovadores || 0
+    } : {};
+    return portalRespostaErro_(
+      resposta && resposta.errorCode || 'ERRO_ATIVIDADE_MODELO',
+      resposta && resposta.message || 'Nao foi possivel processar a atividade pelo modelo.',
+      errorData
+    );
+  }
+
+  var data = resposta.data || {
+    modeloAplicado: resposta.modeloAplicado || {},
+    camposHerdados: resposta.camposHerdados || {},
+    camposDaOcorrencia: resposta.camposDaOcorrencia || {},
+    excecoesDetectadas: resposta.excecoesDetectadas || [],
+    excecaoNecessaria: resposta.excecaoNecessaria === true,
+    atividadePreview: resposta.atividadePreview || {},
+    confirmacaoToken: resposta.confirmacaoToken || '',
+    dryRun: resposta.dryRun === true
+  };
+  var meta = portalMetaAtividades_('geapa-atividades-modelo-criar', inicio);
+  meta.avisos = resposta.avisos || (resposta.meta && resposta.meta.avisos) || [];
+  return portalRespostaOk_(successCode, resposta.message || 'Atividade processada pelo modelo.', data, meta);
+}
+
 function portalInvalidarCachesAtividadesAposChamada_(contexto, payload) {
   var operacao = String((payload || {}).operacao || '').trim().toUpperCase();
   var identificador = contexto && contexto.identificadorSessao;
@@ -648,6 +746,46 @@ function portalChamarAtividadesCriar_(payload, contexto) {
     return GEAPA_ATIVIDADES.atividadesV2_portalCriarAtividade(payload, contexto);
   }
 
+  return null;
+}
+
+function portalChamarAtividadesListarModelos_(contexto) {
+  if (typeof atividades_listarModelosCriacaoPortal === 'function') {
+    return atividades_listarModelosCriacaoPortal(contexto);
+  }
+  if (typeof GEAPA_ATIVIDADES !== 'undefined' && typeof GEAPA_ATIVIDADES.atividades_listarModelosCriacaoPortal === 'function') {
+    return GEAPA_ATIVIDADES.atividades_listarModelosCriacaoPortal(contexto);
+  }
+  return null;
+}
+
+function portalChamarAtividadesObterModelo_(idConfig, contexto) {
+  if (typeof atividades_obterModeloCriacaoPortal === 'function') {
+    return atividades_obterModeloCriacaoPortal(idConfig, contexto);
+  }
+  if (typeof GEAPA_ATIVIDADES !== 'undefined' && typeof GEAPA_ATIVIDADES.atividades_obterModeloCriacaoPortal === 'function') {
+    return GEAPA_ATIVIDADES.atividades_obterModeloCriacaoPortal(idConfig, contexto);
+  }
+  return null;
+}
+
+function portalChamarAtividadesValidarModelo_(payload, contexto) {
+  if (typeof atividades_validarCriacaoAtividadePorModelo === 'function') {
+    return atividades_validarCriacaoAtividadePorModelo(payload, contexto);
+  }
+  if (typeof GEAPA_ATIVIDADES !== 'undefined' && typeof GEAPA_ATIVIDADES.atividades_validarCriacaoAtividadePorModelo === 'function') {
+    return GEAPA_ATIVIDADES.atividades_validarCriacaoAtividadePorModelo(payload, contexto);
+  }
+  return null;
+}
+
+function portalChamarAtividadesCriarPorModelo_(payload, contexto) {
+  if (typeof atividades_criarAtividadePorModelo === 'function') {
+    return atividades_criarAtividadePorModelo(payload, contexto);
+  }
+  if (typeof GEAPA_ATIVIDADES !== 'undefined' && typeof GEAPA_ATIVIDADES.atividades_criarAtividadePorModelo === 'function') {
+    return GEAPA_ATIVIDADES.atividades_criarAtividadePorModelo(payload, contexto);
+  }
   return null;
 }
 
