@@ -461,7 +461,10 @@
         ok: true,
         data: {
           idConfig: String((params || {}).idConfig || 'CFG-APRESENTACAO-MEMBRO'),
+          idCiclo: 'GEAPA_2026',
           ciclo: 'GEAPA_2026',
+          nomeCiclo: 'GEAPA_2026',
+          rotuloCiclo: 'GEAPA_2026',
           ano: '2026',
           semestre: '1',
           rotuloSemestre: '2026/1',
@@ -471,7 +474,9 @@
               nomeExibicao: 'Membro Elegivel',
               rga: '202611801001',
               email: 'membro.elegivel@example.org',
+              idCiclo: 'GEAPA_2026',
               situacaoApresentacaoNoCiclo: 'SEM_APRESENTACAO_MARCADA',
+              situacaoApresentacaoNoCicloRotulo: 'Elegivel no ciclo GEAPA_2026',
               elegivelApresentacao: true
             },
             {
@@ -479,7 +484,9 @@
               nomeExibicao: 'Membro Ja Agendado',
               rga: '202611801002',
               email: 'membro.agendado@example.org',
+              idCiclo: 'GEAPA_2026',
               situacaoApresentacaoNoCiclo: 'JA_POSSUI_APRESENTACAO_MARCADA',
+              situacaoApresentacaoNoCicloRotulo: 'Ja agendado no ciclo GEAPA_2026',
               elegivelApresentacao: false
             }
           ],

@@ -2431,7 +2431,10 @@
     preencherMembroApresentadorSelecionado(form, '');
     select.innerHTML = '<option value="">Selecione o membro apresentador</option>' +
       (membros || []).map(function montar(member) {
-        var suffix = member.elegivelApresentacao ? '' : ' - ja possui apresentacao no ciclo';
+        var suffix = member.elegivelApresentacao
+          ? ''
+          : ' - ' + (member.situacaoApresentacaoNoCicloRotulo ||
+            ('ja agendado no ciclo ' + (member.idCiclo || 'GEAPA')));
         return '<option value="' + ui.escaparHtml(member.idPessoa) + '"' +
           (member.elegivelApresentacao ? '' : ' disabled') + '>' +
           ui.escaparHtml(member.nomeExibicao + (member.rga ? ' (' + member.rga + ')' : '') + suffix) +

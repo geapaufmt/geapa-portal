@@ -1821,6 +1821,11 @@ button:disabled:hover {
   gap: 7px;
 }
 
+.required-marker {
+  color: #a61b1b;
+  font-weight: 700;
+}
+
 .readonly-form .checkbox-line {
   display: flex;
   align-items: flex-start;

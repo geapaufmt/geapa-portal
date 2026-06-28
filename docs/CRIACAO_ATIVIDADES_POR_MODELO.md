@@ -31,7 +31,9 @@ Para `APRESENTACAO_MEMBRO`, o formulario mostra apenas data, horarios, formato, 
 
 O seletor consulta o backend e usa `ID_PESSOA` como chave. Nome e RGA servem para exibicao/conferencia; e-mail, tipo `MEMBRO` e papel `APRESENTADOR` sao preenchidos internamente no payload. O backend revalida a pessoa, gera o titulo inicial e atribui a responsabilidade a `Secretaria GEAPA`.
 
-Membros com apresentacao ativa no mesmo ciclo aparecem indisponiveis. O Portal nao concede excecao: o backend retorna `EXCECAO_NECESSARIA` para tratamento futuro. Titulo/eixos e material seguem como pendencias posteriores do fluxo de apresentacao.
+Membros com apresentacao ativa no mesmo ciclo GEAPA aparecem indisponiveis, mesmo que a apresentacao esteja em outro semestre do ciclo. O rotulo informa o ID institucional, por exemplo `Ja agendado no ciclo GEAPA_2026`. O Portal nao concede excecao: o backend retorna `EXCECAO_NECESSARIA` para tratamento futuro. Titulo/eixos e material seguem como pendencias posteriores do fluxo de apresentacao.
+
+A ordenacao recebida do backend mantem elegiveis antes dos nao elegiveis e usa RGA dentro de cada grupo. O Portal nao calcula ciclo por ano ou semestre; apenas exibe `idCiclo`, `rotuloCiclo` e a situacao resolvidos pelo backend.
 
 ## Homologacao
 
