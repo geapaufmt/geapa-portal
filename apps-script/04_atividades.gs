@@ -452,7 +452,8 @@ function portalNormalizarRespostaCriacaoModelo_(resposta, successCode, inicio) {
     var errorData = resposta ? {
       fieldErrors: resposta.fieldErrors || {},
       mensagens: resposta.mensagens || [],
-      avisos: resposta.avisos || [],
+      avisos: resposta.warnings || resposta.avisos || [],
+      nextActions: resposta.nextActions || [],
       excecaoNecessaria: resposta.excecaoNecessaria === true,
       camposDivergentes: resposta.camposDivergentes || [],
       excecoesDetectadas: resposta.excecoesDetectadas || [],
@@ -478,7 +479,8 @@ function portalNormalizarRespostaCriacaoModelo_(resposta, successCode, inicio) {
     dryRun: resposta.dryRun === true
   };
   var meta = portalMetaAtividades_('geapa-atividades-modelo-criar', inicio);
-  meta.avisos = resposta.avisos || (resposta.meta && resposta.meta.avisos) || [];
+  meta.avisos = resposta.warnings || resposta.avisos || (resposta.meta && resposta.meta.avisos) || [];
+  meta.nextActions = resposta.nextActions || (resposta.meta && resposta.meta.nextActions) || [];
   return portalRespostaOk_(successCode, resposta.message || 'Atividade processada pelo modelo.', data, meta);
 }
 

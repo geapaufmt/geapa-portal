@@ -161,6 +161,19 @@
     var botaoCriar = evento.target.closest('[data-create-activity]');
     var botaoJustificar = evento.target.closest('[data-activity-justify-future]');
     var botaoFechar = evento.target.closest('[data-activity-modal-close]');
+    var botaoAbrirCriada = evento.target.closest('[data-feedback-open-activity]');
+    var botaoCriarOutra = evento.target.closest('[data-feedback-create-activity]');
+
+    if (botaoAbrirCriada) {
+      carregarDetalheAtividade(botaoAbrirCriada.getAttribute('data-feedback-open-activity'));
+      return;
+    }
+
+    if (botaoCriarOutra) {
+      ui.limparMensagemPersistente('#atividades-feedback');
+      abrirModalCriarAtividade();
+      return;
+    }
 
     if (botaoCriar) {
       abrirModalCriarAtividade();
@@ -2497,22 +2510,39 @@
 
   function salvarNovaAtividade(form) {
     var payload;
-    var erros;
+    var fieldErrors;
+    var toastId;
 
     if (isCriandoAtividade) {
       return;
     }
 
+    ui.limparErrosCampos(form);
+    removerFeedbackErroModalAtividade();
     payload = montarPayloadCriarAtividade(form);
-    erros = validarPayloadCriarAtividade(payload, obterModeloCriacaoPorId(payload.idConfig));
+    fieldErrors = validarPayloadCriarAtividade(payload, obterModeloCriacaoPorId(payload.idConfig));
 
-    if (erros.length) {
-      mostrarErroModalAtividade(erros.join(' '));
+    if (Object.keys(fieldErrors).length) {
+      mostrarErroModalAtividade(
+        'Nao foi possivel concluir a acao. Verifique os campos destacados.',
+        form,
+        fieldErrors
+      );
+      ui.mostrarToast({
+        type: 'error',
+        message: 'Nao foi possivel concluir a acao. Verifique os campos destacados.'
+      });
       return;
     }
 
     isCriandoAtividade = true;
     alternarFormularioAtividadeOcupado(form, true);
+    toastId = ui.mostrarToast({
+      type: 'pending',
+      title: 'Criando atividade',
+      message: 'Validando os dados com o backend...',
+      persistent: true
+    });
     ui.mostrarLoading('Validando atividade...');
 
     api.apiPost('/atividades/modelo/validar', {
@@ -2531,7 +2561,13 @@
         });
       }
 
-      ui.mostrarLoading('Criando atividade...');
+      ui.atualizarMensagemLoading('Criando atividade...');
+      ui.atualizarToast(toastId, {
+        type: 'pending',
+        title: 'Criando atividade',
+        message: 'A atividade esta sendo criada como rascunho.',
+        persistent: true
+      });
       return api.apiPost('/atividades/modelo/criar', {
         payload: JSON.stringify(Object.assign({}, payload, {
           dryRun: false,
@@ -2547,10 +2583,36 @@
       invalidarCacheAtividades();
       recarregarAtividadesAposCriacao();
       mostrarStatusCriacaoAtividade(resposta);
+      ui.atualizarToast(toastId, {
+        type: 'success',
+        title: 'Atividade criada',
+        message: 'Atividade criada com sucesso como rascunho.'
+      });
     }).catch(function falhar(erro) {
-      if (!erro.cancelado) {
-        mostrarErroModalAtividade(erro.message || 'Nao foi possivel criar a atividade.');
+      var mensagemErro;
+
+      if (erro.cancelado) {
+        ui.atualizarToast(toastId, {
+          type: 'info',
+          message: 'Criacao cancelada. Nenhuma atividade foi gravada.'
+        });
+        return;
       }
+
+      mensagemErro = ui.obterMensagemErroAmigavel({
+        message: erro.message,
+        fieldErrors: erro.fieldErrors || {}
+      }, 'Nao foi possivel criar a atividade. Tente novamente.');
+      mostrarErroModalAtividade(
+        mensagemErro,
+        form,
+        erro.fieldErrors || {}
+      );
+      ui.atualizarToast(toastId, {
+        type: 'error',
+        title: 'Atividade nao criada',
+        message: mensagemErro
+      });
     }).finally(function finalizar() {
       isCriandoAtividade = false;
       alternarFormularioAtividadeOcupado(form, false);
@@ -2602,12 +2664,12 @@
   }
 
   function validarPayloadCriarAtividade(payload, modelo) {
-    var erros = [];
+    var erros = {};
     var atividade = payload.atividade || {};
     var inicio = converterHorarioMinutos(atividade.horarioInicio);
     var fim = converterHorarioMinutos(atividade.horarioFim);
 
-    if (!payload.idConfig || !modelo) erros.push('Selecione um modelo homologado.');
+    if (!payload.idConfig || !modelo) erros.idConfig = 'Selecione um modelo homologado.';
 
     [
       ['dataAtividade', 'Informe a data da atividade.'],
@@ -2617,44 +2679,43 @@
       ['local', 'Informe o local.']
     ].forEach(function validar(item) {
       if (!atividade[item[0]]) {
-        erros.push(item[1]);
+        erros[item[0]] = item[1];
       }
     });
 
     if (inicio >= 0 && fim >= 0 && fim <= inicio) {
-      erros.push('O horario de fim deve ser posterior ao inicio.');
+      erros.horarioFim = 'O horario de fim deve ser posterior ao inicio.';
     }
 
     var isMemberPresentation = ehModeloApresentacaoMembro(modelo);
-    if (modelo && !isMemberPresentation && modelo.exigeTituloPublico && !atividade.tituloPublico) erros.push('Informe o titulo publico.');
-    if (modelo && !isMemberPresentation && modelo.exigeEixoTematico && !atividade.eixoTematicoPrincipal) erros.push('Informe o eixo tematico principal.');
+    if (modelo && !isMemberPresentation && modelo.exigeTituloPublico && !atividade.tituloPublico) erros.tituloPublico = 'Informe o titulo publico.';
+    if (modelo && !isMemberPresentation && modelo.exigeEixoTematico && !atividade.eixoTematicoPrincipal) erros.eixoTematicoPrincipal = 'Informe o eixo tematico principal.';
     if (isMemberPresentation && !atividade.idPessoaPrincipal) {
-      erros.push('Selecione o membro apresentador.');
+      erros.idPessoaPrincipal = 'Selecione o membro apresentador.';
     } else if (modelo && modelo.exigePessoaPrincipal && !atividade.idPessoaPrincipal && !atividade.nomePessoaPrincipalPublico) {
-      erros.push('Informe a pessoa principal.');
+      erros.nomePessoaPrincipalPublico = 'Informe a pessoa principal.';
     }
-    if (modelo && modelo.exigeEmailPessoaPrincipal && !atividade.emailPessoaPrincipal) erros.push('Informe o e-mail da pessoa principal.');
+    if (modelo && modelo.exigeEmailPessoaPrincipal && !atividade.emailPessoaPrincipal) erros.emailPessoaPrincipal = 'Informe o e-mail da pessoa principal.';
     if (modelo && modelo.exigeInstituicaoPessoaPrincipal && !atividade.instituicaoPessoaPrincipal) {
-      erros.push('Informe a instituicao da pessoa principal.');
+      erros.instituicaoPessoaPrincipal = 'Informe a instituicao da pessoa principal.';
     }
 
     return erros;
   }
 
   function criarErroAtividade(resposta) {
-    var erro = new Error(resposta.message || 'Nao foi possivel criar a atividade.');
-    var fieldErrors = resposta.fieldErrors ||
-      (resposta.data && resposta.data.fieldErrors) ||
-      {};
-    var mensagens = Object.keys(fieldErrors || {}).map(function montar(campo) {
-      return fieldErrors[campo];
-    }).filter(Boolean);
-
-    if (mensagens.length) {
-      erro.message = mensagens.join(' ');
-    }
-
+    var feedback = ui.normalizarFeedbackResposta(resposta, {
+      fallbackMessage: 'Nao foi possivel criar a atividade.'
+    });
+    var erro = new Error(ui.obterMensagemErroAmigavel(
+      feedback,
+      'Nao foi possivel criar a atividade. Tente novamente.'
+    ));
+    var fieldErrors = feedback.fieldErrors;
     erro.cancelado = resposta.cancelado === true;
+    erro.fieldErrors = fieldErrors;
+    erro.warnings = feedback.warnings;
+    erro.nextActions = feedback.nextActions;
     return erro;
   }
 
@@ -2671,17 +2732,44 @@
   }
 
   function mostrarStatusCriacaoAtividade(resposta) {
-    var status = document.getElementById('atividades-status');
-    var avisos = resposta && resposta.meta && resposta.meta.avisos
-      ? resposta.meta.avisos
-      : [];
+    var feedback = ui.normalizarFeedbackResposta(resposta);
+    var atividade = obterAtividadeCriadaResposta(feedback.data);
+    var idAtividade = atividade.idAtividade || atividade.ID_ATIVIDADE || '';
+    var detalhes = [];
 
-    if (status) {
-      status.textContent = (resposta && resposta.message) || 'Atividade criada como rascunho.';
-      if (Array.isArray(avisos) && avisos.length) {
-        status.textContent += ' Avisos: ' + avisos.join(' ');
-      }
+    if (idAtividade) detalhes.push('ID da atividade: ' + idAtividade);
+    detalhes.push('Status operacional: ' + (atividade.statusOperacional || atividade.STATUS_OPERACIONAL || 'PLANEJADA'));
+    detalhes.push('Publicacao no portal: ' + (atividade.statusPublicacaoPortal || atividade.STATUS_PUBLICACAO_PORTAL || 'RASCUNHO'));
+    detalhes.push('Visibilidade: ' + (atividade.visibilidadePortal || atividade.VISIBILIDADE_PORTAL || 'DIRETORIA'));
+    if (feedback.message && feedback.message !== 'Atividade criada com sucesso como rascunho.') {
+      detalhes.push(feedback.message);
     }
+    feedback.warnings.forEach(function adicionar(aviso) {
+      detalhes.push(typeof aviso === 'string' ? aviso : (aviso.message || aviso.mensagem || ''));
+    });
+
+    ui.mostrarMensagemPersistente('#atividades-feedback', {
+      type: feedback.warnings.length ? 'warning' : 'success',
+      title: 'Atividade criada',
+      message: 'Atividade criada com sucesso como rascunho.',
+      details: detalhes.filter(Boolean),
+      actions: [
+        idAtividade ? {
+          label: 'Abrir atividade',
+          attributes: { 'data-feedback-open-activity': idAtividade }
+        } : null,
+        {
+          label: 'Criar outra',
+          className: 'secondary-button compact-button',
+          attributes: { 'data-feedback-create-activity': 'true' }
+        }
+      ].filter(Boolean)
+    });
+  }
+
+  function obterAtividadeCriadaResposta(data) {
+    var dados = data || {};
+    return dados.atividade || dados.atividadeCriada || dados.atividadePreview || dados;
   }
 
   function alternarFormularioAtividadeOcupado(form, ocupado) {
@@ -3053,7 +3141,7 @@
     }
   }
 
-  function mostrarErroModalAtividade(mensagem) {
+  function mostrarErroModalAtividade(mensagem, form, fieldErrors) {
     var conteudo = document.getElementById('atividade-modal-content');
     var alerta = conteudo ? conteudo.querySelector('[data-activity-modal-error]') : null;
 
@@ -3062,13 +3150,25 @@
     }
 
     if (!alerta) {
-      alerta = document.createElement('p');
-      alerta.className = 'empty-state readonly-error';
+      alerta = document.createElement('div');
       alerta.setAttribute('data-activity-modal-error', 'true');
       conteudo.insertBefore(alerta, conteudo.firstChild);
     }
 
-    alerta.textContent = mensagem;
+    ui.mostrarMensagemPersistente(alerta, {
+      type: 'error',
+      title: 'Revise os dados',
+      message: mensagem
+    });
+    ui.aplicarErrosCampos(form, fieldErrors || {});
+  }
+
+  function removerFeedbackErroModalAtividade() {
+    var alerta = document.querySelector('[data-activity-modal-error]');
+
+    if (alerta) {
+      alerta.remove();
+    }
   }
 
   function carregarDetalheAtividade(idAtividade) {

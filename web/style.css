@@ -648,6 +648,133 @@ button:disabled:hover {
   line-height: 1.5;
 }
 
+.portal-toast-region {
+  position: fixed;
+  top: calc(var(--portal-header-height) + 14px);
+  right: 18px;
+  z-index: 1200;
+  display: grid;
+  gap: 10px;
+  width: min(390px, calc(100vw - 36px));
+  pointer-events: none;
+}
+
+.portal-toast,
+.portal-feedback {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-left-width: 5px;
+  border-radius: 8px;
+  padding: 14px 16px;
+  color: var(--ink);
+  background: var(--white);
+  box-shadow: var(--shadow-soft);
+}
+
+.portal-toast {
+  position: relative;
+  pointer-events: auto;
+}
+
+.portal-feedback-slot {
+  margin-top: 14px;
+}
+
+.portal-feedback-success,
+.portal-toast-success {
+  border-left-color: var(--green-600);
+  background: var(--green-050);
+}
+
+.portal-feedback-info,
+.portal-toast-info {
+  border-left-color: #3977a8;
+  background: #f3f8fc;
+}
+
+.portal-feedback-warning,
+.portal-toast-warning {
+  border-left-color: #b17a00;
+  background: var(--warning-bg);
+}
+
+.portal-feedback-error,
+.portal-toast-error {
+  border-left-color: #b9252a;
+  background: #fff5f5;
+}
+
+.portal-feedback-pending,
+.portal-toast-pending {
+  border-left-color: var(--geapa-brown);
+  background: #faf7f2;
+}
+
+.portal-feedback-body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.portal-feedback-title {
+  display: block;
+  margin: 0 32px 4px 0;
+  color: var(--green-950);
+}
+
+.portal-feedback-message {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.portal-feedback-details {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  line-height: 1.4;
+}
+
+.portal-feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.portal-feedback-actions button {
+  min-height: 40px;
+}
+
+.portal-toast-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 34px;
+  min-height: 34px;
+  border: 0;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.field-error-message {
+  display: block;
+  margin-top: 5px;
+  color: #9f1d22;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: #b9252a;
+  background: #fffafa;
+}
+
 .global-loading {
   position: fixed;
   inset: 0;

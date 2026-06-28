@@ -357,6 +357,7 @@ function portalRespostaErro_(code, message, data, metaExtra) {
  * @return {Object} Resposta padronizada.
  */
 function portalResposta_(ok, code, message, data, metaExtra) {
+  var dados = data || {};
   var meta = {
     app: PORTAL_CONFIG.nomePortal,
     modo: 'apps-script',
@@ -369,11 +370,18 @@ function portalResposta_(ok, code, message, data, metaExtra) {
     });
   }
 
+  var warnings = dados.warnings || dados.avisos || meta.warnings || meta.avisos || [];
+  var fieldErrors = dados.fieldErrors || {};
+  var nextActions = dados.nextActions || meta.nextActions || [];
+
   return {
     ok: ok,
     code: code,
     message: message,
-    data: data || {},
+    data: dados,
+    warnings: Array.isArray(warnings) ? warnings : (warnings ? [warnings] : []),
+    fieldErrors: fieldErrors && typeof fieldErrors === 'object' ? fieldErrors : {},
+    nextActions: Array.isArray(nextActions) ? nextActions : (nextActions ? [nextActions] : []),
     meta: meta
   };
 }

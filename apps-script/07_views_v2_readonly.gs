@@ -954,7 +954,11 @@ function portalValidarPayloadApresentacaoV2_(payload, camposObrigatorios) {
         'PAYLOAD_INCOMPLETO',
         'Informe os dados obrigatorios da apresentacao.',
         {
-          campos: ausentes
+          campos: ausentes,
+          fieldErrors: ausentes.reduce(function montar(erros, campo) {
+            erros[campo] = 'Campo obrigatorio.';
+            return erros;
+          }, {})
         }
       )
     };
@@ -1046,19 +1050,31 @@ function portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio) {
   }
 
   if (resposta.ok === false) {
+    var dadosErroOrigem = resposta.data || resposta.dados || {};
+    var dadosErro = dadosErroOrigem && typeof dadosErroOrigem === 'object'
+      ? dadosErroOrigem
+      : {};
+    if (resposta.fieldErrors && !dadosErro.fieldErrors) dadosErro.fieldErrors = resposta.fieldErrors;
+    if (resposta.warnings && !dadosErro.warnings) dadosErro.warnings = resposta.warnings;
+    if (resposta.avisos && !dadosErro.avisos) dadosErro.avisos = resposta.avisos;
+    if (resposta.nextActions && !dadosErro.nextActions) dadosErro.nextActions = resposta.nextActions;
     return portalRespostaErro_(
       resposta.code || resposta.errorCode || 'ERRO_APRESENTACOES_V2',
       resposta.message || 'Nao foi possivel executar a acao de apresentacao.',
-      {},
+      dadosErro,
       portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
     );
   }
 
+  var dadosSucesso = resposta.data || resposta.dados || resposta || {};
+  var meta = portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio);
+  meta.warnings = resposta.warnings || resposta.avisos || [];
+  meta.nextActions = resposta.nextActions || [];
   return portalRespostaOk_(
     config.code,
     resposta.message || config.message,
-    resposta.data || resposta.dados || resposta || {},
-    portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+    dadosSucesso,
+    meta
   );
 }
 

@@ -116,6 +116,7 @@
     justificativasConfigExpiraEm: 0,
     justificativasConfigPromise: null,
     frequenciaCicloSelecionado: '',
+    feedbackPersistente: null,
     cache: {}
   };
   var TTL_CACHE_PRIVADO_MS = 60000;
@@ -276,8 +277,22 @@
       '<h2>' + ui.escaparHtml(definicao.titulo) + '</h2>',
       '<p class="intro">' + ui.escaparHtml(definicao.intro) + '</p>',
       '</div>',
+      '<div data-readonly-feedback class="portal-feedback-slot" hidden></div>',
       corpo
     ].join('');
+
+    restaurarFeedbackPersistente(definicao.idRota);
+  }
+
+  function restaurarFeedbackPersistente(idRota) {
+    var feedback = estado.feedbackPersistente;
+    var alvo = document.querySelector('[data-readonly-feedback]');
+
+    if (!alvo || !feedback || feedback.idRota !== idRota) {
+      return;
+    }
+
+    ui.mostrarMensagemPersistente(alvo, feedback);
   }
 
   function montarConteudo(definicao, data, emCache) {
@@ -1936,7 +1951,7 @@
       eixoTematicoPrincipal: dados.get('eixoTematicoPrincipal'),
       eixoTematicoSecundario: dados.get('eixoTematicoSecundario'),
       observacoes: dados.get('observacoes')
-    });
+    }, { form: form, acao: 'ENVIAR_TITULO_EIXO' });
   }
 
   function salvarEditarAprovarTituloEixo(form) {
@@ -1950,7 +1965,7 @@
       eixoTematicoSecundario: dados.get('eixoTematicoSecundario'),
       observacaoPublica: '',
       observacaoInterna: dados.get('observacaoInterna') || ''
-    });
+    }, { form: form, acao: 'APROVAR_TITULO_EIXO' });
   }
 
   function salvarMaterial(form) {
@@ -1958,12 +1973,16 @@
     var arquivo = dados.get('arquivo');
 
     if (!arquivo || !arquivo.name) {
-      mostrarErroModal('Selecione um arquivo.');
+      mostrarErroModal('Selecione um arquivo.', form, {
+        arquivo: 'Selecione um arquivo.'
+      });
       return;
     }
 
     if (!arquivoPermitido(arquivo)) {
-      mostrarErroModal('Formato nao permitido. Use PDF, PPT, PPTX ou ODP.');
+      mostrarErroModal('Formato nao permitido. Use PDF, PPT, PPTX ou ODP.', form, {
+        arquivo: 'Use um arquivo PDF, PPT, PPTX ou ODP.'
+      });
       return;
     }
 
@@ -1976,7 +1995,7 @@
           mimeType: arquivo.type || '',
           conteudoBase64: conteudoBase64,
           observacoes: dados.get('observacoes')
-        }, true);
+        }, { loadingAtivo: true, form: form, acao: 'ENVIAR_MATERIAL' });
       })
       .catch(function falhar(erro) {
         ui.ocultarLoading();
@@ -1993,7 +2012,9 @@
     var observacaoInterna = String(dados.get('observacaoInterna') || '').trim();
 
     if (observacaoObrigatoria && !observacaoPublica && !observacaoInterna) {
-      mostrarErroModal('Informe uma observacao para concluir esta acao.');
+      mostrarErroModal('Informe uma observacao para concluir esta acao.', form, {
+        observacaoPublica: 'Informe a orientacao que sera exibida ao membro.'
+      });
       return;
     }
 
@@ -2002,7 +2023,8 @@
         dados.get('idApresentacao'),
         decisao,
         observacaoPublica,
-        observacaoInterna
+        observacaoInterna,
+        form
       );
       return;
     }
@@ -2011,7 +2033,8 @@
       dados.get('idApresentacao'),
       decisao,
       observacaoPublica,
-      observacaoInterna
+      observacaoInterna,
+      form
     );
   }
 
@@ -2090,7 +2113,7 @@
     });
   }
 
-  function enviarRevisaoTitulo(id, decisao, observacaoPublica, observacaoInterna) {
+  function enviarRevisaoTitulo(id, decisao, observacaoPublica, observacaoInterna, form) {
     var route = decisao === 'REPROVAR'
       ? '/v2/apresentacoes/titulo-eixo/reprovar'
       : '/v2/apresentacoes/titulo-eixo/revisar';
@@ -2100,20 +2123,41 @@
       decisao: decisao,
       observacaoPublica: observacaoPublica || '',
       observacaoInterna: observacaoInterna || ''
+    }, {
+      form: form,
+      acao: decisao === 'APROVAR' || decisao === 'EDITAR_E_APROVAR'
+        ? 'APROVAR_TITULO_EIXO'
+        : (decisao === 'SOLICITAR_AJUSTE' ? 'AJUSTAR_TITULO_EIXO' : 'REPROVAR_TITULO_EIXO')
     });
   }
 
-  function enviarRevisaoMaterial(id, decisao, observacaoPublica, observacaoInterna) {
+  function enviarRevisaoMaterial(id, decisao, observacaoPublica, observacaoInterna, form) {
     executarPostApresentacao('/v2/apresentacoes/material/revisar', {
       idApresentacao: id,
       decisao: decisao,
       observacaoPublica: observacaoPublica || '',
       observacaoInterna: observacaoInterna || ''
-    });
+    }, { form: form, acao: 'REVISAR_MATERIAL' });
   }
 
-  function executarPostApresentacao(route, payload, loadingAtivo) {
-    if (!loadingAtivo) {
+  function executarPostApresentacao(route, payload, opcoes) {
+    var config = opcoes || {};
+    var toastId;
+
+    if (config.form) {
+      ui.limparErrosCampos(config.form);
+      var feedbackAnterior = document.querySelector('[data-readonly-modal-feedback]');
+      if (feedbackAnterior) feedbackAnterior.remove();
+    }
+
+    toastId = ui.mostrarToast({
+      type: 'pending',
+      title: 'Processando apresentacao',
+      message: obterMensagemPendenteApresentacao(config.acao),
+      persistent: true
+    });
+
+    if (!config.loadingAtivo) {
       ui.mostrarLoading('Salvando apresentacao...');
     }
 
@@ -2121,20 +2165,113 @@
       payload: JSON.stringify(payload)
     })
       .then(function tratar(resposta) {
+        var feedback = ui.normalizarFeedbackResposta(resposta);
+
         if (!resposta.ok) {
-          throw new Error(resposta.message || 'Nao foi possivel salvar a apresentacao.');
+          var erro = new Error(ui.obterMensagemErroAmigavel(
+            feedback,
+            'Nao foi possivel salvar a apresentacao. Tente novamente.'
+          ));
+          erro.fieldErrors = feedback.fieldErrors;
+          erro.code = feedback.code;
+          throw erro;
         }
 
+        var sucesso = montarFeedbackSucessoApresentacao(config.acao, payload, feedback);
+        estado.feedbackPersistente = Object.assign({
+          idRota: estado.rotaAtual || 'minhas-apresentacoes'
+        }, sucesso);
         fecharModal();
         invalidarCacheApresentacoes();
         carregarTela(estado.rotaAtual || 'minhas-apresentacoes');
+        ui.atualizarToast(toastId, {
+          type: sucesso.type,
+          title: sucesso.title,
+          message: sucesso.message
+        });
       })
       .catch(function falhar(erro) {
-        mostrarErroModal(erro.message || 'Erro controlado ao salvar.');
+        var mensagemErro = ui.obterMensagemErroAmigavel({
+          message: erro.message,
+          fieldErrors: erro.fieldErrors || {}
+        }, 'Nao foi possivel concluir a acao. Tente novamente.');
+        mostrarErroModal(
+          mensagemErro,
+          config.form,
+          erro.fieldErrors || {}
+        );
+        ui.atualizarToast(toastId, {
+          type: 'error',
+          title: 'Acao nao concluida',
+          message: mensagemErro
+        });
       })
       .then(function finalizar() {
         ui.ocultarLoading();
       });
+  }
+
+  function obterMensagemPendenteApresentacao(acao) {
+    if (acao === 'ENVIAR_TITULO_EIXO') {
+      return 'Enviando titulo e eixo para analise...';
+    }
+    if (acao === 'APROVAR_TITULO_EIXO') {
+      return 'Aprovando titulo e eixo...';
+    }
+    if (acao === 'AJUSTAR_TITULO_EIXO') {
+      return 'Devolvendo titulo e eixo para ajuste...';
+    }
+    if (acao === 'REPROVAR_TITULO_EIXO') {
+      return 'Registrando a reprovacao da proposta...';
+    }
+
+    return 'Salvando alteracoes da apresentacao...';
+  }
+
+  function montarFeedbackSucessoApresentacao(acao, payload, feedback) {
+    var mensagens = {
+      ENVIAR_TITULO_EIXO: 'Titulo e eixo enviados com sucesso. A apresentacao ficara pendente de analise.',
+      APROVAR_TITULO_EIXO: 'Titulo e eixo aprovados com sucesso.',
+      AJUSTAR_TITULO_EIXO: 'Titulo e eixo devolvidos para ajuste.',
+      REPROVAR_TITULO_EIXO: 'Titulo e eixo reprovados. O membro devera enviar uma nova proposta diferente.',
+      ENVIAR_MATERIAL: 'Material da apresentacao enviado com sucesso.',
+      REVISAR_MATERIAL: 'Analise do material registrada com sucesso.'
+    };
+    var proximosPassos = {
+      ENVIAR_TITULO_EIXO: 'Proxima acao: aguardar a analise da Diretoria ou Secretaria.',
+      APROVAR_TITULO_EIXO: 'Status final: aprovado.',
+      AJUSTAR_TITULO_EIXO: 'Proxima acao: o membro deve complementar e reenviar a proposta.',
+      REPROVAR_TITULO_EIXO: 'Proxima acao: o membro deve informar uma nova proposta.',
+      ENVIAR_MATERIAL: 'Proxima acao: aguardar a analise do material.',
+      REVISAR_MATERIAL: 'Status final atualizado pelo backend.'
+    };
+    var mensagemPadrao = mensagens[acao] || 'Apresentacao atualizada com sucesso.';
+    var detalhes = [];
+
+    if (payload && payload.idApresentacao) {
+      detalhes.push('ID da apresentacao: ' + payload.idApresentacao);
+    }
+    if (feedback.message && feedback.message !== mensagemPadrao) {
+      detalhes.push(feedback.message);
+    }
+    if (proximosPassos[acao]) {
+      detalhes.push(proximosPassos[acao]);
+    }
+    feedback.warnings.forEach(function adicionar(aviso) {
+      detalhes.push(typeof aviso === 'string' ? aviso : (aviso.message || aviso.mensagem || ''));
+    });
+    feedback.nextActions.forEach(function adicionar(acaoBackend) {
+      detalhes.push(typeof acaoBackend === 'string'
+        ? acaoBackend
+        : (acaoBackend.message || acaoBackend.mensagem || acaoBackend.label || acaoBackend.acao || ''));
+    });
+
+    return {
+      type: feedback.warnings.length ? 'warning' : 'success',
+      title: 'Apresentacao atualizada',
+      message: mensagemPadrao,
+      details: detalhes.filter(Boolean)
+    };
   }
 
   function executarPostJustificativa(route, payload) {
@@ -2279,17 +2416,32 @@
     }
   }
 
-  function mostrarErroModal(mensagem) {
+  function mostrarErroModal(mensagem, form, fieldErrors) {
     var alvo = document.querySelector('[data-readonly-modal-content]');
 
     if (!alvo) {
+      estado.feedbackPersistente = {
+        idRota: estado.rotaAtual,
+        type: 'error',
+        title: 'Acao nao concluida',
+        message: mensagem
+      };
+      restaurarFeedbackPersistente(estado.rotaAtual);
       return;
     }
 
-    alvo.insertAdjacentHTML(
-      'afterbegin',
-      '<p class="empty-state readonly-error">' + ui.escaparHtml(mensagem) + '</p>'
-    );
+    var alerta = alvo.querySelector('[data-readonly-modal-feedback]');
+    if (!alerta) {
+      alerta = document.createElement('div');
+      alerta.setAttribute('data-readonly-modal-feedback', 'true');
+      alvo.insertBefore(alerta, alvo.firstChild);
+    }
+    ui.mostrarMensagemPersistente(alerta, {
+      type: 'error',
+      title: 'Revise os dados',
+      message: mensagem
+    });
+    ui.aplicarErrosCampos(form, fieldErrors || {});
   }
 
   function fecharModal() {

@@ -60,6 +60,9 @@ Todas as respostas devem seguir este formato:
   "code": "CODIGO_DA_RESPOSTA",
   "message": "Mensagem para exibição ou debug controlado.",
   "data": {},
+  "warnings": [],
+  "fieldErrors": {},
+  "nextActions": [],
   "meta": {
     "app": "Portal GEAPA",
     "modo": "apps-script",
@@ -75,6 +78,18 @@ Campos:
 - `message`: mensagem curta e não sensível.
 - `data`: dados especificos da acao.
 - `meta`: informações técnicas não sensíveis.
+
+Campos adicionais para feedback de acoes:
+
+- `warnings`: avisos nao bloqueantes que acompanham o resultado;
+- `fieldErrors`: mapa `nomeDoCampo -> mensagem` para validacao proxima ao campo;
+- `nextActions`: proximas acoes sugeridas pelo backend.
+
+O Apps Script normaliza esses campos no nivel superior mesmo quando um modulo
+legado os entrega dentro de `data`, como `avisos`, ou dentro de `meta`. O
+front-end usa `message` quando ela for segura para exibicao e aplica um texto
+amigavel quando receber mensagem tecnica. Nenhuma `nextAction` concede permissao
+no navegador; toda acao continua sendo validada novamente pelo backend.
 
 ## Sessao resolvida do Portal
 

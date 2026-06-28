@@ -22,8 +22,17 @@ O formulario:
 - envia primeiro um dry-run;
 - exige confirmacao do usuario;
 - reenvia o token temporario para a criacao real.
+- mostra feedback pendente durante validacao/criacao;
+- mostra toast de sucesso e resultado persistente com ID, status operacional,
+  publicacao e visibilidade;
+- oferece `Abrir atividade` e `Criar outra` depois da criacao real;
+- destaca `fieldErrors` junto aos campos e mantem um resumo no modal.
 
 A rota antiga `/atividades/criar` permanece no Apps Script por compatibilidade, mas a interface normal usa somente as rotas por modelo.
+
+Depois do sucesso, o Portal invalida o cache local de atividades e recarrega a
+lista sem exigir atualizacao manual. Avisos retornados pelo backend continuam
+visiveis no bloco persistente.
 
 ### Apresentacao de membro
 
