@@ -63,6 +63,9 @@ backend.
   `corePortalResolverUsuarioAtual`.
 - Tela inicial de Atividades com leitura segura via Apps Script e fallback de
   mock para desenvolvimento, sem escrita real.
+- Tela `Gestao -> Atividades` para perfis autorizados, com listagem de
+  rascunhos, detalhe sob demanda, edicao segura e acoes administrativas
+  validadas pelo backend V2 DEV.
 - Diagnostico interno de cadastro para testes no editor do Apps Script.
 - Documentacao de arquitetura e seguranca.
 

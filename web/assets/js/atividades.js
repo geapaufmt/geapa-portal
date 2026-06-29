@@ -45,6 +45,9 @@
   var modelosCriacaoAtividadeCache = [];
   var modelosCriacaoAtividadeExpiraEm = 0;
   var modelosCriacaoAtividadePromise = null;
+  var eixosCriacaoAtividadeCache = [];
+  var eixosCriacaoAtividadeExpiraEm = 0;
+  var eixosCriacaoAtividadePromise = null;
   var membrosApresentadoresCache = {};
   var filtroChamadaAtual = 'TODOS';
   var justificativasConfig = null;
@@ -217,6 +220,10 @@
     var status = document.getElementById('atividades-status');
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
 
+    if (ui && typeof ui.limparMensagemPersistente === 'function') {
+      ui.limparMensagemPersistente('#atividades-feedback');
+    }
+
     if (titulo) {
       titulo.textContent = historico ? 'Histórico de atividades' : 'Próximas atividades';
     }
@@ -243,11 +250,9 @@
       return;
     }
 
-    botaoCriar.hidden = modo === MODO_ATIVIDADES_HISTORICO || !auth.canCreateActivity();
-    botaoCriar.disabled = botaoCriar.hidden;
-    botaoCriar.title = botaoCriar.hidden
-      ? 'Criacao permitida apenas para Diretoria, Secretaria ou Admin tecnico.'
-      : 'Criar uma nova atividade como rascunho visivel apenas para Diretoria.';
+    botaoCriar.hidden = true;
+    botaoCriar.disabled = true;
+    botaoCriar.title = 'Crie e gerencie atividades em Gestao -> Atividades.';
   }
 
   function mostrarTelaAtividades() {
@@ -2098,6 +2103,7 @@
     modal.hidden = false;
     document.body.classList.add('modal-open');
 
+    var eixosPromise = carregarEixosCriacaoAtividade();
     carregarModelosCriacaoAtividade().then(function renderizar(modelos) {
       if (!modelos.length) {
         conteudo.innerHTML = '<p class="empty-state">Nenhum modelo homologado esta disponivel para seu perfil.</p>';
@@ -2105,6 +2111,11 @@
       }
       conteudo.innerHTML = montarFormularioCriarAtividade(modelos);
       var form = conteudo.querySelector('[data-activity-form="criar-atividade"]');
+      eixosPromise.then(function aplicarEixos(eixos) {
+        aplicarEixosCriacaoNoFormulario(form, eixos);
+      }).catch(function falharEixos(erro) {
+        mostrarFalhaEixosCriacao(form, erro);
+      });
       var select = form && form.querySelector('[name="idConfig"]');
       if (select) {
         select.addEventListener('change', function atualizarModelo() {
@@ -2146,6 +2157,58 @@
       modelosCriacaoAtividadePromise = null;
     });
     return modelosCriacaoAtividadePromise;
+  }
+
+  function carregarEixosCriacaoAtividade() {
+    if (eixosCriacaoAtividadeCache.length && eixosCriacaoAtividadeExpiraEm > Date.now()) {
+      return Promise.resolve(eixosCriacaoAtividadeCache.slice());
+    }
+    if (eixosCriacaoAtividadePromise) return eixosCriacaoAtividadePromise;
+
+    eixosCriacaoAtividadePromise = api.apiGet('/v2/apresentacoes/eixos', {}).then(function tratar(resposta) {
+      if (!resposta.ok) throw criarErroAtividade(resposta);
+      var eixos = resposta.data && Array.isArray(resposta.data.eixos) ? resposta.data.eixos : [];
+      eixosCriacaoAtividadeCache = eixos.map(function normalizar(eixo) {
+        return {
+          valor: String(eixo.rotuloFormulario || eixo.nomeOficial || eixo.nomeCurto || '').trim(),
+          rotulo: String(eixo.rotuloFormulario || eixo.nomeOficial || eixo.nomeCurto || '').trim()
+        };
+      }).filter(function filtrar(eixo) { return !!eixo.valor; });
+      if (!eixosCriacaoAtividadeCache.length) {
+        throw new Error('Nenhum eixo tematico oficial ativo foi encontrado.');
+      }
+      eixosCriacaoAtividadeExpiraEm = Date.now() + ATIVIDADES_CACHE_TTL_MS;
+      return eixosCriacaoAtividadeCache.slice();
+    }).finally(function finalizar() {
+      eixosCriacaoAtividadePromise = null;
+    });
+    return eixosCriacaoAtividadePromise;
+  }
+
+  function aplicarEixosCriacaoNoFormulario(form, eixos) {
+    if (!form) return;
+    var principal = form.elements.eixoTematicoPrincipal;
+    var secundario = form.elements.eixoTematicoSecundario;
+    var status = form.querySelector('[data-modelo-eixos-status]');
+    var opcoes = (eixos || []).map(function montar(eixo) {
+      return '<option value="' + ui.escaparHtml(eixo.valor) + '">' + ui.escaparHtml(eixo.rotulo) + '</option>';
+    }).join('');
+    form._eixosOficiais = (eixos || []).slice();
+    principal.innerHTML = '<option value="">Selecione o eixo principal</option>' + opcoes;
+    secundario.innerHTML = '<option value="">Sem eixo secundario</option>' + opcoes;
+    principal.disabled = false;
+    secundario.disabled = false;
+    if (status) status.textContent = 'Opcoes carregadas da base oficial de eixos tematicos.';
+  }
+
+  function mostrarFalhaEixosCriacao(form, erro) {
+    if (!form) return;
+    var status = form.querySelector('[data-modelo-eixos-status]');
+    form.elements.eixoTematicoPrincipal.disabled = true;
+    form.elements.eixoTematicoSecundario.disabled = true;
+    if (status) status.textContent = erro && erro.message
+      ? erro.message
+      : 'Nao foi possivel carregar os eixos oficiais.';
   }
 
   function obterModeloCriacaoPorId(idConfig) {
@@ -2209,11 +2272,12 @@
       '<section class="activity-detail-section" data-modelo-eixos hidden>',
       '<h4>Eixo tematico</h4>',
       '<label data-modelo-eixo-principal><span>Eixo tematico principal <span class="required-marker" data-required-eixo>*</span></span>',
-      '<input name="eixoTematicoPrincipal" type="text">',
+      '<select name="eixoTematicoPrincipal" disabled><option value="">Carregando eixos oficiais...</option></select>',
       '</label>',
       '<label data-modelo-eixo-secundario>Eixo tematico secundario',
-      '<input name="eixoTematicoSecundario" type="text">',
+      '<select name="eixoTematicoSecundario" disabled><option value="">Carregando eixos oficiais...</option></select>',
       '</label>',
+      '<small data-modelo-eixos-status>Carregando opcoes da base oficial...</small>',
       '</section>',
       '<section class="activity-detail-section" data-modelo-pessoa hidden>',
       '<h4 data-modelo-pessoa-titulo>Pessoa principal</h4>',
@@ -2355,6 +2419,10 @@
     eixoPrincipal.required = !isMemberPresentation && modelo.exigeEixoTematico === true;
     form.querySelector('[data-required-eixo]').hidden = !eixoPrincipal.required;
     eixoSecundario.closest('label').hidden = isMemberPresentation || modelo.permiteEixoSecundario !== true;
+    if (secaoEixos.hidden) {
+      eixoPrincipal.value = '';
+      eixoSecundario.value = '';
+    }
 
     secaoPessoa.hidden = modelo.exigePessoaPrincipal !== true;
     pessoaTitulo.textContent = isMemberPresentation ? 'Membro apresentador' : 'Pessoa principal';
@@ -2690,6 +2758,17 @@
     var isMemberPresentation = ehModeloApresentacaoMembro(modelo);
     if (modelo && !isMemberPresentation && modelo.exigeTituloPublico && !atividade.tituloPublico) erros.tituloPublico = 'Informe o titulo publico.';
     if (modelo && !isMemberPresentation && modelo.exigeEixoTematico && !atividade.eixoTematicoPrincipal) erros.eixoTematicoPrincipal = 'Informe o eixo tematico principal.';
+    var eixosOficiais = eixosCriacaoAtividadeCache.map(function mapear(eixo) { return eixo.valor; });
+    if (!isMemberPresentation && atividade.eixoTematicoPrincipal && eixosOficiais.indexOf(atividade.eixoTematicoPrincipal) < 0) {
+      erros.eixoTematicoPrincipal = 'Selecione um eixo tematico oficial.';
+    }
+    if (!isMemberPresentation && atividade.eixoTematicoSecundario && eixosOficiais.indexOf(atividade.eixoTematicoSecundario) < 0) {
+      erros.eixoTematicoSecundario = 'Selecione um eixo tematico oficial.';
+    }
+    if (!isMemberPresentation && atividade.eixoTematicoPrincipal &&
+        atividade.eixoTematicoPrincipal === atividade.eixoTematicoSecundario) {
+      erros.eixoTematicoSecundario = 'O eixo secundario deve ser diferente do principal.';
+    }
     if (isMemberPresentation && !atividade.idPessoaPrincipal) {
       erros.idPessoaPrincipal = 'Selecione o membro apresentador.';
     } else if (modelo && modelo.exigePessoaPrincipal && !atividade.idPessoaPrincipal && !atividade.nomePessoaPrincipalPublico) {
@@ -2747,6 +2826,17 @@
     feedback.warnings.forEach(function adicionar(aviso) {
       detalhes.push(typeof aviso === 'string' ? aviso : (aviso.message || aviso.mensagem || ''));
     });
+
+    if (navigation && typeof navigation.getRotaAtual === 'function' && navigation.getRotaAtual() === 'admin-atividades') {
+      document.dispatchEvent(new CustomEvent('portal:atividade-criada', {
+        detail: {
+          atividade: atividade,
+          resposta: resposta,
+          avisos: feedback.warnings || []
+        }
+      }));
+      return;
+    }
 
     ui.mostrarMensagemPersistente('#atividades-feedback', {
       type: feedback.warnings.length ? 'warning' : 'success',
@@ -3997,8 +4087,11 @@
   function recarregarAtividadesAposCriacao() {
     var lista = document.getElementById('atividades-lista');
     var status = document.getElementById('atividades-status');
+    var rotaAtual = navigation && typeof navigation.getRotaAtual === 'function'
+      ? navigation.getRotaAtual()
+      : '';
 
-    if (lista && status) {
+    if (lista && status && ehRotaDaTelaAtividades(rotaAtual)) {
       carregarAtividadesComLista(lista, status, MODO_ATIVIDADES_PROXIMAS);
     }
   }

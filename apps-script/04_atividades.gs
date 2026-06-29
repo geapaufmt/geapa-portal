@@ -363,6 +363,86 @@ function portalCriarAtividade(token, payloadJson) {
   );
 }
 
+/** Lista rascunhos e atividades para a tela administrativa autorizada. */
+function portalListarAtividadesAdmin(token, filtrosJson) {
+  var contexto = portalMontarContextoAtividades_(token);
+  if (!contexto.ok) return contexto.resposta;
+  var filtros = portalLerJsonOpcionalAtividades_(filtrosJson);
+  if (!filtros.ok) return filtros.resposta;
+  return portalNormalizarAcaoAdminAtividades_(
+    portalChamarAtividadesAdminListar_(filtros.data, contexto.contextoAtividades),
+    'ATIVIDADES_ADMIN_LISTADAS',
+    'Atividades administrativas carregadas.'
+  );
+}
+
+/** Carrega detalhe administrativo sem expor payloads internos de log. */
+function portalDetalheAtividadeAdmin(token, idAtividade) {
+  var contexto = portalMontarContextoAtividades_(token);
+  if (!contexto.ok) return contexto.resposta;
+  return portalNormalizarAcaoAdminAtividades_(
+    portalChamarAtividadesAdminDetalhe_(idAtividade, contexto.contextoAtividades),
+    'ATIVIDADE_ADMIN_DETALHE',
+    'Detalhe administrativo carregado.'
+  );
+}
+
+function portalValidarEdicaoAtividadeAdmin(token, payloadJson) {
+  return portalExecutarMutacaoAtividadeAdmin_(token, payloadJson, 'VALIDAR', 'Edicao validada.');
+}
+
+function portalSalvarEdicaoAtividadeAdmin(token, payloadJson) {
+  return portalExecutarMutacaoAtividadeAdmin_(token, payloadJson, 'SALVAR', 'Atividade atualizada.');
+}
+
+function portalPublicarAtividadeAdmin(token, payloadJson) {
+  return portalExecutarMutacaoAtividadeAdmin_(token, payloadJson, 'PUBLICAR', 'Atividade publicada.');
+}
+
+function portalOcultarAtividadeAdmin(token, payloadJson) {
+  return portalExecutarMutacaoAtividadeAdmin_(token, payloadJson, 'OCULTAR', 'Atividade ocultada.');
+}
+
+function portalCancelarAtividadeAdmin(token, payloadJson) {
+  return portalExecutarMutacaoAtividadeAdmin_(token, payloadJson, 'CANCELAR', 'Atividade cancelada.');
+}
+
+function portalReabrirAtividadeAdmin(token, payloadJson) {
+  return portalExecutarMutacaoAtividadeAdmin_(token, payloadJson, 'REABRIR', 'Atividade reaberta.');
+}
+
+function portalExecutarMutacaoAtividadeAdmin_(token, payloadJson, action, fallbackMessage) {
+  var contexto = portalMontarContextoAtividades_(token);
+  if (!contexto.ok) return contexto.resposta;
+  var payload = portalLerPayloadJson_(payloadJson);
+  if (!payload.ok) return payload.resposta;
+  var response = portalChamarAtividadesAdminMutation_(action, payload.data, contexto.contextoAtividades);
+  var normalized = portalNormalizarAcaoAdminAtividades_(response, 'ATIVIDADE_ADMIN_' + action, fallbackMessage);
+  if (normalized.ok && action !== 'VALIDAR') portalInvalidarCachesAtividadesAposCriacao_(contexto);
+  return normalized;
+}
+
+function portalNormalizarAcaoAdminAtividades_(response, code, fallbackMessage) {
+  var normalized = portalNormalizarRespostaObjetoAtividades_(response);
+  if (!normalized.ok) return normalized.resposta;
+  return portalRespostaOk_(code, normalized.message || fallbackMessage, normalized.data, {
+    atividadesAdmin: { origem: 'geapa-atividades', somenteDev: true }
+  });
+}
+
+function portalLerJsonOpcionalAtividades_(value) {
+  if (!value) return { ok: true, data: {} };
+  if (typeof value === 'object') return { ok: true, data: value };
+  try {
+    return { ok: true, data: JSON.parse(String(value)) };
+  } catch (err) {
+    return {
+      ok: false,
+      resposta: portalRespostaErro_('FILTROS_INVALIDOS', 'Os filtros informados sao invalidos.', {})
+    };
+  }
+}
+
 /** Lista modelos homologados disponiveis para o usuario autenticado. */
 function portalListarModelosAtividade(token) {
   var inicio = portalAgoraAtividadesMs_();
@@ -769,6 +849,55 @@ function portalChamarAtividadesCriar_(payload, contexto) {
     return GEAPA_ATIVIDADES.atividadesV2_portalCriarAtividade(payload, contexto);
   }
 
+  return null;
+}
+
+function portalChamarAtividadesAdminListar_(filters, context) {
+  if (typeof atividadesV2_portalListarAtividadesAdmin === 'function') {
+    return atividadesV2_portalListarAtividadesAdmin(filters, context);
+  }
+  if (typeof GEAPA_ATIVIDADES !== 'undefined' && typeof GEAPA_ATIVIDADES.atividadesV2_portalListarAtividadesAdmin === 'function') {
+    return GEAPA_ATIVIDADES.atividadesV2_portalListarAtividadesAdmin(filters, context);
+  }
+  return null;
+}
+
+function portalChamarAtividadesAdminDetalhe_(idAtividade, context) {
+  if (typeof atividadesV2_portalGetDetalheAtividadeAdmin === 'function') {
+    return atividadesV2_portalGetDetalheAtividadeAdmin(idAtividade, context);
+  }
+  if (typeof GEAPA_ATIVIDADES !== 'undefined' && typeof GEAPA_ATIVIDADES.atividadesV2_portalGetDetalheAtividadeAdmin === 'function') {
+    return GEAPA_ATIVIDADES.atividadesV2_portalGetDetalheAtividadeAdmin(idAtividade, context);
+  }
+  return null;
+}
+
+function portalChamarAtividadesAdminMutation_(action, payload, context) {
+  var module = typeof GEAPA_ATIVIDADES !== 'undefined' ? GEAPA_ATIVIDADES : null;
+  if (action === 'VALIDAR') {
+    if (typeof atividadesV2_portalValidarEdicaoAtividadeAdmin === 'function') return atividadesV2_portalValidarEdicaoAtividadeAdmin(payload, context);
+    if (module && typeof module.atividadesV2_portalValidarEdicaoAtividadeAdmin === 'function') return module.atividadesV2_portalValidarEdicaoAtividadeAdmin(payload, context);
+  }
+  if (action === 'SALVAR') {
+    if (typeof atividadesV2_portalSalvarEdicaoAtividadeAdmin === 'function') return atividadesV2_portalSalvarEdicaoAtividadeAdmin(payload, context);
+    if (module && typeof module.atividadesV2_portalSalvarEdicaoAtividadeAdmin === 'function') return module.atividadesV2_portalSalvarEdicaoAtividadeAdmin(payload, context);
+  }
+  if (action === 'PUBLICAR') {
+    if (typeof atividadesV2_portalPublicarAtividadeAdmin === 'function') return atividadesV2_portalPublicarAtividadeAdmin(payload, context);
+    if (module && typeof module.atividadesV2_portalPublicarAtividadeAdmin === 'function') return module.atividadesV2_portalPublicarAtividadeAdmin(payload, context);
+  }
+  if (action === 'OCULTAR') {
+    if (typeof atividadesV2_portalOcultarAtividadeAdmin === 'function') return atividadesV2_portalOcultarAtividadeAdmin(payload, context);
+    if (module && typeof module.atividadesV2_portalOcultarAtividadeAdmin === 'function') return module.atividadesV2_portalOcultarAtividadeAdmin(payload, context);
+  }
+  if (action === 'CANCELAR') {
+    if (typeof atividadesV2_portalCancelarAtividadeAdmin === 'function') return atividadesV2_portalCancelarAtividadeAdmin(payload, context);
+    if (module && typeof module.atividadesV2_portalCancelarAtividadeAdmin === 'function') return module.atividadesV2_portalCancelarAtividadeAdmin(payload, context);
+  }
+  if (action === 'REABRIR') {
+    if (typeof atividadesV2_portalReabrirAtividadeAdmin === 'function') return atividadesV2_portalReabrirAtividadeAdmin(payload, context);
+    if (module && typeof module.atividadesV2_portalReabrirAtividadeAdmin === 'function') return module.atividadesV2_portalReabrirAtividadeAdmin(payload, context);
+  }
   return null;
 }
 

@@ -29,6 +29,14 @@ function doGet(e) {
         'atividadeChamada',
         'atividadeSalvarChamada',
         'atividadeCriar',
+        'atividadeAdminListar',
+        'atividadeAdminDetalhe',
+        'atividadeAdminValidarEdicao',
+        'atividadeAdminSalvarEdicao',
+        'atividadeAdminPublicar',
+        'atividadeAdminOcultar',
+        'atividadeAdminCancelar',
+        'atividadeAdminReabrir',
         'minhaFrequencia',
         'minhasApresentacoes',
         'minhasJustificativas',
@@ -215,6 +223,38 @@ function portalExecutarAcao_(requisicao) {
       requisicao.token || '',
       requisicao.payload || ''
     );
+  }
+
+  if (acao === 'atividadeAdminListar') {
+    return portalListarAtividadesAdmin(requisicao.token || '', requisicao.filtros || '{}');
+  }
+
+  if (acao === 'atividadeAdminDetalhe') {
+    return portalDetalheAtividadeAdmin(requisicao.token || '', requisicao.idAtividade || '');
+  }
+
+  if (acao === 'atividadeAdminValidarEdicao') {
+    return portalValidarEdicaoAtividadeAdmin(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'atividadeAdminSalvarEdicao') {
+    return portalSalvarEdicaoAtividadeAdmin(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'atividadeAdminPublicar') {
+    return portalPublicarAtividadeAdmin(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'atividadeAdminOcultar') {
+    return portalOcultarAtividadeAdmin(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'atividadeAdminCancelar') {
+    return portalCancelarAtividadeAdmin(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'atividadeAdminReabrir') {
+    return portalReabrirAtividadeAdmin(requisicao.token || '', requisicao.payload || requisicao);
   }
 
   if (acao === 'minhaFrequencia') {

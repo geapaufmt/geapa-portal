@@ -399,6 +399,14 @@
       '/atividades/modelo/membros-apresentadores': 'atividadeMembrosApresentadores',
       '/atividades/modelo/validar': 'atividadeModeloValidar',
       '/atividades/modelo/criar': 'atividadeModeloCriar',
+      '/admin/atividades': 'atividadeAdminListar',
+      '/admin/atividades/detalhe': 'atividadeAdminDetalhe',
+      '/admin/atividades/validar': 'atividadeAdminValidarEdicao',
+      '/admin/atividades/salvar': 'atividadeAdminSalvarEdicao',
+      '/admin/atividades/publicar': 'atividadeAdminPublicar',
+      '/admin/atividades/ocultar': 'atividadeAdminOcultar',
+      '/admin/atividades/cancelar': 'atividadeAdminCancelar',
+      '/admin/atividades/reabrir': 'atividadeAdminReabrir',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',
@@ -543,6 +551,17 @@
       });
     }
 
+    if (route === '/admin/atividades') {
+      return Promise.resolve({
+        ok: true,
+        data: criarAtividadesAdminMock()
+      });
+    }
+
+    if (route === '/admin/atividades/detalhe') {
+      return Promise.resolve(criarDetalheAtividadeAdminMock(params.idAtividade));
+    }
+
     if (route === '/atividades/chamada') {
       return Promise.resolve(criarChamadaMock(params.idAtividade));
     }
@@ -639,6 +658,18 @@
   }
 
   function apiPostMock(route, params) {
+    if (route.indexOf('/admin/atividades/') === 0) {
+      var adminPayload = lerPayloadMock(params);
+      return Promise.resolve({
+        ok: true,
+        message: 'Acao administrativa simulada com sucesso.',
+        data: {
+          idAtividade: adminPayload.idAtividade || '',
+          modo: 'MOCK'
+        }
+      });
+    }
+
     if (route === '/atividades/modelo/validar') {
       return Promise.resolve(criarAtividadePorModeloMock(params, true));
     }
@@ -719,6 +750,80 @@
         route: route
       }
     });
+  }
+
+  function criarAtividadesAdminMock() {
+    var records = atividadesMock.map(function mapActivity(item, index) {
+      return {
+        idAtividade: item.idAtividade,
+        ciclo: item.ciclo || 'GEAPA_2026',
+        dataAtividade: item.dataAtividade,
+        horarioInicio: item.horarioInicio || '18h30',
+        horarioFim: item.horarioFim || '20h30',
+        tituloPublico: item.tituloPublico,
+        nomeModeloPortal: index === 0 ? 'Apresentacao de membro' : 'Reuniao ordinaria',
+        tipoAtividade: item.tipoAtividade || 'REUNIAO',
+        subtipoAtividade: item.subtipoAtividade || 'REUNIAO_ORDINARIA',
+        nomePessoaPrincipalPublico: index === 0 ? 'Membro de Teste' : '',
+        statusOperacional: index === 0 ? 'PLANEJADA' : 'AGENDADA',
+        statusPublicacaoPortal: index === 0 ? 'RASCUNHO' : 'PUBLICADA',
+        visibilidadePortal: index === 0 ? 'DIRETORIA' : 'MEMBROS',
+        statusEixoTematico: index === 0 ? 'PENDENTE' : '',
+        pendenciaMaterial: index === 0,
+        pendencias: index === 0 ? ['TITULO_EIXO', 'MATERIAL'] : [],
+        ativo: true,
+        idConfigModelo: index === 0 ? 'APRESENTACAO_MEMBRO' : 'REUNIAO_ORDINARIA'
+      };
+    });
+    return {
+      atividades: records,
+      total: records.length,
+      opcoesFiltros: {
+        statusOperacionais: ['PLANEJADA', 'AGENDADA'],
+        statusPublicacao: ['RASCUNHO', 'PUBLICADA'],
+        visibilidades: ['DIRETORIA', 'MEMBROS'],
+        ciclos: ['GEAPA_2026'],
+        modelos: ['APRESENTACAO_MEMBRO', 'REUNIAO_ORDINARIA'],
+        tipos: ['APRESENTACAO', 'REUNIAO'],
+        subtipos: ['APRESENTACAO_MEMBRO', 'REUNIAO_ORDINARIA']
+      }
+    };
+  }
+
+  function criarDetalheAtividadeAdminMock(idAtividade) {
+    var list = criarAtividadesAdminMock().atividades;
+    var activity = list.filter(function find(item) { return item.idAtividade === idAtividade; })[0];
+    if (!activity) return { ok: false, errorCode: 'ATIVIDADE_NAO_ENCONTRADA', message: 'Atividade nao encontrada.' };
+    return {
+      ok: true,
+      data: {
+        atividade: Object.assign({}, activity, {
+          descricaoPublica: 'Descricao publica de teste.',
+          descricaoInterna: 'Anotacao interna de teste.',
+          local: 'Sala GEAPA',
+          formato: 'PRESENCIAL',
+          responsavelInterno: activity.subtipoAtividade === 'APRESENTACAO_MEMBRO' ? 'Secretaria GEAPA' : 'Diretoria',
+          publicoAlvo: 'Membros',
+          observacoes: '',
+          classificacaoAcesso: 'INTERNA',
+          contaPresenca: 'SIM',
+          contaFalta: 'SIM',
+          geraCertificado: 'NAO',
+          cargaHoraria: '2'
+        }),
+        modeloAplicado: { nomeModeloPortal: activity.nomeModeloPortal },
+        apresentacoes: activity.subtipoAtividade === 'APRESENTACAO_MEMBRO' ? [{ idApresentacao: 'APR-2026-1-0001', statusApresentacao: 'PLANEJADA' }] : [],
+        envolvidos: activity.nomePessoaPrincipalPublico ? [{ nomePublico: activity.nomePessoaPrincipalPublico, papel: 'APRESENTADOR' }] : [],
+        pendencias: (activity.pendencias || []).map(function(item) { return { tipo: item, status: 'PENDENTE' }; }),
+        camposEditaveis: activity.subtipoAtividade === 'APRESENTACAO_MEMBRO'
+          ? ['descricaoPublica', 'descricaoInterna', 'dataAtividade', 'horarioInicio', 'horarioFim', 'local', 'formato', 'publicoAlvo', 'observacoes']
+          : ['tituloPublico', 'descricaoPublica', 'descricaoInterna', 'dataAtividade', 'horarioInicio', 'horarioFim', 'local', 'formato', 'responsavelInterno', 'publicoAlvo', 'observacoes'],
+        camposBloqueados: ['TIPO_ATIVIDADE', 'CONTA_PRESENCA'],
+        podePublicar: true,
+        podeReabrir: false,
+        modo: 'MOCK'
+      }
+    };
   }
 
   function criarAtividadeMock(params) {
