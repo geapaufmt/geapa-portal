@@ -291,12 +291,14 @@ link de arquivo publico fora desse novo contrato.
 `atividadesV2_portalGetMinhasApresentacoes(contexto)` quando disponivel. O
 backend filtra por `idPessoa`, `rga` ou e-mail conforme contexto oficial da
 sessao e retorna somente campos publicos/sanitizados da apresentacao vinculada.
-A tela exibe Data, Semestre, Tema, Eixos, Status, material da apresentacao
-(`linkMaterialPublico`, `nomeArquivoMaterial`, `versaoMaterial`) e, quando
-permitido pelo backend, pasta geral da atividade (`linkPastaDrive`). A tela
-pessoal consome somente `apresentacao.acoesMembro`:
+A tela exibe Data, Semestre, Tema, Eixos, Status, slide/material da apresentacao
+(`linkMaterialPublico`, `nomeArquivoMaterial`, `versaoMaterial`), foto da
+reuniao (`statusFotoReuniao`, `nomeArquivoFotoReuniao`, `linkFotoReuniao`) e,
+quando permitido pelo backend, pasta geral da atividade (`linkPastaDrive`). A
+tela pessoal consome somente `apresentacao.acoesMembro`:
 `podeEditarTituloEixo`, `podeEnviarMaterial`, `podeReenviarMaterial`,
-`podeAbrirMaterial` e `podeAbrirPastaAtividade`.
+`podeAbrirMaterial`, `podeEnviarFotoReuniao`, `podeReenviarFotoReuniao`,
+`podeAbrirFotoReuniao` e `podeAbrirPastaAtividade`.
 
 ## Acoes de apresentacoes pelo Portal
 
@@ -308,7 +310,9 @@ ao modulo `geapa-atividades`:
 - `atividadesV2_portalRegistrarMaterialApresentacao(payload, contexto)`;
 - `atividadesV2_portalListarPendenciasApresentacoesDiretoria(contexto)`;
 - `atividadesV2_portalRevisarTituloEixoApresentacao(payload, contexto)`;
-- `atividadesV2_portalRevisarMaterialApresentacao(payload, contexto)`.
+- `atividadesV2_portalRevisarMaterialApresentacao(payload, contexto)`;
+- `atividadesV2_portalRegistrarFotoReuniao(payload, contexto)`;
+- `atividadesV2_portalRevisarFotoReuniao(payload, contexto)`.
 
 O Portal nao usa campo livre para eixo tematico: os selects devem vir de
 `rotuloFormulario` e enviar o valor selecionado ao backend. O envio de material
@@ -318,10 +322,17 @@ permitem aprovar ou solicitar ajuste de titulo/eixos, e aprovar, solicitar
 ajuste ou dispensar material. Nao ha auto-chamada, presenca ou alteracao de
 frequencia neste pacote.
 
+Foto da reuniao e um entregavel independente do slide/material. O envio aceita
+JPG, JPEG, PNG ou WEBP em base64, ou link de arquivo do Google Drive validado
+pelo backend. Seus estados sao `PENDENTE`, `RECEBIDO`, `REENVIADO`, `APROVADO`,
+`AJUSTE_SOLICITADO`, `DISPENSADO` e `HISTORICO`.
+
 `Pendencias de apresentacoes` consome somente `pendencia.acoesGestao`:
 `podeAprovarTituloEixo`, `podeSolicitarAjusteTituloEixo`,
 `podeAprovarMaterial`, `podeSolicitarAjusteMaterial` e
-`podeDispensarMaterial`. O front-end nao infere acao por perfil.
+`podeDispensarMaterial`, alem de `podeEnviarFotoReuniao`,
+`podeAprovarFotoReuniao`, `podeSolicitarAjusteFotoReuniao` e
+`podeDispensarFotoReuniao`. O front-end nao infere acao por perfil.
 
 Quando habilitado pelo backend, o Portal tambem renderiza
 `podeEditarAprovarTituloEixo` para permitir "Editar e aprovar" e
@@ -339,15 +350,17 @@ revisao de material aparecem apenas para `RECEBIDO`, `REENVIADO` ou
 `EM_ANALISE`; `PENDENTE` mostra estado informativo e pode manter
 `Dispensar material` se o backend enviar a flag.
 
-Para recursos, o Portal renderiza material por `linkMaterialPublico` ou por
-`idArquivoMaterial` como fallback seguro de Drive. A pasta da atividade usa
-`linkPastaDrive` ou `idPastaDrive`, montando URL de pasta em
-`/drive/folders/<id>`. Cards de pendencia exibem apresentador por
+Para recursos, o Portal renderiza somente URLs sanitizadas entregues pelo
+backend: `linkMaterialPublico`, `linkFotoReuniao` e `linkPastaDrive`. O
+navegador nao monta URLs a partir de IDs internos do Drive. Cards de pendencia
+exibem apresentador por
 `nomeApresentador`, com fallback para `responsavelSugerido`, `responsavel`,
 `nomePessoaPrincipal` e `nomePessoaPrincipalPublico`.
 
 O front-end mantem cache em memoria de curta duracao para telas V2 privadas e
-invalida os caches relacionados apos qualquer acao de apresentacao.
+invalida Minhas apresentacoes, Pendencias, detalhes e Gestao -> Atividades apos
+qualquer envio ou revisao. Atividades canceladas ou arquivadas nao exibem
+pendencias ativas.
 
 ## Justificativas pelo Portal
 

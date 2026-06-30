@@ -34,6 +34,10 @@
       toast('success', 'Atividade ' + (activity.idAtividade || '') + ' criada como rascunho.');
       if (state.active) loadActivities(true);
     });
+    document.addEventListener('portal:apresentacoes-atualizadas', function onPresentationsUpdated() {
+      state.details = {};
+      if (state.active) loadActivities(true);
+    });
     if (typeof navigation.getRotaAtual === 'function' && navigation.getRotaAtual() === 'admin-atividades') {
       state.active = true;
       loadActivities(false);
@@ -94,7 +98,7 @@
       filterSelect('modelo', 'Modelo', options.modelos),
       filterSelect('tipo', 'Tipo', options.tipos),
       filterSelect('subtipo', 'Subtipo', options.subtipos),
-      filterSelect('pendencia', 'Pendencia', ['TITULO_EIXO', 'MATERIAL']),
+      filterSelect('pendencia', 'Pendencia', ['TITULO_EIXO', 'MATERIAL', 'FOTO_REUNIAO']),
       '<button class="secondary-button compact-button" type="button" data-admin-clear-filters>Limpar filtros</button>',
       '</form>'
     ].join('');
@@ -133,7 +137,7 @@
           '<td>' + escape(ui.formatarData(item.dataAtividade)) + '<small>' + escape([item.horarioInicio, item.horarioFim].filter(Boolean).join(' - ')) + '</small></td>',
           '<td>' + escape(item.nomeModeloPortal || formatLabel(item.subtipoAtividade)) + '<small>' + escape(item.idConfigModelo || '') + '</small></td>',
           '<td><span class="admin-status-chip">' + escape(formatLabel(item.statusOperacional)) + '</span><small>' + escape(formatLabel(item.statusPublicacaoPortal)) + ' / ' + escape(formatLabel(item.visibilidadePortal)) + '</small></td>',
-          '<td>' + renderPending(item.pendencias) + '</td>',
+          '<td>' + renderPending(getActivePendencies(item)) + '</td>',
           '<td><div class="admin-row-actions">',
           '<button class="secondary-button compact-button" type="button" data-admin-open="' + escape(item.idAtividade) + '">Abrir</button>',
           renderQuickActions(item),
@@ -265,12 +269,24 @@
   }
 
   function renderRelations(detail) {
+    var activity = detail.atividade || {};
     var presentations = Array.isArray(detail.apresentacoes) ? detail.apresentacoes : [];
     var involved = Array.isArray(detail.envolvidos) ? detail.envolvidos : [];
-    var pending = Array.isArray(detail.pendencias) ? detail.pendencias : [];
+    var pending = getActivePendencies({
+      statusOperacional: activity.statusOperacional,
+      pendencias: Array.isArray(detail.pendencias) ? detail.pendencias : []
+    });
     return [
       '<section class="admin-related-data"><h3>Vinculos e pendencias</h3>',
       '<p><strong>Apresentacoes:</strong> ' + presentations.length + ' &nbsp; <strong>Envolvidos:</strong> ' + involved.length + '</p>',
+      presentations.map(function(presentation) {
+        return '<article class="admin-related-file"><strong>' + escape(presentation.idApresentacao || 'Apresentacao') + '</strong>' +
+          '<div><span>Slide: ' + escape(formatLabel(presentation.statusMaterial || 'PENDENTE')) + '</span>' +
+          (presentation.linkMaterial ? '<a class="secondary-button compact-button" href="' + escape(presentation.linkMaterial) + '" target="_blank" rel="noopener noreferrer">Abrir slide</a>' : '') + '</div>' +
+          '<div><span>Foto da reuniao: ' + escape(formatLabel(presentation.statusFotoReuniao || 'PENDENTE')) + '</span>' +
+          (presentation.linkFotoReuniao ? '<a class="secondary-button compact-button" href="' + escape(presentation.linkFotoReuniao) + '" target="_blank" rel="noopener noreferrer">Abrir foto</a>' : '') + '</div>' +
+          '</article>';
+      }).join(''),
       pending.length ? '<div>' + pending.map(function(item) { return '<span class="admin-pending-chip">' + escape(formatLabel(item.tipo)) + ': ' + escape(formatLabel(item.status)) + '</span>'; }).join('') + '</div>' : '<p class="section-note">Sem pendencias vinculadas.</p>',
       '</section>'
     ].join('');
@@ -330,7 +346,7 @@
       if (filters.modelo && item.idConfigModelo !== filters.modelo) return false;
       if (filters.tipo && item.tipoAtividade !== filters.tipo) return false;
       if (filters.subtipo && item.subtipoAtividade !== filters.subtipo) return false;
-      if (filters.pendencia && (item.pendencias || []).indexOf(filters.pendencia) < 0) return false;
+      if (filters.pendencia && getActivePendencies(item).indexOf(filters.pendencia) < 0) return false;
       if (filters.texto) {
         var search = String(filters.texto).toLowerCase();
         var text = [item.idAtividade, item.tituloPublico, item.nomeModeloPortal, item.nomePessoaPrincipalPublico].join(' ').toLowerCase();
@@ -338,6 +354,12 @@
       }
       return true;
     });
+  }
+
+  function getActivePendencies(item) {
+    var status = String((item || {}).statusOperacional || '').toUpperCase();
+    if (['CANCELADA', 'CANCELADO', 'ARQUIVADA', 'ARQUIVADO'].indexOf(status) >= 0) return [];
+    return Array.isArray((item || {}).pendencias) ? item.pendencias : [];
   }
 
   function textField(name, label, value, type) {

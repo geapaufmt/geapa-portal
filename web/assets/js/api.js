@@ -304,6 +304,7 @@
       linkFotosPublico: ''
     }
   };
+  var entregaveisApresentacoesMock = {};
 
   function apiGet(route, params) {
     if (config.MOCK_MODE) {
@@ -426,6 +427,8 @@
       '/v2/apresentacoes/titulo-eixo/reprovar': 'apresentacaoReprovarTituloEixo',
       '/v2/apresentacoes/material/registrar': 'apresentacaoRegistrarMaterial',
       '/v2/apresentacoes/material/revisar': 'apresentacaoRevisarMaterial',
+      '/v2/apresentacoes/foto/registrar': 'apresentacaoRegistrarFotoReuniao',
+      '/v2/apresentacoes/foto/revisar': 'apresentacaoRevisarFotoReuniao',
       '/v2/apresentacoes/pendencias': 'apresentacoesPendenciasDiretoria'
     };
 
@@ -728,6 +731,14 @@
           }
         }
       });
+    }
+
+    if (route === '/v2/apresentacoes/foto/registrar') {
+      return Promise.resolve(registrarFotoReuniaoMock(params));
+    }
+
+    if (route === '/v2/apresentacoes/foto/revisar') {
+      return Promise.resolve(revisarFotoReuniaoMock(params));
     }
 
     if (route.indexOf('/v2/apresentacoes/') === 0 || route.indexOf('/v2/justificativas/') === 0) {
@@ -1059,8 +1070,12 @@
         : [];
 
       apresentacoes.forEach(function copiar(apresentacao) {
+        var idApresentacao = apresentacao.idApresentacao || 'APR-' + idAtividade;
+        var entregavel = entregaveisApresentacoesMock[idApresentacao] || {};
+        var statusFoto = entregavel.statusFotoReuniao || 'PENDENTE';
+        var temFoto = Boolean(entregavel.linkFotoReuniao);
         lista.push({
-          idApresentacao: apresentacao.idApresentacao || 'APR-' + idAtividade,
+          idApresentacao: idApresentacao,
           idAtividade: detalhe.idAtividade,
           dataAtividade: detalhe.dataAtividade,
           tituloPublico: detalhe.tituloPublico,
@@ -1077,12 +1092,19 @@
           linkMaterialPublico: apresentacao.linkMaterialPublico || '',
           nomeArquivoMaterial: apresentacao.nomeArquivoMaterial || '',
           versaoMaterial: apresentacao.versaoMaterial || '',
+          statusFotoReuniao: statusFoto,
+          fotoReuniaoObrigatoria: true,
+          nomeArquivoFotoReuniao: entregavel.nomeArquivoFotoReuniao || '',
+          linkFotoReuniao: entregavel.linkFotoReuniao || '',
           acoesMembro: {
             podeEditarTituloEixo: true,
             podeEnviarMaterial: !apresentacao.linkMaterialPublico,
             podeReenviarMaterial: false,
             podeAbrirMaterial: Boolean(apresentacao.linkMaterialPublico),
-            podeAbrirPastaAtividade: Boolean(detalhe.linkPastaDrive || detalhe.idPastaDrive)
+            podeAbrirPastaAtividade: Boolean(detalhe.linkPastaDrive || detalhe.idPastaDrive),
+            podeEnviarFotoReuniao: !temFoto && ['PENDENTE', 'AJUSTE_SOLICITADO'].indexOf(statusFoto) >= 0,
+            podeReenviarFotoReuniao: temFoto && statusFoto === 'AJUSTE_SOLICITADO',
+            podeAbrirFotoReuniao: temFoto
           }
         });
       });
@@ -1310,13 +1332,17 @@
   }
 
   function criarPendenciasApresentacoesMock() {
+    var idApresentacao = 'APR-MOCK-1';
+    var entregavel = entregaveisApresentacoesMock[idApresentacao] || {};
+    var statusFoto = entregavel.statusFotoReuniao || 'PENDENTE';
+    var podeRevisarFoto = ['RECEBIDO', 'REENVIADO', 'EM_ANALISE'].indexOf(statusFoto) >= 0;
     return [
       {
         idPendencia: 'PEND-MOCK-1',
         tipoPendencia: 'TITULO_EIXO_AGUARDANDO_ANALISE',
         gravidade: 'MEDIA',
         idAtividade: 'ATV-MOCK-1',
-        idApresentacao: 'APR-MOCK-1',
+        idApresentacao: idApresentacao,
         dataAtividade: '2026-06-26',
         rotuloSemestre: '2026/1',
         tituloAtividade: 'Palestra de teste',
@@ -1324,8 +1350,11 @@
         nomeApresentador: 'Membro de Teste',
         statusTituloEixo: 'PENDENTE_REVISAO',
         statusMaterial: 'NAO_ENVIADO',
+        statusFotoReuniao: statusFoto,
+        nomeArquivoFotoReuniao: entregavel.nomeArquivoFotoReuniao || '',
+        linkFotoReuniao: entregavel.linkFotoReuniao || '',
         eixoTematicoPrincipal: 'VIII - Temas Livres de Relevancia Agronomica',
-        descricaoPendencia: 'Titulo e eixos aguardam analise da diretoria.',
+        descricaoPendencia: 'Titulo, slide e foto da reuniao possuem pendencias.',
         acaoRecomendada: 'Revisar titulo/eixos',
         acoesGestao: {
           podeAprovarTituloEixo: true,
@@ -1334,10 +1363,57 @@
           podeReprovarTituloEixo: true,
           podeAprovarMaterial: false,
           podeSolicitarAjusteMaterial: false,
-          podeDispensarMaterial: true
+          podeDispensarMaterial: true,
+          podeEnviarFotoReuniao: ['PENDENTE', 'AJUSTE_SOLICITADO'].indexOf(statusFoto) >= 0,
+          podeAprovarFotoReuniao: podeRevisarFoto,
+          podeSolicitarAjusteFotoReuniao: podeRevisarFoto,
+          podeDispensarFotoReuniao: ['PENDENTE', 'AJUSTE_SOLICITADO'].indexOf(statusFoto) >= 0
         }
       }
     ];
+  }
+
+  function registrarFotoReuniaoMock(params) {
+    var payload = lerPayloadMock(params);
+    var id = String(payload.idApresentacao || '').trim();
+    var atual = entregaveisApresentacoesMock[id] || {};
+    var nome = payload.nomeArquivoOriginal || atual.nomeArquivoFotoReuniao || 'foto-reuniao.jpg';
+
+    entregaveisApresentacoesMock[id] = {
+      statusFotoReuniao: payload.reenvio === true ? 'REENVIADO' : 'RECEBIDO',
+      nomeArquivoFotoReuniao: nome,
+      linkFotoReuniao: payload.linkArquivo || atual.linkFotoReuniao || 'https://example.org/foto-reuniao-mock.jpg'
+    };
+
+    return {
+      ok: true,
+      message: 'Foto da reuniao enviada com sucesso.',
+      data: Object.assign({ idApresentacao: id }, entregaveisApresentacoesMock[id])
+    };
+  }
+
+  function revisarFotoReuniaoMock(params) {
+    var payload = lerPayloadMock(params);
+    var id = String(payload.idApresentacao || '').trim();
+    var statusPorDecisao = {
+      APROVAR: 'APROVADO',
+      SOLICITAR_AJUSTE: 'AJUSTE_SOLICITADO',
+      DISPENSAR: 'DISPENSADO'
+    };
+    var status = statusPorDecisao[String(payload.decisao || '').toUpperCase()] || 'PENDENTE';
+    var atual = entregaveisApresentacoesMock[id] || {};
+
+    entregaveisApresentacoesMock[id] = Object.assign({}, atual, {
+      statusFotoReuniao: status
+    });
+
+    return {
+      ok: true,
+      message: status === 'DISPENSADO'
+        ? 'Foto da reuniao dispensada com justificativa.'
+        : 'Revisao da foto da reuniao registrada.',
+      data: Object.assign({ idApresentacao: id }, entregaveisApresentacoesMock[id])
+    };
   }
 
   function criarChamadaMock(idAtividade) {

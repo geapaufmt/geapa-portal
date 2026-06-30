@@ -140,6 +140,9 @@
     });
     document.addEventListener('click', tratarCliqueAtividades);
     document.addEventListener('submit', tratarSubmitAtividades);
+    document.addEventListener('portal:apresentacoes-atualizadas', function invalidarDetalhesApresentacoes() {
+      invalidarCacheAtividades();
+    });
   }
 
   function ehRotaDaTelaAtividades(idRota) {

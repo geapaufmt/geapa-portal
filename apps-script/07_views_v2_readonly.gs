@@ -34,25 +34,11 @@ function portalExecutarMinhasApresentacoesPorAtividadesV2_(token) {
     return contexto.resposta;
   }
 
-  var cacheKey = portalCacheKey_('viewsV2r5:minhasApresentacoesAtividades', contexto.identificadorSessao);
-  var cache = portalLerJsonCacheViewsV2_(cacheKey);
-
-  if (cache) {
-    return portalRespostaOk_(
-      'MINHAS_APRESENTACOES_V2_CACHE',
-      'Minhas apresentacoes carregadas em cache temporario.',
-      cache,
-      portalMetaViewsV2_('cache', inicio)
-    );
-  }
-
   var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
   var respostaMinhas = portalChamarAtividadesMinhasApresentacoesV2_(contextoAtividades);
 
   if (respostaMinhas && respostaMinhas.ok !== false) {
     var dataMinhas = portalMontarMinhasApresentacoesDiretasV2_(respostaMinhas, contexto);
-
-    portalSalvarJsonCacheViewsV2_(cacheKey, dataMinhas);
 
     return portalRespostaOk_(
       'MINHAS_APRESENTACOES_V2',
@@ -69,8 +55,6 @@ function portalExecutarMinhasApresentacoesPorAtividadesV2_(token) {
   }
 
   var data = portalMontarMinhasApresentacoesDeDetalhesV2_(resposta, contexto);
-
-  portalSalvarJsonCacheViewsV2_(cacheKey, data);
 
   return portalRespostaOk_(
     'MINHAS_APRESENTACOES_V2',
@@ -329,6 +313,9 @@ function portalNormalizarAcoesApresentacaoV2_(valor) {
     'podeEnviarMaterial',
     'podeReenviarMaterial',
     'podeAbrirMaterial',
+    'podeEnviarFotoReuniao',
+    'podeReenviarFotoReuniao',
+    'podeAbrirFotoReuniao',
     'podeAbrirPastaAtividade'
   ];
   var saida = {};
@@ -430,10 +417,6 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
       'statusEnvioMaterial',
       'STATUS_ENVIO_MATERIAL'
     ]),
-    idArquivoMaterial: portalObterCampoFlexViewsV2_(origem, [
-      'idArquivoMaterial',
-      'ID_ARQUIVO_MATERIAL'
-    ]),
     nomeArquivoMaterial: portalObterCampoFlexViewsV2_(origem, [
       'nomeArquivoMaterial',
       'NOME_ARQUIVO_MATERIAL'
@@ -446,6 +429,22 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     versaoMaterial: portalObterCampoFlexViewsV2_(origem, [
       'versaoMaterial',
       'VERSAO_MATERIAL'
+    ]),
+    statusFotoReuniao: portalObterCampoFlexViewsV2_(origem, [
+      'statusFotoReuniao',
+      'STATUS_FOTO_REUNIAO'
+    ]),
+    fotoReuniaoObrigatoria: portalNormalizarBooleanViewsV2_(portalObterCampoFlexViewsV2_(origem, [
+      'fotoReuniaoObrigatoria',
+      'FOTO_REUNIAO_OBRIGATORIA'
+    ])),
+    nomeArquivoFotoReuniao: portalObterCampoFlexViewsV2_(origem, [
+      'nomeArquivoFotoReuniao',
+      'NOME_ARQUIVO_FOTO_REUNIAO'
+    ]),
+    linkFotoReuniao: portalObterCampoFlexViewsV2_(origem, [
+      'linkFotoReuniao',
+      'LINK_FOTO_REUNIAO'
     ]),
     mensagemTituloEixo: portalObterCampoFlexViewsV2_(origem, [
       'mensagemTituloEixo',
@@ -466,8 +465,7 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
       'linkPastaPublico',
       'LINK_PASTA_DRIVE',
       'LINK_PASTA_PUBLICA'
-    ]),
-    idPastaDrive: portalObterCampoFlexViewsV2_(atividade, ['idPastaDrive', 'ID_PASTA_DRIVE'])
+    ])
   };
 
   return portalSanitizarObjetoBasicoViewsV2_(item, [
@@ -487,17 +485,19 @@ function portalSanitizarApresentacaoDeAtividadeV2_(apresentacao, detalhe) {
     'papel',
     'statusTituloEixo',
     'statusMaterial',
-    'idArquivoMaterial',
     'nomeArquivoMaterial',
     'linkMaterialPublico',
     'versaoMaterial',
+    'statusFotoReuniao',
+    'fotoReuniaoObrigatoria',
+    'nomeArquivoFotoReuniao',
+    'linkFotoReuniao',
     'mensagemTituloEixo',
     'acoesMembro',
     'periodo',
     'rotuloSemestre',
     'cargaHoraria',
-    'linkPastaDrive',
-    'idPastaDrive'
+    'linkPastaDrive'
   ]);
 }
 
@@ -891,6 +891,34 @@ function portalApresentacaoRevisarMaterialV2(token, payloadJson) {
   });
 }
 
+function portalApresentacaoRegistrarFotoReuniaoV2(token, payloadJson) {
+  return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
+    id: 'apresentacaoRegistrarFotoReuniao',
+    code: 'APRESENTACAO_FOTO_REUNIAO_REGISTRADA',
+    message: 'Foto da reuniao enviada com sucesso.',
+    funcao: 'atividadesV2_portalRegistrarFotoReuniao',
+    requerDiretoria: false,
+    camposObrigatorios: ['idApresentacao']
+  });
+}
+
+function portalApresentacaoRevisarFotoReuniaoV2(token, payloadJson) {
+  return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
+    id: 'apresentacaoRevisarFotoReuniao',
+    code: 'APRESENTACAO_FOTO_REUNIAO_REVISADA',
+    message: 'Revisao da foto da reuniao registrada.',
+    funcao: 'atividadesV2_portalRevisarFotoReuniao',
+    requerDiretoria: true,
+    permissoes: [
+      'apresentacoes:gerir',
+      'diretoria:pendencias',
+      'atividades:gerir',
+      'sistema:admin'
+    ],
+    camposObrigatorios: ['idApresentacao', 'decisao']
+  });
+}
+
 function portalExecutarConsultaApresentacaoAtividadesV2_(token, config) {
   var inicio = portalAgoraViewsV2Ms_();
   var contexto = portalMontarContextoViewsV2_(token, config);
@@ -928,6 +956,10 @@ function portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, config)
 
   var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
   var resposta = portalChamarAtividadesPacoteApresentacoesV2_(config.funcao, dadosPayload, contextoAtividades);
+
+  if (resposta && resposta.ok !== false) {
+    portalInvalidarCachesApresentacoesV2_(contexto, resposta.data || resposta.dados || {});
+  }
 
   return portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio);
 }
@@ -1030,6 +1062,14 @@ function portalFuncoesGlobaisApresentacoesV2_() {
 
   if (typeof atividadesV2_portalRevisarMaterialApresentacao === 'function') {
     funcoes.atividadesV2_portalRevisarMaterialApresentacao = atividadesV2_portalRevisarMaterialApresentacao;
+  }
+
+  if (typeof atividadesV2_portalRegistrarFotoReuniao === 'function') {
+    funcoes.atividadesV2_portalRegistrarFotoReuniao = atividadesV2_portalRegistrarFotoReuniao;
+  }
+
+  if (typeof atividadesV2_portalRevisarFotoReuniao === 'function') {
+    funcoes.atividadesV2_portalRevisarFotoReuniao = atividadesV2_portalRevisarFotoReuniao;
   }
 
   if (typeof atividadesV2_portalListarPendenciasApresentacoesDiretoria === 'function') {
@@ -2944,6 +2984,36 @@ function portalInvalidarCachesJustificativasV2_(contexto) {
       portalCacheKey_('atividadesBundle', identificador + ':' + perfilAtividades),
       portalCacheKey_('atividadesDetalhesPreload', identificador + ':' + perfilAtividades)
     ]);
+  } catch (erro) {
+    // Cache e melhoria de desempenho, nao requisito funcional.
+  }
+}
+
+function portalInvalidarCachesApresentacoesV2_(contexto, resultado) {
+  var identificador = contexto && contexto.identificadorSessao;
+  var contextoAtividades = contexto ? portalMontarContextoAtividadesReadonlyV2_(contexto) : {};
+  var perfilAtividades = contextoAtividades.perfil || 'MEMBRO';
+  var idAtividade = String((resultado || {}).idAtividade || '').trim();
+
+  if (!identificador) {
+    return;
+  }
+
+  try {
+    var chaves = [
+      portalCacheKey_('viewsV2r6:minhasApresentacoesAtividades', identificador),
+      portalCacheKey_('viewsV2r2:pendenciasDiretoria', identificador),
+      portalCacheKey_('viewsV2r1:painelDiretoriaV2', identificador),
+      portalCacheKey_('atividadesLista:v2', identificador + ':' + perfilAtividades),
+      portalCacheKey_('atividadesBundle', identificador + ':' + perfilAtividades),
+      portalCacheKey_('atividadesDetalhesPreload', identificador + ':' + perfilAtividades)
+    ];
+
+    if (idAtividade) {
+      chaves.push(portalCacheKey_('atividadeDetalhe', identificador + ':' + idAtividade));
+    }
+
+    CacheService.getScriptCache().removeAll(chaves);
   } catch (erro) {
     // Cache e melhoria de desempenho, nao requisito funcional.
   }

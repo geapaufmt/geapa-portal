@@ -55,6 +55,8 @@ function doGet(e) {
         'apresentacaoReprovarTituloEixo',
         'apresentacaoRegistrarMaterial',
         'apresentacaoRevisarMaterial',
+        'apresentacaoRegistrarFotoReuniao',
+        'apresentacaoRevisarFotoReuniao',
         'apresentacoesPendenciasDiretoria'
       ],
       parametrosRecebidos: e && e.parameter ? e.parameter : {}
@@ -345,6 +347,20 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'apresentacaoRevisarMaterial') {
     return portalApresentacaoRevisarMaterialV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'apresentacaoRegistrarFotoReuniao') {
+    return portalApresentacaoRegistrarFotoReuniaoV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'apresentacaoRevisarFotoReuniao') {
+    return portalApresentacaoRevisarFotoReuniaoV2(
       requisicao.token || '',
       requisicao.payload || requisicao
     );

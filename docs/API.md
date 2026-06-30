@@ -844,6 +844,10 @@ Endpoints frontend e acoes Apps Script:
   `apresentacaoReprovarTituloEixo`.
 - `POST /v2/apresentacoes/material/revisar` ->
   `apresentacaoRevisarMaterial`.
+- `POST /v2/apresentacoes/foto/registrar` ->
+  `apresentacaoRegistrarFotoReuniao`.
+- `POST /v2/apresentacoes/foto/revisar` ->
+  `apresentacaoRevisarFotoReuniao`.
 
 `apresentacoesListarEixos` chama
 `atividadesV2_portalListarEixosTematicos(contexto)`. O select do Portal usa
@@ -858,6 +862,9 @@ As acoes da tela pessoal devem vir apenas de:
     "podeEnviarMaterial": false,
     "podeReenviarMaterial": false,
     "podeAbrirMaterial": true,
+    "podeEnviarFotoReuniao": true,
+    "podeReenviarFotoReuniao": false,
+    "podeAbrirFotoReuniao": false,
     "podeAbrirPastaAtividade": true
   }
 }
@@ -874,7 +881,11 @@ As acoes da tela de gestao devem vir apenas de:
     "podeReprovarTituloEixo": true,
     "podeAprovarMaterial": false,
     "podeSolicitarAjusteMaterial": false,
-    "podeDispensarMaterial": true
+    "podeDispensarMaterial": true,
+    "podeEnviarFotoReuniao": true,
+    "podeAprovarFotoReuniao": false,
+    "podeSolicitarAjusteFotoReuniao": false,
+    "podeDispensarFotoReuniao": true
   }
 }
 ```
@@ -887,17 +898,22 @@ aplicavel. Revisao de material so aparece para `RECEBIDO`, `REENVIADO` ou
 `EM_ANALISE`; com material `PENDENTE`, pode aparecer apenas aviso e
 `Dispensar material` se o backend enviar essa flag.
 
+A foto da reuniao segue os estados `PENDENTE`, `RECEBIDO`, `REENVIADO`,
+`APROVADO`, `AJUSTE_SOLICITADO`, `DISPENSADO` e `HISTORICO`. O Portal permite
+enviar, reenviar, aprovar, solicitar ajuste ou dispensar somente quando a flag
+correspondente vier em `acoesMembro` ou `acoesGestao`. Ajuste e dispensa exigem
+observacao, e a autorizacao e revalidada pelo Apps Script e pelo modulo
+`geapa-atividades`.
+
 `Rejeitar proposta de tema` usa `apresentacaoReprovarTituloEixo`, que chama
 `atividadesV2_portalReprovarTituloEixoApresentacao(payload, contexto)`. Essa
 acao exige observacao publica e nao reprova a apresentacao inteira.
 
-Para exibicao de recursos em `Minhas apresentacoes`, o Portal usa
-`linkMaterialPublico` como URL preferencial do material e, se ausente,
-`idArquivoMaterial` para montar `https://drive.google.com/file/d/<id>/view`.
-Para a pasta geral da atividade, usa `linkPastaDrive` e, se ausente,
-`idPastaDrive` para montar `https://drive.google.com/drive/folders/<id>`.
-Quando nao houver material, o card mostra discretamente "Material ainda nao
-enviado"; quando nao houver pasta, o bloco de pasta fica oculto.
+Para exibicao de recursos em `Minhas apresentacoes`, o Portal usa apenas links
+sanitizados entregues pelo backend: `linkMaterialPublico`, `linkFotoReuniao` e
+`linkPastaDrive`. IDs internos de arquivos nao sao convertidos em URLs no
+navegador. Quando nao houver recurso, o card mostra o estado operacional do
+entregavel; quando nao houver pasta autorizada, o bloco de pasta fica oculto.
 
 Em `Pendencias de apresentacoes`, o apresentador deve ser renderizado a partir
 de `nomeApresentador`, com fallback para `responsavelSugerido`, `responsavel`,
@@ -927,6 +943,22 @@ Envio de material:
 }
 ```
 
+Envio ou reenvio de foto da reuniao:
+
+```json
+{
+  "idApresentacao": "APR-0001",
+  "nomeArquivoOriginal": "foto.jpg",
+  "mimeType": "image/jpeg",
+  "conteudoBase64": "...",
+  "linkArquivo": "",
+  "reenvio": false
+}
+```
+
+O envio aceita JPG, JPEG, PNG e WEBP, ou um link de arquivo do Google Drive
+validado pelo backend.
+
 Revisao de titulo/eixos:
 
 ```json
@@ -943,6 +975,11 @@ Revisao de material usa o mesmo formato, com `decisao` em `APROVAR`,
 edicao de apresentacao de outra pessoa, fica no backend `geapa-atividades`.
 Nenhum fluxo de chamada/presenca e alterado por essas acoes.
 
+Revisao de foto usa o mesmo payload de decisao, por meio de
+`atividadesV2_portalRevisarFotoReuniao(payload, contexto)`. O envio usa
+`atividadesV2_portalRegistrarFotoReuniao(payload, contexto)`. O membro
+apresentador pode enviar quando autorizado; revisao exige perfil de gestao.
+
 Para titulo/eixos, o Portal tambem pode enviar `decisao=EDITAR_E_APROVAR`,
 incluindo `tituloApresentacao`, `eixoTematicoPrincipal` e
 `eixoTematicoSecundario`, quando `acoesGestao.podeEditarAprovarTituloEixo`
@@ -955,7 +992,8 @@ por cerca de 60 segundos. Quando ha cache valido, o Portal renderiza o dado
 imediatamente e atualiza em segundo plano. Eixos tematicos usam cache em memoria
 mais longo, de cerca de 20 minutos. Apos acoes de apresentacao, o Portal
 invalida `minhasApresentacoes`, `apresentacoes/pendencias`,
-`pendenciasDiretoria` e `painelDiretoria`.
+`pendenciasDiretoria`, `painelDiretoria`, detalhes e listas administrativas de
+atividades. O service worker tambem e versionado quando o contrato muda.
 
 ### `painelDiretoriaV2`
 

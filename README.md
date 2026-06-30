@@ -225,6 +225,7 @@ maquina.
 ## Documentacao complementar
 
 - [Arquitetura](docs/ARCHITECTURE.md)
+- [Entregaveis de apresentacoes](docs/ENTREGAVEIS_APRESENTACOES.md)
 - [Seguranca](docs/SECURITY.md)
 - [Contrato da API](docs/API.md)
 - [Contrato inicial de atividades](docs/api-contrato-atividades.md)

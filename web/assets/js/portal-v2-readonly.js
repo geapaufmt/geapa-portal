@@ -39,13 +39,13 @@
         ['tema', 'Tema', 'texto', ['titulo']],
         ['eixoTematicoPrincipal', 'Eixos', 'eixos', ['eixoTematicoSecundario']],
         ['statusApresentacao', 'Status'],
-        ['linkPastaDrive', 'Pasta', 'link', ['idPastaDrive']]
+        ['linkPastaDrive', 'Pasta', 'link']
       ]
     },
     'admin-apresentacoes': {
       titulo: 'Pendencias de apresentacoes',
       marcador: 'Gestao do GEAPA',
-      intro: 'Revisao de titulos, eixos e materiais permitida pelo backend.',
+      intro: 'Revisao de titulos, eixos, slides e fotos permitida pelo backend.',
       endpoint: '/v2/apresentacoes/pendencias',
       listaCampo: 'pendencias',
       tipo: 'pendencias-apresentacoes',
@@ -627,8 +627,9 @@
         var acoesMembro = obterAcoesMembro(item);
         var eixos = renderizarEixos(item);
         var material = renderizarMaterialApresentacao(item, acoesMembro);
+        var foto = renderizarFotoReuniao(item, acoesMembro);
         var pasta = renderizarPastaAtividade(item, acoesMembro);
-        var recursos = montarRecursosApresentacao(material, pasta);
+        var recursos = montarRecursosApresentacao(material, foto, pasta);
         var acoes = montarAcoesMinhasApresentacoes(item, id, acoesMembro);
 
         return [
@@ -645,7 +646,8 @@
           '</div>',
           '<div class="presentation-status-stack">',
           item.statusTituloEixo ? '<small>Titulo/eixos: ' + ui.escaparHtml(formatarValor(item.statusTituloEixo)) + '</small>' : '',
-          item.statusMaterial ? '<small>Material: ' + ui.escaparHtml(formatarValor(item.statusMaterial)) + '</small>' : '',
+          item.statusMaterial ? '<small>Slide: ' + ui.escaparHtml(formatarValor(item.statusMaterial)) + '</small>' : '',
+          item.statusFotoReuniao ? '<small>Foto da reuniao: ' + ui.escaparHtml(formatarValor(item.statusFotoReuniao)) + '</small>' : '',
           '</div>',
           '</div>',
           item.mensagemTituloEixo ? '<p class="presentation-pendency-text">' + ui.escaparHtml(item.mensagemTituloEixo) + '</p>' : '',
@@ -668,9 +670,15 @@
     }
 
     if (acoes.podeEnviarMaterial === true) {
-      botoes.push(botaoAcao('material', id, 'Enviar material', 'primary'));
+      botoes.push(botaoAcao('material', id, 'Enviar slide', 'primary'));
     } else if (acoes.podeReenviarMaterial === true) {
-      botoes.push(botaoAcao('material', id, 'Reenviar material', 'primary'));
+      botoes.push(botaoAcao('material', id, 'Reenviar slide', 'primary'));
+    }
+
+    if (acoes.podeEnviarFotoReuniao === true) {
+      botoes.push(botaoAcao('foto-reuniao', id, 'Enviar foto da reuniao', 'primary'));
+    } else if (acoes.podeReenviarFotoReuniao === true) {
+      botoes.push(botaoAcao('foto-reuniao', id, 'Reenviar foto da reuniao', 'primary'));
     }
 
     return botoes.join('');
@@ -702,6 +710,7 @@
           'Apresentador ainda nao definido';
         var statusTitulo = obterStatusTituloEixo(item);
         var statusMaterial = obterStatusMaterial(item);
+        var statusFoto = obterStatusFotoReuniao(item);
         var podeRevisarTitulo = statusPermiteRevisaoTitulo(statusTitulo);
         var podeRejeitarTitulo = statusPermiteRejeicaoTitulo(statusTitulo);
         var podeRevisarMaterial = statusPermiteRevisaoMaterial(statusMaterial);
@@ -721,19 +730,34 @@
         ].join('');
         var acoesMaterial = [
           acoesGestao.podeAprovarMaterial === true && podeRevisarMaterial
-            ? botaoAcao('revisar-material-aprovar', id, 'Aprovar material', 'primary')
+            ? botaoAcao('revisar-material-aprovar', id, 'Aprovar slide', 'primary')
             : '',
           acoesGestao.podeSolicitarAjusteMaterial === true && podeRevisarMaterial
-            ? botaoAcao('revisar-material-ajuste', id, 'Solicitar ajuste', 'warning')
+            ? botaoAcao('revisar-material-ajuste', id, 'Solicitar ajuste do slide', 'warning')
             : '',
           acoesGestao.podeDispensarMaterial === true
-            ? botaoAcao('revisar-material-dispensar', id, 'Dispensar material', 'warning')
+            ? botaoAcao('revisar-material-dispensar', id, 'Dispensar slide', 'warning')
             : ''
         ].join('');
-        var acoes = acoesTitulo + acoesMaterial;
+        var acoesFoto = [
+          acoesGestao.podeEnviarFotoReuniao === true
+            ? botaoAcao('foto-reuniao', id, statusFoto === 'AJUSTE_SOLICITADO' ? 'Reenviar foto' : 'Enviar foto da reuniao', 'primary')
+            : '',
+          acoesGestao.podeAprovarFotoReuniao === true && statusPermiteRevisaoFoto(statusFoto)
+            ? botaoAcao('revisar-foto-aprovar', id, 'Aprovar foto', 'primary')
+            : '',
+          acoesGestao.podeSolicitarAjusteFotoReuniao === true && statusPermiteRevisaoFoto(statusFoto)
+            ? botaoAcao('revisar-foto-ajuste', id, 'Solicitar ajuste da foto', 'warning')
+            : '',
+          acoesGestao.podeDispensarFotoReuniao === true
+            ? botaoAcao('revisar-foto-dispensar', id, 'Dispensar foto', 'warning')
+            : ''
+        ].join('');
+        var acoes = acoesTitulo + acoesMaterial + acoesFoto;
         var material = renderizarLinkMaterialGestao(item);
-        var badges = montarBadgesPendencia(item, statusTitulo, statusMaterial);
-        var resumoPendencias = montarResumoPendencias(item, statusTitulo, statusMaterial);
+        var foto = renderizarFotoReuniao(item);
+        var badges = montarBadgesPendencia(item, statusTitulo, statusMaterial, statusFoto);
+        var resumoPendencias = montarResumoPendencias(item, statusTitulo, statusMaterial, statusFoto);
         var dataPeriodo = montarDataPeriodoPendencia(item);
         var eixos = obterEixosTexto(item);
 
@@ -750,7 +774,10 @@
           '</div>',
           '</div>',
           resumoPendencias,
-          material ? '<div class="presentation-resource-row"><div><strong>Material da apresentacao</strong>' + material + '</div></div>' : '',
+          material || foto ? '<div class="presentation-resource-row">' +
+            (material ? '<div><strong>Slide/material da apresentacao</strong>' + material + '</div>' : '') +
+            (foto ? '<div><strong>Foto da reuniao</strong>' + foto + '</div>' : '') +
+            '</div>' : '',
           acoes
             ? '<div class="presentation-card-actions">' + acoes + '</div>'
             : '',
@@ -899,10 +926,14 @@
       'statusMaterial',
       'nomeArquivoMaterial',
       'linkMaterialPublico',
-      'idArquivoMaterial',
+      'statusFotoReuniao',
+      'fotoReuniaoObrigatoria',
+      'nomeArquivoFotoReuniao',
+      'linkFotoReuniao',
       'acaoRecomendada',
       'blocoTituloEixos',
       'blocoMaterial',
+      'blocoFotoReuniao',
       'badges',
       'pendenciasResumo',
       'detalhesTecnicos',
@@ -954,7 +985,7 @@
     return base;
   }
 
-  function montarBadgesPendencia(item, statusTitulo, statusMaterial) {
+  function montarBadgesPendencia(item, statusTitulo, statusMaterial, statusFoto) {
     var badges = [];
 
     adicionarUnico(badges, item.gravidade || item.severidade);
@@ -969,7 +1000,11 @@
     }
 
     if (statusMaterial) {
-      adicionarUnico(badges, 'Material ' + rotuloStatusFluxo(statusMaterial));
+      adicionarUnico(badges, 'Slide ' + rotuloStatusFluxo(statusMaterial));
+    }
+
+    if (statusFoto && statusFoto !== 'NAO_SE_APLICA') {
+      adicionarUnico(badges, 'Foto ' + rotuloStatusFoto(statusFoto));
     }
 
     return badges
@@ -1003,7 +1038,20 @@
       });
   }
 
-  function montarResumoPendencias(item, statusTitulo, statusMaterial) {
+  function rotuloStatusFoto(status) {
+    var rotulos = {
+      RECEBIDO: 'recebida',
+      REENVIADO: 'reenviada',
+      APROVADO: 'aprovada',
+      AJUSTE_SOLICITADO: 'com ajuste solicitado',
+      DISPENSADO: 'dispensada',
+      HISTORICO: 'historica'
+    };
+
+    return rotulos[status] || rotuloStatusFluxo(status);
+  }
+
+  function montarResumoPendencias(item, statusTitulo, statusMaterial, statusFoto) {
     var resumo = [];
     var resumoBackend = Array.isArray((item || {}).pendenciasResumo)
       ? item.pendenciasResumo
@@ -1026,7 +1074,7 @@
     }
 
     if (statusMaterial === 'PENDENTE' || statusMaterial === 'NAO_ENVIADO' || statusMaterial === 'NAO_INFORMADO') {
-      adicionarUnico(resumo, 'Material ainda nao enviado.');
+      adicionarUnico(resumo, 'Slide/material ainda nao enviado.');
     }
 
     if (statusPermiteRevisaoTitulo(statusTitulo)) {
@@ -1034,7 +1082,14 @@
     }
 
     if (statusPermiteRevisaoMaterial(statusMaterial)) {
-      adicionarUnico(resumo, 'Revisar material enviado.');
+      adicionarUnico(resumo, 'Revisar slide/material enviado.');
+    }
+
+    statusFoto = String(statusFoto || (item || {}).statusFotoReuniao || '').toUpperCase();
+    if (['PENDENTE', 'NAO_ENVIADO', 'NAO_INFORMADO', 'AJUSTE_SOLICITADO'].indexOf(statusFoto) >= 0) {
+      adicionarUnico(resumo, statusFoto === 'AJUSTE_SOLICITADO' ? 'Aguardando nova foto da reuniao.' : 'Foto da reuniao ainda nao enviada.');
+    } else if (['RECEBIDO', 'REENVIADO', 'EM_ANALISE'].indexOf(statusFoto) >= 0) {
+      adicionarUnico(resumo, 'Revisar foto da reuniao enviada.');
     }
 
     return resumo.length
@@ -1229,6 +1284,16 @@
     return normalizarStatusFluxo((item || {}).statusMaterial || (item || {}).statusEnvioMaterial);
   }
 
+  function obterStatusFotoReuniao(item) {
+    var bloco = (item || {}).blocoFotoReuniao || {};
+    return normalizarStatusFluxo(
+      (item || {}).statusFotoReuniao ||
+      bloco.statusFotoReuniao ||
+      bloco.status ||
+      bloco.statusEntrega
+    );
+  }
+
   function obterStatusJustificativa(item) {
     return normalizarStatusFluxo(
       (item || {}).statusJustificativa ||
@@ -1288,6 +1353,14 @@
     return ['RECEBIDO', 'REENVIADO', 'EM_ANALISE'].indexOf(status) >= 0;
   }
 
+  function statusPermiteRevisaoFoto(status) {
+    if (!status) {
+      return true;
+    }
+
+    return ['RECEBIDO', 'REENVIADO', 'EM_ANALISE'].indexOf(status) >= 0;
+  }
+
   function obterTituloApresentacao(item) {
     return (item || {}).tituloApresentacao ||
       (item || {}).tema ||
@@ -1296,11 +1369,15 @@
       'Titulo ainda nao informado';
   }
 
-  function montarRecursosApresentacao(material, pasta) {
+  function montarRecursosApresentacao(material, foto, pasta) {
     var blocos = [];
 
     if (material) {
-      blocos.push('<div><strong>Material da apresentacao</strong>' + material + '</div>');
+      blocos.push('<div><strong>Slide/material da apresentacao</strong>' + material + '</div>');
+    }
+
+    if (foto) {
+      blocos.push('<div><strong>Foto da reuniao</strong>' + foto + '</div>');
     }
 
     if (pasta) {
@@ -1313,29 +1390,79 @@
   }
 
   function renderizarMaterialApresentacao(item, acoesMembro) {
-    var acoes = acoesMembro || {};
-    var url = normalizarUrlPublica((item || {}).linkMaterialPublico) ||
-      montarUrlDrivePorId((item || {}).idArquivoMaterial);
-    var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir material';
-    var versao = (item || {}).versaoMaterial ? ' v' + formatarValor((item || {}).versaoMaterial) : '';
+    var acoes = acoesMembro || null;
+    var url = !acoes || acoes.podeAbrirMaterial === true
+      ? normalizarUrlPublica((item || {}).linkMaterialPublico)
+      : '';
+    var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir slide';
+    var versaoValor = (item || {}).versaoMaterial ? formatarValor((item || {}).versaoMaterial) : '';
+    var versao = versaoValor ? (/^v/i.test(versaoValor) ? ' ' + versaoValor : ' v' + versaoValor) : '';
+    var estado = montarEstadoEntregavel('slide', (item || {}).statusMaterial);
 
     if (url) {
       return [
         '<span class="muted-inline">' + ui.escaparHtml(rotulo + versao) + '</span>',
-        '<a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
+        estado ? '<span class="muted-inline">' + ui.escaparHtml(estado) + '</span>' : '',
+        '<a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir slide</a>'
       ].join('');
     }
 
     if ((item || {}).nomeArquivoMaterial) {
-      return '<span class="muted-inline">' + ui.escaparHtml(rotulo + versao) + '</span>';
+      return '<span class="muted-inline">' + ui.escaparHtml(rotulo + versao) + '</span>' +
+        (estado ? '<span class="muted-inline">' + ui.escaparHtml(estado) + '</span>' : '');
     }
 
-    return '<span class="muted-inline">Material ainda nao enviado</span>';
+    return '<span class="muted-inline">' + ui.escaparHtml(estado || 'Slide ainda nao enviado.') + '</span>';
+  }
+
+  function renderizarFotoReuniao(item, acoesMembro) {
+    var bloco = (item || {}).blocoFotoReuniao || {};
+    var status = obterStatusFotoReuniao(item);
+    var podeAbrir = !acoesMembro || acoesMembro.podeAbrirFotoReuniao === true;
+    var url = podeAbrir
+      ? normalizarUrlPublica((item || {}).linkFotoReuniao || bloco.linkFotoReuniao || bloco.linkArquivo)
+      : '';
+    var nome = (item || {}).nomeArquivoFotoReuniao || bloco.nomeArquivoFotoReuniao || bloco.nomeArquivo || 'Foto da reuniao';
+    var obrigatoria = (item || {}).fotoReuniaoObrigatoria === true || bloco.fotoReuniaoObrigatoria === true || bloco.obrigatoria === true;
+    var estado = montarEstadoEntregavel('foto', status);
+
+    if (status === 'NAO_SE_APLICA' && !obrigatoria) {
+      return '';
+    }
+
+    if (url) {
+      return '<span class="muted-inline">' + ui.escaparHtml(nome) + '</span>' +
+        (estado ? '<span class="muted-inline">' + ui.escaparHtml(estado) + '</span>' : '') +
+        '<a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir foto</a>';
+    }
+
+    return obrigatoria || status
+      ? '<span class="muted-inline">' + ui.escaparHtml(estado || 'Foto ainda nao enviada.') + '</span>'
+      : '';
+  }
+
+  function montarEstadoEntregavel(tipo, status) {
+    var nome = tipo === 'foto' ? 'Foto da reuniao' : 'Slide';
+    var feminino = tipo === 'foto';
+    var normalizado = String(status || '').trim().toUpperCase();
+    var mensagens = {
+      PENDENTE: nome + ' ainda nao enviad' + (feminino ? 'a' : 'o') + '.',
+      NAO_ENVIADO: nome + ' ainda nao enviad' + (feminino ? 'a' : 'o') + '.',
+      NAO_INFORMADO: nome + ' ainda nao enviad' + (feminino ? 'a' : 'o') + '.',
+      RECEBIDO: nome + ' recebid' + (feminino ? 'a' : 'o') + ' e aguardando analise.',
+      REENVIADO: nome + ' reenviad' + (feminino ? 'a' : 'o') + ' e aguardando analise.',
+      EM_ANALISE: nome + ' em analise.',
+      APROVADO: nome + ' aprovad' + (feminino ? 'a' : 'o') + '.',
+      AJUSTE_SOLICITADO: 'Ajuste solicitado para ' + nome.toLowerCase() + '.',
+      DISPENSADO: nome + ' dispensad' + (feminino ? 'a' : 'o') + '.',
+      HISTORICO: nome + ' mantid' + (feminino ? 'a' : 'o') + ' como historico.'
+    };
+
+    return mensagens[normalizado] || (normalizado ? nome + ': ' + formatarValor(normalizado) + '.' : '');
   }
 
   function renderizarPastaAtividade(item, acoesMembro) {
-    var url = normalizarUrlPublica((item || {}).linkPastaDrive) ||
-      montarUrlDriveFolderPorId((item || {}).idPastaDrive);
+    var url = normalizarUrlPublica((item || {}).linkPastaDrive);
 
     return url
       ? '<a class="activity-folder-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Pasta geral da atividade</a>'
@@ -1343,13 +1470,15 @@
   }
 
   function renderizarLinkMaterialGestao(item) {
-    var url = normalizarUrlPublica((item || {}).linkMaterialPublico) ||
-      montarUrlDrivePorId((item || {}).idArquivoMaterial);
-    var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir material';
+    var url = normalizarUrlPublica((item || {}).linkMaterialPublico);
+    var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir slide';
+    var estado = montarEstadoEntregavel('slide', (item || {}).statusMaterial);
 
     return url
-      ? '<span class="muted-inline">' + ui.escaparHtml(rotulo) + '</span><a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir material</a>'
-      : ((item || {}).nomeArquivoMaterial ? '<span class="muted-inline">' + ui.escaparHtml((item || {}).nomeArquivoMaterial) + '</span>' : '');
+      ? '<span class="muted-inline">' + ui.escaparHtml(rotulo) + '</span>' +
+        (estado ? '<span class="muted-inline">' + ui.escaparHtml(estado) + '</span>' : '') +
+        '<a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir slide</a>'
+      : '<span class="muted-inline">' + ui.escaparHtml(estado || (item || {}).nomeArquivoMaterial || 'Slide ainda nao enviado.') + '</span>';
   }
 
   function obterAcoesMembro(item) {
@@ -1358,6 +1487,9 @@
       'podeEnviarMaterial',
       'podeReenviarMaterial',
       'podeAbrirMaterial',
+      'podeEnviarFotoReuniao',
+      'podeReenviarFotoReuniao',
+      'podeAbrirFotoReuniao',
       'podeAbrirPastaAtividade'
     ]);
   }
@@ -1372,7 +1504,11 @@
       'podeRejeitarPropostaTema',
       'podeAprovarMaterial',
       'podeSolicitarAjusteMaterial',
-      'podeDispensarMaterial'
+      'podeDispensarMaterial',
+      'podeEnviarFotoReuniao',
+      'podeAprovarFotoReuniao',
+      'podeSolicitarAjusteFotoReuniao',
+      'podeDispensarFotoReuniao'
     ]);
   }
 
@@ -1441,6 +1577,11 @@
       return;
     }
 
+    if (acao === 'foto-reuniao') {
+      abrirModalFotoReuniao(id);
+      return;
+    }
+
     if (acao === 'revisar-titulo-aprovar') {
       enviarRevisaoTitulo(id, 'APROVAR', '', '');
       return;
@@ -1467,12 +1608,27 @@
     }
 
     if (acao === 'revisar-material-ajuste') {
-      abrirModalRevisao(id, 'material', 'SOLICITAR_AJUSTE');
+      abrirModalRevisao(id, 'material', 'SOLICITAR_AJUSTE', true);
       return;
     }
 
     if (acao === 'revisar-material-dispensar') {
-      abrirModalRevisao(id, 'material', 'DISPENSAR');
+      abrirModalRevisao(id, 'material', 'DISPENSAR', true);
+      return;
+    }
+
+    if (acao === 'revisar-foto-aprovar') {
+      enviarRevisaoFotoReuniao(id, 'APROVAR', '', '');
+      return;
+    }
+
+    if (acao === 'revisar-foto-ajuste') {
+      abrirModalRevisao(id, 'foto', 'SOLICITAR_AJUSTE', true);
+      return;
+    }
+
+    if (acao === 'revisar-foto-dispensar') {
+      abrirModalRevisao(id, 'foto', 'DISPENSAR', true);
       return;
     }
 
@@ -1522,6 +1678,11 @@
 
     if (form.getAttribute('data-portal-v2-form') === 'material') {
       salvarMaterial(form);
+      return;
+    }
+
+    if (form.getAttribute('data-portal-v2-form') === 'foto-reuniao') {
+      salvarFotoReuniao(form);
       return;
     }
 
@@ -1631,7 +1792,7 @@
       return;
     }
 
-    abrirModalBase('Material da apresentacao', [
+    abrirModalBase('Slide/material da apresentacao', [
       '<form class="readonly-form" data-portal-v2-form="material">',
       '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(id) + '">',
       '<label>Arquivo',
@@ -1640,7 +1801,7 @@
       '<label>Observacoes',
       '<textarea name="observacoes" rows="4"></textarea>',
       '</label>',
-      '<p class="muted-inline">Formatos aceitos: PDF, PPT, PPTX e ODP.</p>',
+      '<p class="muted-inline">Envie o slide ou material que sera usado na sua apresentacao. Formatos: PDF, PPT, PPTX e ODP.</p>',
       '<div class="presentation-card-actions">',
       '<button type="submit">Enviar</button>',
       '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Cancelar</button>',
@@ -1649,11 +1810,42 @@
     ].join(''));
   }
 
+  function abrirModalFotoReuniao(id) {
+    var item = estado.itensPorId[id];
+    var status = String((item || {}).statusFotoReuniao || '').toUpperCase();
+    var envioGestao = estado.rotaAtual === 'admin-apresentacoes';
+    var acoes = envioGestao ? obterAcoesGestao(item) : obterAcoesMembro(item);
+    var reenvio = envioGestao
+      ? status === 'AJUSTE_SOLICITADO'
+      : acoes.podeReenviarFotoReuniao === true;
+
+    if (!item) return;
+    abrirModalBase('Foto da reuniao', [
+      '<form class="readonly-form" data-portal-v2-form="foto-reuniao" data-reenvio="' + (reenvio ? 'true' : 'false') + '" data-envio-gestao="' + (envioGestao ? 'true' : 'false') + '">',
+      '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(id) + '">',
+      '<label>Arquivo da foto',
+      '<input name="arquivo" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">',
+      '</label>',
+      '<label>Ou link do arquivo no Google Drive',
+      '<input name="linkArquivo" type="url" placeholder="https://drive.google.com/file/d/...">',
+      '</label>',
+      '<label>Observacoes',
+      '<textarea name="observacoes" rows="4"></textarea>',
+      '</label>',
+      '<p class="muted-inline">Use JPG, JPEG, PNG ou WEBP. Informe arquivo ou link de Drive.</p>',
+      '<div class="presentation-card-actions">',
+      '<button type="submit">Enviar foto</button>',
+      '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Cancelar</button>',
+      '</div>',
+      '</form>'
+    ].join(''));
+  }
+
   function abrirModalRevisao(id, tipo, decisao, observacaoObrigatoria) {
-    abrirModalBase('Revisao de apresentacao', [
+    abrirModalBase(obterTituloModalRevisao(tipo), [
       '<form class="readonly-form" data-portal-v2-form="revisao" data-tipo-revisao="' + ui.escaparHtml(tipo) + '" data-decisao="' + ui.escaparHtml(decisao) + '" data-observacao-obrigatoria="' + (observacaoObrigatoria ? 'true' : 'false') + '">',
       '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(id) + '">',
-      observacaoObrigatoria ? '<p class="simulation-warning">Esta acao rejeita apenas a proposta de titulo/eixos e mantem a apresentacao ativa. Informe uma justificativa para o membro.</p>' : '',
+      observacaoObrigatoria ? '<p class="simulation-warning">' + ui.escaparHtml(obterAvisoRevisao(tipo, decisao)) + '</p>' : '',
       '<label>Observacao publica',
       '<textarea name="observacaoPublica" rows="4" ' + (observacaoObrigatoria ? 'required' : '') + '></textarea>',
       '</label>',
@@ -1666,6 +1858,22 @@
       '</div>',
       '</form>'
     ].join(''));
+  }
+
+  function obterTituloModalRevisao(tipo) {
+    if (tipo === 'foto') return 'Revisao da foto da reuniao';
+    if (tipo === 'material') return 'Revisao do slide/material';
+    return 'Revisao de titulo/eixos';
+  }
+
+  function obterAvisoRevisao(tipo, decisao) {
+    if (tipo === 'titulo') {
+      return 'Esta acao rejeita apenas a proposta de titulo/eixos e mantem a apresentacao ativa. Informe uma justificativa para o membro.';
+    }
+    if (decisao === 'DISPENSAR') {
+      return 'A dispensa encerra esta pendencia sem exigir novo arquivo. Informe a justificativa da decisao.';
+    }
+    return 'O apresentador precisara enviar uma nova versao. Informe claramente o ajuste solicitado.';
   }
 
   function abrirModalJustificativa(id) {
@@ -2003,6 +2211,47 @@
       });
   }
 
+  function salvarFotoReuniao(form) {
+    var dados = new FormData(form);
+    var arquivo = dados.get('arquivo');
+    var linkArquivo = String(dados.get('linkArquivo') || '').trim();
+    if ((!arquivo || !arquivo.name) && !linkArquivo) {
+      mostrarErroModal('Selecione uma foto ou informe um link do Google Drive.', form, {
+        arquivo: 'Selecione uma foto ou use o campo de link.',
+        linkArquivo: 'Informe um link do Google Drive se nao enviar um arquivo.'
+      });
+      return;
+    }
+    if (arquivo && arquivo.name && !arquivoFotoPermitido(arquivo)) {
+      mostrarErroModal('Formato nao permitido. Use JPG, JPEG, PNG ou WEBP.', form, {
+        arquivo: 'Use uma imagem JPG, JPEG, PNG ou WEBP.'
+      });
+      return;
+    }
+    ui.mostrarLoading('Lendo foto...');
+    var contentPromise = arquivo && arquivo.name ? lerArquivoBase64(arquivo) : Promise.resolve('');
+    contentPromise.then(function enviar(conteudoBase64) {
+      return executarPostApresentacao('/v2/apresentacoes/foto/registrar', {
+        idApresentacao: dados.get('idApresentacao'),
+        nomeArquivoOriginal: arquivo && arquivo.name || '',
+        mimeType: arquivo && arquivo.type || '',
+        conteudoBase64: conteudoBase64,
+        linkArquivo: linkArquivo,
+        reenvio: form.getAttribute('data-reenvio') === 'true',
+        observacoes: dados.get('observacoes') || ''
+      }, {
+        loadingAtivo: true,
+        form: form,
+        acao: form.getAttribute('data-envio-gestao') === 'true'
+          ? 'ENVIAR_FOTO_REUNIAO_GESTAO'
+          : 'ENVIAR_FOTO_REUNIAO'
+      });
+    }).catch(function falhar(erro) {
+      ui.ocultarLoading();
+      mostrarErroModal(erro.message || 'Nao foi possivel ler a foto.');
+    });
+  }
+
   function salvarRevisao(form) {
     var dados = new FormData(form);
     var tipo = form.getAttribute('data-tipo-revisao');
@@ -2020,6 +2269,17 @@
 
     if (tipo === 'titulo') {
       enviarRevisaoTitulo(
+        dados.get('idApresentacao'),
+        decisao,
+        observacaoPublica,
+        observacaoInterna,
+        form
+      );
+      return;
+    }
+
+    if (tipo === 'foto') {
+      enviarRevisaoFotoReuniao(
         dados.get('idApresentacao'),
         decisao,
         observacaoPublica,
@@ -2140,6 +2400,18 @@
     }, { form: form, acao: 'REVISAR_MATERIAL' });
   }
 
+  function enviarRevisaoFotoReuniao(id, decisao, observacaoPublica, observacaoInterna, form) {
+    var acao = decisao === 'APROVAR'
+      ? 'APROVAR_FOTO_REUNIAO'
+      : (decisao === 'DISPENSAR' ? 'DISPENSAR_FOTO_REUNIAO' : 'AJUSTAR_FOTO_REUNIAO');
+    executarPostApresentacao('/v2/apresentacoes/foto/revisar', {
+      idApresentacao: id,
+      decisao: decisao,
+      observacaoPublica: observacaoPublica || '',
+      observacaoInterna: observacaoInterna || ''
+    }, { form: form, acao: acao });
+  }
+
   function executarPostApresentacao(route, payload, opcoes) {
     var config = opcoes || {};
     var toastId;
@@ -2174,6 +2446,9 @@
           ));
           erro.fieldErrors = feedback.fieldErrors;
           erro.code = feedback.code;
+          if (!Object.keys(erro.fieldErrors).length) {
+            erro.fieldErrors = mapearErrosCamposApresentacao(config.acao, feedback.code);
+          }
           throw erro;
         }
 
@@ -2183,6 +2458,7 @@
         }, sucesso);
         fecharModal();
         invalidarCacheApresentacoes();
+        notificarApresentacoesAtualizadas(payload, feedback.data);
         carregarTela(estado.rotaAtual || 'minhas-apresentacoes');
         ui.atualizarToast(toastId, {
           type: sucesso.type,
@@ -2224,6 +2500,10 @@
     if (acao === 'REPROVAR_TITULO_EIXO') {
       return 'Registrando a reprovacao da proposta...';
     }
+    if (acao === 'ENVIAR_MATERIAL') return 'Enviando slide/material da apresentacao...';
+    if (acao === 'REVISAR_MATERIAL') return 'Registrando analise do slide/material...';
+    if (acao === 'ENVIAR_FOTO_REUNIAO' || acao === 'ENVIAR_FOTO_REUNIAO_GESTAO') return 'Enviando foto da reuniao...';
+    if (['APROVAR_FOTO_REUNIAO', 'AJUSTAR_FOTO_REUNIAO', 'DISPENSAR_FOTO_REUNIAO'].indexOf(acao) >= 0) return 'Registrando analise da foto da reuniao...';
 
     return 'Salvando alteracoes da apresentacao...';
   }
@@ -2234,16 +2514,26 @@
       APROVAR_TITULO_EIXO: 'Titulo e eixo aprovados com sucesso.',
       AJUSTAR_TITULO_EIXO: 'Titulo e eixo devolvidos para ajuste.',
       REPROVAR_TITULO_EIXO: 'Titulo e eixo reprovados. O membro devera enviar uma nova proposta diferente.',
-      ENVIAR_MATERIAL: 'Material da apresentacao enviado com sucesso.',
-      REVISAR_MATERIAL: 'Analise do material registrada com sucesso.'
+      ENVIAR_MATERIAL: 'Slide enviado com sucesso.',
+      REVISAR_MATERIAL: 'Analise do slide registrada com sucesso.',
+      ENVIAR_FOTO_REUNIAO: 'Foto da reuniao enviada com sucesso.',
+      ENVIAR_FOTO_REUNIAO_GESTAO: 'Foto da reuniao registrada pela Secretaria.',
+      APROVAR_FOTO_REUNIAO: 'Foto da reuniao aprovada com sucesso.',
+      AJUSTAR_FOTO_REUNIAO: 'Foto da reuniao devolvida para ajuste.',
+      DISPENSAR_FOTO_REUNIAO: 'Foto da reuniao dispensada com justificativa.'
     };
     var proximosPassos = {
       ENVIAR_TITULO_EIXO: 'Proxima acao: aguardar a analise da Diretoria ou Secretaria.',
       APROVAR_TITULO_EIXO: 'Status final: aprovado.',
       AJUSTAR_TITULO_EIXO: 'Proxima acao: o membro deve complementar e reenviar a proposta.',
       REPROVAR_TITULO_EIXO: 'Proxima acao: o membro deve informar uma nova proposta.',
-      ENVIAR_MATERIAL: 'Proxima acao: aguardar a analise do material.',
-      REVISAR_MATERIAL: 'Status final atualizado pelo backend.'
+      ENVIAR_MATERIAL: 'Proxima acao: aguardar a analise do slide/material.',
+      REVISAR_MATERIAL: 'Status final atualizado pelo backend.',
+      ENVIAR_FOTO_REUNIAO: 'Proxima acao: aguardar a analise da foto, quando aplicavel.',
+      ENVIAR_FOTO_REUNIAO_GESTAO: 'Proxima acao: revisar a foto, quando aplicavel.',
+      APROVAR_FOTO_REUNIAO: 'Status final: foto aprovada.',
+      AJUSTAR_FOTO_REUNIAO: 'Proxima acao: o apresentador deve reenviar a foto.',
+      DISPENSAR_FOTO_REUNIAO: 'Status final: entrega dispensada.'
     };
     var mensagemPadrao = mensagens[acao] || 'Apresentacao atualizada com sucesso.';
     var detalhes = [];
@@ -2272,6 +2562,41 @@
       message: mensagemPadrao,
       details: detalhes.filter(Boolean)
     };
+  }
+
+  function mapearErrosCamposApresentacao(acao, code) {
+    var codigo = String(code || '').toUpperCase();
+
+    if (acao === 'ENVIAR_FOTO_REUNIAO' || acao === 'ENVIAR_FOTO_REUNIAO_GESTAO') {
+      if (codigo === 'LINK_FOTO_INVALIDO') return { linkArquivo: 'Informe um link valido de arquivo do Google Drive.' };
+      if (codigo === 'TIPO_FOTO_INVALIDO') return { arquivo: 'Use uma imagem JPG, JPEG, PNG ou WEBP.' };
+      if (codigo === 'FOTO_REUNIAO_MUITO_GRANDE') return { arquivo: 'A foto excede o limite configurado pelo backend.' };
+      if (codigo === 'FOTO_REUNIAO_OBRIGATORIA') {
+        return {
+          arquivo: 'Selecione uma foto ou use o campo de link.',
+          linkArquivo: 'Informe um link se nao enviar um arquivo.'
+        };
+      }
+    }
+
+    if (codigo === 'OBSERVACAO_OBRIGATORIA') {
+      return { observacaoPublica: 'Informe a justificativa ou orientacao desta decisao.' };
+    }
+
+    return {};
+  }
+
+  function notificarApresentacoesAtualizadas(payload, data) {
+    try {
+      document.dispatchEvent(new CustomEvent('portal:apresentacoes-atualizadas', {
+        detail: {
+          idApresentacao: (payload || {}).idApresentacao || (data || {}).idApresentacao || '',
+          idAtividade: (data || {}).idAtividade || ''
+        }
+      }));
+    } catch (erro) {
+      // O evento apenas invalida caches locais mantidos por outras telas.
+    }
   }
 
   function executarPostJustificativa(route, payload) {
@@ -2308,6 +2633,12 @@
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         'application/vnd.oasis.opendocument.presentation'
       ].indexOf(tipo) >= 0;
+  }
+
+  function arquivoFotoPermitido(arquivo) {
+    var nome = String((arquivo && arquivo.name) || '').toLowerCase();
+    var tipo = String((arquivo && arquivo.type) || '').toLowerCase();
+    return /\.(jpg|jpeg|png|webp)$/.test(nome) || ['image/jpeg', 'image/png', 'image/webp'].indexOf(tipo) >= 0;
   }
 
   function arquivoJustificativaPermitido(arquivo, config) {
@@ -2481,8 +2812,7 @@
 
     if (tipo === 'link') {
       url = normalizarUrlPublica((item || {})[coluna[0]]) ||
-        montarUrlDrivePorId((item || {})[coluna[0]]) ||
-        montarUrlDrivePorId(obterPrimeiroValorPorChaves(item, coluna[3] || []));
+        normalizarUrlPublica(obterPrimeiroValorPorChaves(item, coluna[3] || []));
 
       return url
         ? '<a href="' + ui.escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir</a>'
@@ -2539,26 +2869,6 @@
     }
 
     return '';
-  }
-
-  function montarUrlDrivePorId(valor) {
-    var id = String(valor || '').trim();
-
-    if (!id || !/^[a-zA-Z0-9_-]{20,}$/.test(id)) {
-      return '';
-    }
-
-    return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
-  }
-
-  function montarUrlDriveFolderPorId(valor) {
-    var id = String(valor || '').trim();
-
-    if (!id || !/^[a-zA-Z0-9_-]{10,}$/.test(id)) {
-      return '';
-    }
-
-    return 'https://drive.google.com/drive/folders/' + encodeURIComponent(id);
   }
 
   function formatarValor(valor) {

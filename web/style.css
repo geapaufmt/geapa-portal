@@ -1844,6 +1844,22 @@ textarea[aria-invalid="true"] {
   font-size: 1rem;
 }
 
+.admin-related-file {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.7fr) repeat(2, minmax(190px, 1fr));
+  gap: 8px 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-related-file > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .admin-protected-fields dl {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1874,7 +1890,8 @@ textarea[aria-invalid="true"] {
 @media (max-width: 820px) {
   .admin-activities-filters,
   .admin-activity-form-grid,
-  .admin-protected-fields dl {
+  .admin-protected-fields dl,
+  .admin-related-file {
     grid-template-columns: 1fr;
   }
 
