@@ -302,6 +302,7 @@
       .then(function onResponse(response) {
         if (!response.ok) throw response;
         delete state.details[id];
+        notificarAtividadesAtualizadas(id, 'SALVAR');
         toast('success', response.message || 'Atividade atualizada.');
         closeModal();
         loadActivities(true);
@@ -330,6 +331,7 @@
       .then(function onResponse(response) {
         if (!response.ok) throw response;
         delete state.details[idAtividade];
+        notificarAtividadesAtualizadas(idAtividade, action.toUpperCase());
         toast('success', response.message || 'Acao concluida.');
         closeModal();
         loadActivities(true);
@@ -354,6 +356,15 @@
       }
       return true;
     });
+  }
+
+  function notificarAtividadesAtualizadas(idAtividade, acao) {
+    document.dispatchEvent(new CustomEvent('portal:atividades-atualizadas', {
+      detail: {
+        idAtividade: String(idAtividade || ''),
+        acao: String(acao || '')
+      }
+    }));
   }
 
   function getActivePendencies(item) {

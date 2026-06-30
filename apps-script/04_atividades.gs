@@ -31,7 +31,7 @@ function portalListarAtividades(token) {
       'ATIVIDADES_CACHE',
       'Atividades carregadas em cache temporário.',
       cache,
-      portalMetaAtividades_('cache', inicio)
+      portalMetaLeituraAtividades_('cache', inicio, cache, { cacheHit: true })
     );
   }
 
@@ -48,7 +48,7 @@ function portalListarAtividades(token) {
     'ATIVIDADES_CARREGADAS',
     'Atividades carregadas pelo módulo GEAPA Atividades.',
     normalizada.data,
-    portalMetaAtividades_('geapa-atividades', inicio)
+    portalMetaLeituraAtividades_('geapa-atividades', inicio, normalizada.data, normalizada)
   );
 }
 
@@ -81,7 +81,7 @@ function portalAtividadesBundle(token) {
       'ATIVIDADES_BUNDLE_CACHE',
       'Atividades carregadas em cache temporario.',
       cache,
-      portalMetaAtividades_('cache', inicio)
+      portalMetaLeituraAtividades_('cache', inicio, cache, { cacheHit: true })
     );
   }
 
@@ -102,7 +102,7 @@ function portalAtividadesBundle(token) {
     normalizada.code || 'ATIVIDADES_BUNDLE_CARREGADO',
     normalizada.message || 'Atividades carregadas em pacote unico.',
     normalizada.data,
-    portalMetaAtividades_(normalizada.origem || 'geapa-atividades-bundle', inicio)
+    portalMetaLeituraAtividades_(normalizada.origem || 'geapa-atividades-bundle', inicio, normalizada.data, normalizada)
   );
 }
 
@@ -135,7 +135,7 @@ function portalPrecarregarDetalhesAtividades(token) {
       'ATIVIDADES_DETALHES_PRELOAD_CACHE',
       'Detalhes de atividades carregados em cache temporario.',
       cache,
-      portalMetaAtividades_('cache', inicio)
+      portalMetaLeituraAtividades_('cache', inicio, cache, { cacheHit: true })
     );
   }
 
@@ -156,7 +156,7 @@ function portalPrecarregarDetalhesAtividades(token) {
     'ATIVIDADES_DETALHES_PRELOAD_CARREGADO',
     'Detalhes de atividades carregados para preload.',
     normalizada.data,
-    portalMetaAtividades_(normalizada.origem || 'geapa-atividades-detalhes', inicio)
+    portalMetaLeituraAtividades_(normalizada.origem || 'geapa-atividades-detalhes', inicio, normalizada.data, normalizada)
   );
 }
 
@@ -196,7 +196,7 @@ function portalDetalheAtividade(token, idAtividade) {
       'ATIVIDADE_DETALHE_CACHE',
       'Detalhes da atividade carregados em cache temporário.',
       cache,
-      portalMetaAtividades_('cache', inicio)
+      portalMetaLeituraAtividades_('cache', inicio, cache, { cacheHit: true })
     );
   }
 
@@ -216,7 +216,7 @@ function portalDetalheAtividade(token, idAtividade) {
     'ATIVIDADE_DETALHE_CARREGADO',
     'Detalhes da atividade carregados pelo módulo GEAPA Atividades.',
     normalizada.data,
-    portalMetaAtividades_('geapa-atividades', inicio)
+    portalMetaLeituraAtividades_('geapa-atividades', inicio, normalizada.data, normalizada)
   );
 }
 
@@ -1009,7 +1009,12 @@ function portalNormalizarRespostaAtividades_(resposta) {
 
   return {
     ok: true,
-    data: resposta.data || []
+    data: resposta.data || [],
+    performance: resposta.performance || null,
+    origem: resposta.origem || '',
+    cacheHit: resposta.cacheHit === true,
+    payloadBytes: Number(resposta.payloadBytes || 0),
+    tempoTotalMs: Number(resposta.tempoTotalMs || 0)
   };
 }
 
@@ -1113,9 +1118,13 @@ function portalNormalizarRespostaDetalhesPreload_(resposta) {
 
   return {
     ok: true,
-    origem: dados.detalhesPorId || dados.detalhes
+    origem: resposta.origem || (dados.detalhesPorId || dados.detalhes
       ? 'geapa-atividades-detalhes'
-      : 'geapa-atividades-bundle',
+      : 'geapa-atividades-bundle'),
+    performance: resposta.performance || dados.performance || null,
+    cacheHit: resposta.cacheHit === true,
+    payloadBytes: Number(resposta.payloadBytes || 0),
+    tempoTotalMs: Number(resposta.tempoTotalMs || 0),
     data: {
       detalhesPorId: detalhesPorId,
       ultimaAtualizacao: dados.ultimaAtualizacao || new Date().toISOString()
@@ -1140,7 +1149,11 @@ function portalNormalizarRespostaBundleAtividades_(resposta) {
     ok: true,
     code: 'ATIVIDADES_BUNDLE_CARREGADO',
     message: resposta.message || 'Atividades carregadas em pacote unico.',
-    origem: 'geapa-atividades-bundle',
+    origem: resposta.origem || 'geapa-atividades-bundle',
+    performance: resposta.performance || dados.performance || null,
+    cacheHit: resposta.cacheHit === true,
+    payloadBytes: Number(resposta.payloadBytes || 0),
+    tempoTotalMs: Number(resposta.tempoTotalMs || 0),
     data: {
       modo: dados.modo || 'LEVE',
       calendario: calendario,
@@ -1242,6 +1255,33 @@ function portalMetaAtividades_(origem, inicioMs) {
       cacheSegundos: PORTAL_CONFIG.cacheAtividadesSegundos
     }
   };
+}
+
+function portalMetaLeituraAtividades_(origem, inicioMs, dados, diagnostico) {
+  var meta = portalMetaAtividades_(origem, inicioMs);
+  var info = diagnostico || {};
+  var payloadBytes = Number(info.payloadBytes || 0);
+  var tempoBackendMs = Number(info.tempoTotalMs || 0);
+
+  if (!payloadBytes) {
+    try {
+      payloadBytes = JSON.stringify(dados || {}).length;
+    } catch (erro) {
+      payloadBytes = 0;
+    }
+  }
+
+  meta.desempenho.cacheHit = info.cacheHit === true || origem === 'cache';
+  meta.desempenho.cacheMiss = !meta.desempenho.cacheHit;
+  meta.desempenho.payloadBytes = payloadBytes;
+  meta.desempenho.origemBackend = info.origem || origem;
+  meta.desempenho.tempoBackendMs = tempoBackendMs;
+
+  if (info.performance) {
+    meta.performance = info.performance;
+  }
+
+  return meta;
 }
 
 function portalAgoraAtividadesMs_() {

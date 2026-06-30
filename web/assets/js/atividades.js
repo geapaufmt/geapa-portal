@@ -21,6 +21,7 @@
   var atividadesResumoCache = {};
   var atividadesBundleCache = null;
   var atividadesBundleCacheSalvoEm = 0;
+  var atividadesBundleCacheOrigem = '';
   var filtrosHistoricoAtividades = {
     tipoSubtipo: '',
     somenteApresentacoes: false,
@@ -141,6 +142,9 @@
     document.addEventListener('click', tratarCliqueAtividades);
     document.addEventListener('submit', tratarSubmitAtividades);
     document.addEventListener('portal:apresentacoes-atualizadas', function invalidarDetalhesApresentacoes() {
+      invalidarCacheAtividades();
+    });
+    document.addEventListener('portal:atividades-atualizadas', function invalidarDadosAtividades() {
       invalidarCacheAtividades();
     });
   }
@@ -308,7 +312,7 @@
     var bundleCache = lerBundleAtividadesCacheValido();
     var rotulos = obterRotulosAtividades(modo);
 
-    if (bundleCache && bundleCache.calendario.length) {
+    if (bundleCache && bundleCache.calendarioCarregado) {
       aplicarBundleAtividades(bundleCache);
       renderizarAtividades(lista, bundleCache.calendario, modo);
       status.textContent = configEmModoMock()
@@ -317,7 +321,9 @@
       registrarPerfAtividades('atividades.aba.cache', inicio, {
         total: bundleCache.calendario.length,
         detalhesCache: Object.keys(bundleCache.detalhesPorId || {}).length,
-        payloadBytes: estimarPayloadBytes(bundleCache.calendario)
+        payloadBytes: estimarPayloadBytes(bundleCache.calendario),
+        origemCache: atividadesBundleCacheOrigem || 'memoria',
+        tempoPrimeiraRenderizacaoMs: Math.round(obterTempoAtual() - inicio)
       });
       iniciarPreloadDetalhesAtividades(bundleCache, status);
       return;
@@ -348,7 +354,9 @@
         registrarPerfAtividades('atividades.lista.renderizada', inicio, mesclarMetaPerfAtividades(resposta, {
           total: bundle.calendario.length,
           payloadBytes: estimarPayloadBytes(resposta.data || {}),
-          detalhesPreCarregados: 0
+          detalhesPreCarregados: 0,
+          origemCache: 'backend',
+          tempoPrimeiraRenderizacaoMs: Math.round(obterTempoAtual() - inicio)
         }));
         iniciarPreloadDetalhesAtividades(bundle, status);
       })
@@ -366,7 +374,7 @@
     var bundleCache = lerBundleAtividadesCacheValido();
     var rotulos = obterRotulosAtividades(modo);
 
-    if (bundleCache) {
+    if (bundleCache && bundleCache.calendarioCarregado) {
       aplicarBundleAtividades(bundleCache);
       renderizarAtividades(lista, bundleCache.calendario, modo);
       status.textContent = configEmModoMock()
@@ -374,7 +382,9 @@
         : rotulos.cache;
       registrarPerfAtividades('atividades.aba.cache', inicio, {
         total: bundleCache.calendario.length,
-        payloadBytes: estimarPayloadBytes(bundleCache.calendario)
+        payloadBytes: estimarPayloadBytes(bundleCache.calendario),
+        origemCache: atividadesBundleCacheOrigem || 'memoria',
+        tempoPrimeiraRenderizacaoMs: Math.round(obterTempoAtual() - inicio)
       });
       iniciarPreloadDetalhesAtividades(bundleCache, status);
       return;
@@ -400,7 +410,9 @@
         registrarPerfAtividades('atividades.lista.renderizada', inicio, mesclarMetaPerfAtividades(resposta, {
           total: bundle.calendario.length,
           payloadBytes: estimarPayloadBytes(resposta.data || {}),
-          detalhesPreCarregados: Object.keys(bundle.detalhesPorId).length
+          detalhesPreCarregados: Object.keys(bundle.detalhesPorId).length,
+          origemCache: 'backend',
+          tempoPrimeiraRenderizacaoMs: Math.round(obterTempoAtual() - inicio)
         }));
         iniciarPreloadDetalhesAtividades(bundle, status);
       })
@@ -442,7 +454,9 @@
           : rotulos.carregadoFallback;
         registrarPerfAtividades('atividades.aba.fallback_lista', inicioOriginal || inicio, {
           total: bundle.calendario.length,
-          tempoFallbackMs: Math.round(obterTempoAtual() - inicio)
+          tempoFallbackMs: Math.round(obterTempoAtual() - inicio),
+          origemCache: 'backend_fallback',
+          tempoPrimeiraRenderizacaoMs: Math.round(obterTempoAtual() - (inicioOriginal || inicio))
         });
       })
       .catch(function tratarErro(erro) {
@@ -811,6 +825,7 @@
     return {
       modo: origem.modo || 'LEVE',
       calendario: calendario,
+      calendarioCarregado: origem.calendarioCarregado === true || Array.isArray(origem.calendario),
       detalhesPorId: normalizarDetalhesPorId(origem.detalhesPorId),
       ultimaAtualizacao: origem.ultimaAtualizacao || ''
     };
@@ -854,11 +869,13 @@
 
   function lerBundleAtividadesCacheValido() {
     if (cacheAtividadesMemoriaValido()) {
+      atividadesBundleCacheOrigem = 'memoria';
       return atividadesBundleCache;
     }
 
+    var chave = '';
     try {
-      var chave = obterChaveCacheAtividades();
+      chave = obterChaveCacheAtividades();
       var bruto = chave ? window.sessionStorage.getItem(chave) : '';
 
       if (!bruto) {
@@ -867,16 +884,25 @@
 
       var registro = JSON.parse(bruto);
       var expirado = !registro.salvoEm || obterTempoCacheAtual() - registro.salvoEm > ATIVIDADES_CACHE_TTL_MS;
+      var bundleValido = registro && registro.bundle &&
+        typeof registro.bundle === 'object' &&
+        Array.isArray(registro.bundle.calendario);
 
-      if (expirado) {
+      if (expirado || !bundleValido) {
         window.sessionStorage.removeItem(chave);
         return null;
       }
 
       atividadesBundleCache = normalizarBundleAtividades(registro.bundle);
       atividadesBundleCacheSalvoEm = registro.salvoEm;
+      atividadesBundleCacheOrigem = 'sessionStorage';
       return atividadesBundleCache;
     } catch (erro) {
+      try {
+        if (chave) window.sessionStorage.removeItem(chave);
+      } catch (erroRemocao) {
+        // Cache corrompido sera simplesmente ignorado.
+      }
       return null;
     }
   }
@@ -892,6 +918,7 @@
   function salvarBundleAtividadesCache(bundle) {
     atividadesBundleCache = normalizarBundleAtividades(bundle);
     atividadesBundleCacheSalvoEm = obterTempoCacheAtual();
+    atividadesBundleCacheOrigem = 'memoria';
 
     try {
       var chave = obterChaveCacheAtividades();
@@ -913,6 +940,7 @@
   function invalidarCacheAtividades() {
     atividadesBundleCache = null;
     atividadesBundleCacheSalvoEm = 0;
+    atividadesBundleCacheOrigem = '';
     detalhesCache = {};
     atividadesResumoCache = {};
 
@@ -941,9 +969,14 @@
   function obterChaveCacheAtividades() {
     var token = '';
     var usuario = auth.getUsuarioAtual ? auth.getUsuarioAtual() : {};
-    var usuarioId = usuario && (usuario.id || usuario.rga || usuario.emailCadastrado || usuario.nomeExibicao)
-      ? String(usuario.id || usuario.rga || usuario.emailCadastrado || usuario.nomeExibicao)
-      : 'usuario';
+    var usuarioId = usuario && (usuario.idPessoa || usuario.id || usuario.rga || usuario.emailCadastrado || usuario.email)
+      ? String(usuario.idPessoa || usuario.id || usuario.rga || usuario.emailCadastrado || usuario.email)
+      : '';
+    var perfil = String(
+      usuario && (usuario.perfilPortalEfetivo || usuario.perfil) ||
+      (usuario && Array.isArray(usuario.perfisPortal) ? usuario.perfisPortal.join('|') : '') ||
+      'MEMBRO'
+    ).toUpperCase();
 
     try {
       token = window.sessionStorage.getItem('geapaPortal.sessionToken') || '';
@@ -951,11 +984,11 @@
       token = '';
     }
 
-    if (!token) {
+    if (!token || !usuarioId) {
       return '';
     }
 
-    return 'geapaPortal.atividadesLista.v9.' + hashCurto(token + ':' + usuarioId);
+    return 'geapaPortal.atividadesLeitura.v10.' + hashCurto(usuarioId + ':' + perfil);
   }
 
   function hashCurto(valor) {
@@ -1029,7 +1062,7 @@
   }
 
   function registrarPerfAtividades(evento, inicio, detalhes) {
-    if (!global.console || typeof global.console.debug !== 'function') {
+    if (!diagnosticoPerfAtividadesAtivo() || !global.console || typeof global.console.debug !== 'function') {
       return;
     }
 
@@ -1038,16 +1071,22 @@
     }, detalhes || {}));
   }
 
+  function diagnosticoPerfAtividadesAtivo() {
+    var config = global.PortalGeapaConfig || {};
+    return config.MOCK_MODE === true ||
+      config.DEBUG_PERFORMANCE === true ||
+      String(config.ENVIRONMENT || '').trim().toUpperCase() === 'DEV';
+  }
+
   function mesclarMetaPerfAtividades(resposta, detalhes) {
     var meta = resposta && resposta.meta ? resposta.meta : {};
     var desempenho = meta.desempenho || {};
     var atividades = meta.atividades || {};
-    var performanceBackend = resposta && resposta.data && resposta.data.performance
-      ? resposta.data.performance
-      : {};
+    var performanceBackend = meta.performance ||
+      (resposta && resposta.data && resposta.data.performance ? resposta.data.performance : {});
     var dados = Object.assign({}, detalhes || {});
-    var tempoBackend = Number(desempenho.tempoMs || performanceBackend.totalMs);
-    var origemBackend = desempenho.origemDados || atividades.origemDados || '';
+    var tempoBackend = Number(desempenho.tempoBackendMs || performanceBackend.totalMs || desempenho.tempoMs);
+    var origemBackend = desempenho.origemBackend || desempenho.origemDados || atividades.origemDados || '';
 
     if (!Number.isNaN(tempoBackend) && tempoBackend >= 0) {
       dados.tempoBackendMs = Math.round(tempoBackend);
@@ -1055,6 +1094,14 @@
 
     if (origemBackend) {
       dados.origemBackend = origemBackend;
+    }
+
+    if (typeof desempenho.cacheHit === 'boolean') {
+      dados.cacheHitBackend = desempenho.cacheHit;
+    }
+
+    if (!dados.payloadBytes && Number(desempenho.payloadBytes) > 0) {
+      dados.payloadBytes = Number(desempenho.payloadBytes);
     }
 
     if (Array.isArray(performanceBackend.etapas)) {
@@ -3276,7 +3323,8 @@
       abrirModal(detalheCache);
       registrarPerfAtividades('atividades.detalhe.' + (cache.origem || 'cache_memoria'), inicio, {
         idAtividade: idAtividade,
-        payloadBytes: estimarPayloadBytes(detalheCache)
+        payloadBytes: estimarPayloadBytes(detalheCache),
+        origemCache: cache.origem || 'cache_memoria'
       });
       return;
     }
@@ -3307,7 +3355,8 @@
 
         registrarPerfAtividades('atividades.detalhe.fallback_backend', inicio, mesclarMetaPerfAtividades(resposta, {
           idAtividade: idAtividade,
-          payloadBytes: estimarPayloadBytes(resultado.detalhe)
+          payloadBytes: estimarPayloadBytes(resultado.detalhe),
+          origemCache: 'backend'
         }));
       }).catch(function tratarErro(erro) {
         abrirModal({
