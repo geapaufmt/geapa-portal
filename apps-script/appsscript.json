@@ -5,14 +5,14 @@
       {
         "userSymbol": "GEAPA_CORE",
         "libraryId": "15Ha6cxA6NInRwyUTmLAqRX4pnmewetkZ32j4I_yFKh9hEwOHmPCL7F_d",
-        "version": "0",
-        "developmentMode": true
+        "version": "8",
+        "developmentMode": false
       },
       {
         "userSymbol": "GEAPA_ATIVIDADES",
         "libraryId": "1XC7ayt2N1rz3l1FFAmlCxvWzyPMLLqjYSE3PRuymjAlOQErFb7KdJCso",
-        "version": "0",
-        "developmentMode": true
+        "version": "11",
+        "developmentMode": false
       }
     ]
   },

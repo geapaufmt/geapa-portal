@@ -1,8 +1,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function portalUserAtivo() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/portalUsers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.portalAtivo == true;
+    }
+
     match /portalUsers/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /portalActivities/{idAtividade} {
+      allow read: if portalUserAtivo();
       allow write: if false;
     }
   }

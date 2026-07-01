@@ -11,6 +11,7 @@ window.PortalGeapaConfig = {
   PORTAL_VERSION: '0.1',
   ENVIRONMENT: 'DEV',
   FIRESTORE_SESSION_TTL_MS: 6 * 60 * 60 * 1000,
+  FIRESTORE_ACTIVITIES_TTL_MS: 6 * 60 * 60 * 1000,
   FIREBASE: {
     apiKey: 'AIzaSyCiHX3n1NbYnGkVtELqzU-JztZ_53gjkd8',
     authDomain: 'portal-geapa.firebaseapp.com',

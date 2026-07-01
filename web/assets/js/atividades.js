@@ -333,7 +333,7 @@
     status.textContent = rotulos.buscando;
     ui.mostrarLoading(rotulos.carregando);
 
-    return api.apiGet('/atividades/listar', {})
+    return buscarAtividadesComFirestoreFallback_()
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Não foi possível carregar atividades.');
@@ -366,6 +366,52 @@
       })
       .finally(function finalizarLoadingAtividades() {
         ui.ocultarLoading();
+      });
+  }
+
+  function buscarAtividadesComFirestoreFallback_() {
+    var client = global.PortalGeapaFirestoreActivities;
+    if (configEmModoMock() || !client || typeof client.buscarCalendario !== 'function') {
+      return api.apiGet('/atividades/listar', {}).then(function marcarFallbackSemCliente(resposta) {
+        resposta = resposta || {};
+        resposta.meta = resposta.meta || {};
+        resposta.meta.desempenho = Object.assign({}, resposta.meta.desempenho || {}, {
+          origemDados: 'APPS_SCRIPT_FALLBACK'
+        });
+        return resposta;
+      });
+    }
+
+    return Promise.resolve(client.buscarCalendario())
+      .then(function validarFirestore(resultado) {
+        if (!resultado || resultado.ok !== true || !Array.isArray(resultado.data) || !resultado.data.length) {
+          throw new Error(resultado && resultado.code ? resultado.code : 'FIRESTORE_SEM_DADOS_VALIDOS');
+        }
+        return {
+          ok: true,
+          data: resultado.data,
+          meta: {
+            desempenho: {
+              origemDados: 'FIRESTORE',
+              cacheHit: true,
+              payloadBytes: estimarPayloadBytes(resultado.data)
+            }
+          }
+        };
+      })
+      .catch(function usarAppsScriptFallback(erro) {
+        registrarPerfAtividades('atividades.lista.firestore_fallback', obterTempoAtual(), {
+          origemDados: 'APPS_SCRIPT_FALLBACK',
+          motivo: erro && erro.message ? erro.message : 'FIRESTORE_INDISPONIVEL'
+        });
+        return api.apiGet('/atividades/listar', {}).then(function marcarOrigemFallback(resposta) {
+          resposta = resposta || {};
+          resposta.meta = resposta.meta || {};
+          resposta.meta.desempenho = Object.assign({}, resposta.meta.desempenho || {}, {
+            origemDados: 'APPS_SCRIPT_FALLBACK'
+          });
+          return resposta;
+        });
       });
   }
 
