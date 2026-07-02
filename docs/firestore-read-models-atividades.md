@@ -9,15 +9,17 @@ a mesma instancia Firebase do login.
 O documento aceito deve possuir:
 
 - `source: PORTAL_ATIVIDADES_CALENDARIO`;
-- `schemaVersion: portal-activity-calendar-v1`;
+- `schemaVersion: portal-activity-calendar-v2`;
+- `datasetComplete: true`;
 - `cacheUpdatedAt` ou `sourceUpdatedAt` dentro do TTL configurado.
 
 O TTL inicial e controlado por `FIRESTORE_ACTIVITIES_TTL_MS`, com default de
 seis horas.
 
-Se a colecao estiver vazia, houver documento invalido/vencido, o usuario nao
-estiver autenticado ou a leitura falhar, a tela usa imediatamente o endpoint
-Apps Script `/atividades/listar`.
+Se a colecao estiver vazia, nao houver documento completo e vigente, o usuario
+nao estiver autenticado ou a leitura falhar, a tela usa imediatamente o
+endpoint Apps Script `/atividades/listar`. Documentos antigos, parciais ou
+vencidos sao ignorados.
 
 O console registra a origem sem dados pessoais:
 
@@ -53,7 +55,8 @@ Esse comando nao cria ou publica Cloud Functions.
 
 ## Homologacao
 
-1. Materializar cinco atividades em DEV pelo `geapa-atividades`.
+1. Materializar o calendario completo em DEV pelo `geapa-atividades`, sem
+   informar `limit` nem `idAtividade`.
 2. Publicar as Rules manualmente.
 3. Entrar no Portal com usuario cujo `portalUsers/{uid}.portalAtivo` seja `true`.
 4. Abrir Proximas atividades e confirmar origem `FIRESTORE` no console.

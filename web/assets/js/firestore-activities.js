@@ -11,7 +11,7 @@ import {
  */
 (function configurarFirestoreActivities(global) {
   var COLLECTION = 'portalActivities';
-  var SCHEMA_VERSION = 'portal-activity-calendar-v1';
+  var SCHEMA_VERSION = 'portal-activity-calendar-v2';
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
 
   function obterFirestore() {
@@ -37,6 +37,7 @@ import {
     return Boolean(
       data &&
       data.idAtividade &&
+      data.datasetComplete === true &&
       data.source === 'PORTAL_ATIVIDADES_CALENDARIO' &&
       data.schemaVersion === SCHEMA_VERSION &&
       updatedAt &&
@@ -57,6 +58,8 @@ import {
     return {
       idAtividade: String(data.idAtividade || '').trim(),
       tituloPublico: String(data.titulo || '').trim(),
+      tituloConteudoPublico: String(data.tituloConteudoPublico || '').trim(),
+      tipoPublico: String(data.tipoPublico || '').trim(),
       tipoAtividade: String(data.tipoAtividade || '').trim(),
       subtipoAtividade: String(data.subtipoAtividade || '').trim(),
       dataAtividade: String(data.dataAtividade || '').trim(),
@@ -67,14 +70,24 @@ import {
       ciclo: String(data.ciclo || '').trim(),
       ano: String(data.ano || '').trim(),
       semestre: String(data.semestre || '').trim(),
+      rotuloSemestre: String(data.rotuloSemestre || '').trim(),
+      formato: String(data.formato || '').trim(),
+      publicoAlvo: String(data.publicoAlvo || '').trim(),
+      cargaHoraria: String(data.cargaHoraria || '').trim(),
       statusOperacional: String(data.statusOperacional || '').trim(),
       statusPublico: String(data.statusPublicacaoPortal || data.statusOperacional || '').trim(),
       statusPublicacaoPortal: String(data.statusPublicacaoPortal || '').trim(),
       visibilidadePortal: String(data.visibilidadePortal || '').trim(),
       classificacaoAcesso: String(data.classificacaoAcesso || '').trim(),
+      eixoTematicoPrincipal: String(data.eixoTematicoPrincipal || '').trim(),
+      eixoTematicoSecundario: String(data.eixoTematicoSecundario || '').trim(),
+      nomePessoaPrincipalPublico: String(data.nomePessoaPrincipalPublico || '').trim(),
+      papelPessoaPrincipal: String(data.papelPessoaPrincipal || '').trim(),
+      tipoPessoaPrincipal: String(data.tipoPessoaPrincipal || '').trim(),
       temApresentacao: hasPresentation,
       possuiApresentacoes: hasPresentation,
-      qtdApresentacoes: hasPresentation ? 1 : 0,
+      qtdApresentacoes: Number(data.qtdApresentacoes || (hasPresentation ? 1 : 0)),
+      resumoApresentacoesPublico: String(data.resumoApresentacoesPublico || '').trim(),
       badges: Array.isArray(data.badges) ? data.badges.slice() : [],
       flags: flags,
       contaPresenca: flags.contaPresenca === true,
@@ -122,7 +135,7 @@ import {
         docs.push(normalizarDocumento(data));
       });
 
-      if (snapshot.empty || invalidos > 0 || !docs.length) {
+      if (snapshot.empty || !docs.length) {
         registrarDiagnostico('APPS_SCRIPT_FALLBACK', inicio, {
           code: snapshot.empty ? 'FIRESTORE_VAZIO' : 'FIRESTORE_DESATUALIZADO',
           total: docs.length,

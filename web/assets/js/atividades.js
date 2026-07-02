@@ -1034,7 +1034,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLeitura.v10.' + hashCurto(usuarioId + ':' + perfil);
+    return 'geapaPortal.atividadesLeitura.v11.' + hashCurto(usuarioId + ':' + perfil);
   }
 
   function hashCurto(valor) {
@@ -1682,7 +1682,7 @@
       montarFato('Presença', ui.formatarBooleano(atividade.contaPresenca)),
       montarFato('Falta', ui.formatarBooleano(atividade.contaFalta)),
       montarFato('Certificado', ui.formatarBooleano(atividade.geraCertificado)),
-      montarFato('Carga horária', atividade.cargaHoraria + ' h'),
+      montarFato('Carga horária', atividade.cargaHoraria ? atividade.cargaHoraria + ' h' : '-'),
       '</dl>',
       montarBlocoApresentacoesCard(atividade),
       historico ? '' : montarAvisoChamada(atividade, destaque),
