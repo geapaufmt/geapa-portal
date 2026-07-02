@@ -1034,7 +1034,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLeitura.v12.' + hashCurto(usuarioId + ':' + perfil);
+    return 'geapaPortal.atividadesLeitura.v13.' + hashCurto(usuarioId + ':' + perfil);
   }
 
   function hashCurto(valor) {
@@ -1641,11 +1641,18 @@
   }
 
   function obterStatusAtividade(atividade) {
-    return obterCampoTextoAtividade(atividade, [
+    var chaves = [
       'statusOperacional',
       'statusPublico',
       'status'
-    ]);
+    ];
+
+    for (var i = 0; i < chaves.length; i++) {
+      var status = obterCampoTextoAtividade(atividade, [chaves[i]]);
+      if (status) return status;
+    }
+
+    return '';
   }
 
   function obterStatusAtividadeNormalizado(atividade) {
