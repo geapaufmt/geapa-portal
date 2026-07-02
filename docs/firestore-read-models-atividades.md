@@ -37,6 +37,13 @@ O console registra a origem sem dados pessoais:
 Detalhes, chamada, frequencia, justificativas e qualquer escrita continuam no
 Apps Script.
 
+Depois da primeira renderizacao pelo Firestore, o Portal consulta
+`/atividades/listar` em segundo plano e substitui o calendario pelo contrato
+autenticado. Esse enriquecimento restaura metadados operacionais e individuais,
+como `statusChamadaRotulo`, `podeJustificarAusenciaFutura` e o estado de uma
+justificativa previa. Esses campos nao devem ser gravados no read model
+compartilhado do Firestore.
+
 ## Rules
 
 `portalUsers/{uid}` mantem leitura exclusiva do proprio usuario e nenhuma

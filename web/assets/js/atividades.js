@@ -32,6 +32,7 @@
     mes: ''
   };
   var detalhesPreloadPromise = null;
+  var enriquecimentoOperacionalPromise = null;
   var detalhesPreloadTimer = null;
   var detalhesPreloadFila = [];
   var detalhesPreloadIds = {};
@@ -326,6 +327,7 @@
         tempoPrimeiraRenderizacaoMs: Math.round(obterTempoAtual() - inicio)
       });
       iniciarPreloadDetalhesAtividades(bundleCache, status);
+      iniciarEnriquecimentoOperacionalAtividades(bundleCache, lista, status, modo);
       return;
     }
 
@@ -339,10 +341,12 @@
           throw new Error(resposta.message || 'Não foi possível carregar atividades.');
         }
 
+        var origemDados = obterOrigemDadosAtividades_(resposta);
         var bundle = normalizarBundleAtividades({
           calendario: resposta.data || [],
           detalhesPorId: {},
-          ultimaAtualizacao: new Date().toISOString()
+          ultimaAtualizacao: new Date().toISOString(),
+          operacionalCarregado: origemDados !== 'FIRESTORE'
         });
 
         aplicarBundleAtividades(bundle);
@@ -359,6 +363,7 @@
           tempoPrimeiraRenderizacaoMs: Math.round(obterTempoAtual() - inicio)
         }));
         iniciarPreloadDetalhesAtividades(bundle, status);
+        iniciarEnriquecimentoOperacionalAtividades(bundle, lista, status, modo);
       })
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
@@ -413,6 +418,56 @@
           return resposta;
         });
       });
+  }
+
+  function obterOrigemDadosAtividades_(resposta) {
+    return String(
+      resposta && resposta.meta && resposta.meta.desempenho && resposta.meta.desempenho.origemDados || ''
+    ).trim().toUpperCase();
+  }
+
+  function iniciarEnriquecimentoOperacionalAtividades(bundle, lista, status, modo) {
+    var dados = normalizarBundleAtividades(bundle);
+    var inicio;
+
+    if (dados.operacionalCarregado || configEmModoMock() || enriquecimentoOperacionalPromise) {
+      return enriquecimentoOperacionalPromise;
+    }
+
+    inicio = obterTempoAtual();
+    enriquecimentoOperacionalPromise = api.apiGet('/atividades/listar', {})
+      .then(function aplicarCalendarioOperacional(resposta) {
+        if (!resposta || resposta.ok !== true || !Array.isArray(resposta.data)) {
+          throw new Error(resposta && resposta.message || 'Metadados operacionais indisponiveis.');
+        }
+
+        dados.calendario = resposta.data.slice();
+        dados.calendarioCarregado = true;
+        dados.operacionalCarregado = true;
+        dados.ultimaAtualizacao = new Date().toISOString();
+        aplicarBundleAtividades(dados);
+        salvarBundleAtividadesCache(dados);
+        renderizarAtividades(lista, dados.calendario, modo);
+        iniciarPreloadDetalhesAtividades(dados, status);
+        registrarPerfAtividades('atividades.lista.enriquecida', inicio, mesclarMetaPerfAtividades(resposta, {
+          total: dados.calendario.length,
+          payloadBytes: estimarPayloadBytes(resposta.data),
+          origemInicial: 'FIRESTORE'
+        }));
+        return dados;
+      })
+      .catch(function registrarFalhaEnriquecimento(erro) {
+        registrarPerfAtividades('atividades.lista.enriquecimento_falhou', inicio, {
+          erro: erro && erro.message ? erro.message : 'METADADOS_OPERACIONAIS_INDISPONIVEIS'
+        });
+        return null;
+      })
+      .then(function finalizarEnriquecimento(resultado) {
+        enriquecimentoOperacionalPromise = null;
+        return resultado;
+      });
+
+    return enriquecimentoOperacionalPromise;
   }
 
   function carregarAtividadesComBundle(lista, status, modo) {
@@ -872,6 +927,7 @@
       modo: origem.modo || 'LEVE',
       calendario: calendario,
       calendarioCarregado: origem.calendarioCarregado === true || Array.isArray(origem.calendario),
+      operacionalCarregado: origem.operacionalCarregado !== false,
       detalhesPorId: normalizarDetalhesPorId(origem.detalhesPorId),
       ultimaAtualizacao: origem.ultimaAtualizacao || ''
     };
@@ -1034,7 +1090,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLeitura.v13.' + hashCurto(usuarioId + ':' + perfil);
+    return 'geapaPortal.atividadesLeitura.v14.' + hashCurto(usuarioId + ':' + perfil);
   }
 
   function hashCurto(valor) {
