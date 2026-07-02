@@ -55,6 +55,7 @@ import {
   function normalizarDocumento(data) {
     var flags = data && data.flags && typeof data.flags === 'object' ? data.flags : {};
     var hasPresentation = data && data.temApresentacao === true;
+    var statusPublico = String(data.statusPublico || data.statusPublicacaoPortal || data.statusOperacional || '').trim();
     return {
       idAtividade: String(data.idAtividade || '').trim(),
       tituloPublico: String(data.titulo || '').trim(),
@@ -75,8 +76,8 @@ import {
       publicoAlvo: String(data.publicoAlvo || '').trim(),
       cargaHoraria: String(data.cargaHoraria || '').trim(),
       statusOperacional: String(data.statusOperacional || '').trim(),
-      statusPublico: String(data.statusPublicacaoPortal || data.statusOperacional || '').trim(),
-      statusPublicacaoPortal: String(data.statusPublicacaoPortal || '').trim(),
+      statusPublico: statusPublico,
+      statusPublicacaoPortal: String(data.statusPublicacaoPortal || data.statusPublico || '').trim(),
       visibilidadePortal: String(data.visibilidadePortal || '').trim(),
       classificacaoAcesso: String(data.classificacaoAcesso || '').trim(),
       eixoTematicoPrincipal: String(data.eixoTematicoPrincipal || '').trim(),

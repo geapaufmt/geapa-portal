@@ -1034,7 +1034,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLeitura.v11.' + hashCurto(usuarioId + ':' + perfil);
+    return 'geapaPortal.atividadesLeitura.v12.' + hashCurto(usuarioId + ':' + perfil);
   }
 
   function hashCurto(valor) {
@@ -1655,6 +1655,7 @@
   function montarCardAtividade(atividade, destaque, modo) {
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
     var possuiApresentacao = atividadePossuiApresentacoes(atividade);
+    var statusAtividade = obterStatusAtividade(atividade);
 
     return [
       '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') +
@@ -1667,7 +1668,9 @@
       '<p class="activity-meta">' + ui.escaparHtml(montarMetaAtividade(atividade)) + '</p>',
       '</div>',
       '<div class="activity-status-stack">',
-      '<span class="status-pill">' + ui.escaparHtml(ui.formatarRotulo(obterStatusAtividade(atividade))) + '</span>',
+      statusAtividade
+        ? '<span class="status-pill">' + ui.escaparHtml(ui.formatarRotulo(statusAtividade)) + '</span>'
+        : '',
       atividade.statusChamadaRotulo
         ? '<span class="status-pill status-pill-muted">' + ui.escaparHtml(atividade.statusChamadaRotulo) + '</span>'
         : '',
