@@ -9,9 +9,16 @@ a mesma instancia Firebase do login.
 O documento aceito deve possuir:
 
 - `source: PORTAL_ATIVIDADES_CALENDARIO`;
-- `schemaVersion: portal-activity-calendar-v2`;
-- `datasetComplete: true`;
+- `schemaVersion: portal-activity-calendar-v3`;
+- `ativoNoReadModel` diferente de `false`;
+- `stale` diferente de `true`;
 - `cacheUpdatedAt` ou `sourceUpdatedAt` dentro do TTL configurado.
+
+Documentos com `syncScope: ID` podem atualizar itens de um conjunto previamente
+materializado. Para considerar a colecao como calendário completo, o cliente
+exige ao menos um documento vigente com `datasetComplete: true` e
+`syncScope: FULL`. Sem essa evidencia, usa `APPS_SCRIPT_FALLBACK` com o codigo
+`FIRESTORE_DATASET_PARCIAL`.
 
 O TTL inicial e controlado por `FIRESTORE_ACTIVITIES_TTL_MS`, com default de
 seis horas.
@@ -19,7 +26,8 @@ seis horas.
 Se a colecao estiver vazia, nao houver documento completo e vigente, o usuario
 nao estiver autenticado ou a leitura falhar, a tela usa imediatamente o
 endpoint Apps Script `/atividades/listar`. Documentos antigos, parciais ou
-vencidos sao ignorados.
+vencidos sao ignorados. Documentos com `ativoNoReadModel=false` ou `stale=true`
+tambem sao sempre ignorados.
 
 O console registra a origem sem dados pessoais:
 

@@ -11,7 +11,7 @@ import {
  */
 (function configurarFirestoreActivities(global) {
   var COLLECTION = 'portalActivities';
-  var SCHEMA_VERSION = 'portal-activity-calendar-v2';
+  var SCHEMA_VERSION = 'portal-activity-calendar-v3';
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
 
   function obterFirestore() {
@@ -37,7 +37,8 @@ import {
     return Boolean(
       data &&
       data.idAtividade &&
-      data.datasetComplete === true &&
+      data.ativoNoReadModel !== false &&
+      data.stale !== true &&
       data.source === 'PORTAL_ATIVIDADES_CALENDARIO' &&
       data.schemaVersion === SCHEMA_VERSION &&
       updatedAt &&
@@ -102,6 +103,12 @@ import {
       sourceSystem: String(data.sourceSystem || '').trim(),
       sourceUpdatedAt: data.sourceUpdatedAt || '',
       cacheUpdatedAt: data.cacheUpdatedAt || '',
+      sourceHash: String(data.sourceHash || '').trim(),
+      sourceVersion: String(data.sourceVersion || '').trim(),
+      datasetComplete: data.datasetComplete === true,
+      syncScope: String(data.syncScope || '').trim(),
+      ativoNoReadModel: data.ativoNoReadModel !== false,
+      stale: data.stale === true,
       schemaVersion: String(data.schemaVersion || '').trim()
     };
   }
@@ -126,6 +133,7 @@ import {
     try {
       var snapshot = await getDocs(collection(db, COLLECTION));
       var invalidos = 0;
+      var datasetComplete = false;
       var docs = [];
       snapshot.forEach(function(docSnapshot) {
         var data = docSnapshot.data() || {};
@@ -133,19 +141,23 @@ import {
           invalidos++;
           return;
         }
+        if (data.datasetComplete === true && String(data.syncScope || '') === 'FULL') datasetComplete = true;
         docs.push(normalizarDocumento(data));
       });
 
-      if (snapshot.empty || !docs.length) {
+      if (snapshot.empty || !docs.length || !datasetComplete) {
+        var fallbackCode = snapshot.empty
+          ? 'FIRESTORE_VAZIO'
+          : (!docs.length ? 'FIRESTORE_DESATUALIZADO' : 'FIRESTORE_DATASET_PARCIAL');
         registrarDiagnostico('APPS_SCRIPT_FALLBACK', inicio, {
-          code: snapshot.empty ? 'FIRESTORE_VAZIO' : 'FIRESTORE_DESATUALIZADO',
+          code: fallbackCode,
           total: docs.length,
           invalidos: invalidos
         });
         return {
           ok: false,
           origem: 'APPS_SCRIPT_FALLBACK',
-          code: snapshot.empty ? 'FIRESTORE_VAZIO' : 'FIRESTORE_DESATUALIZADO',
+          code: fallbackCode,
           data: []
         };
       }
