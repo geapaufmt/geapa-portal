@@ -10,7 +10,10 @@
   var auth = global.PortalGeapaAuth;
   var navigation = global.PortalGeapaNavigation;
   var ui = global.PortalGeapaUi;
-  var ATIVIDADES_CACHE_TTL_MS = 5 * 60 * 1000;
+  var ATIVIDADES_CACHE_TTL_MS = Math.max(
+    5 * 60 * 1000,
+    Number(global.PortalGeapaConfig && global.PortalGeapaConfig.ATIVIDADES_CACHE_TTL_MS || 30 * 60 * 1000)
+  );
   var CHAMADA_ANTECEDENCIA_PADRAO_MINUTOS = 60;
   var CHAMADA_TOLERANCIA_PADRAO_MINUTOS = 240;
   var PRELOAD_DETALHES_LIMITE_PADRAO = 2;
@@ -346,7 +349,7 @@
           calendario: resposta.data || [],
           detalhesPorId: {},
           ultimaAtualizacao: new Date().toISOString(),
-          operacionalCarregado: origemDados !== 'FIRESTORE'
+          operacionalCarregado: !origemDadosEhFirestore_(origemDados)
         });
 
         aplicarBundleAtividades(bundle);
@@ -397,9 +400,12 @@
           data: resultado.data,
           meta: {
             desempenho: {
-              origemDados: 'FIRESTORE',
+              origemDados: resultado.origem || 'FIRESTORE_COLLECTION',
               cacheHit: true,
-              payloadBytes: estimarPayloadBytes(resultado.data)
+              payloadBytes: estimarPayloadBytes(resultado.data),
+              readsEstimados: Number(resultado.readsEstimados || 0),
+              schemaVersion: resultado.schemaVersion || '',
+              cacheUpdatedAt: resultado.cacheUpdatedAt || ''
             }
           }
         };
@@ -424,6 +430,10 @@
     return String(
       resposta && resposta.meta && resposta.meta.desempenho && resposta.meta.desempenho.origemDados || ''
     ).trim().toUpperCase();
+  }
+
+  function origemDadosEhFirestore_(origem) {
+    return String(origem || '').trim().toUpperCase().indexOf('FIRESTORE_') === 0;
   }
 
   function iniciarEnriquecimentoOperacionalAtividades(bundle, lista, status, modo) {
@@ -1090,7 +1100,7 @@
       return '';
     }
 
-    return 'geapaPortal.atividadesLeitura.v14.' + hashCurto(usuarioId + ':' + perfil);
+    return 'geapaPortal.atividadesLeitura.v16.' + hashCurto(usuarioId + ':' + perfil);
   }
 
   function hashCurto(valor) {

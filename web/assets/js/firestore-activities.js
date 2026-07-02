@@ -1,5 +1,7 @@
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   getFirestore
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
@@ -11,7 +13,10 @@ import {
  */
 (function configurarFirestoreActivities(global) {
   var COLLECTION = 'portalActivities';
+  var SNAPSHOT_COLLECTION = 'portalActivityCalendarSnapshots';
+  var SNAPSHOT_ID = 'current';
   var SCHEMA_VERSION = 'portal-activity-calendar-v3';
+  var SNAPSHOT_SCHEMA_VERSION = 'portal-activity-calendar-snapshot-v1';
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
 
   function obterFirestore() {
@@ -41,6 +46,22 @@ import {
       data.stale !== true &&
       data.source === 'PORTAL_ATIVIDADES_CALENDARIO' &&
       data.schemaVersion === SCHEMA_VERSION &&
+      updatedAt &&
+      Date.now() - updatedAt <= ttlMs
+    );
+  }
+
+  function snapshotValido(data, ttlMs) {
+    var updatedAt = obterTempoMs(data && data.cacheUpdatedAt);
+    return Boolean(
+      data &&
+      data.schemaVersion === SNAPSHOT_SCHEMA_VERSION &&
+      data.source === 'PORTAL_ATIVIDADES_CALENDARIO' &&
+      data.datasetComplete === true &&
+      data.stale !== true &&
+      Array.isArray(data.atividades) &&
+      Number(data.total) === data.atividades.length &&
+      data.atividades.length > 0 &&
       updatedAt &&
       Date.now() - updatedAt <= ttlMs
     );
@@ -119,6 +140,91 @@ import {
     return keyA.localeCompare(keyB);
   }
 
+  async function buscarSnapshotPublico(db, ttlMs, inicio) {
+    try {
+      var result = await getDoc(doc(db, SNAPSHOT_COLLECTION, SNAPSHOT_ID));
+      if (!result.exists()) {
+        return { ok: false, code: 'FIRESTORE_SNAPSHOT_AUSENTE' };
+      }
+      var data = result.data() || {};
+      if (!snapshotValido(data, ttlMs)) {
+        return { ok: false, code: 'FIRESTORE_SNAPSHOT_INVALIDO' };
+      }
+      var atividades = data.atividades.map(normalizarDocumento).filter(function(atividade) {
+        return Boolean(atividade.idAtividade) && atividade.stale !== true && atividade.ativoNoReadModel !== false;
+      });
+      if (!atividades.length || atividades.length !== Number(data.total)) {
+        return { ok: false, code: 'FIRESTORE_SNAPSHOT_CONTEUDO_INVALIDO' };
+      }
+      atividades.sort(compararAtividades);
+      registrarDiagnostico('FIRESTORE_SNAPSHOT', inicio, {
+        total: atividades.length,
+        readsEstimados: 1,
+        schemaVersion: data.schemaVersion,
+        cacheUpdatedAt: data.cacheUpdatedAt || ''
+      });
+      return {
+        ok: true,
+        origem: 'FIRESTORE_SNAPSHOT',
+        code: 'FIRESTORE_SNAPSHOT_OK',
+        data: atividades,
+        schemaVersion: data.schemaVersion,
+        cacheUpdatedAt: data.cacheUpdatedAt || '',
+        readsEstimados: 1
+      };
+    } catch (erro) {
+      return {
+        ok: false,
+        code: erro && erro.code ? erro.code : 'FIRESTORE_SNAPSHOT_FALHOU'
+      };
+    }
+  }
+
+  async function buscarColecaoAutenticada(db, ttlMs, inicio) {
+    var snapshot = await getDocs(collection(db, COLLECTION));
+    var invalidos = 0;
+    var datasetComplete = false;
+    var docs = [];
+    snapshot.forEach(function(docSnapshot) {
+      var data = docSnapshot.data() || {};
+      if (!documentoValido(data, ttlMs)) {
+        invalidos++;
+        return;
+      }
+      if (data.datasetComplete === true && String(data.syncScope || '') === 'FULL') datasetComplete = true;
+      docs.push(normalizarDocumento(data));
+    });
+
+    if (snapshot.empty || !docs.length || !datasetComplete) {
+      return {
+        ok: false,
+        code: snapshot.empty
+          ? 'FIRESTORE_VAZIO'
+          : (!docs.length ? 'FIRESTORE_DESATUALIZADO' : 'FIRESTORE_DATASET_PARCIAL'),
+        total: docs.length,
+        invalidos: invalidos,
+        readsEstimados: snapshot.size
+      };
+    }
+
+    docs.sort(compararAtividades);
+    registrarDiagnostico('FIRESTORE_COLLECTION', inicio, {
+      total: docs.length,
+      invalidos: invalidos,
+      readsEstimados: snapshot.size,
+      schemaVersion: SCHEMA_VERSION,
+      cacheUpdatedAt: docs[0] && docs[0].cacheUpdatedAt || ''
+    });
+    return {
+      ok: true,
+      origem: 'FIRESTORE_COLLECTION',
+      code: 'FIRESTORE_COLLECTION_OK',
+      data: docs,
+      schemaVersion: SCHEMA_VERSION,
+      readsEstimados: snapshot.size
+    };
+  }
+
   async function buscarCalendario(options) {
     var inicio = obterTempoAtual();
     var config = global.PortalGeapaConfig || {};
@@ -126,48 +232,53 @@ import {
     var db = obterFirestore();
     var auth = global.PortalGeapaFirebaseAuth;
     var user = auth && typeof auth.getCurrentUser === 'function' ? auth.getCurrentUser() : null;
-    if (!db || !user) {
-      return { ok: false, origem: 'APPS_SCRIPT_FALLBACK', code: 'FIRESTORE_NAO_AUTENTICADO', data: [] };
+    if (!db) {
+      registrarDiagnostico('APPS_SCRIPT_FALLBACK', inicio, {
+        code: 'FIRESTORE_INDISPONIVEL',
+        total: 0,
+        readsEstimados: 0
+      });
+      return { ok: false, origem: 'APPS_SCRIPT_FALLBACK', code: 'FIRESTORE_INDISPONIVEL', data: [] };
+    }
+
+    var snapshotResult = await buscarSnapshotPublico(db, ttlMs, inicio);
+    if (snapshotResult.ok) return snapshotResult;
+
+    if (!user) {
+      registrarDiagnostico('APPS_SCRIPT_FALLBACK', inicio, {
+        code: snapshotResult.code || 'FIRESTORE_SNAPSHOT_INDISPONIVEL',
+        total: 0,
+        readsEstimados: 1
+      });
+      return {
+        ok: false,
+        origem: 'APPS_SCRIPT_FALLBACK',
+        code: snapshotResult.code || 'FIRESTORE_SNAPSHOT_INDISPONIVEL',
+        data: []
+      };
     }
 
     try {
-      var snapshot = await getDocs(collection(db, COLLECTION));
-      var invalidos = 0;
-      var datasetComplete = false;
-      var docs = [];
-      snapshot.forEach(function(docSnapshot) {
-        var data = docSnapshot.data() || {};
-        if (!documentoValido(data, ttlMs)) {
-          invalidos++;
-          return;
-        }
-        if (data.datasetComplete === true && String(data.syncScope || '') === 'FULL') datasetComplete = true;
-        docs.push(normalizarDocumento(data));
-      });
-
-      if (snapshot.empty || !docs.length || !datasetComplete) {
-        var fallbackCode = snapshot.empty
-          ? 'FIRESTORE_VAZIO'
-          : (!docs.length ? 'FIRESTORE_DESATUALIZADO' : 'FIRESTORE_DATASET_PARCIAL');
+      var collectionResult = await buscarColecaoAutenticada(db, ttlMs, inicio);
+      if (!collectionResult.ok) {
         registrarDiagnostico('APPS_SCRIPT_FALLBACK', inicio, {
-          code: fallbackCode,
-          total: docs.length,
-          invalidos: invalidos
+          code: collectionResult.code,
+          total: collectionResult.total || 0,
+          invalidos: collectionResult.invalidos || 0,
+          readsEstimados: collectionResult.readsEstimados || 0
         });
         return {
           ok: false,
           origem: 'APPS_SCRIPT_FALLBACK',
-          code: fallbackCode,
+          code: collectionResult.code,
           data: []
         };
       }
-
-      docs.sort(compararAtividades);
-      registrarDiagnostico('FIRESTORE', inicio, { total: docs.length, invalidos: 0 });
-      return { ok: true, origem: 'FIRESTORE', code: 'FIRESTORE_OK', data: docs };
+      return collectionResult;
     } catch (erro) {
       registrarDiagnostico('APPS_SCRIPT_FALLBACK', inicio, {
-        code: erro && erro.code ? erro.code : 'FIRESTORE_FALHOU'
+        code: erro && erro.code ? erro.code : 'FIRESTORE_FALHOU',
+        readsEstimados: 1
       });
       return { ok: false, origem: 'APPS_SCRIPT_FALLBACK', code: 'FIRESTORE_FALHOU', data: [] };
     }

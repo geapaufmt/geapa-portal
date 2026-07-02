@@ -16,5 +16,10 @@ service cloud.firestore {
       allow read: if portalUserAtivo();
       allow write: if false;
     }
+
+    match /portalActivityCalendarSnapshots/{snapshotId} {
+      allow read: if snapshotId == "current";
+      allow write: if false;
+    }
   }
 }

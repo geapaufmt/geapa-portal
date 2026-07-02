@@ -2,9 +2,23 @@
 
 ## Leitura do Portal
 
-O Portal tenta ler `portalActivities` pelo Firebase client SDK depois que o
-Firebase Auth possui usuario atual. O modulo `firestore-activities.js` reutiliza
-a mesma instancia Firebase do login.
+O Portal tenta primeiro ler o documento publico agregado
+`portalActivityCalendarSnapshots/current`. Essa leitura exige somente a
+configuracao Firebase e nao depende de Firebase Auth ou de `portalUsers/{uid}`.
+
+O snapshot deve possuir:
+
+- `source: PORTAL_ATIVIDADES_CALENDARIO`;
+- `schemaVersion: portal-activity-calendar-snapshot-v1`;
+- `datasetComplete: true`;
+- `stale` diferente de `true`;
+- `atividades` como array nao vazio;
+- `total` igual ao tamanho do array;
+- `cacheUpdatedAt` dentro do TTL configurado.
+
+Se o snapshot estiver ausente, invalido ou vencido, o Portal tenta a colecao
+autenticada `portalActivities`. Se essa leitura tambem falhar, usa o endpoint
+Apps Script `/atividades/listar`.
 
 O documento aceito deve possuir:
 
@@ -31,7 +45,8 @@ tambem sao sempre ignorados.
 
 O console registra a origem sem dados pessoais:
 
-- `FIRESTORE`
+- `FIRESTORE_SNAPSHOT`, normalmente com `readsEstimados: 1`;
+- `FIRESTORE_COLLECTION`, com `readsEstimados` igual ao total lido;
 - `APPS_SCRIPT_FALLBACK`
 
 Detalhes, chamada, frequencia, justificativas e qualquer escrita continuam no
@@ -56,6 +71,10 @@ quando:
 
 O front-end nunca escreve em `portalActivities`.
 
+`portalActivityCalendarSnapshots/current` permite leitura publica apenas desse
+ID fixo e nunca permite escrita pelo front-end. O documento contem somente o
+calendario publico agregado; dados individuais continuam protegidos.
+
 `cacheExpiresAt` de `portalUsers` ainda e armazenado como string no contrato
 atual. Por isso a expiracao nao e comparada com `request.time` nesta versao das
 Rules; a validade continua sendo verificada no cliente e pelo Core.
@@ -70,14 +89,19 @@ Esse comando nao cria ou publica Cloud Functions.
 
 ## Homologacao
 
-1. Materializar o calendario completo em DEV pelo `geapa-atividades`, sem
-   informar `limit` nem `idAtividade`.
-2. Publicar as Rules manualmente.
-3. Entrar no Portal com usuario cujo `portalUsers/{uid}.portalAtivo` seja `true`.
-4. Abrir Proximas atividades e confirmar origem `FIRESTORE` no console.
-5. Bloquear a rede do Firestore ou reduzir o TTL e confirmar
+1. Executar `atividadesV2_runSyncFirestoreCalendarioCompletoDev()` no
+   `geapa-atividades`.
+2. Conferir `portalActivityCalendarSnapshots/current` com
+   `datasetComplete=true`, `total > 0` e array `atividades` sem dados pessoais.
+3. Publicar as Rules manualmente.
+4. Entrar com usuario sem `portalUsers/{uid}`, abrir Proximas atividades e
+   confirmar `FIRESTORE_SNAPSHOT` e `readsEstimados: 1` no console.
+5. Entrar com usuario autenticado, invalidar temporariamente o snapshot em DEV
+   e confirmar `FIRESTORE_COLLECTION`.
+6. Bloquear a rede do Firestore ou reduzir o TTL e confirmar
    `APPS_SCRIPT_FALLBACK`.
-6. Confirmar que detalhes e acoes continuam chegando pelo Apps Script.
+7. Confirmar que detalhes, chamada e justificativas continuam chegando pelo
+   Apps Script depois da primeira renderizacao.
 
 Firestore permanece cache. Sheets V2 + Apps Script continuam sendo a fonte
 oficial e o ponto de autorizacao para acoes sensiveis.
