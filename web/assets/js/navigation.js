@@ -47,6 +47,7 @@
     PORTAL_INATIVO: 'PORTAL_INATIVO',
     PERFIL_NAO_AUTORIZADO: 'PERFIL_NAO_AUTORIZADO',
     PERMISSAO_INSUFICIENTE: 'PERMISSAO_INSUFICIENTE',
+    FEATURE_DISABLED: 'FEATURE_DISABLED',
     ROTA_INEXISTENTE: 'ROTA_INEXISTENTE'
   };
   var ROTAS_PORTAL = [
@@ -305,6 +306,10 @@
       return { ok: true, reason: '' };
     }
 
+    if (!routeFeatureEnabled(rota)) {
+      return { ok: false, reason: MOTIVOS_ACESSO.FEATURE_DISABLED };
+    }
+
     if (
       sessao.autenticado &&
       sessao.validacaoOficialPendente === true &&
@@ -393,8 +398,17 @@
 
   function getAllowedRoutes(sessao) {
     return ROTAS_PORTAL.filter(function filtrarRota(rota) {
-      return rota.mostrarNoMenu && resolveRouteAccess(sessao || getSessaoAtual(), rota).ok;
+      return rota.mostrarNoMenu && routeFeatureEnabled(rota) && resolveRouteAccess(sessao || getSessaoAtual(), rota).ok;
     }).sort(ordenarRotas);
+  }
+
+  function routeFeatureEnabled(rota) {
+    var config = global.PortalGeapaConfig || {};
+    var readOnly = config.READ_ONLY_MODE === true;
+    if (readOnly && rota.grupoMenu === 'gestao-geapa') return false;
+    if (rota.id === 'admin-atividades' && config.ENABLE_ACTIVITY_MANAGEMENT === false) return false;
+    if (['justificativas', 'admin-justificativas'].indexOf(rota.id) >= 0 && config.ENABLE_JUSTIFICATIVAS === false) return false;
+    return true;
   }
 
   function renderizarMenu() {
@@ -560,6 +574,10 @@
 
     if (reason === MOTIVOS_ACESSO.ROTA_INEXISTENTE) {
       return 'Área indisponível no Portal GEAPA.';
+    }
+
+    if (reason === MOTIVOS_ACESSO.FEATURE_DISABLED) {
+      return 'Esta area esta desativada neste ambiente.';
     }
 
     return 'Seu perfil atual não possui acesso a esta área.';

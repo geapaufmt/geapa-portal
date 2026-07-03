@@ -7,6 +7,17 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.portalAtivo == true;
     }
 
+    function ambienteNaoProd(env) {
+      return env == "dev" || env == "homolog";
+    }
+
+    function portalUserAtivoNoAmbiente(env) {
+      return request.auth != null
+        && ambienteNaoProd(env)
+        && exists(/databases/$(database)/documents/environments/$(env)/portalUsers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/environments/$(env)/portalUsers/$(request.auth.uid)).data.portalAtivo == true;
+    }
+
     match /portalUsers/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
@@ -19,6 +30,21 @@ service cloud.firestore {
 
     match /portalActivityCalendarSnapshots/{snapshotId} {
       allow read: if snapshotId == "current";
+      allow write: if false;
+    }
+
+    match /environments/{env}/portalUsers/{uid} {
+      allow read: if ambienteNaoProd(env) && request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /environments/{env}/portalActivities/{idAtividade} {
+      allow read: if portalUserAtivoNoAmbiente(env);
+      allow write: if false;
+    }
+
+    match /environments/{env}/portalActivityCalendarSnapshots/{snapshotId} {
+      allow read: if ambienteNaoProd(env) && snapshotId == "current";
       allow write: if false;
     }
   }

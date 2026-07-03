@@ -351,6 +351,28 @@ body {
   margin: 0;
 }
 
+.environment-badge {
+  display: inline-block;
+  margin-left: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--green-800);
+  background: var(--green-50);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.environment-banner {
+  width: 100%;
+  border-bottom: 1px solid #d8b65d;
+  padding: 7px 16px;
+  color: #694900;
+  background: #fff8df;
+  text-align: center;
+  font-size: 0.82rem;
+}
+
 .view-placeholder {
   max-width: 1080px;
   margin: 0;

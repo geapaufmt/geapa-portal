@@ -1,21 +1,38 @@
 name: Firebase Hosting Production
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: 'Digite PUBLICAR_PROD para liberar o canal live'
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   deploy:
+    if: ${{ inputs.confirmacao == 'PUBLICAR_PROD' }}
     runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://portal-geapa.web.app
 
     steps:
       - name: Baixar repositorio
         uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Gerar configuracao PROD
+        run: node scripts/generate-portal-config.mjs prod --channel live --version "${GITHUB_SHA}"
+
+      - name: Validar configuracao gerada
+        run: node --check web/assets/js/config.js
 
       - name: Publicar producao no Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0

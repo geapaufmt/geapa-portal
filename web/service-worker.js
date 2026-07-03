@@ -1,4 +1,4 @@
-const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v72';
+const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v76';
 
 const STATIC_ASSETS = [
   '/',
@@ -7,6 +7,7 @@ const STATIC_ASSETS = [
   '/app.js',
   '/manifest.json',
   '/assets/js/config.js',
+  '/assets/js/environment.js',
   '/assets/js/api.js',
   '/assets/js/public-content.js',
   '/assets/js/auth.js',

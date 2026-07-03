@@ -1,0 +1,11 @@
+{
+  "name": "geapa-portal-deploy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "config:dev": "node scripts/generate-portal-config.mjs dev",
+    "config:homolog": "node scripts/generate-portal-config.mjs homolog",
+    "config:prod": "node scripts/generate-portal-config.mjs prod",
+    "check:configs": "node scripts/generate-portal-config.mjs dev --check && node scripts/generate-portal-config.mjs homolog --check && node scripts/generate-portal-config.mjs prod --check"
+  }
+}

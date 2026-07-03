@@ -19,6 +19,23 @@ import {
   var SNAPSHOT_SCHEMA_VERSION = 'portal-activity-calendar-snapshot-v1';
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
 
+  function flagEnabled(name, defaultValue) {
+    var environment = global.PortalGeapaEnvironment;
+    if (environment && typeof environment.flagEnabled === 'function') {
+      return environment.flagEnabled(name, defaultValue);
+    }
+    var config = global.PortalGeapaConfig || {};
+    return Object.prototype.hasOwnProperty.call(config, name) ? config[name] === true : defaultValue === true;
+  }
+
+  function firestorePathSegments(collectionName, documentId) {
+    var environment = global.PortalGeapaEnvironment;
+    if (environment && typeof environment.firestorePathSegments === 'function') {
+      return environment.firestorePathSegments(collectionName, documentId);
+    }
+    return documentId ? [collectionName, documentId] : [collectionName];
+  }
+
   function obterFirestore() {
     var sessionCache = global.PortalGeapaFirestoreSession;
     if (sessionCache && typeof sessionCache.inicializarFirestore === 'function') {
@@ -142,7 +159,9 @@ import {
 
   async function buscarSnapshotPublico(db, ttlMs, inicio) {
     try {
-      var result = await getDoc(doc(db, SNAPSHOT_COLLECTION, SNAPSHOT_ID));
+      var result = await getDoc(doc.apply(null, [db].concat(
+        firestorePathSegments(SNAPSHOT_COLLECTION, SNAPSHOT_ID)
+      )));
       if (!result.exists()) {
         return { ok: false, code: 'FIRESTORE_SNAPSHOT_AUSENTE' };
       }
@@ -181,7 +200,9 @@ import {
   }
 
   async function buscarColecaoAutenticada(db, ttlMs, inicio) {
-    var snapshot = await getDocs(collection(db, COLLECTION));
+    var snapshot = await getDocs(collection.apply(null, [db].concat(
+      firestorePathSegments(COLLECTION)
+    )));
     var invalidos = 0;
     var datasetComplete = false;
     var docs = [];
@@ -229,22 +250,26 @@ import {
     var inicio = obterTempoAtual();
     var config = global.PortalGeapaConfig || {};
     var ttlMs = Math.max(60000, Number(options && options.ttlMs || config.FIRESTORE_ACTIVITIES_TTL_MS || DEFAULT_TTL_MS));
-    var db = obterFirestore();
+    var firestoreAtivo = flagEnabled('FIRESTORE_ENABLED', true);
+    var db = firestoreAtivo ? obterFirestore() : null;
     var auth = global.PortalGeapaFirebaseAuth;
     var user = auth && typeof auth.getCurrentUser === 'function' ? auth.getCurrentUser() : null;
-    if (!db) {
+    if (!firestoreAtivo || !db) {
+      var codigoIndisponibilidade = firestoreAtivo ? 'FIRESTORE_INDISPONIVEL' : 'FIRESTORE_DESATIVADO';
       registrarDiagnostico('APPS_SCRIPT_FALLBACK', inicio, {
-        code: 'FIRESTORE_INDISPONIVEL',
+        code: codigoIndisponibilidade,
         total: 0,
         readsEstimados: 0
       });
-      return { ok: false, origem: 'APPS_SCRIPT_FALLBACK', code: 'FIRESTORE_INDISPONIVEL', data: [] };
+      return { ok: false, origem: 'APPS_SCRIPT_FALLBACK', code: codigoIndisponibilidade, data: [] };
     }
 
-    var snapshotResult = await buscarSnapshotPublico(db, ttlMs, inicio);
+    var snapshotResult = flagEnabled('FIRESTORE_SNAPSHOT_ENABLED', true)
+      ? await buscarSnapshotPublico(db, ttlMs, inicio)
+      : { ok: false, code: 'FIRESTORE_SNAPSHOT_DESATIVADO' };
     if (snapshotResult.ok) return snapshotResult;
 
-    if (!user) {
+    if (!user || !flagEnabled('FIRESTORE_COLLECTION_FALLBACK_ENABLED', true)) {
       registrarDiagnostico('APPS_SCRIPT_FALLBACK', inicio, {
         code: snapshotResult.code || 'FIRESTORE_SNAPSHOT_INDISPONIVEL',
         total: 0,
@@ -291,6 +316,14 @@ import {
   }
 
   function registrarDiagnostico(origem, inicio, detalhes) {
+    var debug = global.PortalGeapaDebug;
+    if (debug && typeof debug.registerDataSource === 'function') {
+      debug.registerDataSource('atividades', {
+        origem: origem,
+        fallbackUsado: origem === 'APPS_SCRIPT_FALLBACK',
+        cacheLocal: false
+      });
+    }
     if (!global.console || typeof global.console.info !== 'function') return;
     global.console.info('[GEAPA-PORTAL-ACTIVITIES]', origem, Object.assign({
       tempoMs: Math.round(obterTempoAtual() - inicio)
