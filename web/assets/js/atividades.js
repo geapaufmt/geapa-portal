@@ -380,12 +380,20 @@
   function buscarAtividadesComFirestoreFallback_() {
     var client = global.PortalGeapaFirestoreActivities;
     if (configEmModoMock() || !client || typeof client.buscarCalendario !== 'function') {
+      if (!appsScriptFallbackAtivo_()) {
+        return Promise.resolve({
+          ok: false,
+          errorCode: 'APPS_SCRIPT_FALLBACK_DESATIVADO',
+          message: 'Fonte de atividades indisponivel neste ambiente.'
+        });
+      }
       return api.apiGet('/atividades/listar', {}).then(function marcarFallbackSemCliente(resposta) {
         resposta = resposta || {};
         resposta.meta = resposta.meta || {};
         resposta.meta.desempenho = Object.assign({}, resposta.meta.desempenho || {}, {
           origemDados: 'APPS_SCRIPT_FALLBACK'
         });
+        registrarFonteDadosAtividades_('APPS_SCRIPT_FALLBACK', resposta.meta.desempenho);
         return resposta;
       });
     }
@@ -411,6 +419,7 @@
         };
       })
       .catch(function usarAppsScriptFallback(erro) {
+        if (!appsScriptFallbackAtivo_()) throw erro;
         registrarPerfAtividades('atividades.lista.firestore_fallback', obterTempoAtual(), {
           origemDados: 'APPS_SCRIPT_FALLBACK',
           motivo: erro && erro.message ? erro.message : 'FIRESTORE_INDISPONIVEL'
@@ -421,9 +430,20 @@
           resposta.meta.desempenho = Object.assign({}, resposta.meta.desempenho || {}, {
             origemDados: 'APPS_SCRIPT_FALLBACK'
           });
+          registrarFonteDadosAtividades_('APPS_SCRIPT_FALLBACK', resposta.meta.desempenho);
           return resposta;
         });
       });
+  }
+
+  function registrarFonteDadosAtividades_(origem, desempenho) {
+    var debug = global.PortalGeapaDebug;
+    if (!debug || typeof debug.registerDataSource !== 'function') return;
+    debug.registerDataSource('atividades', {
+      origem: origem,
+      fallbackUsado: origem === 'APPS_SCRIPT_FALLBACK',
+      cacheLocal: Boolean(desempenho && (desempenho.cacheHit === true || desempenho.origemCache === 'local'))
+    });
   }
 
   function obterOrigemDadosAtividades_(resposta) {
@@ -925,6 +945,26 @@
 
   function configEmModoMock() {
     return Boolean(global.PortalGeapaConfig && global.PortalGeapaConfig.MOCK_MODE);
+  }
+
+  function featureAtiva_(name, defaultValue) {
+    var environment = global.PortalGeapaEnvironment;
+    if (environment && typeof environment.flagEnabled === 'function') {
+      return environment.flagEnabled(name, defaultValue);
+    }
+    var config = global.PortalGeapaConfig || {};
+    return Object.prototype.hasOwnProperty.call(config, name) ? config[name] === true : defaultValue === true;
+  }
+
+  function appsScriptFallbackAtivo_() {
+    return featureAtiva_('APPS_SCRIPT_FALLBACK_ENABLED', true);
+  }
+
+  function portalSomenteLeitura_() {
+    var environment = global.PortalGeapaEnvironment;
+    return environment && typeof environment.isReadOnly === 'function'
+      ? environment.isReadOnly()
+      : Boolean(global.PortalGeapaConfig && global.PortalGeapaConfig.READ_ONLY_MODE);
   }
 
   function normalizarBundleAtividades(dados) {
@@ -2068,6 +2108,10 @@
         ui.escaparHtml(formatarStatusJustificativaPrevia(atividade.statusJustificativaPrevia)),
         '</span>'
       ].join('');
+    }
+
+    if (!featureAtiva_('ENABLE_JUSTIFICATIVAS', true) || portalSomenteLeitura_()) {
+      return '';
     }
 
     if (atividade.podeJustificarAusenciaFutura !== true) {

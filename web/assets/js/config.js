@@ -1,25 +1,36 @@
 /**
- * Configuracao publica do front-end do Portal GEAPA.
- *
- * Este arquivo roda no GitHub Pages. Nao adicionar segredos, tokens, IDs
- * sensiveis ou dados pessoais reais.
+ * ARQUIVO GERADO. Nao edite manualmente.
+ * Fonte: config.prod.js
+ * Gerador: scripts/generate-portal-config.mjs
  */
 
 window.PortalGeapaConfig = {
-  MOCK_MODE: false,
-  GEAPA_API_BASE_URL: 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec',
-  PORTAL_VERSION: '0.1',
-  ENVIRONMENT: 'DEV',
-  FIRESTORE_SESSION_TTL_MS: 6 * 60 * 60 * 1000,
-  FIRESTORE_ACTIVITIES_TTL_MS: 6 * 60 * 60 * 1000,
-  ATIVIDADES_CACHE_TTL_MS: 30 * 60 * 1000,
-  FIREBASE: {
-    apiKey: 'AIzaSyCiHX3n1NbYnGkVtELqzU-JztZ_53gjkd8',
-    authDomain: 'portal-geapa.firebaseapp.com',
-    projectId: 'portal-geapa',
-    storageBucket: 'portal-geapa.firebasestorage.app',
-    messagingSenderId: '913092907585',
-    appId: '1:913092907585:web:2e222064751ab80505acc0',
-    measurementId: 'G-BYH8WBKT4D'
+  "MOCK_MODE": false,
+  "ENVIRONMENT": "PROD",
+  "DATA_ENVIRONMENT": "PILOTO_V2_DEV_CONTROLADO",
+  "BUILD_CHANNEL": "live",
+  "PORTAL_VERSION": "stable",
+  "GEAPA_API_BASE_URL": "https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec",
+  "FIRESTORE_ENABLED": true,
+  "FIRESTORE_SNAPSHOT_ENABLED": true,
+  "FIRESTORE_COLLECTION_FALLBACK_ENABLED": true,
+  "APPS_SCRIPT_FALLBACK_ENABLED": true,
+  "FIRESTORE_PATH_PREFIX": "",
+  "FIRESTORE_SESSION_TTL_MS": 21600000,
+  "FIRESTORE_ACTIVITIES_TTL_MS": 21600000,
+  "ATIVIDADES_CACHE_TTL_MS": 1800000,
+  "ENABLE_ACTIVITY_MANAGEMENT": true,
+  "ENABLE_JUSTIFICATIVAS": true,
+  "READ_ONLY_MODE": false,
+  "SHOW_ENV_BADGE": false,
+  "MAINTENANCE_BANNER": "",
+  "FIREBASE": {
+    "apiKey": "AIzaSyCiHX3n1NbYnGkVtELqzU-JztZ_53gjkd8",
+    "authDomain": "portal-geapa.firebaseapp.com",
+    "projectId": "portal-geapa",
+    "storageBucket": "portal-geapa.firebasestorage.app",
+    "messagingSenderId": "913092907585",
+    "appId": "1:913092907585:web:2e222064751ab80505acc0",
+    "measurementId": "G-BYH8WBKT4D"
   }
 };

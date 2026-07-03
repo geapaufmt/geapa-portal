@@ -1,0 +1,41 @@
+name: Firebase Hosting Homolog
+
+on:
+  push:
+    branches:
+      - develop
+      - homolog
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-hosting-homolog
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: homolog
+
+    steps:
+      - name: Baixar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Gerar configuracao HOMOLOG
+        run: node scripts/generate-portal-config.mjs homolog --channel homolog --version "${GITHUB_SHA}"
+
+      - name: Publicar canal homolog
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PORTAL_GEAPA }}
+          projectId: portal-geapa
+          channelId: homolog
+          expires: 30d

@@ -26,6 +26,21 @@ import {
     return global.PortalGeapaConfig || {};
   }
 
+  function firestoreEnabled() {
+    var environment = global.PortalGeapaEnvironment;
+    return environment && typeof environment.flagEnabled === 'function'
+      ? environment.flagEnabled('FIRESTORE_ENABLED', true)
+      : obterConfig().FIRESTORE_ENABLED !== false;
+  }
+
+  function firestorePathSegments(collectionName, documentId) {
+    var environment = global.PortalGeapaEnvironment;
+    if (environment && typeof environment.firestorePathSegments === 'function') {
+      return environment.firestorePathSegments(collectionName, documentId);
+    }
+    return documentId ? [collectionName, documentId] : [collectionName];
+  }
+
   function inicializarFirestore() {
     var config = obterConfig();
     var firebaseConfig = config.FIREBASE || null;
@@ -33,6 +48,8 @@ import {
     var app = auth && typeof auth.getFirebaseApp === 'function'
       ? auth.getFirebaseApp()
       : null;
+
+    if (!firestoreEnabled()) return null;
 
     if (firestore) {
       return firestore;
@@ -59,7 +76,9 @@ import {
       return null;
     }
 
-    var snap = await getDoc(doc(db, 'portalUsers', id));
+    var snap = await getDoc(doc.apply(null, [db].concat(
+      firestorePathSegments('portalUsers', id)
+    )));
     registrarPerf('firestore.cache.leitura', inicio, {
       encontrado: snap.exists()
     });

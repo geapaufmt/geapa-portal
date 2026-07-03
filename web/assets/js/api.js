@@ -8,6 +8,36 @@
 
 (function configurarApiPortal(global) {
   var config = global.PortalGeapaConfig || {};
+  var ACOES_MUTAVEIS = {
+    atividadeSalvarChamada: true,
+    atividadeCriar: true,
+    atividadeModeloCriar: true,
+    atividadeAdminSalvarEdicao: true,
+    atividadeAdminPublicar: true,
+    atividadeAdminOcultar: true,
+    atividadeAdminCancelar: true,
+    atividadeAdminReabrir: true,
+    justificativaEnviar: true,
+    justificativaAnalisar: true,
+    apresentacaoEnviarTituloEixo: true,
+    apresentacaoRevisarTituloEixo: true,
+    apresentacaoReprovarTituloEixo: true,
+    apresentacaoRegistrarMaterial: true,
+    apresentacaoRevisarMaterial: true,
+    apresentacaoRegistrarFotoReuniao: true,
+    apresentacaoRevisarFotoReuniao: true
+  };
+  var ACOES_GESTAO_ATIVIDADES = {
+    atividadeAdminSalvarEdicao: true,
+    atividadeAdminPublicar: true,
+    atividadeAdminOcultar: true,
+    atividadeAdminCancelar: true,
+    atividadeAdminReabrir: true
+  };
+  var ACOES_JUSTIFICATIVAS = {
+    justificativaEnviar: true,
+    justificativaAnalisar: true
+  };
 
   var atividadesMock = [
     {
@@ -315,6 +345,12 @@
   }
 
   function apiPost(route, payload) {
+    var bloqueio = obterBloqueioAcao_(obterAcaoAppsScript(route));
+
+    if (bloqueio) {
+      return Promise.resolve(bloqueio);
+    }
+
     if (config.MOCK_MODE) {
       return apiPostMock(route, payload || {});
     }
@@ -352,6 +388,11 @@
       });
     }
 
+    var bloqueio = obterBloqueioAcao_(acaoNormalizada);
+    if (bloqueio) {
+      return Promise.resolve(bloqueio);
+    }
+
     if (!config.GEAPA_API_BASE_URL) {
       return Promise.resolve({
         ok: false,
@@ -384,6 +425,38 @@
         return resposta.json();
       })
       .catch(handleApiError);
+  }
+
+  function obterBloqueioAcao_(acao) {
+    var acaoNormalizada = String(acao || '').trim();
+
+    if (!acaoNormalizada) return null;
+
+    if (config.READ_ONLY_MODE === true && ACOES_MUTAVEIS[acaoNormalizada]) {
+      return {
+        ok: false,
+        errorCode: 'PORTAL_READ_ONLY_MODE',
+        message: 'Esta operacao esta desativada neste ambiente.'
+      };
+    }
+
+    if (config.ENABLE_ACTIVITY_MANAGEMENT === false && ACOES_GESTAO_ATIVIDADES[acaoNormalizada]) {
+      return {
+        ok: false,
+        errorCode: 'FEATURE_ACTIVITY_MANAGEMENT_DISABLED',
+        message: 'A gestao de atividades esta desativada neste ambiente.'
+      };
+    }
+
+    if (config.ENABLE_JUSTIFICATIVAS === false && ACOES_JUSTIFICATIVAS[acaoNormalizada]) {
+      return {
+        ok: false,
+        errorCode: 'FEATURE_JUSTIFICATIVAS_DISABLED',
+        message: 'As justificativas estao desativadas neste ambiente.'
+      };
+    }
+
+    return null;
   }
 
   function obterAcaoAppsScript(route) {
