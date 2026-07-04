@@ -116,6 +116,9 @@
     justificativasConfigExpiraEm: 0,
     justificativasConfigPromise: null,
     frequenciaCicloSelecionado: '',
+    frequenciaFiltroSelecionado: 'TODOS',
+    frequenciaDataAtual: null,
+    frequenciaDadosEmCache: false,
     feedbackPersistente: null,
     cache: {}
   };
@@ -177,6 +180,11 @@
     estado.rotaAtual = idRota;
     definicao.idRota = idRota;
     estado.itensPorId = {};
+
+    if (definicao.tipo === 'minhas-justificativas') {
+      renderizarBase(container, definicao, montarRedirecionamentoMinhasJustificativas());
+      return;
+    }
 
     var cacheKey = obterCacheKey(definicao.endpoint);
     var cache = lerCachePortal(cacheKey);
@@ -405,20 +413,34 @@
       ? cicloAtual.resumo
       : ((data || {}).resumoGeral || (data || {}).resumo || {});
     var payloadAntigo = detectarPayloadAntigoFrequencia(data || {}, ciclos, registros);
+    var pendencias = payloadAntigo ? [] : registros.filter(ehPendenciaJustificativaFrequencia);
+    var registrosFiltrados = payloadAntigo ? [] : filtrarRegistrosFrequencia(registros, estado.frequenciaFiltroSelecionado);
 
+    estado.frequenciaDataAtual = data || {};
+    estado.frequenciaDadosEmCache = emCache === true;
     indexarItensPorId(registros);
 
     return [
+      '<section class="frequency-section" aria-labelledby="frequencia-resumo-titulo">',
+      '<h2 id="frequencia-resumo-titulo">Resumo do ciclo</h2>',
       montarResumoFrequencia(resumo, registros.length, (data || {}).ultimaAtualizacao),
       emCache ? '<p class="updated-at">Atualizando em segundo plano...</p>' : '',
       payloadAntigo ? montarAvisoFrequenciaDetalhadaIndisponivel(data || {}) : '',
       !payloadAntigo && ciclos.length > 1 ? montarFiltroCicloFrequencia(ciclos, cicloAtual) : '',
       !payloadAntigo && ciclos.length === 1 ? '<p class="updated-at">Ciclo: ' + ui.escaparHtml(cicloAtual.rotuloCiclo || cicloAtual.ciclo || 'Sem ciclo definido') + '</p>' : '',
-      payloadAntigo
-        ? ''
-        : (registros.length
-          ? montarRegistrosFrequencia(registros)
-          : '<p class="empty-state readonly-empty">' + ui.escaparHtml(definicao.vazio) + '</p>')
+      '</section>',
+      pendencias.length ? montarBlocoPendenciasFrequencia(pendencias) : '',
+      payloadAntigo ? '' : montarHistoricoFrequencia(registros, registrosFiltrados, definicao)
+    ].join('');
+  }
+
+  function montarRedirecionamentoMinhasJustificativas() {
+    return [
+      '<div class="readonly-redirect">',
+      '<h2>Justificativas integradas</h2>',
+      '<p>As justificativas agora ficam integradas à aba Minha frequência.</p>',
+      '<button type="button" data-route-target="frequencia">Ir para Minha frequência</button>',
+      '</div>'
     ].join('');
   }
 
@@ -498,7 +520,7 @@
 
     return [
       '<div class="readonly-filters">',
-      '<label>Ciclo ou semestre',
+      '<label>Ciclo',
       '<select data-frequencia-ciclo>',
       ciclos.map(function montar(ciclo) {
         var valor = String(ciclo.ciclo || ciclo.rotuloCiclo || '');
@@ -554,32 +576,127 @@
   function montarRegistrosFrequencia(registros) {
     return [
       '<div class="presentation-actions-list">',
-      registros.map(function montar(registro) {
-        var id = obterIdItem(registro);
-        var titulo = registro.tituloAtividade || registro.tituloPublico || registro.idAtividade || 'Atividade';
-        var status = registro.statusPresencaRotulo || registro.statusPresenca || 'Registro';
-        var acao = montarAcaoJustificativaFrequencia(registro, id);
+      registros.map(function montar(registro) { return montarCardFrequencia(registro, false); }).join(''),
+      '</div>'
+    ].join('');
+  }
 
-        estado.itensPorId[id] = registro;
+  function montarCardFrequencia(registro, destaquePendencia) {
+    var id = obterIdItem(registro);
+    var titulo = registro.tituloAtividade || registro.tituloPublico || registro.idAtividade || 'Atividade';
+    var status = registro.statusPresencaRotulo || registro.statusPresenca || 'Registro';
+    var acao = montarAcaoJustificativaFrequencia(registro, id);
+    var prazo = formatarDataCurtaPendencia(registro.dataLimiteJustificativa || registro.prazoJustificativa);
+    var foraPrazo = justificativaForaPrazo(registro);
 
-        return [
-          '<article class="presentation-action-card">',
-          '<div class="presentation-card-topline">',
-          '<span>' + ui.escaparHtml(formatarDataCurtaPendencia(registro.dataAtividade) || formatarValor(registro.dataAtividade)) + '</span>',
-          registro.rotuloSemestre ? '<span>' + ui.escaparHtml(formatarValor(registro.rotuloSemestre)) + '</span>' : '',
-          '<span>' + ui.escaparHtml(formatarValor(status)) + '</span>',
-          '</div>',
-          '<div class="presentation-action-main"><div>',
-          '<h3>' + ui.escaparHtml(formatarValor(titulo)) + '</h3>',
-          registro.statusJustificativa ? '<p>Justificativa: ' + ui.escaparHtml(formatarValor(registro.statusJustificativa)) + '</p>' : '',
-          registro.mensagemPortal ? '<p>' + ui.escaparHtml(registro.mensagemPortal) + '</p>' : '',
-          '</div></div>',
-          acao ? '<div class="presentation-card-actions">' + acao + '</div>' : '',
-          '</article>'
-        ].join('');
+    estado.itensPorId[id] = registro;
+
+    return [
+      '<article class="presentation-action-card', destaquePendencia ? ' frequency-pendency-card' : '', '">',
+      '<div class="presentation-card-topline">',
+      '<span>' + ui.escaparHtml(formatarDataCurtaPendencia(registro.dataAtividade) || formatarValor(registro.dataAtividade)) + '</span>',
+      '<span>' + ui.escaparHtml(formatarValor(status)) + '</span>',
+      foraPrazo ? '<span>FORA DO PRAZO</span>' : '',
+      '</div>',
+      '<div class="presentation-action-main"><div>',
+      '<h3>' + ui.escaparHtml(formatarValor(titulo)) + '</h3>',
+      registro.statusJustificativa ? '<p>Justificativa: ' + ui.escaparHtml(formatarValor(registro.statusJustificativa)) + '</p>' : '',
+      prazo ? '<p>Prazo para justificar: ' + ui.escaparHtml(foraPrazo ? 'encerrado em ' + prazo : 'até ' + prazo) + '</p>' : '',
+      registro.mensagemPortal ? '<p>' + ui.escaparHtml(registro.mensagemPortal) + '</p>' : '',
+      '</div></div>',
+      acao ? '<div class="presentation-card-actions">' + acao + '</div>' : '',
+      '</article>'
+    ].join('');
+  }
+
+  function montarBlocoPendenciasFrequencia(pendencias) {
+    return [
+      '<section class="frequency-section frequency-pendencies" aria-labelledby="frequencia-pendencias-titulo">',
+      '<div class="frequency-section-heading">',
+      '<h2 id="frequencia-pendencias-titulo">Pendências</h2>',
+      '<span>' + ui.escaparHtml(pendencias.length) + '</span>',
+      '</div>',
+      '<div class="presentation-actions-list">',
+      pendencias.map(function montar(item) { return montarCardFrequencia(item, true); }).join(''),
+      '</div>',
+      '</section>'
+    ].join('');
+  }
+
+  function montarHistoricoFrequencia(registros, registrosFiltrados, definicao) {
+    return [
+      '<section class="frequency-section" aria-labelledby="frequencia-historico-titulo">',
+      '<h2 id="frequencia-historico-titulo">Histórico de frequência</h2>',
+      montarFiltrosHistoricoFrequencia(),
+      registros.length
+        ? (registrosFiltrados.length
+          ? montarRegistrosFrequencia(registrosFiltrados)
+          : '<p class="empty-state readonly-empty">Nenhum registro corresponde ao filtro selecionado.</p>')
+        : '<p class="empty-state readonly-empty">' + ui.escaparHtml(definicao.vazio) + '</p>',
+      '</section>'
+    ].join('');
+  }
+
+  function montarFiltrosHistoricoFrequencia() {
+    var filtros = [
+      ['TODOS', 'Todos'],
+      ['PRESENCAS', 'Presenças'],
+      ['FALTAS', 'Faltas'],
+      ['JUSTIFICATIVAS', 'Justificativas'],
+      ['PENDENCIAS', 'Pendências']
+    ];
+
+    return [
+      '<div class="frequency-history-filters" role="group" aria-label="Filtrar histórico de frequência">',
+      filtros.map(function montar(filtro) {
+        var ativo = estado.frequenciaFiltroSelecionado === filtro[0];
+        return '<button type="button" data-frequencia-filtro="' + filtro[0] + '" class="' + (ativo ? 'is-active' : '') + '" aria-pressed="' + (ativo ? 'true' : 'false') + '">' + ui.escaparHtml(filtro[1]) + '</button>';
       }).join(''),
       '</div>'
     ].join('');
+  }
+
+  function filtrarRegistrosFrequencia(registros, filtro) {
+    var chave = String(filtro || 'TODOS').toUpperCase();
+    if (chave === 'PRESENCAS') return registros.filter(ehPresencaFrequencia);
+    if (chave === 'FALTAS') return registros.filter(ehFaltaFrequencia);
+    if (chave === 'JUSTIFICATIVAS') return registros.filter(temJustificativaFrequencia);
+    if (chave === 'PENDENCIAS') return registros.filter(ehPendenciaJustificativaFrequencia);
+    return registros.slice();
+  }
+
+  function ehPresencaFrequencia(registro) {
+    var status = normalizarStatusFluxo((registro || {}).statusPresenca || (registro || {}).codigoPresenca);
+    return ['P', 'R', 'PRESENTE', 'PRESENTE_PRESENCIAL', 'PRESENTE_REMOTO'].indexOf(status) >= 0;
+  }
+
+  function ehFaltaFrequencia(registro) {
+    var status = normalizarStatusFluxo((registro || {}).statusPresenca || (registro || {}).codigoPresenca);
+    return ['F', 'J', 'A', 'FALTA', 'JUSTIFICADA', 'ABONADA', 'FALTA_JUSTIFICADA', 'FALTA_ABONADA'].indexOf(status) >= 0;
+  }
+
+  function temJustificativaFrequencia(registro) {
+    var item = registro || {};
+    return Boolean(
+      item.idJustificativa ||
+      item.statusJustificativa ||
+      item.acaoJustificativa ||
+      item.idJustificativaPrevia ||
+      item.statusJustificativaPrevia ||
+      item.acaoJustificativaPrevia
+    );
+  }
+
+  function ehPendenciaJustificativaFrequencia(registro) {
+    var item = registro || {};
+    var acao = normalizarStatusFluxo(item.acaoJustificativa || item.acaoJustificativaPrevia);
+    var status = normalizarStatusFluxo(item.statusJustificativa || item.statusJustificativaPrevia);
+    var acoesPendentes = ['ENVIAR_JUSTIFICATIVA', 'ENVIAR_JUSTIFICATIVA_FORA_PRAZO', 'COMPLEMENTAR_JUSTIFICATIVA'];
+
+    if (acoesPendentes.indexOf(acao) >= 0) return true;
+    if (status === 'AJUSTE_SOLICITADO') return true;
+    var previaPendente = item.justificativaPreviaPendente === true || normalizarStatusFluxo(item.justificativaPreviaPendente) === 'SIM';
+    return previaPendente || status === 'PREVIA';
   }
 
   function montarAcaoJustificativaFrequencia(registro, id) {
@@ -590,19 +707,23 @@
       acao === 'ENVIAR_JUSTIFICATIVA_FORA_PRAZO' ||
       acao === 'COMPLEMENTAR_JUSTIFICATIVA';
 
-    if (!podeEnviar) {
-      return '';
-    }
-
-    if ((registro || {}).podeComplementarJustificativa === true || acao === 'COMPLEMENTAR_JUSTIFICATIVA') {
+    if (podeEnviar && ((registro || {}).podeComplementarJustificativa === true || acao === 'COMPLEMENTAR_JUSTIFICATIVA')) {
       return botaoAcao('justificativa-enviar', id, 'Complementar justificativa', 'primary');
     }
 
-    if (acao === 'ENVIAR_JUSTIFICATIVA_FORA_PRAZO') {
+    if (podeEnviar && acao === 'ENVIAR_JUSTIFICATIVA_FORA_PRAZO') {
       return botaoAcao('justificativa-enviar', id, 'Enviar justificativa fora do prazo', 'primary');
     }
 
-    return botaoAcao('justificativa-enviar', id, 'Enviar justificativa', 'primary');
+    if (podeEnviar) {
+      return botaoAcao('justificativa-enviar', id, 'Enviar justificativa', 'primary');
+    }
+
+    if ((registro || {}).podeVerJustificativa === true || temJustificativaFrequencia(registro)) {
+      return botaoAcao('justificativa-ver', id, 'Ver justificativa', 'secondary');
+    }
+
+    return '';
   }
 
   function indexarItensPorId(itens) {
@@ -1555,9 +1676,16 @@
   }
 
   function tratarCliqueReadonly(evento) {
+    var filtroFrequencia = evento.target && evento.target.closest('[data-frequencia-filtro]');
     var alvo = evento.target && evento.target.closest('[data-portal-v2-action]');
     var acao;
     var id;
+
+    if (filtroFrequencia) {
+      estado.frequenciaFiltroSelecionado = filtroFrequencia.getAttribute('data-frequencia-filtro') || 'TODOS';
+      renderizarMinhaFrequenciaAtual();
+      return;
+    }
 
     if (!alvo) {
       return;
@@ -1641,6 +1769,11 @@
       return;
     }
 
+    if (acao === 'justificativa-ver') {
+      abrirModalVisualizarJustificativa(id);
+      return;
+    }
+
     if (acao === 'justificativa-deferir') {
       abrirModalAnaliseJustificativa(id, 'DEFERIR', 'Deferir justificativa', false);
       return;
@@ -1719,8 +1852,20 @@
 
     if (alvo.matches('[data-frequencia-ciclo]')) {
       estado.frequenciaCicloSelecionado = alvo.value || '';
-      carregarTela('frequencia');
+      estado.frequenciaFiltroSelecionado = 'TODOS';
+      renderizarMinhaFrequenciaAtual();
     }
+  }
+
+  function renderizarMinhaFrequenciaAtual() {
+    var container = document.getElementById('placeholder-content');
+    var definicao = ROTAS.frequencia;
+    if (!container || !estado.frequenciaDataAtual) return;
+    renderizarBase(
+      container,
+      definicao,
+      montarMinhaFrequencia(estado.frequenciaDataAtual, estado.frequenciaDadosEmCache, definicao)
+    );
   }
 
   function abrirModalTituloEixo(id) {
@@ -1895,6 +2040,25 @@
       .catch(function renderizarFallback() {
         renderizarModalJustificativa(item, id, normalizarJustificativasConfig({}));
       });
+  }
+
+  function abrirModalVisualizarJustificativa(id) {
+    var item = estado.itensPorId[id];
+    if (!item) return;
+
+    abrirModalBase('Justificativa', [
+      '<div class="readonly-justification-detail">',
+      '<p><strong>Atividade:</strong> ' + ui.escaparHtml(formatarValor(item.tituloAtividade || item.tituloPublico || item.idAtividade || 'Atividade')) + '</p>',
+      item.dataAtividade ? '<p><strong>Data:</strong> ' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataAtividade) || formatarValor(item.dataAtividade)) + '</p>' : '',
+      item.statusJustificativa ? '<p><strong>Status:</strong> ' + ui.escaparHtml(formatarValor(item.statusJustificativa)) + '</p>' : '',
+      item.motivoCategoria ? '<p><strong>Motivo:</strong> ' + ui.escaparHtml(formatarValor(item.motivoCategoria)) + '</p>' : '',
+      item.observacaoPublica ? '<p><strong>Observação:</strong> ' + ui.escaparHtml(formatarValor(item.observacaoPublica)) + '</p>' : '',
+      item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
+      '<div class="presentation-card-actions">',
+      '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Fechar</button>',
+      '</div>',
+      '</div>'
+    ].join(''));
   }
 
   function renderizarModalJustificativa(item, id, config) {

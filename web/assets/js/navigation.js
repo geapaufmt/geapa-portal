@@ -398,8 +398,22 @@
 
   function getAllowedRoutes(sessao) {
     return ROTAS_PORTAL.filter(function filtrarRota(rota) {
-      return rota.mostrarNoMenu && routeFeatureEnabled(rota) && resolveRouteAccess(sessao || getSessaoAtual(), rota).ok;
+      var sessaoAtual = sessao || getSessaoAtual();
+      return rota.mostrarNoMenu &&
+        rotaVisivelNoMenuParaPerfil_(sessaoAtual, rota) &&
+        routeFeatureEnabled(rota) &&
+        resolveRouteAccess(sessaoAtual, rota).ok;
     }).sort(ordenarRotas);
+  }
+
+  function rotaVisivelNoMenuParaPerfil_(sessao, rota) {
+    if (!rota || rota.id !== 'justificativas') return true;
+    var perfis = sessao && Array.isArray(sessao.perfisPortal) ? sessao.perfisPortal : [];
+    var privilegiados = [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN, PERFIS.ADMIN_TECNICO];
+    var membroComum = perfis.indexOf(PERFIS.MEMBRO) >= 0 && !privilegiados.some(function temPerfil(perfil) {
+      return perfis.indexOf(perfil) >= 0;
+    });
+    return !membroComum;
   }
 
   function routeFeatureEnabled(rota) {

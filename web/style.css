@@ -2157,6 +2157,79 @@ textarea[aria-invalid="true"] {
   font-weight: 700;
 }
 
+.frequency-section {
+  display: grid;
+  gap: 12px;
+  padding: 0 0 22px;
+}
+
+.frequency-section + .frequency-section {
+  border-top: 1px solid var(--border);
+  padding-top: 22px;
+}
+
+.frequency-section h2,
+.readonly-redirect h2 {
+  margin: 0;
+  color: var(--green-950);
+  font-size: 1.15rem;
+}
+
+.frequency-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.frequency-section-heading span {
+  min-width: 30px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--white);
+  background: var(--green-700);
+  text-align: center;
+  font-weight: 700;
+}
+
+.frequency-pendencies {
+  border-left: 4px solid var(--warning-border);
+  padding-left: 14px;
+}
+
+.frequency-pendency-card {
+  border-color: var(--warning-border);
+}
+
+.frequency-history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.frequency-history-filters button {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.frequency-history-filters .is-active {
+  border-color: var(--green-700);
+  color: var(--white);
+  background: var(--green-700);
+}
+
+.readonly-redirect,
+.readonly-justification-detail {
+  display: grid;
+  gap: 12px;
+}
+
+.readonly-redirect p,
+.readonly-justification-detail p {
+  margin: 0;
+  line-height: 1.5;
+}
+
 .eixo-help {
   color: var(--muted);
   font-size: 0.84rem;

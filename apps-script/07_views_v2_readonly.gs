@@ -2414,7 +2414,16 @@ function portalSanitizarRegistrosFrequenciaV2_(registros) {
       'prazoJustificativa',
       'statusPrazo',
       'envioForaDoPrazo',
-      'exigeCienciaForaPrazo'
+      'exigeCienciaForaPrazo',
+      'motivoCategoria',
+      'descricaoJustificativa',
+      'observacaoPublica',
+      'decisaoAplicada',
+      'enviadaEm',
+      'idJustificativaPrevia',
+      'statusJustificativaPrevia',
+      'justificativaPreviaPendente',
+      'acaoJustificativaPrevia'
     ]);
   });
 }

@@ -414,6 +414,17 @@ O agrupamento e os totais de cada bloco usam o `CICLO` institucional completo,
 como `GEAPA_2026`. `ANO` e `SEMESTRE` podem acompanhar os registros como
 metadados, mas nao criam grupos separados nem reiniciam o calculo da frequencia.
 
+Na experiencia do membro, `Minha frequencia` consolida o resumo do ciclo, as
+pendencias acionaveis de justificativa e o historico. O historico pode ser
+filtrado por todos os registros, presencas, faltas, justificativas ou pendencias.
+O bloco de pendencias e o filtro `Pendencias` usam o mesmo classificador local,
+sem nova chamada ao backend ao trocar filtros.
+
+A rota `app/justificativas` e o endpoint `/v2/minhas-justificativas` permanecem
+disponiveis por compatibilidade. Para membro comum, a rota deixa de aparecer no
+menu e, quando acessada diretamente, orienta a usar `Minha frequencia`. A rota
+administrativa `admin/justificativas` permanece separada e inalterada.
+
 O frontend nao altera presenca diretamente, nao escreve em `PORTAL_*` e invalida
 caches de justificativas, frequencia, pendencias e painel apos envio ou analise.
 
