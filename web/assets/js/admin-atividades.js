@@ -175,7 +175,7 @@
     var clearButton = event.target.closest('[data-admin-clear-filters]');
     var closeButton = event.target.closest('[data-admin-modal-close]');
     if (openButton) return openDetail(openButton.getAttribute('data-admin-open'));
-    if (actionButton) return executeStateAction(actionButton.getAttribute('data-admin-state-action'), actionButton.getAttribute('data-id-atividade'));
+    if (actionButton) return executeStateAction(actionButton.getAttribute('data-admin-state-action'), actionButton.getAttribute('data-id-atividade'), actionButton);
     if (clearButton) { state.filters = {}; renderContent(); return; }
     if (closeButton) closeModal();
   }
@@ -315,10 +315,10 @@
         }
         toast('error', message);
       })
-      .then(function done() { setFormBusy(form, false); });
+      .finally(function done() { setFormBusy(form, false); });
   }
 
-  function executeStateAction(action, idAtividade) {
+  function executeStateAction(action, idAtividade, button) {
     if (!idAtividade) return;
     var messages = {
       publicar: 'Publicar esta atividade no Portal?',
@@ -327,16 +327,32 @@
       reabrir: 'Reabrir esta atividade como rascunho?'
     };
     if (!global.confirm(messages[action] || 'Confirmar esta acao?')) return;
+    var originalText = button && button.textContent || '';
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Enviando...';
+    }
+    ui.mostrarLoading('Atualizando atividade...');
     api.apiPost('/admin/atividades/' + action, { payload: JSON.stringify({ idAtividade: idAtividade }) })
       .then(function onResponse(response) {
         if (!response.ok) throw response;
         delete state.details[idAtividade];
         notificarAtividadesAtualizadas(idAtividade, action.toUpperCase());
-        toast('success', response.message || 'Acao concluida.');
+        var warnings = response.warnings || response.avisos || response.data && response.data.warnings || [];
+        toast(warnings.length ? 'warning' : 'success', warnings.length
+          ? (warnings[0].message || warnings[0].mensagem || response.message || 'Acao registrada com pendencias secundarias.')
+          : (response.message || 'Acao concluida.'));
         closeModal();
         loadActivities(true);
       })
-      .catch(function onError(error) { toast('error', error && error.message ? error.message : 'Nao foi possivel concluir a acao.'); });
+      .catch(function onError(error) { toast('error', error && error.message ? error.message : 'Nao foi possivel concluir a acao.'); })
+      .finally(function done() {
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalText;
+        }
+        ui.ocultarLoading();
+      });
   }
 
   function filterActivities(items, filters) {

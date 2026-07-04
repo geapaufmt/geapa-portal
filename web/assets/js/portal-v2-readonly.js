@@ -2516,7 +2516,7 @@
           payload.documentoComprobatorio = documentoComprobatorio;
         }
 
-        return executarPostJustificativa('/v2/justificativas/enviar', payload);
+        return executarPostJustificativa('/v2/justificativas/enviar', payload, form);
       })
       .catch(function falhar(erro) {
         ui.ocultarLoading();
@@ -2541,7 +2541,7 @@
       decisao: decisao,
       observacaoPublica: observacaoPublica,
       observacoesInternas: observacoesInternas
-    });
+    }, form);
   }
 
   function enviarRevisaoTitulo(id, decisao, observacaoPublica, observacaoInterna, form) {
@@ -2588,6 +2588,7 @@
     var toastId;
 
     if (config.form) {
+      definirFormularioEnviando(config.form, true);
       ui.limparErrosCampos(config.form);
       var feedbackAnterior = document.querySelector('[data-readonly-modal-feedback]');
       if (feedbackAnterior) feedbackAnterior.remove();
@@ -2653,7 +2654,8 @@
           message: mensagemErro
         });
       })
-      .then(function finalizar() {
+      .finally(function finalizar() {
+        definirFormularioEnviando(config.form, false);
         ui.ocultarLoading();
       });
   }
@@ -2770,17 +2772,26 @@
     }
   }
 
-  function executarPostJustificativa(route, payload) {
+  function executarPostJustificativa(route, payload, form) {
+    definirFormularioEnviando(form, true);
     ui.mostrarLoading('Salvando justificativa...');
 
     return api.apiPost(route, {
       payload: JSON.stringify(payload)
     })
       .then(function tratar(resposta) {
+        var feedback = ui.normalizarFeedbackResposta(resposta);
         if (!resposta.ok) {
-          throw new Error(resposta.message || 'Nao foi possivel salvar a justificativa.');
+          throw new Error(feedback.message || 'Nao foi possivel salvar a justificativa.');
         }
 
+        ui.mostrarToast({
+          type: feedback.warnings.length ? 'warning' : 'success',
+          title: 'Justificativa registrada',
+          message: feedback.warnings.length
+            ? (feedback.warnings[0].message || feedback.warnings[0].mensagem || feedback.message)
+            : (feedback.message || 'Justificativa recebida e registrada.')
+        });
         fecharModal();
         invalidarCacheJustificativas();
         carregarTela(estado.rotaAtual || 'justificativas');
@@ -2788,9 +2799,25 @@
       .catch(function falhar(erro) {
         mostrarErroModal(erro.message || 'Erro controlado ao salvar justificativa.');
       })
-      .then(function finalizar() {
+      .finally(function finalizar() {
+        definirFormularioEnviando(form, false);
         ui.ocultarLoading();
       });
+  }
+
+  function definirFormularioEnviando(form, enviando) {
+    if (!form) return;
+    Array.prototype.forEach.call(form.querySelectorAll('button[type="submit"]'), function atualizar(botao) {
+      if (enviando) {
+        if (!botao.hasAttribute('data-texto-original')) botao.setAttribute('data-texto-original', botao.textContent || 'Enviar');
+        botao.disabled = true;
+        botao.textContent = 'Enviando...';
+      } else {
+        botao.disabled = false;
+        botao.textContent = botao.getAttribute('data-texto-original') || 'Enviar';
+        botao.removeAttribute('data-texto-original');
+      }
+    });
   }
 
   function arquivoPermitido(arquivo) {

@@ -3390,6 +3390,7 @@
       return;
     }
 
+    definirFormularioAtividadeEnviando(form, true);
     montarPayloadDocumentoJustificativa(arquivo, config)
       .then(function enviar(documentoComprobatorio) {
         var payload = {
@@ -3413,10 +3414,18 @@
         });
       })
       .then(function tratar(resposta) {
-        if (!resposta.ok) {
-          throw new Error(resposta.message || 'Nao foi possivel enviar a justificativa previa.');
+        var feedback = ui.normalizarFeedbackResposta(resposta);
+        if (!feedback.ok) {
+          throw new Error(feedback.message || 'Nao foi possivel enviar a justificativa previa.');
         }
 
+        ui.mostrarToast({
+          type: feedback.warnings.length ? 'warning' : 'success',
+          title: 'Justificativa registrada',
+          message: feedback.warnings.length
+            ? (feedback.warnings[0].message || feedback.warnings[0].mensagem || feedback.message)
+            : (feedback.message || 'Justificativa previa recebida e registrada.')
+        });
         fecharModal();
         invalidarCacheAtividades();
         notificarJustificativasAtualizadas();
@@ -3425,9 +3434,25 @@
       .catch(function falhar(erro) {
         mostrarErroModalAtividade(erro.message || 'Erro controlado ao enviar justificativa previa.');
       })
-      .then(function finalizar() {
+      .finally(function finalizar() {
+        definirFormularioAtividadeEnviando(form, false);
         ui.ocultarLoading();
       });
+  }
+
+  function definirFormularioAtividadeEnviando(form, enviando) {
+    if (!form) return;
+    Array.prototype.forEach.call(form.querySelectorAll('button[type="submit"]'), function atualizar(botao) {
+      if (enviando) {
+        if (!botao.hasAttribute('data-texto-original')) botao.setAttribute('data-texto-original', botao.textContent || 'Enviar');
+        botao.disabled = true;
+        botao.textContent = 'Enviando...';
+      } else {
+        botao.disabled = false;
+        botao.textContent = botao.getAttribute('data-texto-original') || 'Enviar';
+        botao.removeAttribute('data-texto-original');
+      }
+    });
   }
 
   function recarregarAtividadesAposJustificativa() {

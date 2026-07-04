@@ -48,6 +48,12 @@ requiredFlags.forEach((key) => {
   if (typeof config[key] !== 'boolean') throw new Error(`${key} deve ser booleano.`);
 });
 
+['API_READ_TIMEOUT_MS', 'API_WRITE_TIMEOUT_MS', 'API_UPLOAD_WRITE_TIMEOUT_MS'].forEach((key) => {
+  if (!Number.isFinite(Number(config[key])) || Number(config[key]) < 5000) {
+    throw new Error(`${key} deve ser numerico e ter ao menos 5000 ms.`);
+  }
+});
+
 if (!/^https:\/\/script\.google\.com\/macros\//.test(config.GEAPA_API_BASE_URL || '')) {
   throw new Error('GEAPA_API_BASE_URL deve ser um endpoint publico HTTPS do Apps Script.');
 }

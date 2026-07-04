@@ -127,6 +127,27 @@ PortalGeapaDebug.getDataSources()
 O endpoint Apps Script aparece mascarado e nenhum token ou dado pessoal e
 registrado.
 
+## Escritas com timeout e idempotencia
+
+O front gera `requestId` e `clientSubmittedAt` para acoes mutaveis. Durante uma
+submissao ou depois de timeout, o mesmo payload reutiliza o ID por ate dez
+minutos. O backend pode reconhecer a solicitacao sem repetir a escrita.
+
+- acoes simples: timeout de 30 segundos;
+- uploads de material, foto ou comprovante: timeout de 90 segundos;
+- em timeout, a interface e destravada e orienta o usuario a consultar a tela
+  antes de reenviar;
+- `userMessage` tem prioridade sobre mensagens tecnicas.
+
+O preview HOMOLOG permanece `READ_ONLY_MODE=true`; ele valida interface,
+contrato e bloqueios, mas nao deve ser usado para testar escrita real. Escritas
+devem ser homologadas com `config.dev.js` em canal temporario controlado e com
+dados DEV.
+
+O pos-processamento de views, Firestore e Mail Hub ocorre pelo job do modulo
+Atividades. Uma falha secundaria nao deve mudar para erro uma gravacao oficial
+ja concluida no Google Sheets.
+
 ## Checklist de deploy
 
 - [ ] Preview usa `ENVIRONMENT=HOMOLOG`.

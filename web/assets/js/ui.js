@@ -147,7 +147,7 @@
 
     return {
       ok: origem.ok === true,
-      message: String(origem.message || origem.mensagem || data.message || data.mensagem || config.fallbackMessage || '').trim(),
+      message: String(origem.userMessage || origem.message || origem.mensagem || data.userMessage || data.message || data.mensagem || config.fallbackMessage || '').trim(),
       data: data,
       warnings: normalizarListaFeedback(warnings),
       fieldErrors: fieldErrors && typeof fieldErrors === 'object' ? fieldErrors : {},

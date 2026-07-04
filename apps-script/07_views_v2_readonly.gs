@@ -1100,7 +1100,7 @@ function portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio) {
     if (resposta.nextActions && !dadosErro.nextActions) dadosErro.nextActions = resposta.nextActions;
     return portalRespostaErro_(
       resposta.code || resposta.errorCode || 'ERRO_APRESENTACOES_V2',
-      resposta.message || 'Nao foi possivel executar a acao de apresentacao.',
+      resposta.userMessage || resposta.message || 'Nao foi possivel executar a acao de apresentacao.',
       dadosErro,
       portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
     );
@@ -1110,9 +1110,10 @@ function portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio) {
   var meta = portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio);
   meta.warnings = resposta.warnings || resposta.avisos || [];
   meta.nextActions = resposta.nextActions || [];
+  meta.backendWrite = resposta.performance || dadosSucesso.performance || null;
   return portalRespostaOk_(
     config.code,
-    resposta.message || config.message,
+    resposta.userMessage || resposta.message || config.message,
     dadosSucesso,
     meta
   );
@@ -1261,17 +1262,21 @@ function portalNormalizarRespostaAcaoJustificativaV2_(resposta, config, inicio) 
   if (resposta.ok === false) {
     return portalRespostaErro_(
       resposta.code || resposta.errorCode || 'ERRO_JUSTIFICATIVAS_V2',
-      resposta.message || 'Nao foi possivel executar a acao de justificativa.',
+      resposta.userMessage || resposta.message || 'Nao foi possivel executar a acao de justificativa.',
       {},
       portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
     );
   }
 
+  var dadosSucesso = resposta.data || resposta.dados || resposta || {};
+  var meta = portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio);
+  meta.warnings = resposta.warnings || resposta.avisos || dadosSucesso.warnings || [];
+  meta.backendWrite = resposta.performance || dadosSucesso.performance || null;
   return portalRespostaOk_(
     config.code,
-    resposta.message || config.message,
-    resposta.data || resposta.dados || resposta || {},
-    portalMetaViewsV2_(resposta.origem || 'geapa-atividades', inicio)
+    resposta.userMessage || resposta.message || config.message,
+    dadosSucesso,
+    meta
   );
 }
 

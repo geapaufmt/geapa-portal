@@ -38,6 +38,89 @@
     justificativaEnviar: true,
     justificativaAnalisar: true
   };
+  var ACOES_UPLOAD = {
+    apresentacaoRegistrarMaterial: true,
+    apresentacaoRegistrarFotoReuniao: true,
+    justificativaEnviar: true
+  };
+  var requisicoesPendentes = {};
+  var REQUEST_ID_TTL_MS = 10 * 60 * 1000;
+
+  function criarRequestId() {
+    var random = Math.random().toString(36).slice(2, 10).toUpperCase();
+    return 'GEAPA-REQ-' + Date.now() + '-' + random;
+  }
+
+  function assinaturaSubmissao(acao, payloadJson) {
+    var raw = String(payloadJson || '');
+    var sample = raw.slice(0, 512) + '|' + raw.slice(-512);
+    var hash = 0;
+    for (var i = 0; i < sample.length; i++) hash = ((hash << 5) - hash + sample.charCodeAt(i)) | 0;
+    return String(acao || '') + ':' + raw.length + ':' + Math.abs(hash);
+  }
+
+  function prepararSubmissao(acao, params) {
+    var output = Object.assign({}, params || {});
+    var payload;
+    try {
+      payload = JSON.parse(String(output.payload || '{}')) || {};
+    } catch (error) {
+      return { params: output, key: '' };
+    }
+    var key = assinaturaSubmissao(acao, output.payload);
+    var pending = requisicoesPendentes[key];
+    if (!pending || pending.expiresAt < Date.now()) {
+      pending = {
+        requestId: criarRequestId(),
+        clientSubmittedAt: new Date().toISOString(),
+        expiresAt: Date.now() + REQUEST_ID_TTL_MS
+      };
+      requisicoesPendentes[key] = pending;
+    }
+    payload.requestId = payload.requestId || pending.requestId;
+    payload.clientSubmittedAt = payload.clientSubmittedAt || pending.clientSubmittedAt;
+    output.payload = JSON.stringify(payload);
+    return { params: output, key: key };
+  }
+
+  function finalizarSubmissao(key, result) {
+    if (!key) return;
+    var code = String(result && (result.code || result.errorCode) || '').toUpperCase();
+    var transportUncertain = code.indexOf('API_') === 0 || code === 'ERRO_API';
+    if (result && result.ok === true || !transportUncertain) delete requisicoesPendentes[key];
+  }
+
+  function payloadPossuiUpload(params) {
+    try {
+      var payload = JSON.parse(String(params && params.payload || '{}')) || {};
+      var document = payload.documentoComprobatorio || {};
+      return !!String(payload.conteudoBase64 || payload.base64 || document.conteudoBase64 || document.base64 || '').trim();
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function withTimeout(promise, timeoutMs, context) {
+    var ctx = context || {};
+    return new Promise(function aguardar(resolve, reject) {
+      var timer = setTimeout(function expirar() {
+        if (typeof ctx.onTimeout === 'function') ctx.onTimeout();
+        var error = new Error(ctx.userMessage || 'A solicitacao ainda esta em processamento. Evite reenviar. Atualize a pagina em alguns instantes ou consulte o historico.');
+        error.name = 'PortalRequestTimeoutError';
+        error.errorCode = ctx.errorCode || 'API_WRITE_TIMEOUT';
+        error.userMessage = error.message;
+        error.retrySafe = false;
+        reject(error);
+      }, Math.max(1000, Number(timeoutMs || 30000)));
+      Promise.resolve(promise).then(function concluir(value) {
+        clearTimeout(timer);
+        resolve(value);
+      }, function falhar(error) {
+        clearTimeout(timer);
+        reject(error);
+      });
+    });
+  }
 
   var atividadesMock = [
     {
@@ -379,6 +462,8 @@
   function chamarAppsScriptAction(acao, params) {
     var acaoNormalizada = String(acao || '').trim();
     var corpo = new URLSearchParams();
+    var escrita = ACOES_MUTAVEIS[acaoNormalizada] === true;
+    var submission = { params: params || {}, key: '' };
 
     if (!acaoNormalizada) {
       return Promise.resolve({
@@ -401,6 +486,17 @@
       });
     }
 
+    var upload = ACOES_UPLOAD[acaoNormalizada] === true &&
+      (acaoNormalizada !== 'justificativaEnviar' || payloadPossuiUpload(params));
+    submission = escrita ? prepararSubmissao(acaoNormalizada, params) : submission;
+    params = submission.params;
+    var timeoutMs = Math.max(5000, Number(
+      escrita
+        ? (upload ? config.API_UPLOAD_WRITE_TIMEOUT_MS || 90000 : config.API_WRITE_TIMEOUT_MS || 30000)
+        : config.API_READ_TIMEOUT_MS || 35000
+    ));
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+
     corpo.set('acao', acaoNormalizada);
     Object.keys(params || {}).forEach(function adicionarCampo(chave) {
       if (params[chave] !== undefined && params[chave] !== null) {
@@ -413,18 +509,51 @@
       corpo.set('token', token);
     }
 
-    return fetch(config.GEAPA_API_BASE_URL, {
+    var request = fetch(config.GEAPA_API_BASE_URL, {
       method: 'POST',
-      body: corpo
+      body: corpo,
+      signal: controller ? controller.signal : undefined
+    });
+    return withTimeout(request, timeoutMs, {
+      errorCode: escrita ? 'API_WRITE_TIMEOUT' : 'API_READ_TIMEOUT',
+      userMessage: escrita
+        ? 'A solicitacao ainda esta em processamento. Evite reenviar. Atualize a pagina em alguns instantes ou consulte o historico.'
+        : 'A consulta demorou mais que o esperado. Atualize a tela e tente novamente.',
+      onTimeout: function abortar() { if (controller) controller.abort(); }
     })
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
-          throw new Error('Não foi possível falar com a API do Portal GEAPA.');
+          var erroHttp = new Error('A API do Portal respondeu com erro. Tente novamente em alguns instantes.');
+          erroHttp.errorCode = 'API_HTTP_' + resposta.status;
+          throw erroHttp;
         }
 
-        return resposta.json();
+        return resposta.json().catch(function respostaInvalida() {
+          var erroJson = new Error('A API respondeu em formato inesperado. Atualize a pagina antes de tentar novamente.');
+          erroJson.errorCode = 'API_RESPOSTA_INVALIDA';
+          throw erroJson;
+        });
       })
-      .catch(handleApiError);
+      .catch(function tratarFalha(error) {
+        if (error && (error.name === 'AbortError' || error.name === 'PortalRequestTimeoutError')) {
+          return {
+            ok: false,
+            code: escrita ? 'API_WRITE_TIMEOUT' : 'API_READ_TIMEOUT',
+            errorCode: escrita ? 'API_WRITE_TIMEOUT' : 'API_READ_TIMEOUT',
+            message: error.userMessage || error.message,
+            userMessage: error.userMessage || error.message,
+            warnings: [],
+            retrySafe: false
+          };
+        }
+        return handleApiError(error);
+      })
+      .then(function finalizarResposta(result) {
+        if (result && result.userMessage) result.message = result.userMessage;
+        if (result && !result.code) result.code = result.errorCode || (result.ok ? 'OK' : 'ERRO_API');
+        finalizarSubmissao(submission.key, result);
+        return result;
+      });
   }
 
   function obterBloqueioAcao_(acao) {
@@ -1676,12 +1805,18 @@
   }
 
   function handleApiError(error) {
+    var message = error && error.message
+      ? error.message
+      : 'Erro inesperado ao chamar a API.';
     return Promise.resolve({
       ok: false,
-      errorCode: 'ERRO_API',
-      message: error && error.message
-        ? error.message
-        : 'Erro inesperado ao chamar a API.'
+      code: error && error.errorCode ? error.errorCode : 'ERRO_API',
+      errorCode: error && error.errorCode ? error.errorCode : 'ERRO_API',
+      message: message,
+      userMessage: message,
+      entityId: '',
+      warnings: [],
+      retrySafe: false
     });
   }
 
@@ -1709,5 +1844,10 @@
     callAction: callAction,
     handleApiError: handleApiError,
     buildQueryString: buildQueryString
+  };
+  global.PortalGeapaRequests = {
+    createRequestId: criarRequestId,
+    prepareSubmission: prepararSubmissao,
+    withTimeout: withTimeout
   };
 })(window);
