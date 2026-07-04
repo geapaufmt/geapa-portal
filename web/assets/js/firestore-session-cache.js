@@ -109,10 +109,15 @@ import {
     var expiresAt = obterTempoSnapshot(snapshot && snapshot.cacheExpiresAt);
     var updatedAt = obterTempoSnapshot(snapshot && (snapshot.cacheUpdatedAt || snapshot.sourceUpdatedAt));
 
+    var accessAllowed = snapshot && typeof snapshot.ativo === 'boolean'
+      ? snapshot.ativo === true && snapshot.podeAcessarPortal === true && snapshot.stale !== true
+      : snapshot && snapshot.portalAtivo === true;
+    var sourceAllowed = snapshot && (snapshot.source === 'PESSOAS_V2' || snapshot.source === 'GEAPA_CORE_PESSOAS_V2');
+
     return Boolean(
       snapshot &&
-      snapshot.portalAtivo === true &&
-      snapshot.source === 'GEAPA_CORE_PESSOAS_V2' &&
+      accessAllowed &&
+      sourceAllowed &&
       snapshot.schemaVersion === SCHEMA_VERSION &&
       (
         (expiresAt && Date.now() <= expiresAt) ||
@@ -127,6 +132,15 @@ import {
         return String(valor || '').trim();
       }).filter(Boolean)
       : [];
+  }
+
+  function normalizarPermissoes(snapshot) {
+    if (Array.isArray(snapshot && snapshot.permissoes)) return normalizarLista(snapshot.permissoes);
+    var permissions = snapshot && snapshot.permissions;
+    if (!permissions || typeof permissions !== 'object') return [];
+    return Object.keys(permissions).filter(function(permission) {
+      return permissions[permission] === true;
+    });
   }
 
   function aplicarSessaoRapidaDoFirestore(snapshot) {
@@ -144,16 +158,16 @@ import {
       cacheUpdatedAt: snapshot.cacheUpdatedAt || '',
       cacheExpiresAt: snapshot.cacheExpiresAt || '',
       idPessoa: String(snapshot.idPessoa || '').trim(),
-      nomeExibicao: String(snapshot.nomeExibicao || '').trim(),
+      nomeExibicao: String(snapshot.nomePublico || snapshot.nomeExibicao || '').trim(),
       email: String(snapshot.email || '').trim(),
-      rga: String(snapshot.rga || '').trim(),
-      portalAtivo: snapshot.portalAtivo === true,
+      rga: '',
+      portalAtivo: snapshot.ativo === true || snapshot.portalAtivo === true,
       modoAcesso: String(snapshot.modoAcesso || snapshot.portalModoAcesso || '').trim(),
       motivoBloqueio: String(snapshot.motivoBloqueio || '').trim(),
       mensagemBloqueio: String(snapshot.mensagemBloqueio || '').trim(),
       perfilPortalEfetivo: String(snapshot.perfilPortalEfetivo || '').trim(),
-      perfisPortal: normalizarLista(snapshot.perfisPortal),
-      permissoes: normalizarLista(snapshot.permissoes),
+      perfisPortal: normalizarLista(snapshot.roles || snapshot.perfisPortal),
+      permissoes: normalizarPermissoes(snapshot),
       tipoVinculoAtual: String(snapshot.tipoVinculoAtual || '').trim(),
       statusVinculoAtual: String(snapshot.statusVinculoAtual || '').trim(),
       cargoFuncaoAtual: String(snapshot.cargoFuncaoAtual || '').trim()

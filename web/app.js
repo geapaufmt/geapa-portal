@@ -207,9 +207,19 @@ function validarCodigo(emailOuRga, codigo) {
  * @param {string} idToken Token JWT emitido pelo Firebase Auth.
  * @return {Promise<Object>} Resposta do login do portal.
  */
-function portalLoginFirebase(idToken) {
+function portalLoginFirebase(idToken, usuarioFirebase) {
+  var user = usuarioFirebase || {};
+  var providerData = Array.isArray(user.providerData) ? user.providerData : [];
   return chamarApi('portalLogin', {
-    idToken: idToken
+    idToken: idToken,
+    firebaseUser: {
+      uid: String(user.uid || ''),
+      email: String(user.email || ''),
+      displayName: String(user.displayName || ''),
+      emailVerified: user.emailVerified === true,
+      providerId: providerData[0] ? String(providerData[0].providerId || '') : ''
+    },
+    clientSubmittedAt: new Date().toISOString()
   });
 }
 
@@ -279,9 +289,12 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     atualizarStatus(status, 'Validando acesso oficial...');
     const idToken = await usuarioFirebase.getIdToken();
     const firestoreSession = window.PortalGeapaFirestoreSession;
+    const validarLoginFirebase = function validarLoginFirebase(token) {
+      return portalLoginFirebase(token, usuarioFirebase);
+    };
     const login = firestoreSession && typeof firestoreSession.validarSessaoOficialEmSegundoPlano === 'function'
-      ? await firestoreSession.validarSessaoOficialEmSegundoPlano(idToken, portalLoginFirebase)
-      : await portalLoginFirebase(idToken);
+      ? await firestoreSession.validarSessaoOficialEmSegundoPlano(idToken, validarLoginFirebase)
+      : await validarLoginFirebase(idToken);
 
     if (login && login.ok === false) {
       throw new Error(obterMensagem(login) || 'Sua autorizacao mudou. Entre novamente.');
@@ -296,6 +309,7 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     salvarSessaoLocal(sessionToken);
     aplicarContextoSessaoInicial(login, usuarioContexto);
     salvarResumoSeguroDaResposta(login);
+    registrarDiagnosticoProvisionamentoFirestore(login);
     mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
     sincronizarNavegacaoPortal();
     atualizarStatus(status, opcoesLogin.restaurando ? 'Sessao restaurada.' : (obterMensagem(login) || 'Entrada com Google concluida.'));
@@ -308,6 +322,23 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     throw erro;
   } finally {
     FIREBASE_LOGIN_STATE.loginEmAndamento = false;
+  }
+}
+
+function registrarDiagnosticoProvisionamentoFirestore(login) {
+  var data = login && login.data || {};
+  var provision = data.cacheFirestore || null;
+  if (!provision || !window.console) return;
+  var details = {
+    code: String(provision.code || ''),
+    synced: provision.synced === true
+  };
+  if (provision.ok === true && provision.synced === true && typeof window.console.info === 'function') {
+    window.console.info('[Portal GEAPA] FIRESTORE_USER_PROVISIONED', details);
+    return;
+  }
+  if (typeof window.console.warn === 'function') {
+    window.console.warn('[Portal GEAPA] FIRESTORE_USER_PROVISION_PENDING', details);
   }
 }
 

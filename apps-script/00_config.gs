@@ -9,6 +9,7 @@ var PORTAL_CONFIG = {
   nomePortal: 'Portal GEAPA',
   versaoContrato: 'v2-readonly',
   ambiente: 'desenvolvimento',
+  firebaseProjectId: 'portal-geapa',
 
   /**
    * URL futura do frontend publicado.

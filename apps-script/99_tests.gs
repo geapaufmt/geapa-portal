@@ -58,6 +58,51 @@ function portalRunDebugMinhaSituacaoTest() {
   return resultado;
 }
 
+function portalRunTesteContratoProvisionamentoFirestoreUser() {
+  var verified = {
+    uid: 'uid-verificado',
+    email: 'membro@example.org',
+    emailVerified: true
+  };
+  var matching = portalConferirIdentidadeFirebaseDeclarada_(verified, {
+    uid: 'uid-verificado',
+    email: 'MEMBRO@example.org',
+    emailVerified: true
+  });
+  var divergentUid = portalConferirIdentidadeFirebaseDeclarada_(verified, {
+    uid: 'uid-de-outra-pessoa',
+    email: 'membro@example.org',
+    emailVerified: true
+  });
+  var divergentEmail = portalConferirIdentidadeFirebaseDeclarada_(verified, {
+    uid: 'uid-verificado',
+    email: 'outra-pessoa@example.org',
+    emailVerified: true
+  });
+  var result = {
+    ok: matching.ok === true && divergentUid.ok === false && divergentEmail.ok === false,
+    matching: matching,
+    divergentUid: divergentUid,
+    divergentEmail: divergentEmail
+  };
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+function portalRunDiagnosticoFirestoreUsersDev() {
+  var options = { includeEmails: false };
+  if (typeof corePortalDiagnosticarFirestoreUsersDev === 'function') {
+    return corePortalDiagnosticarFirestoreUsersDev(options);
+  }
+  if (typeof GEAPA_CORE !== 'undefined' && typeof GEAPA_CORE.corePortalDiagnosticarFirestoreUsersDev === 'function') {
+    return GEAPA_CORE.corePortalDiagnosticarFirestoreUsersDev(options);
+  }
+  if (typeof GEAPA_CORE !== 'undefined' && GEAPA_CORE.portal && GEAPA_CORE.portal.access && typeof GEAPA_CORE.portal.access.diagnosticarFirestoreUsersDev === 'function') {
+    return GEAPA_CORE.portal.access.diagnosticarFirestoreUsersDev(options);
+  }
+  return { ok: false, code: 'DIAGNOSTICO_FIRESTORE_USERS_INDISPONIVEL' };
+}
+
 /**
  * Diagnostica um cadastro configurado em Script Properties.
  *

@@ -11,18 +11,23 @@
  * @param {string} idToken Firebase ID Token recebido do front-end.
  * @return {Object} Resposta padronizada com sessao curta do portal.
  */
-function portalLoginFirebase(idToken) {
+function portalLoginFirebase(idToken, firebaseUser, clientSubmittedAt) {
   var inicio = portalAgoraMs_();
-  var autorizacao = corePortalAuthorizeUser(idToken);
+  var autorizacao = corePortalAuthorizeUser(idToken, firebaseUser || {});
   var firestoreSync;
 
   if (!autorizacao.authorized) {
+    firestoreSync = autorizacao.firebaseIdentityVerified === true
+      ? portalMarcarCacheFirestoreLoginNegado_(autorizacao)
+      : null;
     return portalRespostaErro_(
-      autorizacao.code || 'ACESSO_NAO_AUTORIZADO',
+      autorizacao.firebaseIdentityVerified === true ? 'USUARIO_NAO_AUTORIZADO' : (autorizacao.code || 'ACESSO_NAO_AUTORIZADO'),
       autorizacao.message || 'Acesso nao autorizado para este e-mail.',
       {
         email: autorizacao.email ? portalMascararEmail_(autorizacao.email) : '',
-        sessao: autorizacao.sessao || null
+        sessao: autorizacao.sessao || null,
+        reasonCode: autorizacao.code || 'ACESSO_NAO_AUTORIZADO',
+        cacheFirestore: firestoreSync
       },
       portalMetaDesempenho_('login-recusado', inicio)
     );
@@ -47,6 +52,10 @@ function portalLoginFirebase(idToken) {
       validadeSessaoMinutos: PORTAL_CONFIG.validadeSessaoMinutos,
       sessao: autorizacao.sessao || null,
       cacheFirestore: firestoreSync,
+      warnings: firestoreSync && firestoreSync.synced !== true ? [{
+        code: 'FIRESTORE_USER_PROVISION_PENDENTE',
+        message: 'O cache privado do usuario sera atualizado em uma proxima validacao.'
+      }] : [],
       usuario: {
         uid: autorizacao.uid,
         email: portalMascararEmail_(autorizacao.email),
@@ -62,12 +71,19 @@ function portalLoginFirebase(idToken) {
 }
 
 function portalSincronizarCacheFirestoreLogin_(autorizacao) {
+  var inicio = portalAgoraMs_();
   var dados = autorizacao || {};
   var email = String(dados.email || '').trim();
   var uid = String(dados.uid || '').trim();
   var resultado;
 
   if (!email || !uid) {
+    portalRegistrarLogProvisionamentoFirestore_({
+      acao: 'PORTAL_FIRESTORE_USER_PROVISION_SKIP',
+      resultado: 'SKIP',
+      motivo: 'DADOS_AUSENTES',
+      duracaoMs: portalAgoraMs_() - inicio
+    });
     return {
       ok: false,
       synced: false,
@@ -76,10 +92,38 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
   }
 
   try {
-    if (typeof corePortalSyncFirestoreUserByEmail === 'function') {
+    var identity = {
+      uid: uid,
+      email: email,
+      emailVerified: dados.emailVerified === true,
+      providerId: dados.providerId || ''
+    };
+    var provisionOptions = {
+      uid: uid,
+      sessao: dados.sessao || null,
+      identityVerified: true,
+      lastLoginAt: dados.timestampLogin || new Date().toISOString(),
+      dryRun: false
+    };
+    if (typeof corePortalProvisionarFirestoreUserAutenticado === 'function') {
+      resultado = corePortalProvisionarFirestoreUserAutenticado(identity, provisionOptions);
+    } else if (
+      typeof GEAPA_CORE !== 'undefined' &&
+      typeof GEAPA_CORE.corePortalProvisionarFirestoreUserAutenticado === 'function'
+    ) {
+      resultado = GEAPA_CORE.corePortalProvisionarFirestoreUserAutenticado(identity, provisionOptions);
+    } else if (
+      typeof GEAPA_CORE !== 'undefined' &&
+      GEAPA_CORE.portal &&
+      GEAPA_CORE.portal.access &&
+      typeof GEAPA_CORE.portal.access.provisionarFirestoreUserAutenticado === 'function'
+    ) {
+      resultado = GEAPA_CORE.portal.access.provisionarFirestoreUserAutenticado(identity, provisionOptions);
+    } else if (typeof corePortalSyncFirestoreUserByEmail === 'function') {
       resultado = corePortalSyncFirestoreUserByEmail(email, {
         uid: uid,
-        sessao: dados.sessao || null
+        sessao: dados.sessao || null,
+        dryRun: false
       });
     } else if (
       typeof GEAPA_CORE !== 'undefined' &&
@@ -87,7 +131,8 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
     ) {
       resultado = GEAPA_CORE.corePortalSyncFirestoreUserByEmail(email, {
         uid: uid,
-        sessao: dados.sessao || null
+        sessao: dados.sessao || null,
+        dryRun: false
       });
     } else if (
       typeof GEAPA_CORE !== 'undefined' &&
@@ -97,7 +142,8 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
     ) {
       resultado = GEAPA_CORE.portal.access.syncFirestoreUserByEmail(email, {
         uid: uid,
-        sessao: dados.sessao || null
+        sessao: dados.sessao || null,
+        dryRun: false
       });
     }
   } catch (erro) {
@@ -106,6 +152,16 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       code: 'FIRESTORE_LOGIN_SYNC_EXCEPTION',
       erro: erro && erro.message ? erro.message : String(erro)
     }));
+    portalRegistrarLogProvisionamentoFirestore_({
+      acao: 'PORTAL_FIRESTORE_USER_PROVISION_ERROR',
+      resultado: 'ERROR',
+      uid: uid,
+      email: email,
+      idPessoa: dados.sessao && dados.sessao.idPessoa || '',
+      perfilPortal: dados.perfilPortal || '',
+      motivo: 'FIRESTORE_LOGIN_SYNC_EXCEPTION',
+      duracaoMs: portalAgoraMs_() - inicio
+    });
     return {
       ok: false,
       synced: false,
@@ -114,12 +170,35 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
   }
 
   if (!resultado) {
+    portalRegistrarLogProvisionamentoFirestore_({
+      acao: 'PORTAL_FIRESTORE_USER_PROVISION_SKIP',
+      resultado: 'SKIP',
+      uid: uid,
+      email: email,
+      idPessoa: dados.sessao && dados.sessao.idPessoa || '',
+      perfilPortal: dados.perfilPortal || '',
+      motivo: 'CORE_SEM_PROVISIONAMENTO',
+      duracaoMs: portalAgoraMs_() - inicio
+    });
     return {
       ok: false,
       synced: false,
       code: 'FIRESTORE_LOGIN_SYNC_INDISPONIVEL'
     };
   }
+
+  portalRegistrarLogProvisionamentoFirestore_({
+    acao: resultado.ok === true && resultado.synced === true
+      ? 'PORTAL_FIRESTORE_USER_PROVISION_OK'
+      : (resultado.ok === true ? 'PORTAL_FIRESTORE_USER_PROVISION_SKIP' : 'PORTAL_FIRESTORE_USER_PROVISION_ERROR'),
+    resultado: resultado.ok === true && resultado.synced === true ? 'OK' : (resultado.ok === true ? 'SKIP' : 'ERROR'),
+    uid: uid,
+    email: email,
+    idPessoa: dados.sessao && dados.sessao.idPessoa || '',
+    perfilPortal: dados.perfilPortal || '',
+    motivo: resultado.code || '',
+    duracaoMs: portalAgoraMs_() - inicio
+  });
 
   return {
     ok: resultado.ok === true,
@@ -128,6 +207,42 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
     code: resultado.code || '',
     httpStatus: resultado.httpStatus || ''
   };
+}
+
+function portalMarcarCacheFirestoreLoginNegado_(autorizacao) {
+  var inicio = portalAgoraMs_();
+  var dados = autorizacao || {};
+  var uid = String(dados.uid || '').trim();
+  var resultado = null;
+  if (!uid) return { ok: true, synced: false, code: 'UID_FIREBASE_AUSENTE' };
+  var options = {
+    identityVerified: true,
+    staleReason: dados.code || 'USUARIO_NAO_AUTORIZADO',
+    dryRun: false
+  };
+  try {
+    if (typeof corePortalMarcarFirestoreUserInativoPorUid === 'function') {
+      resultado = corePortalMarcarFirestoreUserInativoPorUid(uid, options);
+    } else if (typeof GEAPA_CORE !== 'undefined' && typeof GEAPA_CORE.corePortalMarcarFirestoreUserInativoPorUid === 'function') {
+      resultado = GEAPA_CORE.corePortalMarcarFirestoreUserInativoPorUid(uid, options);
+    } else if (typeof GEAPA_CORE !== 'undefined' && GEAPA_CORE.portal && GEAPA_CORE.portal.access && typeof GEAPA_CORE.portal.access.marcarFirestoreUserInativoPorUid === 'function') {
+      resultado = GEAPA_CORE.portal.access.marcarFirestoreUserInativoPorUid(uid, options);
+    }
+  } catch (erro) {
+    resultado = { ok: false, synced: false, code: 'FIRESTORE_USER_INVALIDACAO_EXCEPTION' };
+  }
+  resultado = resultado || { ok: true, synced: false, code: 'FIRESTORE_USER_INVALIDACAO_INDISPONIVEL' };
+  portalRegistrarLogProvisionamentoFirestore_({
+    acao: 'PORTAL_FIRESTORE_USER_PROVISION_DENY',
+    resultado: 'DENY',
+    uid: uid,
+    email: dados.email || '',
+    idPessoa: dados.sessao && dados.sessao.idPessoa || '',
+    perfilPortal: dados.sessao && dados.sessao.perfilPortalEfetivo || '',
+    motivo: dados.code || 'USUARIO_NAO_AUTORIZADO',
+    duracaoMs: portalAgoraMs_() - inicio
+  });
+  return resultado;
 }
 
 /**
@@ -201,6 +316,21 @@ function coreAuthVerifyFirebaseUser(idToken) {
 
   var usuario = dados.users[0] || {};
   var email = portalNormalizarIdentificador_(usuario.email || '');
+  var claims = portalDecodificarFirebaseIdToken_(token);
+  var projectId = portalGetFirebaseProjectId_();
+
+  if (
+    !claims ||
+    String(claims.aud || '') !== projectId ||
+    String(claims.iss || '') !== 'https://securetoken.google.com/' + projectId ||
+    String(claims.sub || '') !== String(usuario.localId || '')
+  ) {
+    return {
+      ok: false,
+      code: 'FIREBASE_TOKEN_PROJETO_DIVERGENTE',
+      message: 'Token Firebase emitido para outro projeto ou usuario.'
+    };
+  }
 
   if (!email) {
     return {
@@ -220,7 +350,10 @@ function coreAuthVerifyFirebaseUser(idToken) {
     disabled: usuario.disabled === true,
     providerData: Array.isArray(usuario.providerUserInfo)
       ? usuario.providerUserInfo.map(portalNormalizarProviderFirebase_)
-      : []
+      : [],
+    providerId: usuario.providerUserInfo && usuario.providerUserInfo[0]
+      ? String(usuario.providerUserInfo[0].providerId || '')
+      : ''
   };
 }
 
@@ -230,7 +363,7 @@ function coreAuthVerifyFirebaseUser(idToken) {
  * @param {string} idToken Firebase ID Token.
  * @return {Object} Autorizacao normalizada.
  */
-function corePortalAuthorizeUser(idToken) {
+function corePortalAuthorizeUser(idToken, firebaseUserDeclarado) {
   var usuario = coreAuthVerifyFirebaseUser(idToken);
 
   if (!usuario.ok) {
@@ -238,6 +371,25 @@ function corePortalAuthorizeUser(idToken) {
       authorized: false,
       code: usuario.code,
       message: usuario.message
+    };
+  }
+
+  var declarado = firebaseUserDeclarado || {};
+  var identityCheck = portalConferirIdentidadeFirebaseDeclarada_(usuario, declarado);
+  if (!identityCheck.ok) {
+    portalRegistrarLogProvisionamentoFirestore_({
+      acao: 'PORTAL_FIRESTORE_USER_PROVISION_DENY',
+      resultado: 'DENY',
+      uid: usuario.uid,
+      email: usuario.email,
+      motivo: 'FIREBASE_IDENTIDADE_DIVERGENTE',
+      duracaoMs: 0
+    });
+    return {
+      authorized: false,
+      firebaseIdentityVerified: false,
+      code: 'FIREBASE_IDENTIDADE_DIVERGENTE',
+      message: 'Os dados do login nao correspondem ao token Firebase validado.'
     };
   }
 
@@ -252,6 +404,8 @@ function corePortalAuthorizeUser(idToken) {
 
     return {
       authorized: false,
+      firebaseIdentityVerified: true,
+      uid: usuario.uid,
       code: 'FIREBASE_USUARIO_DESATIVADO',
       message: 'Usuario Firebase desativado.',
       email: usuario.email
@@ -269,6 +423,8 @@ function corePortalAuthorizeUser(idToken) {
 
     return {
       authorized: false,
+      firebaseIdentityVerified: true,
+      uid: usuario.uid,
       code: 'FIREBASE_EMAIL_NAO_VERIFICADO',
       message: 'E-mail Google ainda nao verificado.',
       email: usuario.email
@@ -278,7 +434,10 @@ function corePortalAuthorizeUser(idToken) {
   var autorizacaoCore = portalAutorizarFirebaseViaGeapaCore_(usuario);
 
   if (autorizacaoCore) {
-    return autorizacaoCore;
+    return Object.assign({}, autorizacaoCore, {
+      firebaseIdentityVerified: true,
+      providerId: usuario.providerId || ''
+    });
   }
 
   var membro = portalBuscarMembroPorEmailOuRga_(usuario.email);
@@ -294,6 +453,8 @@ function corePortalAuthorizeUser(idToken) {
 
     return {
       authorized: false,
+      firebaseIdentityVerified: true,
+      uid: usuario.uid,
       code: 'MEMBRO_NAO_AUTORIZADO_PORTAL',
       message: 'E-mail autenticado nao localizado na base do GEAPA.',
       email: usuario.email
@@ -302,16 +463,32 @@ function corePortalAuthorizeUser(idToken) {
 
   return {
     authorized: true,
+    firebaseIdentityVerified: true,
     uid: usuario.uid,
     email: usuario.email,
     emailVerified: usuario.emailVerified,
     displayName: usuario.displayName,
+    providerId: usuario.providerId || '',
     nome: membro.nomeExibicao,
     rga: membro.rga,
     status: membro.situacaoGeral,
     perfilPortal: 'MEMBRO',
     permissoes: [],
     timestampLogin: new Date().toISOString()
+  };
+}
+
+function portalConferirIdentidadeFirebaseDeclarada_(usuarioVerificado, usuarioDeclarado) {
+  var verified = usuarioVerificado || {};
+  var declared = usuarioDeclarado || {};
+  var declaredUid = String(declared.uid || '').trim();
+  var declaredEmail = portalNormalizarIdentificador_(declared.email || '');
+  var divergent = (declaredUid && declaredUid !== String(verified.uid || '').trim()) ||
+    (declaredEmail && declaredEmail !== portalNormalizarIdentificador_(verified.email || '')) ||
+    (Object.prototype.hasOwnProperty.call(declared, 'emailVerified') && declared.emailVerified !== verified.emailVerified);
+  return {
+    ok: !divergent,
+    code: divergent ? 'FIREBASE_IDENTIDADE_DIVERGENTE' : 'FIREBASE_IDENTIDADE_CONFERIDA'
   };
 }
 
@@ -452,6 +629,26 @@ function portalGetFirebaseWebApiKey_() {
   return propriedades.getProperty(PORTAL_CONFIG.propriedades.firebaseWebApiKey) || '';
 }
 
+function portalGetFirebaseProjectId_() {
+  var propriedades = PropertiesService.getScriptProperties();
+  return String(
+    propriedades.getProperty('GEAPA_FIREBASE_PROJECT_ID') ||
+    PORTAL_CONFIG.firebaseProjectId ||
+    ''
+  ).trim();
+}
+
+function portalDecodificarFirebaseIdToken_(token) {
+  try {
+    var parts = String(token || '').split('.');
+    if (parts.length !== 3) return null;
+    var bytes = Utilities.base64DecodeWebSafe(parts[1]);
+    return JSON.parse(Utilities.newBlob(bytes).getDataAsString('UTF-8'));
+  } catch (erro) {
+    return null;
+  }
+}
+
 function portalParseJsonSeguro_(texto) {
   try {
     return JSON.parse(texto || '{}');
@@ -498,10 +695,57 @@ function portalRegistrarLogAuthFirebase_(evento) {
   Logger.log('GEAPA-PORTAL-FIREBASE-AUTH ' + JSON.stringify({
     timestamp: new Date().toISOString(),
     email: dados.email ? portalMascararEmail_(dados.email) : '',
-    uid: dados.uid || '',
+    uid: portalTruncarUidFirebase_(dados.uid || ''),
     perfil: dados.perfilPortal || '',
     resultado: dados.resultado || '',
     motivo: dados.motivo || '',
     acao: 'PORTAL_LOGIN'
   }));
+}
+
+function portalTruncarUidFirebase_(uid) {
+  var value = String(uid || '').trim();
+  if (!value) return '';
+  return value.length <= 10 ? value : value.slice(0, 6) + '...' + value.slice(-4);
+}
+
+function portalRegistrarLogProvisionamentoFirestore_(evento) {
+  var dados = evento || {};
+  var emailMascarado = dados.email ? portalMascararEmail_(dados.email) : '';
+  var uidTruncado = portalTruncarUidFirebase_(dados.uid || '');
+  var action = String(dados.acao || 'PORTAL_FIRESTORE_USER_PROVISION_ERROR');
+  var payload = {
+    email: emailMascarado,
+    uidFirebase: uidTruncado,
+    perfilPortal: String(dados.perfilPortal || ''),
+    acao: action,
+    resultado: String(dados.resultado || ''),
+    motivo: String(dados.motivo || '').slice(0, 160),
+    origem: 'geapa-portal/apps-script',
+    obs: [
+      dados.idPessoa ? 'idPessoa=' + String(dados.idPessoa).slice(0, 80) : '',
+      'duracaoMs=' + Math.max(0, Math.round(Number(dados.duracaoMs || 0)))
+    ].filter(String).join('; ')
+  };
+
+  Logger.log(action + ' ' + JSON.stringify({
+    uid: uidTruncado,
+    email: emailMascarado,
+    idPessoa: dados.idPessoa ? String(dados.idPessoa).slice(0, 80) : '',
+    perfil: payload.perfilPortal,
+    motivo: payload.motivo,
+    duracaoMs: Math.max(0, Math.round(Number(dados.duracaoMs || 0)))
+  }));
+
+  try {
+    if (typeof corePortalLogAccess === 'function') {
+      corePortalLogAccess(payload);
+    } else if (typeof GEAPA_CORE !== 'undefined' && typeof GEAPA_CORE.corePortalLogAccess === 'function') {
+      GEAPA_CORE.corePortalLogAccess(payload);
+    } else if (typeof GEAPA_CORE !== 'undefined' && GEAPA_CORE.portal && GEAPA_CORE.portal.access && typeof GEAPA_CORE.portal.access.logAccess === 'function') {
+      GEAPA_CORE.portal.access.logAccess(payload);
+    }
+  } catch (erro) {
+    Logger.log('PORTAL_FIRESTORE_USER_PROVISION_LOG_FALHOU ' + JSON.stringify({ acao: action }));
+  }
 }

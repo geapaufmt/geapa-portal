@@ -4,7 +4,10 @@ service cloud.firestore {
     function portalUserAtivo() {
       return request.auth != null
         && exists(/databases/$(database)/documents/portalUsers/$(request.auth.uid))
-        && get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.portalAtivo == true;
+        && get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.ativo == true
+        && get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.podeAcessarPortal == true
+        && get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.podeLerDadosPrivados == true
+        && get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.stale == false;
     }
 
     function ambienteNaoProd(env) {
@@ -15,7 +18,10 @@ service cloud.firestore {
       return request.auth != null
         && ambienteNaoProd(env)
         && exists(/databases/$(database)/documents/environments/$(env)/portalUsers/$(request.auth.uid))
-        && get(/databases/$(database)/documents/environments/$(env)/portalUsers/$(request.auth.uid)).data.portalAtivo == true;
+        && get(/databases/$(database)/documents/environments/$(env)/portalUsers/$(request.auth.uid)).data.ativo == true
+        && get(/databases/$(database)/documents/environments/$(env)/portalUsers/$(request.auth.uid)).data.podeAcessarPortal == true
+        && get(/databases/$(database)/documents/environments/$(env)/portalUsers/$(request.auth.uid)).data.podeLerDadosPrivados == true
+        && get(/databases/$(database)/documents/environments/$(env)/portalUsers/$(request.auth.uid)).data.stale == false;
     }
 
     match /portalUsers/{uid} {
