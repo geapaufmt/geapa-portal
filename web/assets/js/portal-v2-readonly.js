@@ -586,8 +586,11 @@
     var titulo = registro.tituloAtividade || registro.tituloPublico || registro.idAtividade || 'Atividade';
     var status = registro.statusPresencaRotulo || registro.statusPresenca || 'Registro';
     var acao = montarAcaoJustificativaFrequencia(registro, id);
-    var prazo = formatarDataCurtaPendencia(registro.dataLimiteJustificativa || registro.prazoJustificativa);
-    var foraPrazo = justificativaForaPrazo(registro);
+    var permiteExibirPrazo = !ehPresencaFrequencia(registro) && temJustificativaFrequencia(registro);
+    var prazo = permiteExibirPrazo
+      ? formatarDataCurtaPendencia(registro.dataLimiteJustificativa || registro.prazoJustificativa)
+      : '';
+    var foraPrazo = permiteExibirPrazo && justificativaForaPrazo(registro);
 
     estado.itensPorId[id] = registro;
 
