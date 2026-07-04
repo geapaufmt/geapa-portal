@@ -395,19 +395,24 @@ card usa os metadados leves `podeJustificarAusenciaFutura`,
 e nao altera presenca nesse momento.
 
 O envio fora do prazo nao e bloqueado no frontend: o card mostra alerta, o
-modal exige ciencia do membro quando `exigeCienciaForaPrazo = true` e o payload
-envia `confirmouCienciaForaPrazo`. A analise continua cabendo a
+modal exige ciencia do membro quando `exigeCienciaForaPrazo = true` ou quando
+`acaoJustificativa = ENVIAR_JUSTIFICATIVA_FORA_PRAZO`, e o payload envia
+`confirmouCienciaForaPrazo`. A analise continua cabendo a
 Diretoria/Secretaria, que pode deferir, abonar, indeferir ou solicitar ajuste
 conforme `acoesGestao` e validacao final do backend.
 
 `Minha frequencia` consome `atividadesV2_portalGetMinhaFrequencia(contexto)` e
-preserva `contrato = MINHA_FREQUENCIA_DETALHADA_V2`, `resumoGeral`,
+preserva `contrato = MINHA_FREQUENCIA_DETALHADA_V2`, `agrupamento = CICLO`, `resumoGeral`,
 `cicloAtual`, `ciclos[]` e `ciclos[].registros[]`. Registros com
 `acaoJustificativa` igual a `ENVIAR_JUSTIFICATIVA`,
 `ENVIAR_JUSTIFICATIVA_FORA_PRAZO` ou `COMPLEMENTAR_JUSTIFICATIVA` abrem o mesmo
 modal de justificativa de falta registrada. Payload antigo com apenas resumo em
 `registros[]` deve renderizar aviso controlado e nunca lista falsa de
 atividades.
+
+O agrupamento e os totais de cada bloco usam o `CICLO` institucional completo,
+como `GEAPA_2026`. `ANO` e `SEMESTRE` podem acompanhar os registros como
+metadados, mas nao criam grupos separados nem reiniciam o calculo da frequencia.
 
 O frontend nao altera presenca diretamente, nao escreve em `PORTAL_*` e invalida
 caches de justificativas, frequencia, pendencias e painel apos envio ou analise.

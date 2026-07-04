@@ -1306,6 +1306,10 @@
   }
 
   function justificativaForaPrazo(item) {
+    var acao = normalizarStatusFluxo((item || {}).acaoJustificativa);
+    if (acao === 'ENVIAR_JUSTIFICATIVA_FORA_PRAZO') {
+      return true;
+    }
     var valor = (item || {}).envioForaDoPrazo !== undefined
       ? (item || {}).envioForaDoPrazo
       : ((item || {}).foraDoPrazo !== undefined

@@ -2340,6 +2340,7 @@ function portalNormalizarMinhaFrequenciaV2_(resposta, contexto, inicio) {
       contrato: contrato,
       sessao: portalResumoSessaoViewsV2_(contexto),
       resumoGeral: portalSanitizarResumoFrequenciaV2_(bruto.resumoGeral || bruto.resumo || bruto.totais || {}),
+      agrupamento: portalObterCampoFlexViewsV2_(bruto, ['agrupamento']) || 'CICLO',
       cicloAtual: portalObterCampoFlexViewsV2_(bruto, ['cicloAtual', 'ciclo', 'periodoAtual']),
       ciclos: ciclos,
       registros: registros,
@@ -2411,6 +2412,7 @@ function portalSanitizarRegistrosFrequenciaV2_(registros) {
       'mensagemPortal',
       'dataLimiteJustificativa',
       'prazoJustificativa',
+      'statusPrazo',
       'envioForaDoPrazo',
       'exigeCienciaForaPrazo'
     ]);
