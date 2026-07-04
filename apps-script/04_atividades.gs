@@ -426,7 +426,9 @@ function portalNormalizarAcaoAdminAtividades_(response, code, fallbackMessage) {
   var normalized = portalNormalizarRespostaObjetoAtividades_(response);
   if (!normalized.ok) return normalized.resposta;
   return portalRespostaOk_(code, normalized.message || fallbackMessage, normalized.data, {
-    atividadesAdmin: { origem: 'geapa-atividades', somenteDev: true }
+    atividadesAdmin: { origem: 'geapa-atividades', somenteDev: true },
+    warnings: normalized.avisos || [],
+    backendWrite: response && (response.performance || response.data && response.data.performance) || null
   });
 }
 
@@ -1061,7 +1063,7 @@ function portalNormalizarRespostaObjetoAtividades_(resposta) {
     ok: true,
     message: resposta.message || '',
     data: dados,
-    avisos: resposta.avisos ||
+    avisos: resposta.warnings || resposta.avisos ||
       (resposta.meta && resposta.meta.avisos) ||
       (dados.meta && dados.meta.avisos) ||
       []
