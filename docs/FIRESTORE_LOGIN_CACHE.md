@@ -193,6 +193,13 @@ validando a sessao no backend.
 O provisionamento/revalidacao roda no login novo, na restauracao Firebase e no
 refresh quando ja existe sessao curta do Portal.
 
+O fast path nunca combina `portalUsers/{uid}` com uma sessao Core de outra
+pessoa. Quando ja existe sessao Core, o Portal exige correspondencia por
+`idPessoa` ou e-mail normalizado. Sem sessao Core, o snapshot pode apenas
+pre-carregar a interface, registra `FAST_PATH_SEM_SESSAO_CORE` e inicia a
+revalidacao oficial em segundo plano. O resumo de `localStorage` nao libera a
+area privada sozinho.
+
 ## Debug seguro
 
 No console do navegador:
@@ -210,7 +217,9 @@ nunca sao incluidos.
 
 Eventos esperados no console usam o prefixo `[GEAPA-AUTH]`: `FIREBASE_READY`,
 `AUTH_STATE_CHANGED`, `PORTAL_USER_DOC_FOUND`, `PORTAL_USER_DOC_MISSING`,
-`PROVISION_*`, `FAST_PATH_*` e `BACKGROUND_REVALIDATION_*`.
+`PROVISION_*`, `FAST_PATH_*`, `IDENTITY_MATCH_OK`,
+`IDENTITY_MISMATCH_FIREBASE_CORE`, `FIREBASE_SIGNOUT_BEFORE_CORE_LOGIN`,
+`CORE_LOGIN_WITHOUT_FIREBASE_UID` e `BACKGROUND_REVALIDATION_*`.
 
 Checklist manual:
 
@@ -221,6 +230,10 @@ Checklist manual:
 5. Com `stale=true`, e-mail divergente ou TTL vencido, confirmar `FAST_PATH_BLOCKED`.
 6. Bloquear temporariamente o Firestore e confirmar fallback Apps Script sem spinner infinito.
 7. Simular negacao oficial e confirmar retorno para a tela de acesso.
+8. Com Firebase de uma pessoa aberto, solicitar codigo para outro e-mail e
+   confirmar sign-out antes de `solicitarCodigo`.
+9. Entrar apenas por codigo e confirmar `authMode = CORE_CODE_ONLY` e
+   `PROVISION_SKIP_SEM_FIREBASE_AUTH`.
 
 Antes do deploy, execute tambem:
 

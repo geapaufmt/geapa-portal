@@ -79,11 +79,44 @@ function portalRunTesteContratoProvisionamentoFirestoreUser() {
     email: 'outra-pessoa@example.org',
     emailVerified: true
   });
+  var coreMatch = portalConferirFirebaseComSessaoCore_({
+    email: 'membro@example.org',
+    sessao: { idPessoa: 'PES-001', email: 'MEMBRO@example.org' }
+  });
+  var coreMismatch = portalConferirFirebaseComSessaoCore_({
+    email: 'membro@example.org',
+    sessao: { idPessoa: 'PES-002', email: 'outra-pessoa@example.org' }
+  });
+  var provisionOk = portalNormalizarCodigoProvisionamento_({
+    ok: true,
+    synced: true,
+    code: 'FIRESTORE_USER_SYNC_OK'
+  });
+  var provisionAlready = portalNormalizarCodigoProvisionamento_({
+    ok: true,
+    synced: true,
+    code: 'FIRESTORE_USER_ALREADY_VALID'
+  });
+  var provisionError = portalNormalizarCodigoProvisionamento_({
+    ok: false,
+    synced: false,
+    code: 'FIRESTORE_WRITE_FAILED'
+  });
   var result = {
-    ok: matching.ok === true && divergentUid.ok === false && divergentEmail.ok === false,
+    ok: matching.ok === true &&
+      divergentUid.ok === false &&
+      divergentEmail.ok === false &&
+      coreMatch.ok === true &&
+      coreMismatch.ok === false &&
+      provisionOk === 'PROVISION_OK' &&
+      provisionAlready === 'PROVISION_ALREADY_VALID' &&
+      provisionError === 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
     matching: matching,
     divergentUid: divergentUid,
-    divergentEmail: divergentEmail
+    divergentEmail: divergentEmail,
+    coreMatch: coreMatch,
+    coreMismatch: coreMismatch,
+    provisionCodes: [provisionOk, provisionAlready, provisionError]
   };
   Logger.log(JSON.stringify(result, null, 2));
   return result;
