@@ -94,7 +94,9 @@ import {
       var data = snap.exists() ? (snap.data() || null) : null;
       registrarPerf('firestore.cache.leitura', inicio, { encontrado: snap.exists() });
       registrarDebugAuth(snap.exists() ? 'PORTAL_USER_DOC_FOUND' : 'PORTAL_USER_DOC_MISSING', {
-        uid: id,
+        uid: data && data.uid || '',
+        idPessoa: data && data.idPessoa || '',
+        emailNormalizado: data && (data.emailNormalizado || data.email) || '',
         portalAtivo: Boolean(data && data.portalAtivo),
         perfilOperacional: data && (data.perfilOperacional || data.perfilPortalEfetivo) || '',
         roles: data && (data.roles || data.perfisPortal) || [],
@@ -173,6 +175,84 @@ import {
     return String(email || '').trim().toLowerCase();
   }
 
+  function emailComparavel(email) {
+    var value = normalizarEmail(email);
+    return value.indexOf('@') > 0 && value.indexOf('*') < 0;
+  }
+
+  function normalizarSessaoCoreIdentidade(sessao) {
+    var dados = sessao || {};
+    var idPessoa = String(dados.idPessoa || dados.id || '').trim();
+    var email = normalizarEmail(dados.email || dados.emailNormalizado || '');
+    var logado = dados.autenticado === true || dados.logado === true || Boolean(idPessoa || email);
+    return {
+      logado: logado,
+      idPessoa: idPessoa,
+      email: email,
+      perfil: String(dados.perfilPortalEfetivo || dados.perfilPrincipal || dados.perfil || '').trim(),
+      origemDados: String(dados.origemDados || dados.origemSessao || dados.origemSnapshot || '').trim()
+    };
+  }
+
+  function verificarConsistenciaIdentidade(firebaseUser, snapshot, sessaoCore) {
+    var firebaseUid = String(firebaseUser && firebaseUser.uid || '').trim();
+    var firebaseEmail = normalizarEmail(firebaseUser && firebaseUser.email || '');
+    var core = normalizarSessaoCoreIdentidade(sessaoCore);
+    var docUid = String(snapshot && snapshot.uid || '').trim();
+    var docEmail = normalizarEmail(snapshot && (snapshot.emailNormalizado || snapshot.email) || '');
+    var docPessoa = String(snapshot && snapshot.idPessoa || '').trim();
+    var reasons = [];
+    var evidence = false;
+
+    if (!firebaseUid) {
+      return {
+        checked: true,
+        match: !core.logado,
+        code: core.logado ? 'CORE_ONLY' : 'NAO_AUTENTICADO',
+        reasons: []
+      };
+    }
+
+    if (docUid) {
+      evidence = true;
+      if (docUid !== firebaseUid) reasons.push('UID_DIVERGENTE');
+    }
+    if (emailComparavel(firebaseEmail) && emailComparavel(docEmail)) {
+      evidence = true;
+      if (firebaseEmail !== docEmail) reasons.push('EMAIL_FIREBASE_DOC_DIVERGENTE');
+    }
+
+    if (!core.logado) {
+      return {
+        checked: true,
+        match: reasons.length === 0 && evidence,
+        code: reasons.length ? 'IDENTITY_MISMATCH_FIREBASE_CORE' : 'FIREBASE_ONLY',
+        reasons: reasons
+      };
+    }
+
+    if (emailComparavel(firebaseEmail) && emailComparavel(core.email)) {
+      evidence = true;
+      if (firebaseEmail !== core.email) reasons.push('EMAIL_FIREBASE_CORE_DIVERGENTE');
+    }
+    if (emailComparavel(docEmail) && emailComparavel(core.email)) {
+      evidence = true;
+      if (docEmail !== core.email) reasons.push('EMAIL_DOC_CORE_DIVERGENTE');
+    }
+    if (docPessoa && core.idPessoa) {
+      evidence = true;
+      if (docPessoa !== core.idPessoa) reasons.push('ID_PESSOA_DIVERGENTE');
+    }
+    if (!evidence) reasons.push('IDENTIDADE_SEM_CHAVE_COMPARAVEL');
+
+    return {
+      checked: true,
+      match: reasons.length === 0,
+      code: reasons.length ? 'IDENTITY_MISMATCH_FIREBASE_CORE' : 'OK',
+      reasons: reasons
+    };
+  }
+
   function normalizarLista(valores) {
     return Array.isArray(valores)
       ? valores.map(function normalizar(valor) {
@@ -190,7 +270,7 @@ import {
     });
   }
 
-  function aplicarSessaoRapidaDoFirestore(snapshot, firebaseUser) {
+  function aplicarSessaoRapidaDoFirestore(snapshot, firebaseUser, sessaoCore) {
     var validation = validarPortalUserSnapshot(snapshot, firebaseUser);
     if (!validation.ok) {
       registrarDebugAuth('FAST_PATH_BLOCKED', {
@@ -199,6 +279,25 @@ import {
       });
       return null;
     }
+
+    var core = normalizarSessaoCoreIdentidade(sessaoCore);
+    var identity = verificarConsistenciaIdentidade(firebaseUser, snapshot, core.logado ? core : null);
+    if (core.logado && identity.match !== true) {
+      registrarDebugAuth('IDENTITY_MISMATCH_FIREBASE_CORE', {
+        uid: firebaseUser && firebaseUser.uid || '',
+        code: identity.code
+      });
+      registrarDebugAuth('FAST_PATH_BLOCKED', {
+        uid: firebaseUser && firebaseUser.uid || '',
+        code: 'IDENTITY_MISMATCH_FIREBASE_CORE'
+      });
+      return null;
+    }
+
+    registrarDebugAuth(core.logado ? 'IDENTITY_MATCH_OK' : 'FAST_PATH_SEM_SESSAO_CORE', {
+      uid: firebaseUser && firebaseUser.uid || '',
+      code: core.logado ? 'OK' : 'FIREBASE_ONLY'
+    });
 
     var sessao = {
       autenticado: true,
@@ -212,7 +311,7 @@ import {
       cacheExpiresAt: snapshot.cacheExpiresAt || '',
       idPessoa: String(snapshot.idPessoa || '').trim(),
       nomeExibicao: String(snapshot.nomePublico || snapshot.nomeExibicao || '').trim(),
-      email: String(snapshot.email || '').trim(),
+      email: String(snapshot.emailNormalizado || snapshot.email || '').trim(),
       rga: '',
       portalAtivo: snapshot.ativo === true || snapshot.portalAtivo === true,
       modoAcesso: String(snapshot.modoAcesso || snapshot.portalModoAcesso || '').trim(),
@@ -345,6 +444,7 @@ import {
     try {
       global.localStorage.removeItem(STORAGE_KEY);
     } catch (erro) {}
+    registrarDebugAuth('PORTAL_USER_CACHE_CLEARED', { code: 'CACHE_LOCAL_REMOVIDO' });
   }
 
   function normalizarDataResumo(valor) {
@@ -398,6 +498,7 @@ import {
     buscarPortalUserSnapshot: buscarPortalUserSnapshot,
     snapshotEstaValido: snapshotEstaValido,
     validarPortalUserSnapshot: validarPortalUserSnapshot,
+    verificarConsistenciaIdentidade: verificarConsistenciaIdentidade,
     aplicarSessaoRapidaDoFirestore: aplicarSessaoRapidaDoFirestore,
     obterResumoSeguro: obterResumoSeguro,
     resumoSeguroEstaValido: resumoSeguroEstaValido,

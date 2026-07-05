@@ -11,6 +11,9 @@
     portalUserDoc: {
       checked: false,
       exists: false,
+      uid: '',
+      idPessoa: '',
+      emailNormalizado: '',
       portalAtivo: false,
       perfilOperacional: '',
       roles: [],
@@ -28,7 +31,20 @@
     },
     portalUserSource: 'NAO_CARREGADO',
     fastPath: 'NAO_VERIFICADO',
-    backgroundRevalidation: 'NAO_EXECUTADO'
+    backgroundRevalidation: 'NAO_EXECUTADO',
+    coreSession: {
+      logado: false,
+      idPessoa: '',
+      email: '',
+      perfil: '',
+      origemDados: ''
+    },
+    identityConsistency: {
+      checked: false,
+      match: false,
+      code: 'NAO_VERIFICADO'
+    },
+    authMode: 'NAO_AUTENTICADO'
   };
 
   function flagEnabled(name, defaultValue) {
@@ -77,11 +93,100 @@
     return id ? firestorePathSegments('portalUsers', id).join('/') : '';
   }
 
+  function normalizeEmail(email) {
+    return String(email || '').trim().toLowerCase();
+  }
+
+  function isComparableEmail(email) {
+    var value = normalizeEmail(email);
+    return value.indexOf('@') > 0 && value.indexOf('*') < 0;
+  }
+
+  function emptyPortalUserDoc() {
+    return {
+      checked: false,
+      exists: false,
+      uid: '',
+      idPessoa: '',
+      emailNormalizado: '',
+      portalAtivo: false,
+      perfilOperacional: '',
+      roles: [],
+      schemaVersion: '',
+      cacheUpdatedAt: '',
+      stale: false,
+      validationCode: 'NAO_VERIFICADO'
+    };
+  }
+
+  function recalculateIdentityConsistency() {
+    var firebaseLogged = authDebugState.firebaseAuthLogado === true;
+    var coreLogged = authDebugState.coreSession.logado === true;
+    var firebaseEmail = normalizeEmail(authDebugState.email);
+    var coreEmail = normalizeEmail(authDebugState.coreSession.email);
+    var portalEmail = normalizeEmail(authDebugState.portalUserDoc.emailNormalizado);
+    var portalUid = String(authDebugState.portalUserDoc.uid || '').trim();
+    var firebaseUid = String(authDebugState.uid || '').trim();
+    var portalPerson = String(authDebugState.portalUserDoc.idPessoa || '').trim();
+    var corePerson = String(authDebugState.coreSession.idPessoa || '').trim();
+    var mismatch = false;
+    var evidence = false;
+
+    if (firebaseLogged && coreLogged) {
+      if (isComparableEmail(firebaseEmail) && isComparableEmail(coreEmail)) {
+        evidence = true;
+        if (firebaseEmail !== coreEmail) mismatch = true;
+      }
+      if (portalUid && firebaseUid) {
+        evidence = true;
+        if (portalUid !== firebaseUid) mismatch = true;
+      }
+      if (isComparableEmail(portalEmail) && isComparableEmail(firebaseEmail)) {
+        evidence = true;
+        if (portalEmail !== firebaseEmail) mismatch = true;
+      }
+      if (portalPerson && corePerson) {
+        evidence = true;
+        if (portalPerson !== corePerson) mismatch = true;
+      }
+      if (!evidence) mismatch = true;
+      authDebugState.identityConsistency = {
+        checked: true,
+        match: !mismatch,
+        code: mismatch ? 'IDENTITY_MISMATCH_FIREBASE_CORE' : 'OK'
+      };
+    } else if (firebaseLogged) {
+      authDebugState.identityConsistency = { checked: true, match: false, code: 'FIREBASE_ONLY' };
+    } else if (coreLogged) {
+      authDebugState.identityConsistency = { checked: true, match: false, code: 'CORE_ONLY' };
+    } else {
+      authDebugState.identityConsistency = { checked: false, match: false, code: 'NAO_VERIFICADO' };
+    }
+
+    if (authDebugState.identityConsistency.code === 'IDENTITY_MISMATCH_FIREBASE_CORE') {
+      authDebugState.authMode = 'DESYNC';
+    } else if (firebaseLogged && coreLogged) {
+      authDebugState.authMode = 'FIREBASE_PLUS_CORE';
+    } else if (coreLogged) {
+      authDebugState.authMode = 'CORE_CODE_ONLY';
+    } else if (firebaseLogged && authDebugState.fastPath === 'GRANTED') {
+      authDebugState.authMode = 'FIREBASE_FAST_PATH';
+    } else if (firebaseLogged) {
+      authDebugState.authMode = 'FIREBASE_ONLY';
+    } else {
+      authDebugState.authMode = 'NAO_AUTENTICADO';
+    }
+    return authDebugState.identityConsistency;
+  }
+
   function recordAuthEvent(eventName, details) {
     var event = String(eventName || '').trim().toUpperCase();
     var data = details || {};
+    var explicitIdentityEvent = false;
+    var shouldRecalculateIdentity = false;
     if (event === 'FIREBASE_READY') authDebugState.firebaseReady = true;
     if (event === 'AUTH_STATE_CHANGED') {
+      shouldRecalculateIdentity = true;
       authDebugState.firebaseReady = true;
       authDebugState.firebaseAuthLogado = data.loggedIn === true;
       authDebugState.uid = authDebugState.firebaseAuthLogado ? String(data.uid || '') : '';
@@ -90,13 +195,18 @@
       if (!authDebugState.firebaseAuthLogado) {
         authDebugState.portalUserSource = 'NAO_CARREGADO';
         authDebugState.fastPath = 'NAO_VERIFICADO';
+        authDebugState.portalUserDoc = emptyPortalUserDoc();
       }
     }
     if (event === 'PORTAL_USER_DOC_FOUND' || event === 'PORTAL_USER_DOC_MISSING') {
+      shouldRecalculateIdentity = true;
       authDebugState.portalUserSource = 'FIRESTORE';
       authDebugState.portalUserDoc = {
         checked: true,
         exists: event === 'PORTAL_USER_DOC_FOUND',
+        uid: String(data.uid || ''),
+        idPessoa: String(data.idPessoa || ''),
+        emailNormalizado: normalizeEmail(data.emailNormalizado || ''),
         portalAtivo: data.portalAtivo === true,
         perfilOperacional: String(data.perfilOperacional || ''),
         roles: Array.isArray(data.roles) ? data.roles.map(String) : [],
@@ -107,7 +217,13 @@
       };
     }
     if (event.indexOf('PROVISION_') === 0) {
-      var provisionStatus = event === 'PROVISION_START' ? 'NAO_EXECUTADO' : event.replace('PROVISION_', '');
+      var provisionStatus = event === 'PROVISION_START'
+        ? 'NAO_EXECUTADO'
+        : (event.indexOf('DENY') >= 0
+          ? 'DENY'
+          : (event.indexOf('ERROR') >= 0
+            ? 'ERROR'
+            : (event.indexOf('SKIP') >= 0 ? 'SKIP' : 'OK')));
       authDebugState.provisionamento = {
         executadoNestaSessao: true,
         status: provisionStatus || 'NAO_EXECUTADO',
@@ -124,6 +240,53 @@
     if (event === 'BACKGROUND_REVALIDATION_OK' || event === 'BACKGROUND_REVALIDATION_DENY' || event === 'BACKGROUND_REVALIDATION_ERROR') {
       authDebugState.backgroundRevalidation = event.replace('BACKGROUND_REVALIDATION_', '');
     }
+    if (event === 'CORE_SESSION_CHANGED') {
+      shouldRecalculateIdentity = true;
+      authDebugState.coreSession = {
+        logado: data.loggedIn === true,
+        idPessoa: String(data.idPessoa || ''),
+        email: normalizeEmail(data.email || ''),
+        perfil: String(data.perfil || ''),
+        origemDados: String(data.origemDados || '')
+      };
+    }
+    if (event === 'CORE_SESSION_CLEARED') {
+      shouldRecalculateIdentity = true;
+      authDebugState.coreSession = { logado: false, idPessoa: '', email: '', perfil: '', origemDados: '' };
+    }
+    if (event === 'IDENTITY_MATCH_OK') {
+      explicitIdentityEvent = true;
+      authDebugState.identityConsistency = { checked: true, match: true, code: 'OK' };
+    }
+    if (event === 'IDENTITY_MISMATCH_FIREBASE_CORE') {
+      explicitIdentityEvent = true;
+      authDebugState.identityConsistency = {
+        checked: true,
+        match: false,
+        code: 'IDENTITY_MISMATCH_FIREBASE_CORE'
+      };
+      authDebugState.authMode = 'DESYNC';
+      authDebugState.fastPath = 'BLOCKED';
+    }
+    if (event === 'FAST_PATH_SEM_SESSAO_CORE') {
+      authDebugState.identityConsistency = { checked: true, match: false, code: 'FIREBASE_ONLY' };
+    }
+    if (event === 'PORTAL_USER_CACHE_CLEARED' || event === 'FIREBASE_SIGNOUT_BEFORE_CORE_LOGIN') {
+      shouldRecalculateIdentity = true;
+      authDebugState.portalUserDoc = emptyPortalUserDoc();
+      authDebugState.portalUserSource = 'NAO_CARREGADO';
+      authDebugState.fastPath = 'BLOCKED';
+    }
+    if (event === 'CORE_LOGIN_WITHOUT_FIREBASE_UID' || event === 'PROVISION_SKIP_SEM_FIREBASE_AUTH') {
+      authDebugState.provisionamento = {
+        executadoNestaSessao: true,
+        status: 'SKIP',
+        code: 'PROVISION_SKIP_SEM_FIREBASE_AUTH',
+        lastRunAt: new Date().toISOString(),
+        durationMs: 0
+      };
+    }
+    if (!explicitIdentityEvent && shouldRecalculateIdentity) recalculateIdentityConsistency();
 
     if (global.console && typeof global.console.info === 'function') {
       global.console.info('[GEAPA-AUTH]', event, {
@@ -149,8 +312,17 @@
       emailVerified: authDebugState.emailVerified === true,
       expectedPortalUserPath: expectedPortalUserPath(authDebugState.uid),
       portalUserDoc: Object.freeze(Object.assign({}, authDebugState.portalUserDoc, {
+        expectedPath: expectedPortalUserPath(authDebugState.uid),
         roles: Object.freeze((authDebugState.portalUserDoc.roles || []).slice())
       })),
+      firebase: Object.freeze({
+        logado: authDebugState.firebaseAuthLogado === true,
+        uidPreview: uidPreview(authDebugState.uid),
+        email: authDebugState.email
+      }),
+      coreSession: Object.freeze(Object.assign({}, authDebugState.coreSession)),
+      identityConsistency: Object.freeze(Object.assign({}, authDebugState.identityConsistency)),
+      authMode: authDebugState.authMode,
       provisionamento: Object.freeze(Object.assign({}, authDebugState.provisionamento)),
       fastPath: authDebugState.fastPath,
       backgroundRevalidation: authDebugState.backgroundRevalidation,
@@ -197,6 +369,7 @@
   global.PortalGeapaDebugAuth = Object.freeze({
     getStatus: getAuthStatus,
     printStatus: printAuthStatus,
+    checkIdentityConsistency: recalculateIdentityConsistency,
     record: recordAuthEvent
   });
 

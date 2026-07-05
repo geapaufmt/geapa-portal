@@ -236,6 +236,13 @@ function portalValidarCodigo(emailOuRga, codigo) {
       validadeSessaoMinutos: PORTAL_CONFIG.validadeSessaoMinutos,
       identificadorRecebido: identificador,
       sessao: sessaoResolvida,
+      authMode: 'CORE_CODE_ONLY',
+      portalUsersProvisionamento: 'NAO_EXECUTADO_SEM_FIREBASE_UID',
+      cacheFirestore: {
+        ok: true,
+        synced: false,
+        code: 'PROVISION_SKIP_SEM_FIREBASE_AUTH'
+      },
       membro: {
         nomeExibicao: membro.nomeExibicao,
         rga: membro.rga

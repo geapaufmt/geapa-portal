@@ -33,6 +33,23 @@ function portalLoginFirebase(idToken, firebaseUser, clientSubmittedAt) {
     );
   }
 
+  var identityConsistency = portalConferirFirebaseComSessaoCore_(autorizacao);
+  if (!identityConsistency.ok) {
+    return portalRespostaErro_(
+      'IDENTITY_MISMATCH_FIREBASE_CORE',
+      'A identidade Firebase nao corresponde a pessoa oficial resolvida pelo GEAPA-CORE.',
+      {
+        reasonCode: 'IDENTITY_MISMATCH_FIREBASE_CORE',
+        cacheFirestore: {
+          ok: false,
+          synced: false,
+          code: 'PROVISION_DENY_IDENTITY_MISMATCH'
+        }
+      },
+      portalMetaDesempenho_('identidade-divergente', inicio)
+    );
+  }
+
   var sessionToken = portalCriarSessaoTemporaria_(autorizacao.email);
   firestoreSync = portalSincronizarCacheFirestoreLogin_(autorizacao);
 
@@ -77,17 +94,33 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
   var uid = String(dados.uid || '').trim();
   var resultado;
 
-  if (!email || !uid) {
+  if (!uid) {
     portalRegistrarLogProvisionamentoFirestore_({
       acao: 'PORTAL_FIRESTORE_USER_PROVISION_SKIP',
       resultado: 'SKIP',
-      motivo: 'DADOS_AUSENTES',
+      motivo: 'PROVISION_SKIP_SEM_FIREBASE_AUTH',
+      duracaoMs: portalAgoraMs_() - inicio
+    });
+    return {
+      ok: true,
+      synced: false,
+      code: 'PROVISION_SKIP_SEM_FIREBASE_AUTH'
+    };
+  }
+
+  if (!email || !dados.sessao || !String(dados.sessao.idPessoa || '').trim()) {
+    portalRegistrarLogProvisionamentoFirestore_({
+      acao: 'PORTAL_FIRESTORE_USER_PROVISION_DENY',
+      resultado: 'DENY',
+      uid: uid,
+      email: email,
+      motivo: 'PROVISION_DENY_EMAIL_NAO_ENCONTRADO',
       duracaoMs: portalAgoraMs_() - inicio
     });
     return {
       ok: false,
       synced: false,
-      code: 'FIRESTORE_LOGIN_SYNC_DADOS_AUSENTES'
+      code: 'PROVISION_DENY_EMAIL_NAO_ENCONTRADO'
     };
   }
 
@@ -159,54 +192,100 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       email: email,
       idPessoa: dados.sessao && dados.sessao.idPessoa || '',
       perfilPortal: dados.perfilPortal || '',
-      motivo: 'FIRESTORE_LOGIN_SYNC_EXCEPTION',
+      motivo: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
       duracaoMs: portalAgoraMs_() - inicio
     });
     return {
       ok: false,
       synced: false,
-      code: 'FIRESTORE_LOGIN_SYNC_EXCEPTION'
+      code: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED'
     };
   }
 
   if (!resultado) {
     portalRegistrarLogProvisionamentoFirestore_({
-      acao: 'PORTAL_FIRESTORE_USER_PROVISION_SKIP',
-      resultado: 'SKIP',
+      acao: 'PORTAL_FIRESTORE_USER_PROVISION_ERROR',
+      resultado: 'ERROR',
       uid: uid,
       email: email,
       idPessoa: dados.sessao && dados.sessao.idPessoa || '',
       perfilPortal: dados.perfilPortal || '',
-      motivo: 'CORE_SEM_PROVISIONAMENTO',
+      motivo: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
       duracaoMs: portalAgoraMs_() - inicio
     });
     return {
       ok: false,
       synced: false,
-      code: 'FIRESTORE_LOGIN_SYNC_INDISPONIVEL'
+      code: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED'
     };
   }
 
+  var provisionCode = portalNormalizarCodigoProvisionamento_(resultado);
+  var provisionOk = [
+    'PROVISION_OK',
+    'PROVISION_ALREADY_VALID',
+    'PROVISION_UPDATED'
+  ].indexOf(provisionCode) >= 0 && resultado.ok === true && resultado.synced === true;
+  var provisionDeny = provisionCode.indexOf('PROVISION_DENY_') === 0;
+
   portalRegistrarLogProvisionamentoFirestore_({
-    acao: resultado.ok === true && resultado.synced === true
+    acao: provisionOk
       ? 'PORTAL_FIRESTORE_USER_PROVISION_OK'
-      : (resultado.ok === true ? 'PORTAL_FIRESTORE_USER_PROVISION_SKIP' : 'PORTAL_FIRESTORE_USER_PROVISION_ERROR'),
-    resultado: resultado.ok === true && resultado.synced === true ? 'OK' : (resultado.ok === true ? 'SKIP' : 'ERROR'),
+      : (provisionDeny ? 'PORTAL_FIRESTORE_USER_PROVISION_DENY' : 'PORTAL_FIRESTORE_USER_PROVISION_ERROR'),
+    resultado: provisionOk ? 'OK' : (provisionDeny ? 'DENY' : 'ERROR'),
     uid: uid,
     email: email,
     idPessoa: dados.sessao && dados.sessao.idPessoa || '',
     perfilPortal: dados.perfilPortal || '',
-    motivo: resultado.code || '',
+    motivo: provisionCode,
     duracaoMs: portalAgoraMs_() - inicio
   });
 
   return {
-    ok: resultado.ok === true,
-    synced: resultado.synced === true,
+    ok: provisionOk,
+    synced: provisionOk,
+    confirmed: provisionOk,
     writer: resultado.writer || '',
-    code: resultado.code || '',
+    code: provisionCode,
     httpStatus: resultado.httpStatus || ''
   };
+}
+
+function portalConferirFirebaseComSessaoCore_(autorizacao) {
+  var dados = autorizacao || {};
+  var sessao = dados.sessao || {};
+  var firebaseEmail = portalNormalizarIdentificador_(dados.email || '');
+  var coreEmail = portalNormalizarIdentificador_(sessao.email || sessao.emailNormalizado || '');
+  var idPessoa = String(sessao.idPessoa || '').trim();
+
+  return {
+    ok: Boolean(firebaseEmail && coreEmail && idPessoa && firebaseEmail === coreEmail),
+    code: firebaseEmail && coreEmail && firebaseEmail !== coreEmail
+      ? 'IDENTITY_MISMATCH_FIREBASE_CORE'
+      : 'IDENTIDADE_CORE_INCOMPLETA'
+  };
+}
+
+function portalNormalizarCodigoProvisionamento_(resultado) {
+  var dados = resultado || {};
+  var raw = String(dados.code || '').trim().toUpperCase();
+
+  if (dados.ok === true && dados.synced === true) {
+    if (raw.indexOf('ALREADY') >= 0 || raw.indexOf('VALID') >= 0 || raw.indexOf('UNCHANGED') >= 0) {
+      return 'PROVISION_ALREADY_VALID';
+    }
+    if (raw.indexOf('UPDATED') >= 0 || raw.indexOf('ATUALIZ') >= 0) {
+      return 'PROVISION_UPDATED';
+    }
+    return 'PROVISION_OK';
+  }
+  if (raw.indexOf('MISMATCH') >= 0 || raw.indexOf('DIVERG') >= 0) {
+    return 'PROVISION_DENY_IDENTITY_MISMATCH';
+  }
+  if (raw.indexOf('EMAIL') >= 0 || raw.indexOf('PESSOA') >= 0 || raw.indexOf('MEMBRO') >= 0) {
+    return 'PROVISION_DENY_EMAIL_NAO_ENCONTRADO';
+  }
+  return 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED';
 }
 
 function portalMarcarCacheFirestoreLoginNegado_(autorizacao) {

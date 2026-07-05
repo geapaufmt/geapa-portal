@@ -369,7 +369,14 @@ Resposta em modo de teste:
       "cargoFuncaoAtual": "",
       "cargosAtuais": []
     },
-    "identificadorRecebido": "valor-informado-pelo-membro"
+    "identificadorRecebido": "valor-informado-pelo-membro",
+    "authMode": "CORE_CODE_ONLY",
+    "portalUsersProvisionamento": "NAO_EXECUTADO_SEM_FIREBASE_UID",
+    "cacheFirestore": {
+      "ok": true,
+      "synced": false,
+      "code": "PROVISION_SKIP_SEM_FIREBASE_AUTH"
+    }
   },
   "meta": {
     "app": "Portal GEAPA",
@@ -1357,6 +1364,14 @@ O backend tambem pode enviar `meta.desempenho` com:
 Nas acoes `validarCodigo` e `portalLogin`, o backend tambem retorna
 `meta.desempenho` para medir a resolucao da sessao inicial. O front-end aplica
 `data.sessao` imediatamente e carrega "Minha situacao" em uma etapa seguinte.
+
+`validarCodigo` nao cria `portalUsers/{uid}` porque o codigo do Apps Script nao
+produz identidade Firebase. O retorno explicita `CORE_CODE_ONLY` e
+`PROVISION_SKIP_SEM_FIREBASE_AUTH`. O provisionamento autenticado pode retornar
+somente `PROVISION_OK`, `PROVISION_ALREADY_VALID`, `PROVISION_UPDATED`,
+`PROVISION_SKIP_SEM_FIREBASE_AUTH`, `PROVISION_DENY_IDENTITY_MISMATCH`,
+`PROVISION_DENY_EMAIL_NAO_ENCONTRADO` ou
+`PROVISION_ERROR_FIRESTORE_WRITE_FAILED`.
 
 O front-end registra esses tempos no console do navegador apenas para
 diagnostico local, sem exibir informacoes tecnicas ao membro.

@@ -124,14 +124,19 @@ const FIREBASE_LOGIN_STATE = {
     mostrarLoadingGlobal('Validando codigo...');
 
     try {
-      const validacao = await validarCodigo(identificador, codigoInformado);
+      let validacao = await validarCodigo(identificador, codigoInformado);
       atualizarStatus(status, obterMensagem(validacao));
 
       if (validacao.ok) {
+        validacao = await concluirLoginCodigoComIdentidade(validacao);
         const sessionToken = obterSessionToken(validacao);
         salvarSessaoLocal(sessionToken);
         aplicarContextoSessaoInicial(validacao, usuarioContexto);
-        salvarResumoSeguroDaResposta(validacao);
+        if (obterUsuarioFirebaseAtual()) {
+          salvarResumoSeguroDaResposta(validacao);
+        } else {
+          limparResumoSeguroLocal();
+        }
         mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
       }
     } catch (erro) {
@@ -159,15 +164,17 @@ const FIREBASE_LOGIN_STATE = {
     emailOuRga.focus();
   });
 
-  prepararFirebaseAuthPersistente(
-    app,
-    telaAcesso,
-    telaSituacao,
-    situacao,
-    status,
-    usuarioContexto
-  );
-  restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto);
+  restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto)
+    .finally(function iniciarFirebaseDepoisDaSessaoCore() {
+      prepararFirebaseAuthPersistente(
+        app,
+        telaAcesso,
+        telaSituacao,
+        situacao,
+        status,
+        usuarioContexto
+      );
+    });
 })();
 
 /**
@@ -179,7 +186,8 @@ const FIREBASE_LOGIN_STATE = {
  * @param {string} emailOuRga E-mail ou RGA informado pelo membro.
  * @return {Promise<{ok: boolean, mensagem: string}>}
  */
-function solicitarCodigo(emailOuRga) {
+async function solicitarCodigo(emailOuRga) {
+  await prepararFirebaseAntesLoginCore(emailOuRga);
   return chamarApi('solicitarCodigo', {
     emailOuRga: emailOuRga
   });
@@ -194,12 +202,204 @@ function solicitarCodigo(emailOuRga) {
  * @param {string} codigo Codigo digitado na tela.
  * @return {Promise<{ok: boolean, mensagem: string, token: string}>}
  */
-function validarCodigo(emailOuRga, codigo) {
+async function validarCodigo(emailOuRga, codigo) {
+  await prepararFirebaseAntesLoginCore(emailOuRga);
   return chamarApi('validarCodigo', {
     emailOuRga: emailOuRga,
     codigo: codigo
   });
 }
+
+function normalizarEmailIdentidade(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function emailIdentidadeComparavel(email) {
+  const value = normalizarEmailIdentidade(email);
+  return value.indexOf('@') > 0 && value.indexOf('*') < 0;
+}
+
+function obterUsuarioFirebaseAtual() {
+  const firebaseAuth = window.PortalGeapaFirebaseAuth;
+  return firebaseAuth && typeof firebaseAuth.getCurrentUser === 'function'
+    ? firebaseAuth.getCurrentUser()
+    : null;
+}
+
+function obterSessaoCoreOficialAtual() {
+  const authAdapter = window.PortalGeapaAuthAdapter;
+  const sessao = authAdapter && typeof authAdapter.getCurrentSession === 'function'
+    ? authAdapter.getCurrentSession()
+    : null;
+  const origem = String(sessao && (sessao.origemSessao || sessao.origemSnapshot) || '').toUpperCase();
+
+  if (!lerSessaoLocal() || !sessao || sessao.autenticado !== true) return null;
+  if (sessao.validacaoOficialPendente === true) return null;
+  if (origem === 'FIRESTORE_CACHE' || origem === 'LOCAL_SAFE_CACHE') return null;
+  return sessao;
+}
+
+async function prepararFirebaseAntesLoginCore(identificador) {
+  const firebaseAuth = window.PortalGeapaFirebaseAuth;
+  if (!firebaseAuth || !firebaseAuth.isAvailable()) return;
+
+  if (typeof firebaseAuth.ensureReady === 'function') {
+    try {
+      await firebaseAuth.ensureReady(5000);
+    } catch (erro) {
+      // A leitura de currentUser abaixo continua sendo a fonte final local.
+    }
+  }
+
+  const usuarioFirebase = obterUsuarioFirebaseAtual();
+  if (!usuarioFirebase) return;
+
+  const firebaseEmail = normalizarEmailIdentidade(usuarioFirebase.email);
+  const identificadorEmail = String(identificador || '').indexOf('@') >= 0
+    ? normalizarEmailIdentidade(identificador)
+    : '';
+
+  if (identificadorEmail && firebaseEmail && identificadorEmail === firebaseEmail) return;
+
+  registrarDebugAuthPortal('FIREBASE_SIGNOUT_BEFORE_CORE_LOGIN', {
+    uid: usuarioFirebase.uid || '',
+    code: identificadorEmail ? 'EMAIL_LOGIN_CORE_DIVERGENTE' : 'IDENTIFICADOR_CORE_SEM_EMAIL'
+  });
+  limparEstadoIdentidadeLocal();
+  await firebaseAuth.signOutFromGoogle();
+}
+
+function limparEstadoIdentidadeLocal() {
+  limparSessaoLocal();
+  limparResumoSeguroLocal();
+  limparUsuarioAtual();
+}
+
+async function verificarConsistenciaIdentidadePortal(opcoes) {
+  const options = opcoes || {};
+  const firebaseUser = Object.prototype.hasOwnProperty.call(options, 'firebaseUser')
+    ? options.firebaseUser
+    : obterUsuarioFirebaseAtual();
+  const coreSession = Object.prototype.hasOwnProperty.call(options, 'coreSession')
+    ? options.coreSession
+    : obterSessaoCoreOficialAtual();
+  const firestoreSession = window.PortalGeapaFirestoreSession;
+  let snapshot = Object.prototype.hasOwnProperty.call(options, 'portalUserDoc')
+    ? options.portalUserDoc
+    : null;
+
+  if (
+    firebaseUser &&
+    !Object.prototype.hasOwnProperty.call(options, 'portalUserDoc') &&
+    firestoreSession &&
+    typeof firestoreSession.buscarPortalUserSnapshot === 'function'
+  ) {
+    try {
+      snapshot = await firestoreSession.buscarPortalUserSnapshot(firebaseUser.uid);
+    } catch (erro) {
+      snapshot = null;
+    }
+  }
+
+  let consistency;
+  if (firestoreSession && typeof firestoreSession.verificarConsistenciaIdentidade === 'function') {
+    consistency = firestoreSession.verificarConsistenciaIdentidade(firebaseUser, snapshot, coreSession);
+  } else {
+    const firebaseEmail = normalizarEmailIdentidade(firebaseUser && firebaseUser.email);
+    const coreEmail = normalizarEmailIdentidade(coreSession && coreSession.email);
+    const match = Boolean(
+      firebaseUser &&
+      coreSession &&
+      emailIdentidadeComparavel(firebaseEmail) &&
+      emailIdentidadeComparavel(coreEmail) &&
+      firebaseEmail === coreEmail
+    );
+    consistency = {
+      checked: true,
+      match: match,
+      code: firebaseUser && coreSession
+        ? (match ? 'OK' : 'IDENTITY_MISMATCH_FIREBASE_CORE')
+        : (firebaseUser ? 'FIREBASE_ONLY' : (coreSession ? 'CORE_ONLY' : 'NAO_AUTENTICADO'))
+    };
+  }
+
+  if (consistency.code === 'IDENTITY_MISMATCH_FIREBASE_CORE') {
+    limparEstadoIdentidadeLocal();
+    if (options.signOutOnMismatch !== false && firebaseUser) {
+      await sairFirebaseSeDisponivel();
+    }
+    registrarDebugAuthPortal('IDENTITY_MISMATCH_FIREBASE_CORE', {
+      uid: firebaseUser && firebaseUser.uid || '',
+      code: consistency.code
+    });
+  } else if (consistency.code === 'OK') {
+    registrarDebugAuthPortal('IDENTITY_MATCH_OK', {
+      uid: firebaseUser && firebaseUser.uid || '',
+      code: 'OK'
+    });
+  }
+
+  return {
+    consistency: consistency,
+    firebaseUser: firebaseUser,
+    coreSession: coreSession,
+    portalUserDoc: snapshot
+  };
+}
+
+async function concluirLoginCodigoComIdentidade(validacaoCodigo) {
+  const coreSession = extrairSessaoPortal(validacaoCodigo, {});
+  const usuarioFirebase = obterUsuarioFirebaseAtual();
+
+  if (!usuarioFirebase) {
+    registrarDebugAuthPortal('CORE_LOGIN_WITHOUT_FIREBASE_UID', {
+      code: 'CORE_CODE_ONLY'
+    });
+    registrarDebugAuthPortal('PROVISION_SKIP_SEM_FIREBASE_AUTH', {
+      code: 'PROVISION_SKIP_SEM_FIREBASE_AUTH'
+    });
+    return validacaoCodigo;
+  }
+
+  const identity = await verificarConsistenciaIdentidadePortal({
+    firebaseUser: usuarioFirebase,
+    coreSession: coreSession
+  });
+  if (identity.consistency.match !== true) {
+    const mismatch = new Error('O login Google aberto pertence a outra pessoa. Entre novamente com a conta correta.');
+    mismatch.code = 'IDENTITY_MISMATCH_FIREBASE_CORE';
+    throw mismatch;
+  }
+
+  const inicio = obterTempoAtual();
+  registrarDebugAuthPortal('PROVISION_START', {
+    uid: usuarioFirebase.uid || '',
+    code: 'LOGIN_CODIGO_COM_FIREBASE'
+  });
+  const idToken = await usuarioFirebase.getIdToken();
+  const loginFirebase = await portalLoginFirebase(idToken, usuarioFirebase);
+  const coreFirebase = extrairSessaoPortal(loginFirebase, {});
+  const finalIdentity = await verificarConsistenciaIdentidadePortal({
+    firebaseUser: usuarioFirebase,
+    coreSession: coreFirebase,
+    signOutOnMismatch: true
+  });
+  if (finalIdentity.consistency.match !== true) {
+    const mismatch = new Error('A sessao oficial nao corresponde ao usuario Firebase autenticado.');
+    mismatch.code = 'IDENTITY_MISMATCH_FIREBASE_CORE';
+    throw mismatch;
+  }
+
+  const provisionado = registrarDiagnosticoProvisionamentoFirestore(loginFirebase, inicio, usuarioFirebase.uid);
+  if (provisionado) {
+    atualizarDiagnosticoPortalUserAposProvisionamento(window.PortalGeapaFirestoreSession, usuarioFirebase.uid);
+  }
+  return loginFirebase;
+}
+
+window.PortalGeapaIdentityGuard = Object.freeze({
+  verificarConsistenciaIdentidadePortal: verificarConsistenciaIdentidadePortal
+});
 
 /**
  * Valida no backend o ID token emitido pelo Firebase Authentication.
@@ -311,6 +511,16 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
       throw new Error(obterMensagem(login) || 'Sua autorizacao mudou. Entre novamente.');
     }
 
+    const officialIdentity = await verificarConsistenciaIdentidadePortal({
+      firebaseUser: usuarioFirebase,
+      coreSession: extrairSessaoPortal(login, {})
+    });
+    if (officialIdentity.consistency.match !== true) {
+      const mismatch = new Error('A sessao oficial nao corresponde ao usuario Firebase autenticado.');
+      mismatch.code = 'IDENTITY_MISMATCH_FIREBASE_CORE';
+      throw mismatch;
+    }
+
     const sessionToken = obterSessionToken(login);
 
     if (!sessionToken) {
@@ -366,10 +576,20 @@ function registrarDebugAuthPortal(eventName, details) {
 function registrarDiagnosticoProvisionamentoFirestore(login, inicio, uid) {
   var data = login && login.data || {};
   var provision = data.cacheFirestore || null;
+  var uidNormalizado = String(uid || '').trim();
+  var successCodes = ['PROVISION_OK', 'PROVISION_ALREADY_VALID', 'PROVISION_UPDATED'];
+
+  if (!uidNormalizado) {
+    registrarDebugAuthPortal('PROVISION_SKIP_SEM_FIREBASE_AUTH', {
+      code: 'PROVISION_SKIP_SEM_FIREBASE_AUTH',
+      durationMs: inicio ? obterTempoAtual() - inicio : 0
+    });
+    return false;
+  }
   if (!provision) {
-    registrarDebugAuthPortal('PROVISION_SKIP', {
-      uid: uid,
-      code: 'PROVISIONAMENTO_SEM_RETORNO',
+    registrarDebugAuthPortal('PROVISION_ERROR', {
+      uid: uidNormalizado,
+      code: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
       durationMs: inicio ? obterTempoAtual() - inicio : 0
     });
     return false;
@@ -377,22 +597,29 @@ function registrarDiagnosticoProvisionamentoFirestore(login, inicio, uid) {
   var details = {
     code: String(provision.code || ''),
     synced: provision.synced === true,
-    uid: uid,
+    uid: uidNormalizado,
     durationMs: inicio ? obterTempoAtual() - inicio : 0
   };
-  if (provision.ok === true && provision.synced === true) {
+  if (
+    provision.ok === true &&
+    provision.synced === true &&
+    successCodes.indexOf(details.code) >= 0
+  ) {
     registrarDebugAuthPortal('PROVISION_OK', details);
     return true;
   }
-  registrarDebugAuthPortal(provision.ok === true ? 'PROVISION_SKIP' : 'PROVISION_ERROR', details);
+  if (details.code.indexOf('PROVISION_DENY_') === 0) {
+    registrarDebugAuthPortal('PROVISION_DENY', details);
+  } else if (details.code.indexOf('PROVISION_SKIP_') === 0) {
+    registrarDebugAuthPortal('PROVISION_SKIP', details);
+  } else {
+    registrarDebugAuthPortal('PROVISION_ERROR', details);
+  }
   return false;
 }
 
 function atualizarDiagnosticoPortalUserAposProvisionamento(firestoreSession, uid) {
   if (!firestoreSession || typeof firestoreSession.buscarPortalUserSnapshot !== 'function') return;
-  var debug = window.PortalGeapaDebugAuth;
-  var status = debug && typeof debug.getStatus === 'function' ? debug.getStatus() : null;
-  if (status && status.portalUserDoc && status.portalUserDoc.exists === true) return;
   Promise.resolve(firestoreSession.buscarPortalUserSnapshot(uid)).catch(function ignorarFalhaReleitura() {
     registrarDebugAuthPortal('PORTAL_USER_DOC_MISSING', {
       uid: uid,
@@ -417,6 +644,8 @@ function erroRepresentaNegacaoAcesso(erro) {
     'FIREBASE_IDENTIDADE_DIVERGENTE',
     'FIREBASE_EMAIL_NAO_VERIFICADO',
     'FIREBASE_USUARIO_DESATIVADO',
+    'IDENTITY_MISMATCH_FIREBASE_CORE',
+    'PROVISION_DENY_IDENTITY_MISMATCH',
     'MEMBRO_NAO_AUTORIZADO_PORTAL',
     'ACESSO_NAO_AUTORIZADO'
   ].indexOf(code) >= 0;
@@ -442,21 +671,21 @@ async function tentarAplicarSessaoRapidaFirestore(usuarioFirebase, app, telaAces
   }
 
   try {
-    if (
-      typeof firestoreSession.obterResumoSeguro === 'function' &&
-      typeof firestoreSession.aplicarSessaoRapidaDoResumoSeguro === 'function'
-    ) {
-      const resumoSeguro = firestoreSession.obterResumoSeguro();
-      const sessaoLocal = firestoreSession.aplicarSessaoRapidaDoResumoSeguro(resumoSeguro);
-
-      if (sessaoLocal) {
-        aplicarSessaoVisualPendente(sessaoLocal, app, telaAcesso, telaSituacao, usuarioContexto);
-        atualizarStatus(status, 'Restaurando sessao neste dispositivo...');
-      }
+    const snapshot = await firestoreSession.buscarPortalUserSnapshot(usuarioFirebase.uid);
+    const coreSession = obterSessaoCoreOficialAtual();
+    const identity = await verificarConsistenciaIdentidadePortal({
+      firebaseUser: usuarioFirebase,
+      coreSession: coreSession,
+      portalUserDoc: snapshot,
+      signOutOnMismatch: true
+    });
+    if (identity.consistency.code === 'IDENTITY_MISMATCH_FIREBASE_CORE') {
+      const mismatch = new Error('A sessao Firebase nao corresponde a sessao atual do Portal.');
+      mismatch.code = 'IDENTITY_MISMATCH_FIREBASE_CORE';
+      throw mismatch;
     }
 
-    const snapshot = await firestoreSession.buscarPortalUserSnapshot(usuarioFirebase.uid);
-    const sessao = firestoreSession.aplicarSessaoRapidaDoFirestore(snapshot, usuarioFirebase);
+    const sessao = firestoreSession.aplicarSessaoRapidaDoFirestore(snapshot, usuarioFirebase, coreSession);
 
     if (!sessao) {
       return false;
@@ -473,6 +702,9 @@ async function tentarAplicarSessaoRapidaFirestore(usuarioFirebase, app, telaAces
     atualizarStatus(status, 'Sessão rápida carregada. Validando acesso oficial...');
     return true;
   } catch (erro) {
+    if (obterCodigoErroPortal(erro) === 'IDENTITY_MISMATCH_FIREBASE_CORE') {
+      throw erro;
+    }
     registrarDebugAuthPortal('FAST_PATH_BLOCKED', {
       uid: usuarioFirebase && usuarioFirebase.uid || '',
       code: 'FIRESTORE_READ_ERROR'
@@ -727,7 +959,22 @@ function aplicarContextoSessaoInicial(resposta, usuarioContexto) {
     usuario: usuario,
     sessao: sessao
   });
+  registrarSessaoCoreDebug(
+    sessao,
+    resposta && resposta.meta && resposta.meta.desempenho && resposta.meta.desempenho.origemDados
+  );
   atualizarContextoUsuario(usuarioContexto, usuario);
+}
+
+function registrarSessaoCoreDebug(sessao, origemDados) {
+  const dados = sessao || {};
+  registrarDebugAuthPortal('CORE_SESSION_CHANGED', {
+    loggedIn: Boolean(dados.idPessoa || dados.id || dados.email || dados.autenticado === true),
+    idPessoa: dados.idPessoa || dados.id || '',
+    email: dados.email || dados.emailNormalizado || '',
+    perfil: dados.perfilPortalEfetivo || dados.perfilPrincipal || dados.perfil || '',
+    origemDados: origemDados || dados.origemDados || dados.origemSessao || 'GEAPA_CORE'
+  });
 }
 
 /**
@@ -1146,7 +1393,7 @@ async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, sta
   const token = lerSessaoLocal();
 
   if (!token) {
-    return;
+    return false;
   }
 
   renderizarCarregandoSituacao(situacao);
@@ -1157,19 +1404,15 @@ async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, sta
     atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
     renderizarMinhaSituacao(situacao, minhaSituacao);
     atualizarStatus(status, 'Sessão restaurada neste navegador.');
+    registrarSessaoCoreDebug(minhaSituacao.sessao, minhaSituacao.desempenho && minhaSituacao.desempenho.origemDados);
+    return true;
   } catch (erro) {
     limparSessaoLocal();
+    limparResumoSeguroLocal();
     limparUsuarioAtual();
     atualizarContextoUsuario(usuarioContexto, null);
-    tentarRestaurarComFirebase(app, telaAcesso, telaSituacao, situacao, status, usuarioContexto)
-      .catch(function ignorarErroFirebase() {
-        return false;
-      })
-      .then(function tratarFallbackFirebase(restaurado) {
-        if (!restaurado) {
-          atualizarStatus(status, 'Sua sessão expirou. Entre novamente para continuar.');
-        }
-      });
+    atualizarStatus(status, 'Sua sessão expirou. Conferindo o login Google...');
+    return false;
   }
 }
 
@@ -1387,6 +1630,7 @@ function limparUsuarioAtual() {
   if (window.PortalGeapaAuthAdapter && typeof window.PortalGeapaAuthAdapter.clearResolvedSession === 'function') {
     window.PortalGeapaAuthAdapter.clearResolvedSession();
   }
+  registrarDebugAuthPortal('CORE_SESSION_CLEARED', { code: 'SESSAO_CORE_LIMPA' });
 }
 
 /**
