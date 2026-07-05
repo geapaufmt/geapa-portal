@@ -141,7 +141,11 @@ function portalExecutarAcao_(requisicao) {
   }
 
   if (acao === 'portalLogin') {
-    return portalLoginFirebase(requisicao.idToken || '');
+    return portalLoginFirebase(
+      requisicao.idToken || '',
+      requisicao.firebaseUser || {},
+      requisicao.clientSubmittedAt || ''
+    );
   }
 
   if (acao === 'conteudoPublicoSnapshot') {

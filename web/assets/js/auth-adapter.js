@@ -76,6 +76,7 @@
       cargoFuncaoAtual: dados.cargoFuncaoAtual || '',
       cargosAtuais: Array.isArray(dados.cargosAtuais) ? dados.cargosAtuais.slice() : [],
       validacaoOficialPendente: dados.validacaoOficialPendente === true,
+      fastPathConcedido: dados.fastPathConcedido === true,
       origemSessao: dados.origemSessao || '',
       origemSnapshot: dados.origemSnapshot || ''
     };

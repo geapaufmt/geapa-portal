@@ -17,6 +17,7 @@ import {
  */
 (function configurarFirestoreSessionCache(global) {
   var SCHEMA_VERSION = 'portal-user-v2';
+  var COMPATIBLE_SCHEMA_VERSIONS = ['portal-user-v1', 'portal-user-v2'];
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
   var STORAGE_KEY = 'geapaPortal.safeUserSummary';
   var firestore = null;
@@ -24,6 +25,11 @@ import {
 
   function obterConfig() {
     return global.PortalGeapaConfig || {};
+  }
+
+  function registrarDebugAuth(eventName, details) {
+    var debug = global.PortalGeapaDebugAuth;
+    if (debug && typeof debug.record === 'function') debug.record(eventName, details || {});
   }
 
   function firestoreEnabled() {
@@ -73,17 +79,40 @@ import {
 
     if (!db || !id) {
       registrarPerf('firestore.cache.indisponivel', inicio, {});
+      registrarDebugAuth('PORTAL_USER_DOC_MISSING', {
+        uid: id,
+        validationCode: !id ? 'UID_AUSENTE' : 'FIRESTORE_INDISPONIVEL',
+        durationMs: obterTempoAtual() - inicio
+      });
       return null;
     }
 
-    var snap = await getDoc(doc.apply(null, [db].concat(
-      firestorePathSegments('portalUsers', id)
-    )));
-    registrarPerf('firestore.cache.leitura', inicio, {
-      encontrado: snap.exists()
-    });
-
-    return snap.exists() ? (snap.data() || null) : null;
+    try {
+      var snap = await getDoc(doc.apply(null, [db].concat(
+        firestorePathSegments('portalUsers', id)
+      )));
+      var data = snap.exists() ? (snap.data() || null) : null;
+      registrarPerf('firestore.cache.leitura', inicio, { encontrado: snap.exists() });
+      registrarDebugAuth(snap.exists() ? 'PORTAL_USER_DOC_FOUND' : 'PORTAL_USER_DOC_MISSING', {
+        uid: id,
+        portalAtivo: Boolean(data && data.portalAtivo),
+        perfilOperacional: data && (data.perfilOperacional || data.perfilPortalEfetivo) || '',
+        roles: data && (data.roles || data.perfisPortal) || [],
+        schemaVersion: data && data.schemaVersion || '',
+        cacheUpdatedAt: normalizarDataResumo(data && (data.cacheUpdatedAt || data.sourceUpdatedAt) || ''),
+        stale: Boolean(data && data.stale),
+        validationCode: snap.exists() ? 'DOC_ENCONTRADO' : 'DOC_AUSENTE',
+        durationMs: obterTempoAtual() - inicio
+      });
+      return data;
+    } catch (erro) {
+      registrarDebugAuth('PORTAL_USER_DOC_MISSING', {
+        uid: id,
+        validationCode: 'FIRESTORE_READ_ERROR',
+        durationMs: obterTempoAtual() - inicio
+      });
+      throw erro;
+    }
   }
 
   function obterTempoSnapshot(valor) {
@@ -103,22 +132,45 @@ import {
     return Number.isNaN(data.getTime()) ? 0 : data.getTime();
   }
 
-  function snapshotEstaValido(snapshot) {
+  function validarPortalUserSnapshot(snapshot, firebaseUser) {
     var config = obterConfig();
     var ttlMs = Number(config.FIRESTORE_SESSION_TTL_MS || DEFAULT_TTL_MS);
     var expiresAt = obterTempoSnapshot(snapshot && snapshot.cacheExpiresAt);
     var updatedAt = obterTempoSnapshot(snapshot && (snapshot.cacheUpdatedAt || snapshot.sourceUpdatedAt));
+    var userEmail = normalizarEmail(firebaseUser && firebaseUser.email || '');
+    var userUid = String(firebaseUser && firebaseUser.uid || '').trim();
+    var snapshotEmail = normalizarEmail(snapshot && (snapshot.emailNormalizado || snapshot.email) || '');
+    var accessAllowed = snapshot && snapshot.portalAtivo === true && snapshot.stale !== true;
+    if (snapshot && typeof snapshot.ativo === 'boolean') {
+      accessAllowed = accessAllowed && snapshot.ativo === true && snapshot.podeAcessarPortal === true;
+    }
+    if (snapshot && typeof snapshot.podeLerDadosPrivados === 'boolean') {
+      accessAllowed = accessAllowed && snapshot.podeLerDadosPrivados === true;
+    }
+    var sourceAllowed = snapshot && (snapshot.source === 'PESSOAS_V2' || snapshot.source === 'GEAPA_CORE_PESSOAS_V2');
+    if (!userUid || !userEmail || !firebaseUser || firebaseUser.emailVerified !== true) {
+      return { ok: false, code: 'FIREBASE_AUTH_INVALIDO' };
+    }
+    if (!snapshot) return { ok: false, code: 'DOC_AUSENTE' };
+    if (snapshot.uid && String(snapshot.uid).trim() !== userUid) return { ok: false, code: 'UID_DIVERGENTE' };
+    if (!accessAllowed) return { ok: false, code: snapshot.stale === true ? 'DOC_STALE' : 'PORTAL_INATIVO' };
+    if (!sourceAllowed) return { ok: false, code: 'SOURCE_INCOMPATIVEL' };
+    if (COMPATIBLE_SCHEMA_VERSIONS.indexOf(String(snapshot.schemaVersion || '')) < 0) {
+      return { ok: false, code: 'SCHEMA_INCOMPATIVEL' };
+    }
+    if (snapshotEmail && userEmail && snapshotEmail !== userEmail) return { ok: false, code: 'EMAIL_DIVERGENTE' };
+    if (!((expiresAt && Date.now() <= expiresAt) || (updatedAt && Date.now() - updatedAt <= ttlMs))) {
+      return { ok: false, code: 'CACHE_EXPIRADO' };
+    }
+    return { ok: true, code: 'PORTAL_USER_VALIDO' };
+  }
 
-    return Boolean(
-      snapshot &&
-      snapshot.portalAtivo === true &&
-      snapshot.source === 'GEAPA_CORE_PESSOAS_V2' &&
-      snapshot.schemaVersion === SCHEMA_VERSION &&
-      (
-        (expiresAt && Date.now() <= expiresAt) ||
-        (updatedAt && Date.now() - updatedAt <= ttlMs)
-      )
-    );
+  function snapshotEstaValido(snapshot, firebaseUser) {
+    return validarPortalUserSnapshot(snapshot, firebaseUser).ok === true;
+  }
+
+  function normalizarEmail(email) {
+    return String(email || '').trim().toLowerCase();
   }
 
   function normalizarLista(valores) {
@@ -129,8 +181,22 @@ import {
       : [];
   }
 
-  function aplicarSessaoRapidaDoFirestore(snapshot) {
-    if (!snapshotEstaValido(snapshot)) {
+  function normalizarPermissoes(snapshot) {
+    if (Array.isArray(snapshot && snapshot.permissoes)) return normalizarLista(snapshot.permissoes);
+    var permissions = snapshot && snapshot.permissions;
+    if (!permissions || typeof permissions !== 'object') return [];
+    return Object.keys(permissions).filter(function(permission) {
+      return permissions[permission] === true;
+    });
+  }
+
+  function aplicarSessaoRapidaDoFirestore(snapshot, firebaseUser) {
+    var validation = validarPortalUserSnapshot(snapshot, firebaseUser);
+    if (!validation.ok) {
+      registrarDebugAuth('FAST_PATH_BLOCKED', {
+        uid: firebaseUser && firebaseUser.uid || '',
+        code: validation.code
+      });
       return null;
     }
 
@@ -138,27 +204,32 @@ import {
       autenticado: true,
       autenticadoFirebase: true,
       validacaoOficialPendente: true,
+      fastPathConcedido: true,
       origemSessao: 'FIRESTORE_CACHE',
       origemSnapshot: 'FIRESTORE_CACHE',
       expiresAt: snapshot.cacheExpiresAt || '',
       cacheUpdatedAt: snapshot.cacheUpdatedAt || '',
       cacheExpiresAt: snapshot.cacheExpiresAt || '',
       idPessoa: String(snapshot.idPessoa || '').trim(),
-      nomeExibicao: String(snapshot.nomeExibicao || '').trim(),
+      nomeExibicao: String(snapshot.nomePublico || snapshot.nomeExibicao || '').trim(),
       email: String(snapshot.email || '').trim(),
-      rga: String(snapshot.rga || '').trim(),
-      portalAtivo: snapshot.portalAtivo === true,
+      rga: '',
+      portalAtivo: snapshot.ativo === true || snapshot.portalAtivo === true,
       modoAcesso: String(snapshot.modoAcesso || snapshot.portalModoAcesso || '').trim(),
       motivoBloqueio: String(snapshot.motivoBloqueio || '').trim(),
       mensagemBloqueio: String(snapshot.mensagemBloqueio || '').trim(),
       perfilPortalEfetivo: String(snapshot.perfilPortalEfetivo || '').trim(),
-      perfisPortal: normalizarLista(snapshot.perfisPortal),
-      permissoes: normalizarLista(snapshot.permissoes),
+      perfisPortal: normalizarLista(snapshot.roles || snapshot.perfisPortal),
+      permissoes: normalizarPermissoes(snapshot),
       tipoVinculoAtual: String(snapshot.tipoVinculoAtual || '').trim(),
       statusVinculoAtual: String(snapshot.statusVinculoAtual || '').trim(),
       cargoFuncaoAtual: String(snapshot.cargoFuncaoAtual || '').trim()
     };
 
+    registrarDebugAuth('FAST_PATH_GRANTED', {
+      uid: firebaseUser && firebaseUser.uid || '',
+      code: validation.code
+    });
     salvarResumoSeguro(sessao);
     return sessao;
   }
@@ -247,6 +318,7 @@ import {
       autenticado: true,
       autenticadoFirebase: true,
       validacaoOficialPendente: true,
+      fastPathConcedido: false,
       origemSessao: 'LOCAL_SAFE_CACHE',
       origemSnapshot: 'LOCAL_SAFE_CACHE',
       expiresAt: resumo.cacheExpiresAt || '',
@@ -325,6 +397,7 @@ import {
     inicializarFirestore: inicializarFirestore,
     buscarPortalUserSnapshot: buscarPortalUserSnapshot,
     snapshotEstaValido: snapshotEstaValido,
+    validarPortalUserSnapshot: validarPortalUserSnapshot,
     aplicarSessaoRapidaDoFirestore: aplicarSessaoRapidaDoFirestore,
     obterResumoSeguro: obterResumoSeguro,
     resumoSeguroEstaValido: resumoSeguroEstaValido,

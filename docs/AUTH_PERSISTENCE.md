@@ -79,14 +79,20 @@ origemSessao = LOCAL_SAFE_CACHE
 validacaoOficialPendente = true
 ```
 
-A navegacao protegida nao deve liberar acoes sensiveis enquanto
-`validacaoOficialPendente` estiver ativo.
+A navegacao protegida nao usa esse resumo local para liberar acoes sensiveis
+enquanto `validacaoOficialPendente` estiver ativo. Somente um documento
+`portalUsers/{uid}` valido e lido com Firebase Auth pode marcar
+`fastPathConcedido=true`.
 
 ### Firestore cache
 
 Se existir `portalUsers/{uid}`, o Portal tenta ler o snapshot via client SDK do
 Firebase. Esse documento tambem e cache operacional; a fonte normativa continua
 sendo GEAPA-CORE + PESSOAS v2.
+
+Um snapshot valido abre a interface antes do retorno do Apps Script. A
+revalidacao segue em segundo plano; negacao oficial revoga o estado visual e
+retorna para a tela de acesso. O navegador nunca escreve em `portalUsers`.
 
 O projeto permanece compatível com Firebase Spark. A sincronizacao do Firestore
 e feita pelo Apps Script/GEAPA-CORE via REST, sem Cloud Functions.

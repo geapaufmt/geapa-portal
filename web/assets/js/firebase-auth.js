@@ -18,6 +18,12 @@ import {
   var auth = null;
   var provider = null;
   var redirectResultPromise = null;
+  var authReadyPromise = null;
+
+  function registrarDebugAuth(eventName, details) {
+    var debug = global.PortalGeapaDebugAuth;
+    if (debug && typeof debug.record === 'function') debug.record(eventName, details || {});
+  }
 
   function possuiConfigBasica(dados) {
     return Boolean(dados && dados.apiKey && dados.authDomain && dados.projectId && dados.appId);
@@ -41,6 +47,16 @@ import {
 
     setPersistence(auth, browserLocalPersistence).catch(function ignorarErroPersistencia() {
       // Se o navegador bloquear storage, o Firebase mantem o comportamento padrao possivel.
+    });
+
+    registrarDebugAuth('FIREBASE_READY', {});
+    onAuthStateChanged(auth, function registrarEstadoAuth(user) {
+      registrarDebugAuth('AUTH_STATE_CHANGED', {
+        loggedIn: Boolean(user),
+        uid: user ? user.uid : '',
+        email: user ? user.email : '',
+        emailVerified: Boolean(user && user.emailVerified)
+      });
     });
 
     redirectResultPromise = getRedirectResult(auth).then(function obterUsuarioRedirect(credencial) {
@@ -101,6 +117,39 @@ import {
     return onAuthStateChanged(auth, callback);
   }
 
+  function ensureReady(timeoutMs) {
+    inicializar();
+    if (!auth) {
+      return Promise.reject(new Error('Firebase Auth nao esta configurado para este portal.'));
+    }
+    if (!authReadyPromise) {
+      authReadyPromise = new Promise(function aguardarPrimeiroEstado(resolve, reject) {
+        var settled = false;
+        var unsubscribe = onAuthStateChanged(auth, function aoResolver(user) {
+          if (settled) return;
+          settled = true;
+          unsubscribe();
+          resolve(user || null);
+        }, function aoFalhar(error) {
+          if (settled) return;
+          settled = true;
+          unsubscribe();
+          reject(error);
+        });
+      });
+    }
+
+    var limit = Math.max(1000, Number(timeoutMs || 10000));
+    return Promise.race([
+      authReadyPromise,
+      new Promise(function rejeitarNoTimeout(resolve, reject) {
+        global.setTimeout(function onTimeout() {
+          reject(new Error('Firebase Auth nao inicializou dentro do prazo.'));
+        }, limit);
+      })
+    ]);
+  }
+
   function getCurrentUser() {
     inicializar();
     return auth ? auth.currentUser : null;
@@ -140,6 +189,7 @@ import {
   global.PortalGeapaFirebaseAuth = {
     isAvailable: isAvailable,
     signInWithGoogle: signInWithGoogle,
+    ensureReady: ensureReady,
     observeAuthState: observeAuthState,
     getCurrentUser: getCurrentUser,
     getFirebaseApp: getFirebaseApp,
