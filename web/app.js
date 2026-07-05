@@ -268,6 +268,8 @@ async function carregarMinhaSituacao(token) {
  */
 async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, telaSituacao, situacao, status, usuarioContexto, opcoes) {
   const opcoesLogin = opcoes || {};
+  let fastPathConcedido = false;
+  let provisionamentoInicio = 0;
 
   if (!usuarioFirebase || FIREBASE_LOGIN_STATE.loginEmAndamento) {
     return;
@@ -277,7 +279,7 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
   atualizarStatus(status, opcoesLogin.restaurando ? 'Restaurando sessao neste dispositivo...' : 'Validando acesso oficial...');
 
   try {
-    await tentarAplicarSessaoRapidaFirestore(
+    fastPathConcedido = await tentarAplicarSessaoRapidaFirestore(
       usuarioFirebase,
       app,
       telaAcesso,
@@ -286,7 +288,16 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
       usuarioContexto
     );
 
+    if (fastPathConcedido) {
+      ocultarLoadingGlobal();
+    }
+
     atualizarStatus(status, 'Validando acesso oficial...');
+    provisionamentoInicio = obterTempoAtual();
+    registrarDebugAuthPortal('PROVISION_START', {
+      uid: usuarioFirebase.uid,
+      code: fastPathConcedido ? 'REVALIDACAO_BACKGROUND' : 'PRIMEIRO_ACESSO_OU_CACHE_INVALIDO'
+    });
     const idToken = await usuarioFirebase.getIdToken();
     const firestoreSession = window.PortalGeapaFirestoreSession;
     const validarLoginFirebase = function validarLoginFirebase(token) {
@@ -309,11 +320,33 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
     salvarSessaoLocal(sessionToken);
     aplicarContextoSessaoInicial(login, usuarioContexto);
     salvarResumoSeguroDaResposta(login);
-    registrarDiagnosticoProvisionamentoFirestore(login);
+    const provisionadoAgora = registrarDiagnosticoProvisionamentoFirestore(login, provisionamentoInicio, usuarioFirebase.uid);
+    if (provisionadoAgora) atualizarDiagnosticoPortalUserAposProvisionamento(firestoreSession, usuarioFirebase.uid);
+    registrarDebugAuthPortal('BACKGROUND_REVALIDATION_OK', {
+      uid: usuarioFirebase.uid,
+      code: String(login && login.code || 'PORTAL_LOGIN_FIREBASE_OK'),
+      durationMs: obterTempoAtual() - provisionamentoInicio
+    });
     mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao);
     sincronizarNavegacaoPortal();
     atualizarStatus(status, opcoesLogin.restaurando ? 'Sessao restaurada.' : (obterMensagem(login) || 'Entrada com Google concluida.'));
   } catch (erro) {
+    const code = obterCodigoErroPortal(erro);
+    const denied = erroRepresentaNegacaoAcesso(erro);
+    registrarDebugAuthPortal(denied ? 'PROVISION_DENY' : 'PROVISION_ERROR', {
+      uid: usuarioFirebase && usuarioFirebase.uid || '',
+      code: code,
+      durationMs: provisionamentoInicio ? obterTempoAtual() - provisionamentoInicio : 0
+    });
+    registrarDebugAuthPortal(denied ? 'BACKGROUND_REVALIDATION_DENY' : 'BACKGROUND_REVALIDATION_ERROR', {
+      uid: usuarioFirebase && usuarioFirebase.uid || '',
+      code: code,
+      durationMs: provisionamentoInicio ? obterTempoAtual() - provisionamentoInicio : 0
+    });
+    if (fastPathConcedido && !denied) {
+      atualizarStatus(status, 'Acesso restaurado pelo cache seguro. A confirmacao oficial sera tentada novamente.');
+      return true;
+    }
     limparSessaoLocal();
     limparResumoSeguroLocal();
     limparUsuarioAtual();
@@ -325,21 +358,68 @@ async function autenticarFirebaseNoPortal(usuarioFirebase, app, telaAcesso, tela
   }
 }
 
-function registrarDiagnosticoProvisionamentoFirestore(login) {
+function registrarDebugAuthPortal(eventName, details) {
+  var debug = window.PortalGeapaDebugAuth;
+  if (debug && typeof debug.record === 'function') debug.record(eventName, details || {});
+}
+
+function registrarDiagnosticoProvisionamentoFirestore(login, inicio, uid) {
   var data = login && login.data || {};
   var provision = data.cacheFirestore || null;
-  if (!provision || !window.console) return;
+  if (!provision) {
+    registrarDebugAuthPortal('PROVISION_SKIP', {
+      uid: uid,
+      code: 'PROVISIONAMENTO_SEM_RETORNO',
+      durationMs: inicio ? obterTempoAtual() - inicio : 0
+    });
+    return false;
+  }
   var details = {
     code: String(provision.code || ''),
-    synced: provision.synced === true
+    synced: provision.synced === true,
+    uid: uid,
+    durationMs: inicio ? obterTempoAtual() - inicio : 0
   };
-  if (provision.ok === true && provision.synced === true && typeof window.console.info === 'function') {
-    window.console.info('[Portal GEAPA] FIRESTORE_USER_PROVISIONED', details);
-    return;
+  if (provision.ok === true && provision.synced === true) {
+    registrarDebugAuthPortal('PROVISION_OK', details);
+    return true;
   }
-  if (typeof window.console.warn === 'function') {
-    window.console.warn('[Portal GEAPA] FIRESTORE_USER_PROVISION_PENDING', details);
-  }
+  registrarDebugAuthPortal(provision.ok === true ? 'PROVISION_SKIP' : 'PROVISION_ERROR', details);
+  return false;
+}
+
+function atualizarDiagnosticoPortalUserAposProvisionamento(firestoreSession, uid) {
+  if (!firestoreSession || typeof firestoreSession.buscarPortalUserSnapshot !== 'function') return;
+  var debug = window.PortalGeapaDebugAuth;
+  var status = debug && typeof debug.getStatus === 'function' ? debug.getStatus() : null;
+  if (status && status.portalUserDoc && status.portalUserDoc.exists === true) return;
+  Promise.resolve(firestoreSession.buscarPortalUserSnapshot(uid)).catch(function ignorarFalhaReleitura() {
+    registrarDebugAuthPortal('PORTAL_USER_DOC_MISSING', {
+      uid: uid,
+      code: 'RELEITURA_APOS_PROVISIONAMENTO_FALHOU',
+      validationCode: 'RELEITURA_APOS_PROVISIONAMENTO_FALHOU'
+    });
+  });
+}
+
+function obterCodigoErroPortal(erro) {
+  return String(
+    erro && erro.portalResponse && (erro.portalResponse.code || erro.portalResponse.data && erro.portalResponse.data.reasonCode) ||
+    erro && (erro.code || erro.errorCode) ||
+    'ERRO_NAO_CLASSIFICADO'
+  );
+}
+
+function erroRepresentaNegacaoAcesso(erro) {
+  var code = obterCodigoErroPortal(erro).toUpperCase();
+  return [
+    'USUARIO_NAO_AUTORIZADO',
+    'FIREBASE_IDENTIDADE_DIVERGENTE',
+    'FIREBASE_EMAIL_NAO_VERIFICADO',
+    'FIREBASE_USUARIO_DESATIVADO',
+    'MEMBRO_NAO_AUTORIZADO_PORTAL',
+    'ACESSO_NAO_AUTORIZADO'
+  ].indexOf(code) >= 0;
 }
 
 /**
@@ -376,7 +456,7 @@ async function tentarAplicarSessaoRapidaFirestore(usuarioFirebase, app, telaAces
     }
 
     const snapshot = await firestoreSession.buscarPortalUserSnapshot(usuarioFirebase.uid);
-    const sessao = firestoreSession.aplicarSessaoRapidaDoFirestore(snapshot);
+    const sessao = firestoreSession.aplicarSessaoRapidaDoFirestore(snapshot, usuarioFirebase);
 
     if (!sessao) {
       return false;
@@ -393,6 +473,10 @@ async function tentarAplicarSessaoRapidaFirestore(usuarioFirebase, app, telaAces
     atualizarStatus(status, 'Sessão rápida carregada. Validando acesso oficial...');
     return true;
   } catch (erro) {
+    registrarDebugAuthPortal('FAST_PATH_BLOCKED', {
+      uid: usuarioFirebase && usuarioFirebase.uid || '',
+      code: 'FIRESTORE_READ_ERROR'
+    });
     if (window.console && typeof window.console.debug === 'function') {
       window.console.debug('[Portal GEAPA] firestore.session', erro && erro.message ? erro.message : erro);
     }
@@ -456,12 +540,27 @@ function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao
   }
 
   firebaseAuth.observeAuthState(function aoMudarUsuarioFirebase(usuarioFirebase) {
-    if (!usuarioFirebase || lerSessaoLocal()) {
+    if (!usuarioFirebase) {
+      const authAdapter = window.PortalGeapaAuthAdapter;
+      const sessaoAtual = authAdapter && typeof authAdapter.getCurrentSession === 'function'
+        ? authAdapter.getCurrentSession()
+        : null;
+      if (sessaoAtual && sessaoAtual.fastPathConcedido === true) {
+        limparSessaoLocal();
+        limparResumoSeguroLocal();
+        limparUsuarioAtual();
+        atualizarContextoUsuario(usuarioContexto, null);
+        mostrarTelaAcesso(app, telaAcesso, telaSituacao);
+        atualizarStatus(status, 'Sua sessao Firebase terminou. Entre novamente para continuar.');
+      }
       return;
     }
 
-    mostrarLoadingGlobal('Restaurando sessao...');
-    atualizarStatus(status, 'Restaurando sessao neste dispositivo...');
+    const sessaoAppsScriptExistente = Boolean(lerSessaoLocal());
+    if (!sessaoAppsScriptExistente) mostrarLoadingGlobal('Restaurando sessao...');
+    atualizarStatus(status, sessaoAppsScriptExistente
+      ? 'Conferindo sessao em segundo plano...'
+      : 'Restaurando sessao neste dispositivo...');
 
     autenticarFirebaseNoPortal(
       usuarioFirebase,
@@ -471,7 +570,7 @@ function prepararFirebaseAuthPersistente(app, telaAcesso, telaSituacao, situacao
       situacao,
       status,
       usuarioContexto,
-      { restaurando: true }
+      { restaurando: true, background: sessaoAppsScriptExistente }
     ).catch(function tratarErroFirebase(erro) {
       atualizarStatus(status, erro.message || 'Não foi possível restaurar o login com Google.');
     }).finally(function finalizarRestauracaoFirebase() {
@@ -543,7 +642,10 @@ async function chamarApi(acao, dados) {
   const payload = await api.callAction(acao, dados || {});
 
   if (!payload.ok) {
-    throw new Error(obterMensagem(payload) || 'A API retornou uma resposta inesperada.');
+    const erroApi = new Error(obterMensagem(payload) || 'A API retornou uma resposta inesperada.');
+    erroApi.code = String(payload.code || 'API_RESPOSTA_NEGATIVA');
+    erroApi.portalResponse = payload;
+    throw erroApi;
   }
 
   registrarDesempenhoApi(acao, {

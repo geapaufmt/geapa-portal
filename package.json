@@ -6,6 +6,7 @@
     "config:dev": "node scripts/generate-portal-config.mjs dev",
     "config:homolog": "node scripts/generate-portal-config.mjs homolog",
     "config:prod": "node scripts/generate-portal-config.mjs prod",
-    "check:configs": "node scripts/generate-portal-config.mjs dev --check && node scripts/generate-portal-config.mjs homolog --check && node scripts/generate-portal-config.mjs prod --check"
+    "check:configs": "node scripts/generate-portal-config.mjs dev --check && node scripts/generate-portal-config.mjs homolog --check && node scripts/generate-portal-config.mjs prod --check",
+    "check:auth-fast-path": "node scripts/check-auth-fast-path.mjs"
   }
 }

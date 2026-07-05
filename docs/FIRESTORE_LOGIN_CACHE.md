@@ -177,10 +177,57 @@ Depois que `portalUsers/{uid}` existir, o front-end autenticado le o proprio
 documento via Firebase client SDK. Se o snapshot estiver ausente, vencido ou
 divergente, o Portal cai para o fluxo oficial via Apps Script/GEAPA-CORE.
 
-O console registra `FIRESTORE_USER_PROVISIONED` quando o login conclui o sync e
-`FIRESTORE_USER_PROVISION_PENDING` quando o cache falha. Neste segundo caso a
-sessao oficial continua funcionando pelo Apps Script e uma nova tentativa sera
-feita no proximo login.
+O fast path so e concedido quando existe Firebase Auth com e-mail verificado e
+o documento do proprio UID possui `portalAtivo=true`, `stale!=true`, schema
+`portal-user-v1` ou `portal-user-v2`, e-mail compativel e cache dentro de
+`FIRESTORE_SESSION_TTL_MS`. Em PROD, o caminho calculado e
+`portalUsers/{uid}`; DEV/HOMOLOG respeitam `FIRESTORE_PATH_PREFIX`.
+
+Quando o fast path e valido, a interface privada pode abrir imediatamente com
+as permissoes cacheadas. O Apps Script roda em segundo plano e continua sendo a
+confirmacao oficial. Negacao explicita limpa a sessao e bloqueia o Portal;
+falha transitoria de rede mantem apenas o cache ainda valido e informa que a
+confirmacao ficou pendente. Escritas e endpoints Apps Script continuam
+validando a sessao no backend.
+
+O provisionamento/revalidacao roda no login novo, na restauracao Firebase e no
+refresh quando ja existe sessao curta do Portal.
+
+## Debug seguro
+
+No console do navegador:
+
+```js
+PortalGeapaDebugAuth.getStatus()
+PortalGeapaDebugAuth.printStatus()
+```
+
+O retorno separa `dataSources.calendario` de `dataSources.portalUser`, mostra o
+caminho esperado, existencia/validade do documento, fast path e resultado do
+provisionamento. `FIRESTORE_SNAPSHOT` significa somente calendario publico e
+nao prova que `portalUsers/{uid}` exista. Token Firebase e payloads completos
+nunca sao incluidos.
+
+Eventos esperados no console usam o prefixo `[GEAPA-AUTH]`: `FIREBASE_READY`,
+`AUTH_STATE_CHANGED`, `PORTAL_USER_DOC_FOUND`, `PORTAL_USER_DOC_MISSING`,
+`PROVISION_*`, `FAST_PATH_*` e `BACKGROUND_REVALIDATION_*`.
+
+Checklist manual:
+
+1. Sem login, confirmar que o calendario publico continua carregando e que `portalUser` esta `NAO_CARREGADO`.
+2. Em PROD, confirmar `expectedPortalUserPath = portalUsers/{uid}`.
+3. Com documento valido, observar `FAST_PATH_GRANTED` antes de `BACKGROUND_REVALIDATION_OK`.
+4. Sem documento, observar `PORTAL_USER_DOC_MISSING`, chamada ao Apps Script e depois `PROVISION_OK`.
+5. Com `stale=true`, e-mail divergente ou TTL vencido, confirmar `FAST_PATH_BLOCKED`.
+6. Bloquear temporariamente o Firestore e confirmar fallback Apps Script sem spinner infinito.
+7. Simular negacao oficial e confirmar retorno para a tela de acesso.
+
+Antes do deploy, execute tambem:
+
+```powershell
+npm.cmd run check:configs
+npm.cmd run check:auth-fast-path
+```
 
 ## Ordem segura de publicacao
 

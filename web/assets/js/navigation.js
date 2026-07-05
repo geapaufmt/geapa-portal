@@ -313,6 +313,7 @@
     if (
       sessao.autenticado &&
       sessao.validacaoOficialPendente === true &&
+      sessao.fastPathConcedido !== true &&
       rota.requerLogin &&
       (rota.permissoesNecessarias || []).length
     ) {
