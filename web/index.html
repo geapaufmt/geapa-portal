@@ -10,7 +10,7 @@
     >
     <meta name="theme-color" content="#1f6b45">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css?v=41">
+    <link rel="stylesheet" href="style.css?v=42">
   </head>
   <body>
     <div class="portal-frame">
@@ -99,48 +99,66 @@
 
           <section class="access-panel" id="tela-acesso" aria-labelledby="login-title" hidden>
             <p class="eyebrow">Entrada</p>
-            <h1 id="login-title">Entrar no Portal</h1>
+            <h1 id="login-title">Entrar no Portal GEAPA</h1>
             <p class="intro">
-              Use sua conta Google ou código temporário para acessar dados
-              próprios, criar vínculo ou atuar em áreas autorizadas.
+              Use sua conta Google cadastrada no GEAPA para acessar o Portal.
             </p>
 
-            <button id="entrar-google" type="button">Entrar com Google</button>
-
-            <div class="access-divider" aria-hidden="true">
-              <span>ou</span>
+            <div class="login-primary-action">
+              <button id="entrar-google" class="login-google-button" type="button">
+                Entrar com Google
+              </button>
+              <p class="login-google-help">Use o e-mail cadastrado no GEAPA.</p>
             </div>
 
-            <form id="acesso-form" class="access-form">
-              <label for="email-ou-rga">E-mail ou RGA</label>
-              <div class="field-row">
-                <input
-                  id="email-ou-rga"
-                  name="emailOuRga"
-                  type="text"
-                  autocomplete="username"
-                  placeholder="Digite seu e-mail ou RGA"
-                  required
-                >
-                <button id="solicitar-codigo" type="button">Receber código</button>
-              </div>
+            <p class="login-alt-text">
+              <span>Precisa de outro método?</span>
+              <button
+                id="alternar-login-codigo"
+                class="login-code-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="login-codigo-panel"
+              >Entrar por código</button>
+            </p>
 
-              <label for="codigo-acesso">Código de acesso</label>
-              <div class="field-row">
-                <input
-                  id="codigo-acesso"
-                  name="codigo"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="one-time-code"
-                  placeholder="Digite o código recebido"
-                >
-                <button id="entrar" type="submit">Entrar</button>
-              </div>
-            </form>
+            <div id="login-codigo-panel" class="login-code-panel" hidden>
+              <p class="login-code-notice" id="login-codigo-aviso">
+                Entrada alternativa. Algumas otimizações do Portal, como sessão
+                rápida via Firestore, exigem login com Google.
+              </p>
+
+              <form id="acesso-form" class="access-form" aria-describedby="login-codigo-aviso">
+                <label for="email-ou-rga">E-mail</label>
+                <div class="field-row">
+                  <input
+                    id="email-ou-rga"
+                    name="emailOuRga"
+                    type="text"
+                    autocomplete="username"
+                    placeholder="Digite seu e-mail cadastrado"
+                    required
+                  >
+                  <button id="solicitar-codigo" type="button">Enviar código</button>
+                </div>
+
+                <label for="codigo-acesso">Código de acesso</label>
+                <div class="field-row">
+                  <input
+                    id="codigo-acesso"
+                    name="codigo"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    placeholder="Digite o código recebido"
+                  >
+                  <button id="entrar" type="submit">Validar código</button>
+                </div>
+              </form>
+            </div>
 
             <p id="mensagem-status" class="status-message" role="status" aria-live="polite">
-              Nesta etapa, apenas e-mails autorizados para teste recebem código.
+              O acesso será validado pela base oficial do GEAPA.
             </p>
           </section>
 
@@ -278,6 +296,6 @@
     <script type="module" src="assets/js/firestore-session-cache.js?v=8"></script>
     <script type="module" src="assets/js/firestore-activities.js?v=7"></script>
     <script src="assets/js/pwa.js"></script>
-    <script type="module" src="app.js?v=21"></script>
+    <script type="module" src="app.js?v=22"></script>
   </body>
 </html>

@@ -49,7 +49,13 @@ privados. Toda consulta deve passar pelo Apps Script.
 
 ## Fluxo de login por codigo
 
-Fluxo previsto para etapa futura:
+O login com Google/Firebase e o metodo principal do Portal. O login por codigo
+permanece como alternativa operacional recolhida na interface e sempre cria
+somente uma sessao Core (`CORE_CODE_ONLY`), sem provisionar `portalUsers/{uid}`.
+Se houver Firebase Auth anterior, o Portal encerra essa identidade antes de
+iniciar o fluxo por codigo.
+
+Fluxo alternativo:
 
 1. O membro informa e-mail ou RGA no portal.
 2. O front-end chama o endpoint do Apps Script para solicitar codigo.
