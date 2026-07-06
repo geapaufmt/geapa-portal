@@ -503,7 +503,10 @@ h2 {
 }
 
 .access-panel {
+  width: 100%;
   max-width: 760px;
+  margin-inline: auto;
+  text-align: center;
 }
 
 .access-panel h1 {
@@ -513,6 +516,7 @@ h2 {
 
 .login-primary-action {
   width: min(100%, 420px);
+  margin-inline: auto;
 }
 
 .login-google-help {
@@ -532,6 +536,7 @@ h2 {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  justify-content: center;
   margin: 18px 0 0;
   color: var(--muted);
   font-size: 0.92rem;
@@ -558,6 +563,7 @@ h2 {
   margin-top: 18px;
   border-top: 1px solid var(--border);
   padding-top: 18px;
+  text-align: left;
 }
 
 .login-code-panel[hidden] {
