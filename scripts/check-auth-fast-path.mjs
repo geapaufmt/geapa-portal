@@ -5,6 +5,7 @@ const environmentCode = fs.readFileSync('web/assets/js/environment.js', 'utf8');
 const sessionRaw = fs.readFileSync('web/assets/js/firestore-session-cache.js', 'utf8');
 const sessionCode = sessionRaw.slice(sessionRaw.indexOf('/**'));
 const appCode = fs.readFileSync('web/app.js', 'utf8');
+const indexCode = fs.readFileSync('web/index.html', 'utf8');
 const navigationCode = fs.readFileSync('web/assets/js/navigation.js', 'utf8');
 const rulesCode = fs.readFileSync('firestore.rules', 'utf8');
 
@@ -139,7 +140,13 @@ assert.match(navigationCode, /fastPathConcedido\s*!==\s*true/);
 assert.match(appCode, /FIREBASE_SIGNOUT_BEFORE_CORE_LOGIN/);
 assert.match(appCode, /PROVISION_SKIP_SEM_FIREBASE_AUTH/);
 assert.match(appCode, /IDENTITY_MISMATCH_FIREBASE_CORE/);
+assert.match(appCode, /LOGIN_CORE_CODE_ISOLADO/);
+assert.doesNotMatch(appCode, /identificadorEmail\s*&&\s*firebaseEmail\s*&&\s*identificadorEmail\s*===\s*firebaseEmail\)\s*return/);
 assert.doesNotMatch(appCode, /aplicarSessaoRapidaDoResumoSeguro\s*\(/);
+assert.match(indexCode, /id="entrar-google"[\s\S]*?>\s*Entrar com Google/);
+assert.match(indexCode, /id="login-codigo-panel"[^>]*hidden/);
+assert.match(indexCode, /id="alternar-login-codigo"[\s\S]*?>Entrar por código<\/button>/);
+assert.ok(indexCode.indexOf('id="entrar-google"') < indexCode.indexOf('id="login-codigo-panel"'));
 assert.doesNotMatch(sessionRaw, /\b(?:setDoc|addDoc|updateDoc|deleteDoc)\b/);
 assert.match(rulesCode, /match \/portalUsers\/\{uid\}[\s\S]*?allow write:\s*if false;/);
 

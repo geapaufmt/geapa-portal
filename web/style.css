@@ -502,6 +502,78 @@ h2 {
   gap: 14px;
 }
 
+.access-panel {
+  max-width: 760px;
+}
+
+.access-panel h1 {
+  font-size: 2rem;
+  line-height: 1.15;
+}
+
+.login-primary-action {
+  width: min(100%, 420px);
+}
+
+.login-google-help {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.login-google-button {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1rem;
+}
+
+.login-alt-text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.login-code-toggle {
+  width: auto;
+  min-height: auto;
+  padding: 3px 0;
+  border-radius: 0;
+  color: var(--green-700);
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.login-code-toggle:hover,
+.login-code-toggle:focus-visible {
+  color: var(--green-950);
+  background: transparent;
+}
+
+.login-code-panel {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+.login-code-panel[hidden] {
+  display: none;
+}
+
+.login-code-notice {
+  margin: 0 0 18px;
+  border-left: 4px solid #b7862e;
+  padding: 10px 12px;
+  color: #62470f;
+  background: #fff8df;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .access-divider {
   display: flex;
   align-items: center;

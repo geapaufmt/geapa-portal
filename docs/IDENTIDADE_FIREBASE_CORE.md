@@ -16,10 +16,10 @@ local e encerra o Firebase Auth antes de exigir novo login.
 
 ## Login por codigo
 
-Antes de `solicitarCodigo`, o Portal aguarda o primeiro estado do Firebase. Se
-o Firebase atual tiver outro e-mail, ou se o identificador for RGA e nao puder
-ser comparado, registra `FIREBASE_SIGNOUT_BEFORE_CORE_LOGIN`, limpa o estado
-anterior e faz sign-out.
+Antes de `solicitarCodigo`, o Portal aguarda o primeiro estado do Firebase. O
+metodo alternativo por codigo e sempre isolado: se houver Firebase Auth atual,
+registra `FIREBASE_SIGNOUT_BEFORE_CORE_LOGIN`, limpa o estado anterior e faz
+sign-out, independentemente de o e-mail coincidir.
 
 Login por codigo sem Firebase e valido como sessao Core, mas nao provisiona
 Firestore:
@@ -30,8 +30,8 @@ portalUsersProvisionamento = NAO_EXECUTADO_SEM_FIREBASE_UID
 code = PROVISION_SKIP_SEM_FIREBASE_AUTH
 ```
 
-Se o Firebase atual for da mesma pessoa, o Portal valida a sessao Core,
-revalida o ID token e permite ao backend criar ou atualizar o documento do UID.
+Para criar ou atualizar `portalUsers/{uid}`, o usuario deve escolher diretamente
+`Entrar com Google`.
 
 ## Fast path
 

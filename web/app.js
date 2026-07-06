@@ -24,12 +24,14 @@ const FIREBASE_LOGIN_STATE = {
   const codigo = document.getElementById('codigo-acesso');
   const botaoSolicitar = document.getElementById('solicitar-codigo');
   const botaoEntrarGoogle = document.getElementById('entrar-google');
+  const botaoAlternarLoginCodigo = document.getElementById('alternar-login-codigo');
+  const painelLoginCodigo = document.getElementById('login-codigo-panel');
   const botaoSair = document.getElementById('sair');
   const status = document.getElementById('mensagem-status');
   const situacao = document.getElementById('minha-situacao');
   const usuarioContexto = document.getElementById('usuario-contexto');
 
-  if (!form || !app || !telaAcesso || !telaSituacao || !emailOuRga || !codigo || !botaoSolicitar || !botaoSair || !status || !situacao || !usuarioContexto) {
+  if (!form || !app || !telaAcesso || !telaSituacao || !emailOuRga || !codigo || !botaoSolicitar || !botaoAlternarLoginCodigo || !painelLoginCodigo || !botaoSair || !status || !situacao || !usuarioContexto) {
     return;
   }
 
@@ -38,6 +40,14 @@ const FIREBASE_LOGIN_STATE = {
   sincronizarNavegacaoPortal();
   carregarHomePublicaEditorial();
   configurarRotasConteudoPublicoEditorial();
+
+  botaoAlternarLoginCodigo.addEventListener('click', function aoAlternarLoginCodigo() {
+    const abrir = painelLoginCodigo.hidden;
+    painelLoginCodigo.hidden = !abrir;
+    botaoAlternarLoginCodigo.setAttribute('aria-expanded', String(abrir));
+    botaoAlternarLoginCodigo.textContent = abrir ? 'Ocultar login por código' : 'Entrar por código';
+    if (abrir) emailOuRga.focus();
+  });
 
   botaoSolicitar.addEventListener('click', async function aoSolicitarCodigo() {
     const identificador = emailOuRga.value.trim();
@@ -154,6 +164,9 @@ const FIREBASE_LOGIN_STATE = {
     atualizarContextoUsuario(usuarioContexto, null);
     await sairFirebaseSeDisponivel();
     form.reset();
+    painelLoginCodigo.hidden = true;
+    botaoAlternarLoginCodigo.setAttribute('aria-expanded', 'false');
+    botaoAlternarLoginCodigo.textContent = 'Entrar por código';
     situacao.innerHTML = [
       '<p class="empty-state">',
       'Depois da entrada, esta área mostrará a primeira versão da tela "Minha situação".',
@@ -258,12 +271,17 @@ async function prepararFirebaseAntesLoginCore(identificador) {
   const identificadorEmail = String(identificador || '').indexOf('@') >= 0
     ? normalizarEmailIdentidade(identificador)
     : '';
-
-  if (identificadorEmail && firebaseEmail && identificadorEmail === firebaseEmail) return;
+  const mesmoEmail = Boolean(
+    identificadorEmail &&
+    firebaseEmail &&
+    identificadorEmail === firebaseEmail
+  );
 
   registrarDebugAuthPortal('FIREBASE_SIGNOUT_BEFORE_CORE_LOGIN', {
     uid: usuarioFirebase.uid || '',
-    code: identificadorEmail ? 'EMAIL_LOGIN_CORE_DIVERGENTE' : 'IDENTIFICADOR_CORE_SEM_EMAIL'
+    code: mesmoEmail
+      ? 'LOGIN_CORE_CODE_ISOLADO'
+      : (identificadorEmail ? 'EMAIL_LOGIN_CORE_DIVERGENTE' : 'IDENTIFICADOR_CORE_SEM_EMAIL')
   });
   limparEstadoIdentidadeLocal();
   await firebaseAuth.signOutFromGoogle();
