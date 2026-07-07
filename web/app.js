@@ -29,9 +29,10 @@ const FIREBASE_LOGIN_STATE = {
   const botaoSair = document.getElementById('sair');
   const status = document.getElementById('mensagem-status');
   const situacao = document.getElementById('minha-situacao');
+  const meuPerfil = document.getElementById('meu-perfil');
   const usuarioContexto = document.getElementById('usuario-contexto');
 
-  if (!form || !app || !telaAcesso || !telaSituacao || !emailOuRga || !codigo || !botaoSolicitar || !botaoAlternarLoginCodigo || !painelLoginCodigo || !botaoSair || !status || !situacao || !usuarioContexto) {
+  if (!form || !app || !telaAcesso || !telaSituacao || !emailOuRga || !codigo || !botaoSolicitar || !botaoAlternarLoginCodigo || !painelLoginCodigo || !botaoSair || !status || !situacao || !meuPerfil || !usuarioContexto) {
     return;
   }
 
@@ -40,6 +41,7 @@ const FIREBASE_LOGIN_STATE = {
   sincronizarNavegacaoPortal();
   carregarHomePublicaEditorial();
   configurarRotasConteudoPublicoEditorial();
+  configurarRotaMeuPerfil(meuPerfil);
 
   botaoAlternarLoginCodigo.addEventListener('click', function aoAlternarLoginCodigo() {
     const abrir = painelLoginCodigo.hidden;
@@ -170,6 +172,11 @@ const FIREBASE_LOGIN_STATE = {
     situacao.innerHTML = [
       '<p class="empty-state">',
       'Depois da entrada, esta área mostrará a primeira versão da tela "Minha situação".',
+      '</p>'
+    ].join('');
+    meuPerfil.innerHTML = [
+      '<p class="empty-state">',
+      'Depois da entrada, esta área mostrará os dados cadastrais que o GEAPA possui sobre você.',
       '</p>'
     ].join('');
     atualizarStatus(status, 'Sessão encerrada neste navegador.');
@@ -325,18 +332,29 @@ async function verificarConsistenciaIdentidadePortal(opcoes) {
   } else {
     const firebaseEmail = normalizarEmailIdentidade(firebaseUser && firebaseUser.email);
     const coreEmail = normalizarEmailIdentidade(coreSession && coreSession.email);
+    const coreAuthEmail = normalizarEmailIdentidade(coreSession && coreSession.emailAutenticacao);
+    const aliasCoreConfirmado = Boolean(
+      coreSession &&
+      coreSession.identidadeFirebaseCoreConfirmada === true &&
+      coreSession.idPessoa &&
+      emailIdentidadeComparavel(firebaseEmail) &&
+      emailIdentidadeComparavel(coreAuthEmail) &&
+      firebaseEmail === coreAuthEmail
+    );
     const match = Boolean(
       firebaseUser &&
       coreSession &&
       emailIdentidadeComparavel(firebaseEmail) &&
       emailIdentidadeComparavel(coreEmail) &&
-      firebaseEmail === coreEmail
+      (firebaseEmail === coreEmail || aliasCoreConfirmado)
     );
     consistency = {
       checked: true,
       match: match,
       code: firebaseUser && coreSession
-        ? (match ? 'OK' : 'IDENTITY_MISMATCH_FIREBASE_CORE')
+        ? (match
+          ? (aliasCoreConfirmado ? 'IDENTITY_ALIAS_CORE_CONFIRMADO' : 'OK')
+          : 'IDENTITY_MISMATCH_FIREBASE_CORE')
         : (firebaseUser ? 'FIREBASE_ONLY' : (coreSession ? 'CORE_ONLY' : 'NAO_AUTENTICADO'))
     };
   }
@@ -350,11 +368,16 @@ async function verificarConsistenciaIdentidadePortal(opcoes) {
       uid: firebaseUser && firebaseUser.uid || '',
       code: consistency.code
     });
-  } else if (consistency.code === 'OK') {
-    registrarDebugAuthPortal('IDENTITY_MATCH_OK', {
-      uid: firebaseUser && firebaseUser.uid || '',
-      code: 'OK'
-    });
+  } else if (consistency.match === true) {
+    registrarDebugAuthPortal(
+      consistency.code === 'IDENTITY_ALIAS_CORE_CONFIRMADO'
+        ? 'IDENTITY_ALIAS_CORE_CONFIRMADO'
+        : 'IDENTITY_MATCH_OK',
+      {
+        uid: firebaseUser && firebaseUser.uid || '',
+        code: consistency.code || 'OK'
+      }
+    );
   }
 
   return {
@@ -468,6 +491,35 @@ async function carregarMinhaSituacao(token) {
   }
 
   return situacao;
+}
+
+/**
+ * Carrega a tela "Meu perfil" pelo Apps Script.
+ *
+ * O frontend envia apenas o token temporario; o backend resolve a pessoa e
+ * retorna somente dados do proprio usuario autenticado.
+ *
+ * @param {string} token Token temporario retornado pelo backend.
+ * @return {Promise<Object>} Perfil normalizado para renderizacao.
+ */
+async function carregarMeuPerfil(token) {
+  const inicio = obterTempoAtual();
+  let resposta;
+  let perfil;
+
+  mostrarLoadingGlobal('Carregando Meu perfil...');
+
+  try {
+    resposta = await chamarApi('meuPerfil', {
+      token: token
+    });
+    perfil = normalizarMeuPerfil(resposta);
+    perfil.desempenho.tempoClienteMs = Math.round(obterTempoAtual() - inicio);
+  } finally {
+    ocultarLoadingGlobal();
+  }
+
+  return perfil;
 }
 
 /**
@@ -958,6 +1010,43 @@ function normalizarMinhaSituacao(resposta) {
 }
 
 /**
+ * Adapta a resposta do Apps Script para a tela "Meu perfil".
+ *
+ * @param {Object} resposta Resposta da acao meuPerfil.
+ * @return {Object} Perfil normalizado.
+ */
+function normalizarMeuPerfil(resposta) {
+  const data = resposta && resposta.data ? resposta.data : {};
+  const perfil = data.perfil || {};
+  const desempenho = (resposta.meta && resposta.meta.desempenho) || {};
+
+  return {
+    somenteLeitura: data.somenteLeitura !== false,
+    avisos: Array.isArray(data.avisos) ? data.avisos : [],
+    perfil: {
+      nomeCompleto: perfil.nomeCompleto || '',
+      nomeExibicao: perfil.nomeExibicao || '',
+      rga: perfil.rga || '',
+      cpf: perfil.cpf || '',
+      dataNascimento: perfil.dataNascimento || '',
+      telefone: perfil.telefone || '',
+      email: perfil.email || '',
+      instagram: perfil.instagram || '',
+      linkLattes: perfil.linkLattes || '',
+      cidadeOrigem: perfil.cidadeOrigem || '',
+      ufOrigem: perfil.ufOrigem || '',
+      historicoAcademico: perfil.historicoAcademico || '',
+      statusCadastral: perfil.statusCadastral || ''
+    },
+    desempenho: {
+      origemDados: desempenho.origemDados || '',
+      tempoBackendMs: normalizarNumeroNaoNegativo(desempenho.tempoMs),
+      tempoClienteMs: 0
+    }
+  };
+}
+
+/**
  * Aplica sessao retornada por login/validacao antes de carregar Minha situacao.
  *
  * @param {Object} resposta Resposta de validarCodigo ou portalLogin.
@@ -990,6 +1079,9 @@ function registrarSessaoCoreDebug(sessao, origemDados) {
     loggedIn: Boolean(dados.idPessoa || dados.id || dados.email || dados.autenticado === true),
     idPessoa: dados.idPessoa || dados.id || '',
     email: dados.email || dados.emailNormalizado || '',
+    emailAutenticacao: dados.emailAutenticacao || '',
+    identidadeFirebaseCoreConfirmada: dados.identidadeFirebaseCoreConfirmada === true,
+    identidadeFirebaseCoreCodigo: dados.identidadeFirebaseCoreCodigo || '',
     perfil: dados.perfilPortalEfetivo || dados.perfilPrincipal || dados.perfil || '',
     origemDados: origemDados || dados.origemDados || dados.origemSessao || 'GEAPA_CORE'
   });
@@ -1142,6 +1234,82 @@ function renderizarMinhaSituacao(container, dados) {
 }
 
 /**
+ * Renderiza a tela "Meu perfil" em modo somente leitura.
+ *
+ * @param {HTMLElement} container Elemento que recebera a tela.
+ * @param {Object} dados Perfil normalizado retornado por carregarMeuPerfil.
+ */
+function renderizarMeuPerfil(container, dados) {
+  const perfil = (dados && dados.perfil) || {};
+  const localOrigem = [perfil.cidadeOrigem, perfil.ufOrigem].filter(Boolean).join(' / ');
+  const avisos = (dados && dados.avisos && dados.avisos.length)
+    ? dados.avisos
+    : ['Dados carregados pelo backend seguro do Portal GEAPA.'];
+
+  container.innerHTML = [
+    '<div class="member-header">',
+    '<div>',
+    '<p class="simulation-title">' + escaparHtml(perfil.nomeExibicao || perfil.nomeCompleto || 'Meu perfil') + '</p>',
+    '<p class="member-subtitle">Dados cadastrais em modo somente leitura</p>',
+    '</div>',
+    '<span class="status-pill">' + escaparHtml(perfil.statusCadastral || 'Status nao informado') + '</span>',
+    '</div>',
+    '<p class="section-note">Confira os dados que o GEAPA possui sobre voce. Campos vazios aparecem destacados para facilitar a regularizacao.</p>',
+    '<h3 class="profile-section-title">Identidade</h3>',
+    '<dl class="summary-grid">',
+    montarPerfilItem('Nome completo', perfil.nomeCompleto),
+    montarPerfilItem('Nome de exibicao', perfil.nomeExibicao),
+    montarPerfilItem('RGA', perfil.rga),
+    montarPerfilItem('CPF', perfil.cpf),
+    montarPerfilItem('Data de nascimento', perfil.dataNascimento),
+    montarPerfilItem('Status cadastral', perfil.statusCadastral),
+    '</dl>',
+    '<h3 class="profile-section-title">Contato e redes</h3>',
+    '<dl class="summary-grid">',
+    montarPerfilItem('E-mail', perfil.email),
+    montarPerfilItem('Telefone', perfil.telefone),
+    montarPerfilItem('Instagram', perfil.instagram),
+    montarPerfilItem('Curriculo Lattes', perfil.linkLattes, { link: true }),
+    '</dl>',
+    '<h3 class="profile-section-title">Origem e historico academico</h3>',
+    '<dl class="summary-grid">',
+    montarPerfilItem('Cidade/UF de origem', localOrigem),
+    montarPerfilItem('Historico academico', perfil.historicoAcademico),
+    '</dl>',
+    '<div class="situation-section">',
+    '<h3>Avisos</h3>',
+    montarListaOuVazio(avisos, 'Nenhum aviso registrado.'),
+    '</div>',
+    '<p class="profile-note">Edicao cadastral ainda nao esta habilitada nesta versao do Portal.</p>'
+  ].join('');
+}
+
+/**
+ * Mostra carregamento na tela "Meu perfil".
+ *
+ * @param {HTMLElement} container Area da tela.
+ */
+function renderizarCarregandoMeuPerfil(container) {
+  container.innerHTML = [
+    '<p class="simulation-title">Carregando meu perfil</p>',
+    '<p class="empty-state">Buscando dados cadastrais no backend seguro do Portal GEAPA.</p>'
+  ].join('');
+}
+
+/**
+ * Mostra erro dentro da tela "Meu perfil".
+ *
+ * @param {HTMLElement} container Area da tela.
+ * @param {string} mensagem Mensagem de erro.
+ */
+function renderizarErroMeuPerfil(container, mensagem) {
+  container.innerHTML = [
+    '<p class="simulation-title">Nao foi possivel carregar meu perfil</p>',
+    '<p class="empty-state">' + escaparHtml(mensagem || 'Tente sair e entrar novamente.') + '</p>'
+  ].join('');
+}
+
+/**
  * Mostra um estado de carregamento para a tela de situação.
  *
  * @param {HTMLElement} container Area da tela Minha situação.
@@ -1180,6 +1348,61 @@ function montarResumoItem(rotulo, valor) {
     '<dd>' + escaparHtml(valor || '-') + '</dd>',
     '</div>'
   ].join('');
+}
+
+/**
+ * Monta um item da tela "Meu perfil", destacando campos vazios.
+ *
+ * @param {string} rotulo Rotulo do campo.
+ * @param {string} valor Valor do campo.
+ * @param {Object=} opcoes Opcoes de renderizacao.
+ * @return {string} HTML do item.
+ */
+function montarPerfilItem(rotulo, valor, opcoes) {
+  const configuracao = opcoes || {};
+  const texto = String(valor || '').trim();
+  const vazio = !texto;
+  const url = configuracao.link ? normalizarUrlPerfil(texto) : '';
+  const conteudo = vazio
+    ? 'Não informado ainda'
+    : texto;
+  const conteudoHtml = !vazio && url
+    ? '<a href="' + escaparHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escaparHtml(texto) + '</a>'
+    : escaparHtml(conteudo);
+
+  return [
+    '<div class="summary-item',
+    vazio ? ' empty-value' : '',
+    '">',
+    '<dt>' + escaparHtml(rotulo) + '</dt>',
+    '<dd>' + conteudoHtml + '</dd>',
+    vazio ? '<p class="profile-note">Atualização recomendada.</p>' : '',
+    '</div>'
+  ].join('');
+}
+
+/**
+ * Normaliza URLs de perfil antes de montar links clicaveis.
+ *
+ * @param {string} valor Valor informado no cadastro.
+ * @return {string} URL segura ou vazio.
+ */
+function normalizarUrlPerfil(valor) {
+  const texto = String(valor || '').trim();
+
+  if (!texto) {
+    return '';
+  }
+
+  if (/^https?:\/\//i.test(texto)) {
+    return texto;
+  }
+
+  if (/^(www\.)?[a-z0-9.-]+\.[a-z]{2,}(\/.*)?$/i.test(texto)) {
+    return 'https://' + texto;
+  }
+
+  return '';
 }
 
 /**
@@ -2134,6 +2357,7 @@ function definirMenuAberto(aberto) {
 function mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao) {
   const navegacao = window.PortalGeapaNavigation;
   const telaAtividades = document.getElementById('tela-atividades');
+  const telaMeuPerfil = document.getElementById('tela-meu-perfil');
 
   sincronizarNavegacaoPortal();
 
@@ -2143,13 +2367,17 @@ function mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao) {
   }
 
   definirMenuAberto(false);
-  app.classList.remove('view-login', 'view-situacao', 'view-atividades');
+  app.classList.remove('view-login', 'view-situacao', 'view-atividades', 'view-meu-perfil');
   app.classList.add('view-inicio');
   telaAcesso.hidden = true;
   telaSituacao.hidden = true;
 
   if (telaAtividades) {
     telaAtividades.hidden = true;
+  }
+
+  if (telaMeuPerfil) {
+    telaMeuPerfil.hidden = true;
   }
 }
 
@@ -2163,6 +2391,7 @@ function mostrarTelaInicioAposLogin(app, telaAcesso, telaSituacao) {
 function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
   const navegacao = window.PortalGeapaNavigation;
   const telaAtividades = document.getElementById('tela-atividades');
+  const telaMeuPerfil = document.getElementById('tela-meu-perfil');
 
   if (navegacao && typeof navegacao.irPara === 'function') {
     navegacao.irPara('minha-situacao');
@@ -2170,13 +2399,17 @@ function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
   }
 
   definirMenuAberto(false);
-  app.classList.remove('view-login', 'view-atividades');
+  app.classList.remove('view-login', 'view-atividades', 'view-meu-perfil');
   app.classList.add('view-situacao');
   telaAcesso.hidden = true;
   telaSituacao.hidden = false;
 
   if (telaAtividades) {
     telaAtividades.hidden = true;
+  }
+
+  if (telaMeuPerfil) {
+    telaMeuPerfil.hidden = true;
   }
 }
 
@@ -2190,6 +2423,7 @@ function mostrarTelaSituacao(app, telaAcesso, telaSituacao) {
 function mostrarTelaAcesso(app, telaAcesso, telaSituacao) {
   const navegacao = window.PortalGeapaNavigation;
   const telaAtividades = document.getElementById('tela-atividades');
+  const telaMeuPerfil = document.getElementById('tela-meu-perfil');
 
   if (navegacao && typeof navegacao.irPara === 'function') {
     navegacao.irPara('login');
@@ -2197,13 +2431,17 @@ function mostrarTelaAcesso(app, telaAcesso, telaSituacao) {
   }
 
   definirMenuAberto(false);
-  app.classList.remove('view-situacao', 'view-atividades');
+  app.classList.remove('view-situacao', 'view-atividades', 'view-meu-perfil');
   app.classList.add('view-login');
   telaSituacao.hidden = true;
   telaAcesso.hidden = false;
 
   if (telaAtividades) {
     telaAtividades.hidden = true;
+  }
+
+  if (telaMeuPerfil) {
+    telaMeuPerfil.hidden = true;
   }
 }
 
@@ -2364,6 +2602,61 @@ function formatarRotuloPublico(valor) {
   }
 
   return String(valor || '').replace(/_/g, ' ').trim();
+}
+
+/**
+ * Carrega "Meu perfil" quando a rota protegida correspondente e aberta.
+ *
+ * @param {HTMLElement} container Area visual da tela Meu perfil.
+ */
+function configurarRotaMeuPerfil(container) {
+  document.addEventListener('portal:navigationchange', function aoNavegar(evento) {
+    const rota = evento.detail && evento.detail.rota;
+
+    if (!rota || rota.id !== 'meu-perfil') {
+      return;
+    }
+
+    carregarERenderizarMeuPerfil(container);
+  });
+
+  const navegacao = window.PortalGeapaNavigation;
+
+  if (navegacao && typeof navegacao.getRotaAtual === 'function' && navegacao.getRotaAtual() === 'meu-perfil') {
+    carregarERenderizarMeuPerfil(container);
+  }
+}
+
+/**
+ * Executa o ciclo completo de carregamento/renderizacao da tela Meu perfil.
+ *
+ * @param {HTMLElement} container Area visual da tela Meu perfil.
+ */
+async function carregarERenderizarMeuPerfil(container) {
+  const token = lerSessaoLocal();
+
+  if (!container) {
+    return;
+  }
+
+  if (!token) {
+    renderizarErroMeuPerfil(container, 'Sua sessao nao foi encontrada. Entre novamente.');
+    return;
+  }
+
+  renderizarCarregandoMeuPerfil(container);
+
+  try {
+    const perfil = await carregarMeuPerfil(token);
+
+    if (rotaAindaAtual('meu-perfil')) {
+      renderizarMeuPerfil(container, perfil);
+    }
+  } catch (erro) {
+    if (rotaAindaAtual('meu-perfil')) {
+      renderizarErroMeuPerfil(container, erro.message);
+    }
+  }
 }
 
 function configurarRotasConteudoPublicoEditorial() {

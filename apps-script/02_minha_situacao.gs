@@ -109,6 +109,62 @@ function portalMinhaSituacao(token) {
 }
 
 /**
+ * Retorna o perfil cadastral do proprio usuario autenticado por token temporario.
+ *
+ * A funcao valida a sessao no backend e chama o GEAPA-CORE. O frontend recebe
+ * apenas o payload ja filtrado do proprio usuario, sem acesso direto a planilhas.
+ *
+ * @param {string} token Token temporario recebido apos login.
+ * @return {Object} Perfil do usuario autenticado.
+ */
+function portalMeuPerfil(token) {
+  var inicio = portalAgoraMs_();
+  var tokenNormalizado = String(token || '').trim();
+  var identificadorSessao;
+  var perfilCore;
+
+  if (!tokenNormalizado) {
+    return portalRespostaErro_(
+      'SESSAO_OBRIGATORIA',
+      'Informe a sessao temporaria para consultar o perfil.',
+      {}
+    );
+  }
+
+  if (!portalSessaoTemporariaValida_(tokenNormalizado)) {
+    return portalRespostaErro_(
+      'SESSAO_INVALIDA_OU_EXPIRADA',
+      'Sessao invalida ou expirada. Entre novamente.',
+      {}
+    );
+  }
+
+  identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
+  perfilCore = portalBuscarMeuPerfilViaGeapaCore_(identificadorSessao);
+
+  if (!perfilCore) {
+    return portalRespostaErro_(
+      'MEU_PERFIL_INDISPONIVEL',
+      'Nao foi possivel carregar seu perfil cadastral pelo GEAPA-CORE.',
+      {}
+    );
+  }
+
+  return portalRespostaOk_(
+    'MEU_PERFIL_CORE',
+    'Meu perfil carregado pelo GEAPA-CORE.',
+    {
+      tokenRecebido: token || '',
+      sessao: perfilCore.sessao || null,
+      perfil: perfilCore.perfil || {},
+      somenteLeitura: perfilCore.somenteLeitura !== false,
+      avisos: perfilCore.avisos || []
+    },
+    portalMetaDesempenho_('geapa-core', inicio)
+  );
+}
+
+/**
  * Funcao de debug para desenvolvimento inicial por RGA.
  *
  * Esta funcao retorna dados simulados, sem consultar planilhas e sem expor

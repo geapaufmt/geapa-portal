@@ -42,8 +42,8 @@ backend.
 - Criar documentacao clara sobre arquitetura e seguranca.
 - Testar o fluxo de acesso por codigo enviado ao e-mail cadastrado.
 - Manter o front-end como cliente publico da API em Apps Script.
-- Carregar a primeira versao parcial da tela "Minha situacao", com dados
-  cadastrais basicos resolvidos pelo backend.
+- Separar "Meu perfil" e "Minha situacao": perfil cadastral proprio fica em
+  tela somente leitura; situacao permanece como painel operacional resumido.
 - Manter frequencia, pendencias, certificados e historico fora da integracao
   ate que o contrato definitivo exista no GEAPA-CORE.
 
@@ -54,6 +54,8 @@ backend.
   Apps Script/Firestore REST, sem Cloud Functions.
 - Manifesto PWA inicial em `web/manifest.json`.
 - Cliente de API em `web/app.js`, sem segredos e sem acesso direto a planilhas.
+- Tela `Meu perfil` carregada pelo Apps Script via GEAPA-CORE, exibindo apenas
+  dados do proprio usuario autenticado.
 - Firebase Auth com Google Sign-In em migracao, sempre validado pelo Apps
   Script antes de liberar a sessao do portal.
 - Backend em Google Apps Script com envio de codigo controlado por lista de
@@ -244,8 +246,8 @@ maquina.
   detalhes de atividades.
 - Ampliar no GEAPA-CORE as fontes oficiais dos blocos de atividades,
   frequencia detalhada, certificados e historico.
-- Integrar gradualmente esses blocos na tela "Minha situacao" conforme o core
-  disponibilizar dados confiaveis.
+- Integrar gradualmente frequencia, pendencias, certificados e historico no
+  painel "Minha situacao" conforme o core disponibilizar dados confiaveis.
 - Trocar a biblioteca `GEAPA_CORE` de modo desenvolvimento para uma versao fixa
   antes de uso amplo.
 - Garantir que cada membro receba somente os proprios dados.

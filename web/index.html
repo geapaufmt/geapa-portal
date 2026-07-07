@@ -10,7 +10,7 @@
     >
     <meta name="theme-color" content="#1f6b45">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css?v=43">
+    <link rel="stylesheet" href="style.css?v=44">
   </head>
   <body>
     <div class="portal-frame">
@@ -188,6 +188,31 @@
             </div>
           </section>
 
+          <section class="situation-panel" id="tela-meu-perfil" aria-labelledby="meu-perfil-title" hidden>
+            <div class="situation-topbar">
+              <div class="section-heading">
+                <p class="eyebrow">Meu vinculo</p>
+                <h2 id="meu-perfil-title">Meu perfil</h2>
+              </div>
+              <div class="topbar-actions">
+                <button class="secondary-button" type="button" data-route-target="minha-situacao">
+                  Minha situacao
+                </button>
+              </div>
+            </div>
+
+            <p class="simulation-warning">
+              Esta tela e somente leitura. Se algum dado estiver incorreto ou vazio,
+              solicite atualizacao a Diretoria ou Secretaria.
+            </p>
+
+            <div id="meu-perfil" class="situation-card">
+              <p class="empty-state">
+                Depois da entrada, esta area mostrara os dados cadastrais que o GEAPA possui sobre voce.
+              </p>
+            </div>
+          </section>
+
           <section class="situation-panel" id="tela-atividades" aria-labelledby="atividades-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
@@ -280,22 +305,22 @@
     ></div>
 
     <script src="assets/js/config.js?v=2"></script>
-    <script src="assets/js/environment.js?v=3"></script>
+    <script src="assets/js/environment.js?v=4"></script>
     <script src="assets/js/api.js?v=42"></script>
     <script src="assets/js/public-content.js?v=2"></script>
     <script src="assets/js/portal-model.js?v=1"></script>
     <script src="assets/js/auth.js?v=2"></script>
     <script src="assets/js/auth-adapter.js?v=13"></script>
-    <script src="assets/js/navigation.js?v=31"></script>
+    <script src="assets/js/navigation.js?v=32"></script>
     <script src="assets/js/ui.js?v=4"></script>
     <script src="assets/js/atividades.js?v=52"></script>
     <script src="assets/js/admin-atividades.js?v=7"></script>
     <script src="assets/js/portal-v2-readonly.js?v=28"></script>
     <script src="assets/js/painel-diretoria-v2.js?v=1"></script>
     <script type="module" src="assets/js/firebase-auth.js?v=3"></script>
-    <script type="module" src="assets/js/firestore-session-cache.js?v=8"></script>
+    <script type="module" src="assets/js/firestore-session-cache.js?v=9"></script>
     <script type="module" src="assets/js/firestore-activities.js?v=7"></script>
     <script src="assets/js/pwa.js"></script>
-    <script type="module" src="app.js?v=22"></script>
+    <script type="module" src="app.js?v=24"></script>
   </body>
 </html>

@@ -257,6 +257,29 @@ function portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao) {
 }
 
 /**
+ * Busca o perfil cadastral do proprio usuario via contrato oficial do GEAPA-CORE.
+ *
+ * @param {string} identificadorSessao Identificador associado a sessao.
+ * @return {Object|null} Perfil retornado pelo Core ou nulo.
+ */
+function portalBuscarMeuPerfilViaGeapaCore_(identificadorSessao) {
+  var identificador = portalNormalizarIdentificador_(identificadorSessao);
+  var resposta;
+
+  if (!identificador) {
+    return null;
+  }
+
+  resposta = portalChamarMeuPerfilGeapaCoreGlobal_(identificador);
+
+  if (!resposta) {
+    resposta = portalChamarMeuPerfilGeapaCoreLibrary_(identificador);
+  }
+
+  return resposta && resposta.ok === true ? resposta : null;
+}
+
+/**
  * Tenta chamar o resolvedor de sessao quando ele estiver copiado no projeto.
  *
  * @param {string|Object} entrada Entrada aceita pelo GEAPA-CORE.
@@ -286,6 +309,20 @@ function portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador) {
 }
 
 /**
+ * Tenta chamar a funcao global de "Meu perfil" quando ela estiver copiada.
+ *
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Resposta do GEAPA-CORE ou nulo.
+ */
+function portalChamarMeuPerfilGeapaCoreGlobal_(identificador) {
+  if (typeof geapaCoreBuscarMeuPerfilParaPortal !== 'function') {
+    return null;
+  }
+
+  return geapaCoreBuscarMeuPerfilParaPortal(identificador);
+}
+
+/**
  * Tenta chamar o contrato de "Minha situacao" quando o GEAPA-CORE estiver como
  * biblioteca Apps Script.
  *
@@ -297,6 +334,26 @@ function portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador) {
 
   for (var i = 0; i < libs.length; i++) {
     var resposta = portalChamarMinhaSituacaoCoreLibrary_(libs[i].api, identificador);
+
+    if (resposta && resposta.ok === true) {
+      return resposta;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Tenta chamar o contrato de "Meu perfil" quando o GEAPA-CORE estiver como Library.
+ *
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Resposta do GEAPA-CORE ou nulo.
+ */
+function portalChamarMeuPerfilGeapaCoreLibrary_(identificador) {
+  var libs = portalListarBibliotecasGeapaCore_();
+
+  for (var i = 0; i < libs.length; i++) {
+    var resposta = portalChamarMeuPerfilCoreLibrary_(libs[i].api, identificador);
 
     if (resposta && resposta.ok === true) {
       return resposta;
@@ -482,6 +539,32 @@ function portalChamarMinhaSituacaoCoreLibrary_(api, identificador) {
     typeof api.portal.buscarMinhaSituacaoParaPortal === 'function'
   ) {
     return api.portal.buscarMinhaSituacaoParaPortal(identificador);
+  }
+
+  return null;
+}
+
+/**
+ * Chama os formatos aceitos do contrato "Meu perfil" no GEAPA-CORE.
+ *
+ * @param {Object} api Objeto global da biblioteca.
+ * @param {string} identificador Identificador normalizado.
+ * @return {Object|null} Resposta retornada pela biblioteca.
+ */
+function portalChamarMeuPerfilCoreLibrary_(api, identificador) {
+  if (!api) {
+    return null;
+  }
+
+  if (typeof api.geapaCoreBuscarMeuPerfilParaPortal === 'function') {
+    return api.geapaCoreBuscarMeuPerfilParaPortal(identificador);
+  }
+
+  if (
+    api.portal &&
+    typeof api.portal.buscarMeuPerfilParaPortal === 'function'
+  ) {
+    return api.portal.buscarMeuPerfilParaPortal(identificador);
   }
 
   return null;
