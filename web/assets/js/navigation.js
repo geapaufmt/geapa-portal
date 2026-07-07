@@ -64,9 +64,8 @@
     rota('login', 'Entrar', 'login', 'publico', 110, 'tela-acesso', 'view-login', false, PUBLICO, [], 'Entrada por Google ou código temporário.', 'implementado', false),
     rota('interesse', 'Tenho interesse', 'interesse', 'publico', 120, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Formulário futuro para cadastro de interesse sem conceder acesso interno automaticamente.', 'placeholder'),
 
-    rota('app', 'Resumo do vínculo', 'app', 'meu-vinculo', 10, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['portal:acessar'], 'Resumo personalizado do vínculo da pessoa com o GEAPA.', 'placeholder'),
-    rota('meu-cadastro', 'Meu cadastro', 'app/meu-cadastro', 'meu-vinculo', 20, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['cadastro:ver_proprio'], 'Dados cadastrais próprios e classificação de vínculo.', 'placeholder'),
-    rota('minha-situacao', 'Minha situação', 'app/minha-situacao', 'meu-vinculo', 30, 'tela-situacao', 'view-situacao', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], ['situacao:ver_propria'], 'Tela individual do usuário logado.', 'implementado'),
+    rota('meu-perfil', 'Meu perfil', 'app/meu-perfil', 'meu-vinculo', 10, 'tela-meu-perfil', 'view-meu-perfil', true, LOGADOS, ['portal:acessar'], 'Dados cadastrais proprios em modo somente leitura.', 'implementado'),
+    rota('minha-situacao', 'Minha situação', 'app/minha-situacao', 'meu-vinculo', 20, 'tela-situacao', 'view-situacao', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], ['situacao:ver_propria'], 'Painel operacional resumido do usuario logado.', 'implementado'),
     rota('frequencia', 'Minha frequência', 'app/frequencia', 'meu-vinculo', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['situacao:ver_propria', 'presencas:ler'], 'Frequência própria carregada pela view V2 filtrada no backend.', 'implementado'),
     rota('justificativas', 'Minhas justificativas', 'app/justificativas', 'meu-vinculo', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['situacao:ver_propria', 'justificativas:ver_proprias'], 'Justificativas próprias carregadas pela view V2 filtrada no backend.', 'implementado'),
     rota('minhas-apresentacoes', 'Minhas apresentações', 'app/minhas-apresentacoes', 'meu-vinculo', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.EGRESSO, PERFIS.ADMIN], ['situacao:ver_propria', 'apresentacoes:ver_propria', 'apresentacoes:ver_ate_saida'], 'Apresentações próprias ou histórico permitido pelo backend.', 'implementado'),
@@ -96,6 +95,13 @@
   var ALIASES_ROTAS = {
     situacao: 'minha-situacao',
     'minha_situacao': 'minha-situacao',
+    app: 'minha-situacao',
+    'resumo-vinculo': 'minha-situacao',
+    'resumo_do_vinculo': 'minha-situacao',
+    'meu-cadastro': 'meu-perfil',
+    'app/meu-cadastro': 'meu-perfil',
+    cadastro: 'meu-perfil',
+    perfil: 'meu-perfil',
     atividades: 'atividades',
     agenda: 'atividades',
     'atividades-abertas': 'atividades',
@@ -387,7 +393,7 @@
   function permiteFallbackVisitanteTecnico(rota) {
     return [
       'app',
-      'meu-cadastro',
+      'meu-perfil',
       'inscricoes',
       'preferencias'
     ].indexOf(rota.id) >= 0;

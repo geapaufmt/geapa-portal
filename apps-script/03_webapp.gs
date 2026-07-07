@@ -158,6 +158,10 @@ function portalExecutarAcao_(requisicao) {
     return portalMinhaSituacao(requisicao.token || '');
   }
 
+  if (acao === 'meuPerfil') {
+    return portalMeuPerfil(requisicao.token || '');
+  }
+
   if (acao === 'atividadesBundle') {
     return portalAtividadesBundle(requisicao.token || '');
   }
