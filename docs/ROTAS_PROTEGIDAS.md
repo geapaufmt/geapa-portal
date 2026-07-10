@@ -76,7 +76,7 @@ pelo mesmo guard.
 | --- | --- | --- | --- | --- |
 | `inicio` | Publico / Geral | Todos | `portal:acessar` | Placeholder |
 | `meu-perfil` | Area do membro | Perfis logados com portal ativo | `portal:acessar` | Implementada, somente leitura |
-| `minha-situacao` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, ADMIN | `situacao:ver_propria` | Implementada como painel operacional resumido |
+| `minha-situacao` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, ADMIN | `situacao:ver_propria` | Implementada como painel operacional resumido via PESSOAS_RESUMO_OPERACIONAL |
 | `minhas-apresentacoes` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, COMUNICACAO, CONSELHO, EGRESSO, ADMIN | `situacao:ver_propria`, `apresentacoes:ver_propria`, `apresentacoes:ver_ate_saida` | Implementada V2 com titulo/eixos, slide/material e foto da reuniao |
 | `frequencia` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `presencas:ler` | Implementada, read-only V2 |
 | `justificativas` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `justificativas:ver_proprias` | Implementada V2 com envio de justificativa |

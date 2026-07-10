@@ -96,6 +96,23 @@ coreOnlyDebug.record('CORE_SESSION_CHANGED', {
 assert.equal(coreOnlyDebug.getStatus().identityConsistency.code, 'CORE_ONLY');
 assert.equal(coreOnlyDebug.getStatus().authMode, 'CORE_CODE_ONLY');
 
+const aliasDebug = buildDebug('', 'PROD');
+aliasDebug.record('PORTAL_USER_DOC_FOUND', {
+  uid: 'uid-1234567890',
+  idPessoa: 'PES-001',
+  emailNormalizado: 'membro@example.org',
+  portalAtivo: true
+});
+aliasDebug.record('CORE_SESSION_CHANGED', {
+  loggedIn: true,
+  idPessoa: 'PES-001',
+  email: 'principal@example.org',
+  emailAutenticacao: 'membro@example.org',
+  identidadeFirebaseCoreConfirmada: true
+});
+assert.equal(aliasDebug.getStatus().identityConsistency.code, 'IDENTITY_ALIAS_CORE_CONFIRMADO');
+assert.equal(aliasDebug.getStatus().authMode, 'FIREBASE_PLUS_CORE');
+
 const validator = buildSessionValidator();
 const firebaseUser = { uid: 'uid-1', email: 'membro@example.org', emailVerified: true };
 const snapshot = {
@@ -125,6 +142,33 @@ const coreSession = {
   perfilPortalEfetivo: 'MEMBRO'
 };
 assert.equal(validator.verificarConsistenciaIdentidade(firebaseUser, snapshot, coreSession).code, 'OK');
+assert.equal(
+  validator.verificarConsistenciaIdentidade(firebaseUser, snapshot, {
+    ...coreSession,
+    email: 'principal@example.org',
+    emailAutenticacao: 'membro@example.org',
+    identidadeFirebaseCoreConfirmada: true,
+    identidadeFirebaseCoreCodigo: 'IDENTITY_ALIAS_CORE_CONFIRMADO'
+  }).code,
+  'IDENTITY_ALIAS_CORE_CONFIRMADO'
+);
+assert.equal(
+  validator.verificarConsistenciaIdentidade(firebaseUser, snapshot, {
+    ...coreSession,
+    idPessoa: 'PES-OUTRA',
+    email: 'principal@example.org',
+    emailAutenticacao: 'membro@example.org',
+    identidadeFirebaseCoreConfirmada: true
+  }).code,
+  'IDENTITY_MISMATCH_FIREBASE_CORE'
+);
+assert.equal(
+  validator.verificarConsistenciaIdentidade(firebaseUser, snapshot, {
+    ...coreSession,
+    email: 'principal@example.org'
+  }).code,
+  'IDENTITY_MISMATCH_FIREBASE_CORE'
+);
 assert.equal(
   validator.verificarConsistenciaIdentidade(firebaseUser, snapshot, {
     ...coreSession,

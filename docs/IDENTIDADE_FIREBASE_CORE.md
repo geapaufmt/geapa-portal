@@ -14,6 +14,12 @@ compara esses contratos. Divergencia retorna
 `IDENTITY_MISMATCH_FIREBASE_CORE`, bloqueia o fast path, limpa sessao/cache
 local e encerra o Firebase Auth antes de exigir novo login.
 
+Quando o e-mail autenticado no Firebase e um identificador oficial alternativo
+da mesma pessoa, o Core pode devolver o `EMAIL_PRINCIPAL`. Nesse caso, o backend
+marca `IDENTITY_ALIAS_CORE_CONFIRMADO` somente depois de resolver o e-mail do
+token para uma `ID_PESSOA` valida. O navegador nao aceita essa diferenca sem a
+confirmacao explicita do backend e continua comparando UID e `ID_PESSOA`.
+
 ## Login por codigo
 
 Antes de `solicitarCodigo`, o Portal aguarda o primeiro estado do Firebase. O
