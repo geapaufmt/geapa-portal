@@ -1,4 +1,4 @@
-const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v92';
+const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v93';
 
 const STATIC_ASSETS = [
   '/',

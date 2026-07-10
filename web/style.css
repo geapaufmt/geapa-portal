@@ -448,10 +448,15 @@ body {
 
 .topbar-actions,
 .panel-actions,
-.activity-actions {
+.activity-actions,
+.situation-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.situation-actions {
+  margin-top: 6px;
 }
 
 .panel-actions {

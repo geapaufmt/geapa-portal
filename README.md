@@ -44,8 +44,8 @@ backend.
 - Manter o front-end como cliente publico da API em Apps Script.
 - Separar "Meu perfil" e "Minha situacao": perfil cadastral proprio fica em
   tela somente leitura; situacao permanece como painel operacional resumido.
-- Manter frequencia, pendencias, certificados e historico fora da integracao
-  ate que o contrato definitivo exista no GEAPA-CORE.
+- Consumir o resumo operacional consolidado pelo GEAPA-CORE em "Minha situacao",
+  exibindo atalhos para frequencia, apresentacoes, certificados e solicitacoes.
 
 ## Escopo atual
 

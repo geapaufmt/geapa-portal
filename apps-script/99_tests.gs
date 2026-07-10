@@ -87,6 +87,15 @@ function portalRunTesteContratoProvisionamentoFirestoreUser() {
     email: 'membro@example.org',
     sessao: { idPessoa: 'PES-002', email: 'outra-pessoa@example.org' }
   });
+  var coreAliasConfirmado = portalConferirFirebaseComSessaoCore_({
+    email: 'alias.membro@example.org',
+    identidadeCoreResolvidaPorEmailFirebase: true,
+    sessao: { idPessoa: 'PES-001', email: 'principal.membro@example.org' }
+  });
+  var coreAliasNaoConfirmado = portalConferirFirebaseComSessaoCore_({
+    email: 'alias.membro@example.org',
+    sessao: { idPessoa: 'PES-001', email: 'principal.membro@example.org' }
+  });
   var provisionOk = portalNormalizarCodigoProvisionamento_({
     ok: true,
     synced: true,
@@ -108,6 +117,9 @@ function portalRunTesteContratoProvisionamentoFirestoreUser() {
       divergentEmail.ok === false &&
       coreMatch.ok === true &&
       coreMismatch.ok === false &&
+      coreAliasConfirmado.ok === true &&
+      coreAliasConfirmado.code === 'IDENTITY_ALIAS_CORE_CONFIRMADO' &&
+      coreAliasNaoConfirmado.ok === false &&
       provisionOk === 'PROVISION_OK' &&
       provisionAlready === 'PROVISION_ALREADY_VALID' &&
       provisionError === 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
@@ -116,6 +128,8 @@ function portalRunTesteContratoProvisionamentoFirestoreUser() {
     divergentEmail: divergentEmail,
     coreMatch: coreMatch,
     coreMismatch: coreMismatch,
+    coreAliasConfirmado: coreAliasConfirmado,
+    coreAliasNaoConfirmado: coreAliasNaoConfirmado,
     provisionCodes: [provisionOk, provisionAlready, provisionError]
   };
   Logger.log(JSON.stringify(result, null, 2));

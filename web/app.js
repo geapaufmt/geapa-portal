@@ -467,8 +467,7 @@ function portalLoginFirebase(idToken, usuarioFirebase) {
 /**
  * Carrega a tela "Minha situacao" pelo Apps Script.
  *
- * Nesta etapa, o backend devolve dados cadastrais basicos e blocos
- * complementares ainda em preparacao.
+ * Nesta etapa, o backend devolve o resumo operacional do proprio usuario.
  *
  * @param {string} token Token temporario retornado pelo backend.
  * @return {Promise<Object>} Dados parciais para renderizacao local.
@@ -971,6 +970,7 @@ function normalizarMinhaSituacao(resposta) {
   const participacao = dados.participacao || {};
   const diretoria = dados.diretoria || {};
   const usuario = dados.usuario || {};
+  const resumoOperacional = normalizarResumoOperacionalMinhaSituacao(dados.resumoOperacional || {});
   const sessao = extrairSessaoPortal(resposta, dados);
   const desempenho = (resposta.meta && resposta.meta.desempenho) || {};
 
@@ -986,6 +986,7 @@ function normalizarMinhaSituacao(resposta) {
     blocosComplementares: dados.blocosComplementares || 'em-preparacao',
     ultimaAtualizacao: dados.ultimaAtualizacao || dados.atualizadoEm || '',
     resumo: dados.resumo || {},
+    resumoOperacional: resumoOperacional,
     pendencias: pendencias,
     participacao: {
       frequenciaGeral: participacao.frequenciaGeral || '',
@@ -1002,9 +1003,9 @@ function normalizarMinhaSituacao(resposta) {
       tempoClienteMs: 0
     },
     avisos: dados.avisos || [
-      'Os dados cadastrais básicos são carregados pelo backend do portal.',
+      'O resumo operacional é carregado pelo backend do portal.',
       'Nenhum dado real de membro está no GitHub Pages.',
-      'Frequência, pendências, certificados e histórico ainda serão integrados.'
+      'Campos vazios podem aparecer como Em atualização enquanto as views oficiais sao recalculadas.'
     ]
   };
 }
@@ -1043,6 +1044,35 @@ function normalizarMeuPerfil(resposta) {
       tempoBackendMs: normalizarNumeroNaoNegativo(desempenho.tempoMs),
       tempoClienteMs: 0
     }
+  };
+}
+
+/**
+ * Normaliza o resumo operacional vindo de PESSOAS_RESUMO_OPERACIONAL via Core.
+ *
+ * @param {Object} resumo Dados brutos do backend.
+ * @return {Object} Resumo operacional seguro para a tela Minha situacao.
+ */
+function normalizarResumoOperacionalMinhaSituacao(resumo) {
+  const dados = resumo || {};
+
+  return {
+    statusVinculo: String(dados.statusVinculo || '').trim(),
+    tipoVinculo: String(dados.tipoVinculo || '').trim(),
+    cargoFuncaoAtual: String(dados.cargoFuncaoAtual || '').trim(),
+    tempoEfetivoNoGrupo: String(dados.tempoEfetivoNoGrupo || '').trim(),
+    qtdSemestresNoGrupo: dados.qtdSemestresNoGrupo === 0 || dados.qtdSemestresNoGrupo
+      ? String(dados.qtdSemestresNoGrupo)
+      : '',
+    frequenciaResumida: String(dados.frequenciaResumida || '').trim(),
+    qtdApresentacoesRealizadas: dados.qtdApresentacoesRealizadas === 0 || dados.qtdApresentacoesRealizadas
+      ? String(dados.qtdApresentacoesRealizadas)
+      : '',
+    periodoUltimaApresentacao: String(dados.cicloUltimaApresentacao || dados.periodoUltimaApresentacao || '').trim(),
+    certificadosDisponiveis: dados.certificadosDisponiveis === 0 || dados.certificadosDisponiveis
+      ? String(dados.certificadosDisponiveis)
+      : '',
+    pendenciasAbertas: String(dados.pendenciasAbertas || '').trim()
   };
 }
 
@@ -1172,56 +1202,40 @@ function extrairSessaoPortal(resposta, dadosSituacao) {
  * @param {Object} dados Dados parciais retornados por carregarMinhaSituacao.
  */
 function renderizarMinhaSituacao(container, dados) {
-  const atividades = dados.participacao.atividadesRecentes || [];
+  const resumoOperacional = dados.resumoOperacional || {};
   const apresentacoes = dados.participacao.apresentacoes || {};
-  const diretoria = dados.diretoria || {};
-  const usuario = dados.usuario || {};
-  const rotuloOrigem = dados.dadosCadastraisReais
-    ? 'Dados cadastrais carregados'
-    : 'Dados de teste carregados';
-  const notaOrigem = dados.blocosComplementares === 'geapa-core'
-    ? rotuloOrigem + ' pelo GEAPA-CORE. Pendências cadastrais podem aparecer quando houver algo a regularizar.'
-    : rotuloOrigem + '. Os blocos complementares ainda estão em preparação.';
+  const pendenciasTexto = resumoOperacional.pendenciasAbertas && resumoOperacional.pendenciasAbertas !== 'SEM_PENDENCIAS'
+    ? resumoOperacional.pendenciasAbertas
+    : String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0);
 
   container.innerHTML = [
     '<div class="member-header">',
     '<div>',
     '<p class="simulation-title">' + escaparHtml(dados.nomeExibicao) + '</p>',
-    '<p class="member-subtitle">' + escaparHtml(dados.vinculo) + '</p>',
+    '<p class="member-subtitle">Painel operacional resumido do seu vínculo no GEAPA</p>',
     '</div>',
-    '<span class="status-pill">' + escaparHtml(dados.situacaoGeral) + '</span>',
+    '<span class="status-pill">' + escaparHtml(valorResumoOperacional('statusVinculo', resumoOperacional.statusVinculo || dados.situacaoGeral)) + '</span>',
     '</div>',
-    '<p class="section-note">' + escaparHtml(notaOrigem) + '</p>',
+    '<p class="section-note">Dados consolidados pelo GEAPA-CORE a partir de PESSOAS_RESUMO_OPERACIONAL e demais views oficiais. Dados cadastrais detalhados ficam em Meu perfil.</p>',
     '<dl class="summary-grid">',
-    montarResumoItem('RGA', dados.rga),
-    montarResumoItem('Perfil', formatarPerfil(usuario.perfilPrincipal)),
-    montarResumoItem('Frequência', dados.resumo.frequencia || dados.participacao.frequenciaGeral || 'Em preparação'),
-    montarResumoItem('Pendências', String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0)),
-    montarResumoItem('Apresentações', formatarQuantidadeApresentacoes(apresentacoes.quantidadeRealizadas)),
-    montarResumoItem('Diretoria', diretoria.statusElegibilidade || 'Em preparação'),
-    montarResumoItem('Certificados', String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
+    montarResumoOperacionalItem('Status do vínculo', 'statusVinculo', resumoOperacional.statusVinculo || dados.situacaoGeral),
+    montarResumoOperacionalItem('Tipo de vínculo', 'tipoVinculo', resumoOperacional.tipoVinculo || dados.vinculo),
+    montarResumoOperacionalItem('Cargo/função atual', 'cargoFuncaoAtual', resumoOperacional.cargoFuncaoAtual),
+    montarResumoOperacionalItem('Tempo efetivo no grupo', 'tempoEfetivoNoGrupo', resumoOperacional.tempoEfetivoNoGrupo),
+    montarResumoOperacionalItem('Quantidade de semestres', 'qtdSemestresNoGrupo', resumoOperacional.qtdSemestresNoGrupo),
+    montarResumoOperacionalItem('Frequência resumida', 'frequenciaResumida', resumoOperacional.frequenciaResumida || dados.resumo.frequencia || dados.participacao.frequenciaGeral),
+    montarResumoOperacionalItem('Apresentações realizadas', 'qtdApresentacoesRealizadas', resumoOperacional.qtdApresentacoesRealizadas || formatarQuantidadeApresentacoes(apresentacoes.quantidadeRealizadas)),
+    montarResumoOperacionalItem('Período da última apresentação', 'periodoUltimaApresentacao', resumoOperacional.periodoUltimaApresentacao || apresentacoes.periodoUltimaApresentacao),
+    montarResumoOperacionalItem('Certificados disponíveis', 'certificadosDisponiveis', resumoOperacional.certificadosDisponiveis || String(dados.resumo.certificadosDisponiveis || dados.certificados.length || 0)),
+    montarResumoOperacionalItem('Pendências abertas', 'pendenciasAbertas', pendenciasTexto),
     '</dl>',
     '<div class="situation-section">',
-    '<h3>Funções atuais</h3>',
-    montarCargosUsuario(usuario.cargosAtuais),
+    '<h3>Atalhos</h3>',
+    montarAtalhosMinhaSituacao(),
     '</div>',
     '<div class="situation-section">',
     '<h3>Pendências</h3>',
     montarPendencias(dados.pendencias),
-    '</div>',
-    '<div class="situation-section">',
-    '<h3>Participação</h3>',
-    montarApresentacoes(apresentacoes),
-    '<p class="section-note">' + escaparHtml(dados.participacao.frequenciaGeral || 'Participação e frequência ainda serão integradas.') + '</p>',
-    montarAtividades(atividades),
-    '</div>',
-    '<div class="situation-section">',
-    '<h3>Diretoria</h3>',
-    montarDiretoria(diretoria),
-    '</div>',
-    '<div class="situation-section">',
-    '<h3>Certificados</h3>',
-    montarCertificados(dados.certificados),
     '</div>',
     '<div class="situation-section">',
     '<h3>Avisos</h3>',
@@ -1346,6 +1360,87 @@ function montarResumoItem(rotulo, valor) {
     '<div class="summary-item">',
     '<dt>' + escaparHtml(rotulo) + '</dt>',
     '<dd>' + escaparHtml(valor || '-') + '</dd>',
+    '</div>'
+  ].join('');
+}
+
+/**
+ * Monta um card operacional da tela Minha situacao.
+ *
+ * @param {string} rotulo Rotulo visivel.
+ * @param {string} campo Nome tecnico do campo.
+ * @param {string} valor Valor calculado pelo backend.
+ * @return {string} HTML do card.
+ */
+function montarResumoOperacionalItem(rotulo, campo, valor) {
+  const texto = valorResumoOperacional(campo, valor);
+  const vazio = texto === 'Em atualização';
+
+  return [
+    '<div class="summary-item',
+    vazio ? ' empty-value' : '',
+    '">',
+    '<dt>' + escaparHtml(rotulo) + '</dt>',
+    '<dd>' + escaparHtml(texto) + '</dd>',
+    vazio ? '<p class="profile-note">Aguardando atualização do resumo operacional.</p>' : '',
+    '</div>'
+  ].join('');
+}
+
+/**
+ * Normaliza valor operacional vazio e registra aviso tecnico no console.
+ *
+ * @param {string} campo Nome tecnico do campo.
+ * @param {string} valor Valor bruto.
+ * @return {string} Valor pronto para exibicao.
+ */
+function valorResumoOperacional(campo, valor) {
+  const texto = String(valor == null ? '' : valor).trim();
+
+  if (texto) {
+    return texto;
+  }
+
+  registrarAvisoResumoOperacional(campo);
+  return 'Em atualização';
+}
+
+/**
+ * Emite aviso tecnico sem quebrar a tela quando o resumo operacional esta incompleto.
+ *
+ * @param {string} campo Nome tecnico do campo incompleto.
+ */
+function registrarAvisoResumoOperacional(campo) {
+  if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+    console.warn('[Portal GEAPA][Minha Situação] Campo vazio em PESSOAS_RESUMO_OPERACIONAL:', campo);
+  }
+}
+
+/**
+ * Monta botoes de direcionamento do painel operacional.
+ *
+ * @return {string} HTML dos atalhos.
+ */
+function montarAtalhosMinhaSituacao() {
+  const atalhos = [
+    { rota: 'meu-perfil', label: 'Meu perfil' },
+    { rota: 'frequencia', label: 'Minha frequência' },
+    { rota: 'minhas-apresentacoes', label: 'Minhas apresentações' },
+    { rota: 'certificados', label: 'Meus certificados' },
+    { rota: 'justificativas', label: 'Solicitações' }
+  ];
+
+  return [
+    '<div class="situation-actions">',
+    atalhos.map(function montarAtalho(atalho) {
+      return [
+        '<button class="secondary-button" type="button" data-route-target="',
+        escaparHtml(atalho.rota),
+        '">',
+        escaparHtml(atalho.label),
+        '</button>'
+      ].join('');
+    }).join(''),
     '</div>'
   ].join('');
 }

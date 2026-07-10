@@ -5,7 +5,7 @@ window.PortalGeapaConfig = {
   DATA_ENVIRONMENT: 'PILOTO_DEV',
   BUILD_CHANNEL: 'homolog',
   PORTAL_VERSION: 'candidate',
-  GEAPA_API_BASE_URL: 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec',
+  GEAPA_API_BASE_URL: 'https://script.google.com/macros/s/AKfycbxyUPuu4tb9mkAys5jwDiBxtgE-g4YYOdaid0qNMrVw5i2oWh_Uyv2BHFAQGJPYdnA2/exec',
   FIRESTORE_ENABLED: true,
   FIRESTORE_SNAPSHOT_ENABLED: true,
   FIRESTORE_COLLECTION_FALLBACK_ENABLED: true,

@@ -50,6 +50,14 @@ function portalLoginFirebase(idToken, firebaseUser, clientSubmittedAt) {
     );
   }
 
+  autorizacao = Object.assign({}, autorizacao, {
+    sessao: portalAnotarSessaoFirebaseCore_(
+      autorizacao.sessao,
+      autorizacao.email,
+      identityConsistency
+    )
+  });
+
   var sessionToken = portalCriarSessaoTemporaria_(autorizacao.email);
   firestoreSync = portalSincronizarCacheFirestoreLogin_(autorizacao);
 
@@ -257,13 +265,36 @@ function portalConferirFirebaseComSessaoCore_(autorizacao) {
   var firebaseEmail = portalNormalizarIdentificador_(dados.email || '');
   var coreEmail = portalNormalizarIdentificador_(sessao.email || sessao.emailNormalizado || '');
   var idPessoa = String(sessao.idPessoa || '').trim();
+  var emailDireto = Boolean(firebaseEmail && coreEmail && firebaseEmail === coreEmail);
+  var aliasConfirmado = Boolean(
+    firebaseEmail &&
+    coreEmail &&
+    idPessoa &&
+    dados.identidadeCoreResolvidaPorEmailFirebase === true
+  );
 
   return {
-    ok: Boolean(firebaseEmail && coreEmail && idPessoa && firebaseEmail === coreEmail),
-    code: firebaseEmail && coreEmail && firebaseEmail !== coreEmail
-      ? 'IDENTITY_MISMATCH_FIREBASE_CORE'
-      : 'IDENTIDADE_CORE_INCOMPLETA'
+    ok: Boolean(idPessoa && (emailDireto || aliasConfirmado)),
+    code: emailDireto
+      ? 'IDENTITY_MATCH_FIREBASE_CORE'
+      : (aliasConfirmado
+        ? 'IDENTITY_ALIAS_CORE_CONFIRMADO'
+        : (firebaseEmail && coreEmail && firebaseEmail !== coreEmail
+          ? 'IDENTITY_MISMATCH_FIREBASE_CORE'
+          : 'IDENTIDADE_CORE_INCOMPLETA')),
+    emailDireto: emailDireto,
+    aliasConfirmado: aliasConfirmado
   };
+}
+
+function portalAnotarSessaoFirebaseCore_(sessao, firebaseEmail, identityConsistency) {
+  var base = sessao || {};
+  var consistency = identityConsistency || {};
+  return Object.assign({}, base, {
+    emailAutenticacao: portalNormalizarIdentificador_(firebaseEmail || ''),
+    identidadeFirebaseCoreConfirmada: consistency.ok === true,
+    identidadeFirebaseCoreCodigo: String(consistency.code || '')
+  });
 }
 
 function portalNormalizarCodigoProvisionamento_(resultado) {
@@ -616,6 +647,7 @@ function portalAutorizarFirebaseViaGeapaCore_(usuario) {
       perfilPortal: sessao.perfilPortalEfetivo || 'MEMBRO',
       permissoes: sessao.permissoes || [],
       sessao: sessao,
+      identidadeCoreResolvidaPorEmailFirebase: true,
       timestampLogin: new Date().toISOString()
     };
   }

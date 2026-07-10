@@ -124,6 +124,7 @@
     var coreLogged = authDebugState.coreSession.logado === true;
     var firebaseEmail = normalizeEmail(authDebugState.email);
     var coreEmail = normalizeEmail(authDebugState.coreSession.email);
+    var coreAuthEmail = normalizeEmail(authDebugState.coreSession.emailAutenticacao);
     var portalEmail = normalizeEmail(authDebugState.portalUserDoc.emailNormalizado);
     var portalUid = String(authDebugState.portalUserDoc.uid || '').trim();
     var firebaseUid = String(authDebugState.uid || '').trim();
@@ -131,11 +132,18 @@
     var corePerson = String(authDebugState.coreSession.idPessoa || '').trim();
     var mismatch = false;
     var evidence = false;
+    var aliasCoreConfirmado = Boolean(
+      authDebugState.coreSession.identidadeFirebaseCoreConfirmada === true &&
+      corePerson &&
+      isComparableEmail(firebaseEmail) &&
+      isComparableEmail(coreAuthEmail) &&
+      firebaseEmail === coreAuthEmail
+    );
 
     if (firebaseLogged && coreLogged) {
       if (isComparableEmail(firebaseEmail) && isComparableEmail(coreEmail)) {
         evidence = true;
-        if (firebaseEmail !== coreEmail) mismatch = true;
+        if (firebaseEmail !== coreEmail && !aliasCoreConfirmado) mismatch = true;
       }
       if (portalUid && firebaseUid) {
         evidence = true;
@@ -153,7 +161,9 @@
       authDebugState.identityConsistency = {
         checked: true,
         match: !mismatch,
-        code: mismatch ? 'IDENTITY_MISMATCH_FIREBASE_CORE' : 'OK'
+        code: mismatch
+          ? 'IDENTITY_MISMATCH_FIREBASE_CORE'
+          : (aliasCoreConfirmado ? 'IDENTITY_ALIAS_CORE_CONFIRMADO' : 'OK')
       };
     } else if (firebaseLogged) {
       authDebugState.identityConsistency = { checked: true, match: false, code: 'FIREBASE_ONLY' };
@@ -246,6 +256,9 @@
         logado: data.loggedIn === true,
         idPessoa: String(data.idPessoa || ''),
         email: normalizeEmail(data.email || ''),
+        emailAutenticacao: normalizeEmail(data.emailAutenticacao || ''),
+        identidadeFirebaseCoreConfirmada: data.identidadeFirebaseCoreConfirmada === true,
+        identidadeFirebaseCoreCodigo: String(data.identidadeFirebaseCoreCodigo || ''),
         perfil: String(data.perfil || ''),
         origemDados: String(data.origemDados || '')
       };
@@ -257,6 +270,15 @@
     if (event === 'IDENTITY_MATCH_OK') {
       explicitIdentityEvent = true;
       authDebugState.identityConsistency = { checked: true, match: true, code: 'OK' };
+    }
+    if (event === 'IDENTITY_ALIAS_CORE_CONFIRMADO') {
+      explicitIdentityEvent = true;
+      authDebugState.identityConsistency = {
+        checked: true,
+        match: true,
+        code: 'IDENTITY_ALIAS_CORE_CONFIRMADO'
+      };
+      authDebugState.authMode = 'FIREBASE_PLUS_CORE';
     }
     if (event === 'IDENTITY_MISMATCH_FIREBASE_CORE') {
       explicitIdentityEvent = true;

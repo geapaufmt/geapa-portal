@@ -184,11 +184,15 @@ import {
     var dados = sessao || {};
     var idPessoa = String(dados.idPessoa || dados.id || '').trim();
     var email = normalizarEmail(dados.email || dados.emailNormalizado || '');
+    var emailAutenticacao = normalizarEmail(dados.emailAutenticacao || '');
     var logado = dados.autenticado === true || dados.logado === true || Boolean(idPessoa || email);
     return {
       logado: logado,
       idPessoa: idPessoa,
       email: email,
+      emailAutenticacao: emailAutenticacao,
+      identidadeFirebaseCoreConfirmada: dados.identidadeFirebaseCoreConfirmada === true,
+      identidadeFirebaseCoreCodigo: String(dados.identidadeFirebaseCoreCodigo || '').trim(),
       perfil: String(dados.perfilPortalEfetivo || dados.perfilPrincipal || dados.perfil || '').trim(),
       origemDados: String(dados.origemDados || dados.origemSessao || dados.origemSnapshot || '').trim()
     };
@@ -203,6 +207,13 @@ import {
     var docPessoa = String(snapshot && snapshot.idPessoa || '').trim();
     var reasons = [];
     var evidence = false;
+    var aliasCoreConfirmado = Boolean(
+      core.identidadeFirebaseCoreConfirmada === true &&
+      core.idPessoa &&
+      emailComparavel(firebaseEmail) &&
+      emailComparavel(core.emailAutenticacao) &&
+      firebaseEmail === core.emailAutenticacao
+    );
 
     if (!firebaseUid) {
       return {
@@ -233,11 +244,15 @@ import {
 
     if (emailComparavel(firebaseEmail) && emailComparavel(core.email)) {
       evidence = true;
-      if (firebaseEmail !== core.email) reasons.push('EMAIL_FIREBASE_CORE_DIVERGENTE');
+      if (firebaseEmail !== core.email && !aliasCoreConfirmado) {
+        reasons.push('EMAIL_FIREBASE_CORE_DIVERGENTE');
+      }
     }
     if (emailComparavel(docEmail) && emailComparavel(core.email)) {
       evidence = true;
-      if (docEmail !== core.email) reasons.push('EMAIL_DOC_CORE_DIVERGENTE');
+      if (docEmail !== core.email && !aliasCoreConfirmado) {
+        reasons.push('EMAIL_DOC_CORE_DIVERGENTE');
+      }
     }
     if (docPessoa && core.idPessoa) {
       evidence = true;
@@ -248,7 +263,9 @@ import {
     return {
       checked: true,
       match: reasons.length === 0,
-      code: reasons.length ? 'IDENTITY_MISMATCH_FIREBASE_CORE' : 'OK',
+      code: reasons.length
+        ? 'IDENTITY_MISMATCH_FIREBASE_CORE'
+        : (aliasCoreConfirmado ? 'IDENTITY_ALIAS_CORE_CONFIRMADO' : 'OK'),
       reasons: reasons
     };
   }
