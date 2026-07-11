@@ -10,7 +10,7 @@
     >
     <meta name="theme-color" content="#1f6b45">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css?v=45">
+    <link rel="stylesheet" href="style.css?v=48">
   </head>
   <body>
     <div class="portal-frame">
@@ -248,6 +248,12 @@
             </div>
           </section>
 
+          <section class="situation-panel admin-members-panel" id="tela-admin-membros" aria-labelledby="admin-membros-title" hidden>
+            <div id="admin-membros-content">
+              <p class="empty-state">Abra a area para carregar os membros.</p>
+            </div>
+          </section>
+
           <section class="situation-panel route-placeholder" id="tela-placeholder" hidden>
             <div id="placeholder-content"></div>
           </section>
@@ -270,6 +276,16 @@
                 </button>
               </div>
               <div id="atividade-modal-content"></div>
+            </section>
+          </div>
+
+          <div class="modal-backdrop" id="membro-admin-modal" hidden>
+            <section class="modal-panel member-admin-modal-panel" role="dialog" aria-modal="true" aria-labelledby="membro-admin-modal-title">
+              <div class="modal-topbar">
+                <h2 id="membro-admin-modal-title">Detalhes do membro</h2>
+                <button class="secondary-button compact-button" type="button" data-admin-member-close>Fechar</button>
+              </div>
+              <div id="membro-admin-modal-content"></div>
             </section>
           </div>
         </main>
@@ -306,21 +322,22 @@
 
     <script src="assets/js/config.js?v=2"></script>
     <script src="assets/js/environment.js?v=4"></script>
-    <script src="assets/js/api.js?v=42"></script>
+    <script src="assets/js/api.js?v=43"></script>
     <script src="assets/js/public-content.js?v=2"></script>
     <script src="assets/js/portal-model.js?v=1"></script>
     <script src="assets/js/auth.js?v=2"></script>
     <script src="assets/js/auth-adapter.js?v=13"></script>
-    <script src="assets/js/navigation.js?v=32"></script>
-    <script src="assets/js/ui.js?v=4"></script>
-    <script src="assets/js/atividades.js?v=52"></script>
+    <script src="assets/js/navigation.js?v=33"></script>
+    <script src="assets/js/ui.js?v=5"></script>
+    <script src="assets/js/atividades.js?v=53"></script>
     <script src="assets/js/admin-atividades.js?v=7"></script>
-    <script src="assets/js/portal-v2-readonly.js?v=28"></script>
+    <script src="assets/js/admin-membros.js?v=2"></script>
+    <script src="assets/js/portal-v2-readonly.js?v=29"></script>
     <script src="assets/js/painel-diretoria-v2.js?v=1"></script>
     <script type="module" src="assets/js/firebase-auth.js?v=3"></script>
     <script type="module" src="assets/js/firestore-session-cache.js?v=9"></script>
     <script type="module" src="assets/js/firestore-activities.js?v=7"></script>
     <script src="assets/js/pwa.js"></script>
-    <script type="module" src="app.js?v=25"></script>
+    <script type="module" src="app.js?v=26"></script>
   </body>
 </html>

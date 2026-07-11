@@ -610,6 +610,7 @@
       '/admin/atividades/ocultar': 'atividadeAdminOcultar',
       '/admin/atividades/cancelar': 'atividadeAdminCancelar',
       '/admin/atividades/reabrir': 'atividadeAdminReabrir',
+      '/admin/membros': 'adminMembrosListar',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',

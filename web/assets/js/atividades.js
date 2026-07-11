@@ -334,7 +334,7 @@
       return;
     }
 
-    lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(rotulos.carregando) + '</p>';
+    renderizarLoadingLocal(lista, rotulos.carregando);
     status.textContent = rotulos.buscando;
     ui.mostrarLoading(rotulos.carregando);
 
@@ -521,7 +521,7 @@
       return;
     }
 
-    lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(rotulos.carregando) + '</p>';
+    renderizarLoadingLocal(lista, rotulos.carregando);
     status.textContent = rotulos.buscando;
     ui.mostrarLoading(rotulos.carregando);
 
@@ -3438,6 +3438,22 @@
         definirFormularioAtividadeEnviando(form, false);
         ui.ocultarLoading();
       });
+  }
+
+  function renderizarLoadingLocal(container, mensagem) {
+    if (!container) {
+      return;
+    }
+
+    if (ui.montarLoadingLocal) {
+      container.innerHTML = ui.montarLoadingLocal(mensagem);
+      if (ui.hidratarLoadersLocais) {
+        ui.hidratarLoadersLocais(container);
+      }
+      return;
+    }
+
+    container.innerHTML = '<p class="empty-state">' + ui.escaparHtml(mensagem || 'Carregando...') + '</p>';
   }
 
   function definirFormularioAtividadeEnviando(form, enviando) {
