@@ -25,7 +25,11 @@
     apresentacaoRegistrarMaterial: true,
     apresentacaoRevisarMaterial: true,
     apresentacaoRegistrarFotoReuniao: true,
-    apresentacaoRevisarFotoReuniao: true
+    apresentacaoRevisarFotoReuniao: true,
+    meuPerfilAtualizar: true,
+    meuPerfilSolicitarCorrecao: true,
+    adminCorrecoesCadastraisAnalisar: true,
+    adminCorrecoesCadastraisAplicar: true
   };
   var ACOES_GESTAO_ATIVIDADES = {
     atividadeAdminSalvarEdicao: true,
@@ -37,6 +41,12 @@
   var ACOES_JUSTIFICATIVAS = {
     justificativaEnviar: true,
     justificativaAnalisar: true
+  };
+  var ACOES_PERFIL_HOMOLOG = {
+    meuPerfilAtualizar: true,
+    meuPerfilSolicitarCorrecao: true,
+    adminCorrecoesCadastraisAnalisar: true,
+    adminCorrecoesCadastraisAplicar: true
   };
   var ACOES_UPLOAD = {
     apresentacaoRegistrarMaterial: true,
@@ -561,7 +571,7 @@
 
     if (!acaoNormalizada) return null;
 
-    if (config.READ_ONLY_MODE === true && ACOES_MUTAVEIS[acaoNormalizada]) {
+    if (config.READ_ONLY_MODE === true && ACOES_MUTAVEIS[acaoNormalizada] && !acaoMutavelPermitidaNoHomolog_(acaoNormalizada)) {
       return {
         ok: false,
         errorCode: 'PORTAL_READ_ONLY_MODE',
@@ -588,6 +598,13 @@
     return null;
   }
 
+  function acaoMutavelPermitidaNoHomolog_(acao) {
+    if (String(config.ENVIRONMENT || '').toUpperCase() !== 'HOMOLOG') return false;
+    if (ACOES_PERFIL_HOMOLOG[acao]) return config.ENABLE_PROFILE_UPDATES === true;
+    if (ACOES_JUSTIFICATIVAS[acao]) return config.ENABLE_JUSTIFICATIVAS === true;
+    return false;
+  }
+
   function obterAcaoAppsScript(route) {
     var rotas = {
       '/atividades/bundle': 'atividadesBundle',
@@ -611,6 +628,12 @@
       '/admin/atividades/cancelar': 'atividadeAdminCancelar',
       '/admin/atividades/reabrir': 'atividadeAdminReabrir',
       '/admin/membros': 'adminMembrosListar',
+      '/meu-perfil/atualizar': 'meuPerfilAtualizar',
+      '/meu-perfil/correcoes/solicitar': 'meuPerfilSolicitarCorrecao',
+      '/meu-perfil/correcoes': 'meuPerfilListarSolicitacoes',
+      '/admin/correcoes-cadastrais': 'adminCorrecoesCadastraisListar',
+      '/admin/correcoes-cadastrais/analisar': 'adminCorrecoesCadastraisAnalisar',
+      '/admin/correcoes-cadastrais/aplicar': 'adminCorrecoesCadastraisAplicar',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',

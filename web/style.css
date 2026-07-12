@@ -3557,3 +3557,96 @@ textarea[aria-invalid="true"] {
     width: 100%;
   }
 }
+.profile-header-actions,
+.profile-form-actions,
+.admin-correction-card > div,
+.profile-request-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-edit-form,
+.profile-correction-form,
+[data-admin-correction-action] {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.profile-edit-form label,
+.profile-correction-form label,
+[data-admin-correction-action] label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.profile-links-fieldset {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.profile-sensitive-item .profile-correction-link {
+  min-height: 32px;
+  padding: 0;
+  color: var(--green-700);
+  background: transparent;
+  text-align: left;
+}
+
+.profile-request-list,
+.admin-corrections-cards {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-request-card,
+.admin-correction-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+}
+
+.admin-corrections-cards {
+  display: none;
+}
+
+.profile-confirmation {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.profile-confirmation input {
+  width: 20px;
+  min-height: 20px;
+}
+
+@media (max-width: 760px) {
+  .profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-corrections-table {
+    display: none;
+  }
+
+  .admin-corrections-cards {
+    display: grid;
+  }
+
+  .profile-header-actions,
+  .profile-form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

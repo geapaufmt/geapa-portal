@@ -816,7 +816,7 @@ Contratos de resposta:
   `documentoComprobatorio` usa `{ nomeArquivo, mimeType, conteudoBase64 }`.
   Para ausencia futura em `Proximas atividades`, `idRegistroPresenca` e enviado
   vazio e o backend registra a justificativa como `PREVIA`. Para falta ja
-  registrada em `Minhas justificativas`, o payload deve conter
+  registrada em `Minha frequencia`, o payload deve conter
   `idRegistroPresenca`.
 - `justificativasPendenciasDiretoria`: retorna justificativas pendentes de
   analise para perfis com `justificativas:analisar`; o backend preferido e
@@ -1460,3 +1460,19 @@ em `PORTAL_EMAILS_TESTE` quando o ambiente estiver em modo de teste.
 
 Erros futuros deverao usar codigos estaveis, sem expor detalhes sensiveis ao
 front-end.
+# Perfil editavel e correcoes cadastrais - HOMOLOG
+
+Contratos exclusivos da branch de homologacao:
+
+| Rota | Acao Apps Script | Regra |
+| --- | --- | --- |
+| `POST /meu-perfil/atualizar` | `meuPerfilAtualizar` | Proprio usuario; identidade vem da sessao |
+| `POST /meu-perfil/correcoes/solicitar` | `meuPerfilSolicitarCorrecao` | Proprio usuario; campos sensiveis |
+| `GET /meu-perfil/correcoes` | `meuPerfilListarSolicitacoes` | Somente solicitacoes proprias |
+| `GET /admin/correcoes-cadastrais` | `adminCorrecoesCadastraisListar` | `membros:analisar_correcoes` |
+| `POST /admin/correcoes-cadastrais/analisar` | `adminCorrecoesCadastraisAnalisar` | `membros:analisar_correcoes` |
+| `POST /admin/correcoes-cadastrais/aplicar` | `adminCorrecoesCadastraisAplicar` | Aplicacao explicita apos aprovacao |
+
+O Apps Script fixa `ambientePortal: HOMOLOG`, revalida a sessao e nao aceita
+identidade alvo enviada pelo navegador. Respostas seguem o envelope padrao
+`ok`, `code`, `message`, `data` e `meta`.

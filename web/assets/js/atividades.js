@@ -2135,7 +2135,7 @@
     if (atividade.justificativaPreviaEnviada === true) {
       return [
         '<span class="status-pill status-pill-muted" title="',
-        ui.escaparHtml(atividade.mensagemJustificativaPrevia || 'Acompanhe em Meu vinculo > Minhas justificativas.'),
+        ui.escaparHtml(atividade.mensagemJustificativaPrevia || 'Acompanhe em Meu vinculo > Minha frequencia.'),
         '">',
         ui.escaparHtml(formatarStatusJustificativaPrevia(atividade.statusJustificativaPrevia)),
         '</span>'

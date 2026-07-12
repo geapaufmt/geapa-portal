@@ -23,7 +23,13 @@ function doGet(e) {
         'conteudoPublicoSnapshot',
         'minhaSituacao',
         'meuPerfil',
+        'meuPerfilAtualizar',
+        'meuPerfilSolicitarCorrecao',
+        'meuPerfilListarSolicitacoes',
         'adminMembrosListar',
+        'adminCorrecoesCadastraisListar',
+        'adminCorrecoesCadastraisAnalisar',
+        'adminCorrecoesCadastraisAplicar',
         'atividadesBundle',
         'atividadesListar',
         'atividadesDetalhesPreload',
@@ -164,8 +170,32 @@ function portalExecutarAcao_(requisicao) {
     return portalMeuPerfil(requisicao.token || '');
   }
 
+  if (acao === 'meuPerfilAtualizar') {
+    return portalMeuPerfilAtualizar(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'meuPerfilSolicitarCorrecao') {
+    return portalMeuPerfilSolicitarCorrecao(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'meuPerfilListarSolicitacoes') {
+    return portalMeuPerfilListarSolicitacoes(requisicao.token || '');
+  }
+
   if (acao === 'adminMembrosListar') {
     return portalAdminMembrosListar(requisicao.token || '', requisicao.filtros || '{}');
+  }
+
+  if (acao === 'adminCorrecoesCadastraisListar') {
+    return portalAdminCorrecoesCadastraisListar(requisicao.token || '', requisicao.filtros || '{}');
+  }
+
+  if (acao === 'adminCorrecoesCadastraisAnalisar') {
+    return portalAdminCorrecoesCadastraisAnalisar(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'adminCorrecoesCadastraisAplicar') {
+    return portalAdminCorrecoesCadastraisAplicar(requisicao.token || '', requisicao.payload || requisicao);
   }
 
   if (acao === 'atividadesBundle') {

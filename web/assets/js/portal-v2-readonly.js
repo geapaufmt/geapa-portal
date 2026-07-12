@@ -51,22 +51,6 @@
       tipo: 'pendencias-apresentacoes',
       vazio: 'Nenhuma pendencia de apresentacao disponivel.'
     },
-    justificativas: {
-      titulo: 'Minhas justificativas',
-      marcador: 'Meu vinculo',
-      intro: 'Faltas justificaveis e acompanhamento de justificativas enviadas.',
-      endpoint: '/v2/minhas-justificativas',
-      listaCampo: 'justificativas',
-      tipo: 'minhas-justificativas',
-      vazio: 'Nenhuma justificativa disponivel para este usuario.',
-      colunas: [
-        ['dataAtividade', 'Data'],
-        ['tituloPublico', 'Atividade'],
-        ['motivoCategoria', 'Motivo'],
-        ['statusJustificativa', 'Status'],
-        ['enviadaEm', 'Enviada em']
-      ]
-    },
     'admin-justificativas': {
       titulo: 'Justificativas',
       marcador: 'Gestao do GEAPA',
@@ -162,6 +146,14 @@
       if (rota && ROTAS[rota.id]) {
         carregarTela(rota.id);
       }
+
+      if (rota && rota.id === 'frequencia' && evento.detail.motivo === 'justificativas-redirecionadas') {
+        ui.mostrarToast({
+          type: 'info',
+          title: 'Justificativas integradas',
+          message: 'As justificativas agora estao disponiveis em Minha frequencia.'
+        });
+      }
     });
 
     if (typeof navigation.getRotaAtual === 'function' && ROTAS[navigation.getRotaAtual()]) {
@@ -180,11 +172,6 @@
     estado.rotaAtual = idRota;
     definicao.idRota = idRota;
     estado.itensPorId = {};
-
-    if (definicao.tipo === 'minhas-justificativas') {
-      renderizarBase(container, definicao, montarRedirecionamentoMinhasJustificativas());
-      return;
-    }
 
     var cacheKey = obterCacheKey(definicao.endpoint);
     var cache = lerCachePortal(cacheKey);
@@ -321,9 +308,7 @@
       return montarMinhaFrequencia(data || {}, emCache, definicao);
     }
 
-    var itens = definicao.tipo === 'minhas-justificativas'
-      ? montarItensMinhasJustificativasData(data)
-      : (Array.isArray(data[definicao.listaCampo]) ? data[definicao.listaCampo] : []);
+    var itens = Array.isArray(data[definicao.listaCampo]) ? data[definicao.listaCampo] : [];
     var resumo = data.resumo || {};
     var ultimaAtualizacao = data.ultimaAtualizacao || '';
 
@@ -338,9 +323,6 @@
       itens.length && definicao.tipo === 'pendencias-apresentacoes'
         ? montarPendenciasApresentacoes(itens)
         : '',
-      itens.length && definicao.tipo === 'minhas-justificativas'
-        ? montarMinhasJustificativas(itens)
-        : '',
       itens.length && definicao.tipo === 'pendencias-justificativas'
         ? montarPendenciasJustificativas(itens)
         : '',
@@ -351,17 +333,6 @@
         ? ''
         : '<p class="empty-state readonly-empty">' + ui.escaparHtml(definicao.vazio) + '</p>'
     ].join('');
-  }
-
-  function montarItensMinhasJustificativasData(data) {
-    var faltas = Array.isArray((data || {}).faltasJustificaveis) ? data.faltasJustificaveis : [];
-    var justificativas = Array.isArray((data || {}).justificativas) ? data.justificativas : [];
-
-    return faltas.map(function marcarFalta(item) {
-      return Object.assign({ tipoJustificativaPortal: 'falta' }, item || {});
-    }).concat(justificativas.map(function marcarJustificativa(item) {
-      return Object.assign({ tipoJustificativaPortal: 'justificativa' }, item || {});
-    }));
   }
 
   function montarResumo(resumo, totalLista, ultimaAtualizacao) {
@@ -444,16 +415,6 @@
       '</section>',
       pendencias.length ? montarBlocoPendenciasFrequencia(pendencias) : '',
       payloadAntigo ? '' : montarHistoricoFrequencia(registros, registrosFiltrados, definicao)
-    ].join('');
-  }
-
-  function montarRedirecionamentoMinhasJustificativas() {
-    return [
-      '<div class="readonly-redirect">',
-      '<h2>Justificativas integradas</h2>',
-      '<p>As justificativas agora ficam integradas à aba Minha frequência.</p>',
-      '<button type="button" data-route-target="frequencia">Ir para Minha frequência</button>',
-      '</div>'
     ].join('');
   }
 
@@ -918,52 +879,6 @@
           acoes
             ? '<div class="presentation-card-actions">' + acoes + '</div>'
             : '',
-          '</article>'
-        ].join('');
-      }).join(''),
-      '</div>'
-    ].join('');
-  }
-
-  function montarMinhasJustificativas(itens) {
-    return [
-      '<div class="presentation-actions-list">',
-      itens.map(function montar(item) {
-        var id = obterIdItem(item);
-        var status = obterStatusJustificativa(item);
-        var foraPrazo = justificativaForaPrazo(item);
-        var podeReenviar = item.podeReenviarAjuste === true || item.podeReenviarJustificativa === true;
-        var podeEnviar = item.podeEnviarJustificativa === true || podeReenviar;
-        var titulo = item.tituloPublico || item.tituloAtividade || item.atividade || 'Atividade';
-        var data = formatarDataCurtaPendencia(item.dataAtividade);
-        var prazo = formatarDataCurtaPendencia(item.dataLimiteJustificativa || item.prazoJustificativa);
-        var motivo = item.motivoCategoria || item.motivoDeclarado;
-        var envio = item.enviadaEm || item.dataEnvio;
-        var decisao = item.decisaoAplicada || item.decisaoAplicadaNaPresenca || item.valorDepois;
-        var acao = podeEnviar
-          ? botaoAcao('justificativa-enviar', id, podeReenviar ? 'Reenviar justificativa' : (foraPrazo ? 'Enviar justificativa fora do prazo' : 'Enviar justificativa'), 'primary')
-          : '';
-
-        estado.itensPorId[id] = item;
-
-        return [
-          '<article class="presentation-action-card">',
-          '<div class="presentation-card-topline">',
-          '<span>' + ui.escaparHtml(formatarValor(status || item.statusPresenca || 'FALTA')) + '</span>',
-          foraPrazo ? '<span>FORA DO PRAZO</span>' : '',
-          '</div>',
-          '<div class="presentation-action-main"><div>',
-          data ? '<small>' + ui.escaparHtml(data) + '</small>' : '',
-          '<h3>' + ui.escaparHtml(formatarValor(titulo)) + '</h3>',
-          motivo ? '<p>Motivo: ' + ui.escaparHtml(motivo) + '</p>' : '',
-          prazo ? '<p>Prazo para justificar: ' + ui.escaparHtml(foraPrazo ? 'encerrado em ' + prazo : 'ate ' + prazo) + '</p>' : '',
-          envio ? '<p>Enviada em: ' + ui.escaparHtml(formatarDataCurtaPendencia(envio)) + '</p>' : '',
-          decisao ? '<p>Decisao: ' + ui.escaparHtml(formatarValor(decisao)) + '</p>' : '',
-          item.observacaoPublica ? '<p>Observacao: ' + ui.escaparHtml(item.observacaoPublica) + '</p>' : '',
-          item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
-          foraPrazo && podeEnviar ? '<p>Voce ainda pode enviar a justificativa, mas ela ficara marcada como fora do prazo e dependera de analise.</p>' : '',
-          '</div></div>',
-          acao ? '<div class="presentation-card-actions">' + acao + '</div>' : '',
           '</article>'
         ].join('');
       }).join(''),
@@ -2807,7 +2722,7 @@
         });
         fecharModal();
         invalidarCacheJustificativas();
-        carregarTela(estado.rotaAtual || 'justificativas');
+        carregarTela(estado.rotaAtual || 'frequencia');
       })
       .catch(function falhar(erro) {
         mostrarErroModal(erro.message || 'Erro controlado ao salvar justificativa.');
