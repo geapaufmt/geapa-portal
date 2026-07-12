@@ -10,6 +10,7 @@ const SESSION_STORAGE_KEY = 'geapaPortal.sessionToken';
 const FIREBASE_LOGIN_STATE = {
   loginEmAndamento: false
 };
+let minhaSituacaoCarregamentoAtual = null;
 
 (function iniciarPortalGeapa() {
   if (typeof document === 'undefined') {
@@ -41,6 +42,7 @@ const FIREBASE_LOGIN_STATE = {
   sincronizarNavegacaoPortal();
   carregarHomePublicaEditorial();
   configurarRotasConteudoPublicoEditorial();
+  configurarRotaMinhaSituacao(situacao);
   configurarRotaMeuPerfil(meuPerfil);
 
   botaoAlternarLoginCodigo.addEventListener('click', function aoAlternarLoginCodigo() {
@@ -171,7 +173,7 @@ const FIREBASE_LOGIN_STATE = {
     botaoAlternarLoginCodigo.textContent = 'Entrar por código';
     situacao.innerHTML = [
       '<p class="empty-state">',
-      'Depois da entrada, esta área mostrará a primeira versão da tela "Minha situação".',
+      'A situação do membro será carregada após a autenticação.',
       '</p>'
     ].join('');
     meuPerfil.innerHTML = [
@@ -490,6 +492,33 @@ async function carregarMinhaSituacao(token) {
   }
 
   return situacao;
+}
+
+/**
+ * Compartilha uma chamada de Minha situacao entre restauracao de sessao,
+ * navegacao e revalidacoes do Firebase.
+ *
+ * @param {string} token Token temporario retornado pelo backend.
+ * @return {Promise<Object>} Dados normalizados da situacao.
+ */
+function carregarMinhaSituacaoComControle(token) {
+  if (minhaSituacaoCarregamentoAtual) {
+    return minhaSituacaoCarregamentoAtual;
+  }
+
+  let promessa;
+  promessa = Promise.resolve()
+    .then(function iniciarCarregamentoMinhaSituacao() {
+      return carregarMinhaSituacao(token);
+    })
+    .finally(function liberarCarregamentoMinhaSituacao() {
+      if (minhaSituacaoCarregamentoAtual === promessa) {
+        minhaSituacaoCarregamentoAtual = null;
+      }
+    });
+
+  minhaSituacaoCarregamentoAtual = promessa;
+  return promessa;
 }
 
 /**
@@ -1798,7 +1827,7 @@ async function restaurarSessaoSalva(app, telaAcesso, telaSituacao, situacao, sta
   renderizarCarregandoSituacao(situacao);
 
   try {
-    const minhaSituacao = await carregarMinhaSituacao(token);
+    const minhaSituacao = await carregarMinhaSituacaoComControle(token);
     aplicarUsuarioAtual(minhaSituacao);
     atualizarContextoUsuario(usuarioContexto, minhaSituacao.usuario);
     renderizarMinhaSituacao(situacao, minhaSituacao);
@@ -2760,6 +2789,75 @@ function formatarRotuloPublico(valor) {
   }
 
   return String(valor || '').replace(/_/g, ' ').trim();
+}
+
+/**
+ * Carrega Minha situacao quando a rota protegida correspondente e aberta.
+ *
+ * @param {HTMLElement} container Area visual da tela Minha situacao.
+ */
+function configurarRotaMinhaSituacao(container) {
+  document.addEventListener('portal:navigationchange', function aoNavegar(evento) {
+    const rota = evento.detail && evento.detail.rota;
+
+    if (!rota || rota.id !== 'minha-situacao') {
+      return;
+    }
+
+    carregarERenderizarMinhaSituacao(container);
+  });
+
+  const navegacao = window.PortalGeapaNavigation;
+
+  if (navegacao && typeof navegacao.getRotaAtual === 'function' && navegacao.getRotaAtual() === 'minha-situacao') {
+    carregarERenderizarMinhaSituacao(container);
+  }
+}
+
+/**
+ * Executa o ciclo completo de carregamento/renderizacao de Minha situacao.
+ *
+ * @param {HTMLElement} container Area visual da tela Minha situacao.
+ */
+async function carregarERenderizarMinhaSituacao(container) {
+  if (!container) {
+    return;
+  }
+
+  const token = lerSessaoLocal();
+
+  if (!token) {
+    if (rotaAindaAtual('minha-situacao')) {
+      renderizarErroSituacao(container, 'Sua sessao nao foi encontrada. Entre novamente.');
+    }
+    return;
+  }
+
+  if (minhaSituacaoCarregamentoAtual) {
+    return minhaSituacaoCarregamentoAtual;
+  }
+
+  renderizarCarregandoSituacao(container);
+
+  const carregamento = carregarMinhaSituacaoComControle(token)
+    .then(function concluirMinhaSituacao(minhaSituacao) {
+      aplicarUsuarioAtual(minhaSituacao);
+
+      if (rotaAindaAtual('minha-situacao')) {
+        renderizarMinhaSituacao(container, minhaSituacao);
+      }
+
+      return minhaSituacao;
+    })
+    .catch(function tratarErroMinhaSituacao(erro) {
+      if (rotaAindaAtual('minha-situacao')) {
+        renderizarErroSituacao(container, erro.message);
+      }
+
+      return null;
+    });
+
+  return carregamento;
 }
 
 /**
