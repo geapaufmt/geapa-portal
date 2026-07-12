@@ -334,7 +334,7 @@
       return;
     }
 
-    lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(rotulos.carregando) + '</p>';
+    renderizarLoadingLocal(lista, rotulos.carregando);
     status.textContent = rotulos.buscando;
     ui.mostrarLoading(rotulos.carregando);
 
@@ -521,7 +521,7 @@
       return;
     }
 
-    lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(rotulos.carregando) + '</p>';
+    renderizarLoadingLocal(lista, rotulos.carregando);
     status.textContent = rotulos.buscando;
     ui.mostrarLoading(rotulos.carregando);
 
@@ -1789,17 +1789,18 @@
         : '',
       '</div>',
       '</div>',
-      '<dl class="activity-facts">',
+      '<dl class="activity-metadata">',
       montarFato('Tipo', atividade.tipoPublico),
       montarFato('Formato', ui.formatarRotulo(atividade.formato)),
-      possuiApresentacao ? '' : montarFatoOpcional('Eixo principal', obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico'])),
-      possuiApresentacao ? '' : montarFatoOpcional('Eixo secundario', obterCampoTextoAtividade(atividade, ['eixoTematicoSecundario', 'eixoSecundario'])),
-      possuiApresentacao ? '' : montarFatoOpcional('Pessoa principal', montarPessoaPrincipalAtividade(atividade)),
-      montarFato('Presença', ui.formatarBooleano(atividade.contaPresenca)),
-      montarFato('Falta', ui.formatarBooleano(atividade.contaFalta)),
-      montarFato('Certificado', ui.formatarBooleano(atividade.geraCertificado)),
-      montarFato('Carga horária', atividade.cargaHoraria ? atividade.cargaHoraria + ' h' : '-'),
+      montarFatoOpcional('Eixo principal', obterCampoTextoAtividade(atividade, ['eixoTematicoPrincipal', 'eixoPrincipal', 'eixoTematico'])),
+      montarPessoaPrincipalCard(atividade),
       '</dl>',
+      '<div class="activity-indicators" aria-label="Indicadores da atividade">',
+      montarChipOperacional(atividade.contaPresenca, 'Conta presença', 'Não conta presença'),
+      montarChipOperacional(atividade.contaFalta, 'Conta falta', 'Não conta falta'),
+      montarChipOperacional(atividade.geraCertificado, 'Certificável', 'Não certificável'),
+      '<span class="activity-indicator-chip">' + ui.escaparHtml(atividade.cargaHoraria ? atividade.cargaHoraria + ' h' : 'Carga horária não informada') + '</span>',
+      '</div>',
       montarBlocoApresentacoesCard(atividade),
       historico ? '' : montarAvisoChamada(atividade, destaque),
       '<div class="activity-actions">',
@@ -1948,6 +1949,37 @@
 
   function montarFatoOpcional(rotulo, valor) {
     return valor ? montarFato(rotulo, valor) : '';
+  }
+
+  function montarPessoaPrincipalCard(atividade) {
+    var nome = obterCampoTextoAtividade(atividade, ['nomePessoaPrincipalPublico', 'pessoaPrincipalPublica']);
+    var papel = obterCampoTextoAtividade(atividade, ['papelPessoaPrincipal', 'papelApresentador']);
+    var tipo = obterCampoTextoAtividade(atividade, ['tipoPessoaPrincipal', 'tipoApresentador']);
+    var complemento = [papel, tipo]
+      .filter(Boolean)
+      .map(function (valor) { return ui.formatarRotulo(valor); })
+      .join(' · ');
+
+    if (!nome && !complemento) return '';
+
+    return [
+      '<div class="activity-person-metadata">',
+      '<dt>Pessoa principal</dt>',
+      '<dd>',
+      nome ? '<span>' + ui.escaparHtml(nome) + '</span>' : '',
+      complemento ? '<small>' + ui.escaparHtml(complemento) + '</small>' : '',
+      '</dd>',
+      '</div>'
+    ].join('');
+  }
+
+  function montarChipOperacional(valor, rotuloPositivo, rotuloNegativo) {
+    var positivo = Boolean(valor);
+
+    return '<span class="activity-indicator-chip' + (positivo ? ' activity-indicator-chip-positive' : '') + '">' +
+      (positivo ? '<span aria-hidden="true">✓</span>' : '') +
+      ui.escaparHtml(positivo ? rotuloPositivo : rotuloNegativo) +
+      '</span>';
   }
 
   function montarBlocoApresentacoesCard(atividade) {
@@ -3438,6 +3470,22 @@
         definirFormularioAtividadeEnviando(form, false);
         ui.ocultarLoading();
       });
+  }
+
+  function renderizarLoadingLocal(container, mensagem) {
+    if (!container) {
+      return;
+    }
+
+    if (ui.montarLoadingLocal) {
+      container.innerHTML = ui.montarLoadingLocal(mensagem);
+      if (ui.hidratarLoadersLocais) {
+        ui.hidratarLoadersLocais(container);
+      }
+      return;
+    }
+
+    container.innerHTML = '<p class="empty-state">' + ui.escaparHtml(mensagem || 'Carregando...') + '</p>';
   }
 
   function definirFormularioAtividadeEnviando(form, enviando) {

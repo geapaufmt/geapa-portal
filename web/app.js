@@ -1034,6 +1034,7 @@ function normalizarMeuPerfil(resposta) {
       email: perfil.email || '',
       instagram: perfil.instagram || '',
       linkLattes: perfil.linkLattes || '',
+      linksPerfis: normalizarLinksPerfis(perfil.linksPerfis),
       cidadeOrigem: perfil.cidadeOrigem || '',
       ufOrigem: perfil.ufOrigem || '',
       historicoAcademico: perfil.historicoAcademico || '',
@@ -1045,6 +1046,49 @@ function normalizarMeuPerfil(resposta) {
       tempoClienteMs: 0
     }
   };
+}
+
+/**
+ * Normaliza os links do proprio perfil recebidos pelo backend seguro.
+ * @param {Object[]} links Lista recebida do GEAPA-CORE.
+ * @return {Object[]} Links validos e sem duplicidade para exibicao.
+ */
+function normalizarLinksPerfis(links) {
+  const vistos = {};
+  const normalizados = (Array.isArray(links) ? links : []).map(function(link) {
+    const tipo = String((link && link.tipo) || 'OUTRO').trim().toUpperCase();
+    const url = normalizarUrlPerfil(link && link.url);
+    const rotulo = String((link && link.rotulo) || rotuloPadraoLinkPerfil(tipo)).trim();
+    const chave = tipo + '|' + url.toLowerCase();
+
+    if (!url || vistos[chave]) {
+      return null;
+    }
+    vistos[chave] = true;
+    return { tipo: tipo, url: url, rotulo: rotulo };
+  }).filter(Boolean);
+
+  return normalizados.sort(function(a, b) {
+    const prioridadeA = a.tipo === 'LATTES' ? 0 : 1;
+    const prioridadeB = b.tipo === 'LATTES' ? 0 : 1;
+    if (prioridadeA !== prioridadeB) return prioridadeA - prioridadeB;
+    return a.rotulo.localeCompare(b.rotulo);
+  });
+}
+
+/** Retorna o rotulo padrao para os tipos de links reconhecidos pelo Portal. */
+function rotuloPadraoLinkPerfil(tipo) {
+  const rotulos = {
+    LATTES: 'Curriculo Lattes',
+    LINKEDIN: 'LinkedIn',
+    ORCID: 'ORCID',
+    INSTAGRAM: 'Instagram',
+    SITE_PESSOAL: 'Site pessoal',
+    GOOGLE_SCHOLAR: 'Google Scholar',
+    RESEARCHGATE: 'ResearchGate',
+    OUTRO: 'Link externo'
+  };
+  return rotulos[tipo] || rotulos.OUTRO;
 }
 
 /**
@@ -1283,8 +1327,10 @@ function renderizarMeuPerfil(container, dados) {
     montarPerfilItem('E-mail', perfil.email),
     montarPerfilItem('Telefone', perfil.telefone),
     montarPerfilItem('Instagram', perfil.instagram),
-    montarPerfilItem('Curriculo Lattes', perfil.linkLattes, { link: true }),
     '</dl>',
+    '<h3 class="profile-section-title">Links academicos e perfis</h3>',
+    '<p class="section-note">Links ativos do seu cadastro. A exibicao publica exige autorizacao especifica.</p>',
+    montarPerfilLinks(perfil.linksPerfis),
     '<h3 class="profile-section-title">Origem e historico academico</h3>',
     '<dl class="summary-grid">',
     montarPerfilItem('Cidade/UF de origem', localOrigem),
@@ -1473,6 +1519,23 @@ function montarPerfilItem(rotulo, valor, opcoes) {
     '<dd>' + conteudoHtml + '</dd>',
     vazio ? '<p class="profile-note">Atualização recomendada.</p>' : '',
     '</div>'
+  ].join('');
+}
+
+/** Monta os links academicos e publicos vinculados ao proprio perfil. */
+function montarPerfilLinks(links) {
+  const lista = Array.isArray(links) ? links : [];
+
+  if (!lista.length) {
+    return '<p class="empty-state">Nenhum link academico ou de perfil informado ainda.</p>';
+  }
+
+  return [
+    '<dl class="summary-grid">',
+    lista.map(function(link) {
+      return montarPerfilItem(link.rotulo || rotuloPadraoLinkPerfil(link.tipo), link.url, { link: true });
+    }).join(''),
+    '</dl>'
   ].join('');
 }
 

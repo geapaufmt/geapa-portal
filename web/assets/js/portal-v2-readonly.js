@@ -195,7 +195,7 @@
       return;
     }
 
-    renderizarBase(container, definicao, '<p class="empty-state readonly-skeleton">Carregando dados da view V2...</p>');
+    renderizarBase(container, definicao, montarLoadingLocalReadonly('Carregando dados da view V2...'));
     ui.mostrarLoading('Carregando view V2...');
     buscarTela(definicao, container, cacheKey, false);
   }
@@ -280,16 +280,29 @@
 
   function renderizarBase(container, definicao, corpo) {
     container.innerHTML = [
-      '<p class="eyebrow">' + ui.escaparHtml(definicao.marcador) + '</p>',
-      '<div class="public-content-heading">',
-      '<h2>' + ui.escaparHtml(definicao.titulo) + '</h2>',
-      '<p class="intro">' + ui.escaparHtml(definicao.intro) + '</p>',
+      '<header class="portal-page-header">',
+      '<div class="portal-page-heading public-content-heading">',
+      '<p class="portal-page-eyebrow eyebrow">' + ui.escaparHtml(definicao.marcador) + '</p>',
+      '<h2 class="portal-page-title">' + ui.escaparHtml(definicao.titulo) + '</h2>',
+      '<p class="portal-page-description intro">' + ui.escaparHtml(definicao.intro) + '</p>',
       '</div>',
+      '</header>',
       '<div data-readonly-feedback class="portal-feedback-slot" hidden></div>',
       corpo
     ].join('');
 
+    if (typeof ui.hidratarLoadersLocais === 'function') {
+      ui.hidratarLoadersLocais(container);
+    }
     restaurarFeedbackPersistente(definicao.idRota);
+  }
+
+  function montarLoadingLocalReadonly(mensagem) {
+    if (typeof ui.montarLoadingLocal === 'function') {
+      return ui.montarLoadingLocal(mensagem);
+    }
+
+    return '<p class="empty-state readonly-skeleton">' + ui.escaparHtml(mensagem) + '</p>';
   }
 
   function restaurarFeedbackPersistente(idRota) {

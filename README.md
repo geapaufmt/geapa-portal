@@ -55,7 +55,8 @@ backend.
 - Manifesto PWA inicial em `web/manifest.json`.
 - Cliente de API em `web/app.js`, sem segredos e sem acesso direto a planilhas.
 - Tela `Meu perfil` carregada pelo Apps Script via GEAPA-CORE, exibindo apenas
-  dados do proprio usuario autenticado.
+  dados do proprio usuario autenticado, incluindo links academicos e de perfil
+  retornados pelo contrato Pessoas V2.
 - Firebase Auth com Google Sign-In em migracao, sempre validado pelo Apps
   Script antes de liberar a sessao do portal.
 - Backend em Google Apps Script com envio de codigo controlado por lista de
@@ -157,6 +158,13 @@ efetivo, perfis, permissoes e estado de acesso ja resolvidos pelo backend. O
 front-end usa esses dados apenas para organizar navegacao e rotas protegidas;
 qualquer autorizacao real continua sendo validada no Apps Script.
 
+A rota **Gestao do GEAPA > Membros** oferece uma listagem administrativa
+somente leitura baseada em `PESSOAS_V2_RESUMO_OPERACIONAL`. Busca, filtros e
+paginacao sao aplicados no Core; o navegador nao consulta planilhas, nao
+recalcula semestres/frequencia e nao recebe CPF, telefone, nascimento ou
+observacoes internas. A permissao exigida e `membros:ler` para SECRETARIA,
+DIRETORIA e ADMIN.
+
 ## Como publicar no Firebase Hosting
 
 O Firebase Hosting publica somente o conteudo publico da pasta `web/`.
@@ -223,6 +231,20 @@ o `clasp push` envie apenas o backend e nao envie os arquivos do front-end.
 Por seguranca, `.clasp.json` fica no `.gitignore`, pois pode conter o `scriptId`
 real do projeto. Use `.clasp.example.json` como modelo ao configurar uma nova
 maquina.
+
+Para publicar uma alteracao completa do Portal:
+
+```powershell
+npx.cmd @google/clasp push --force
+npx.cmd @google/clasp deploy -i <DEPLOYMENT_ID_ATUAL> -d "Publica Admin Membros"
+npx.cmd firebase-tools deploy --only hosting --project portal-geapa
+```
+
+O segundo comando cria uma nova versao para o deployment existente e preserva
+a URL usada pelo frontend. Antes do Hosting, confirme os arquivos versionados
+em `web/index.html`; para esta entrega, `style.css?v=47`, `api.js?v=43`,
+`navigation.js?v=33` e `admin-membros.js?v=1`. O service worker usa
+`portal-geapa-pwa-v95`, garantindo a substituicao do cache anterior.
 
 ## Documentacao complementar
 

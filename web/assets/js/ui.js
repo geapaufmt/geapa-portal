@@ -7,6 +7,7 @@
   var TOAST_DURACAO_PADRAO_MS = 6500;
   var loadingCount = 0;
   var loaderSvgPromise = null;
+  var loaderSvgTextPromise = null;
   var toastSequence = 0;
   var toastTimers = {};
 
@@ -103,19 +104,8 @@
       return loaderSvgPromise;
     }
 
-    loaderSvgPromise = fetch(LOADER_SVG_URL)
-      .then(function tratarResposta(resposta) {
-        if (!resposta.ok) {
-          throw new Error('SVG do loader indisponivel.');
-        }
-
-        return resposta.text();
-      })
+    loaderSvgPromise = obterSvgLoaderMarkup()
       .then(function inserirSvg(svg) {
-        if (svg.indexOf('<svg') < 0) {
-          throw new Error('Arquivo de loader invalido.');
-        }
-
         destino.innerHTML = svg;
         prepararSvgInjetado(destino.querySelector('svg'));
       })
@@ -124,6 +114,67 @@
       });
 
     return loaderSvgPromise;
+  }
+
+  function obterSvgLoaderMarkup() {
+    if (loaderSvgTextPromise) {
+      return loaderSvgTextPromise;
+    }
+
+    loaderSvgTextPromise = fetch(LOADER_SVG_URL)
+      .then(function tratarResposta(resposta) {
+        if (!resposta.ok) {
+          throw new Error('SVG do loader indisponivel.');
+        }
+
+        return resposta.text();
+      })
+      .then(function validarSvg(svg) {
+        if (svg.indexOf('<svg') < 0) {
+          throw new Error('Arquivo de loader invalido.');
+        }
+
+        return svg;
+      })
+      .catch(function descartarCacheErro(erro) {
+        loaderSvgTextPromise = null;
+        throw erro;
+      });
+
+    return loaderSvgTextPromise;
+  }
+
+  function montarLoadingLocal(mensagem) {
+    return [
+      '<div class="geapa-inline-loading" role="status" aria-live="polite">',
+      '<div class="global-loading-brain geapa-inline-loading-brain" data-loader-svg-local aria-hidden="true">',
+      '<img src="' + escaparHtml(LOADER_SVG_URL) + '" alt="">',
+      '</div>',
+      '<p>' + escaparHtml(mensagem || 'Carregando...') + '</p>',
+      '</div>'
+    ].join('');
+  }
+
+  function hidratarLoadersLocais(root) {
+    var origem = root || document;
+    var destinos = Array.prototype.slice.call(origem.querySelectorAll('[data-loader-svg-local]'));
+
+    if (!destinos.length) {
+      return Promise.resolve();
+    }
+
+    return obterSvgLoaderMarkup()
+      .then(function inserirTodos(svg) {
+        destinos.forEach(function inserir(destino) {
+          if (destino.querySelector('svg')) {
+            return;
+          }
+
+          destino.innerHTML = svg;
+          prepararSvgInjetado(destino.querySelector('svg'));
+        });
+      })
+      .catch(function manterFallback() {});
   }
 
   function prepararSvgInjetado(svg) {
@@ -415,6 +466,8 @@
     mostrarToast: mostrarToast,
     atualizarToast: atualizarToast,
     removerToast: removerToast,
+    montarLoadingLocal: montarLoadingLocal,
+    hidratarLoadersLocais: hidratarLoadersLocais,
     mostrarMensagemPersistente: mostrarMensagemPersistente,
     limparMensagemPersistente: limparMensagemPersistente,
     aplicarErrosCampos: aplicarErrosCampos,
