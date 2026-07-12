@@ -164,7 +164,7 @@ clientes PWA descartem o bundle anterior.
 
 ## Rotas V2 somente leitura
 
-As rotas `frequencia`, `minhas-apresentacoes`, `justificativas`,
+As rotas `frequencia`, `minhas-apresentacoes`,
 `admin-apresentacoes`, `pendencias-diretoria` e `status-v2` usam a tela reutilizavel
 `#tela-placeholder` com renderizacao em `web/assets/js/portal-v2-readonly.js`.
 A rota `painel-diretoria-v2` usa o mesmo placeholder, mas renderiza o painel
@@ -175,3 +175,12 @@ Apps Script.
 Membro comum recebe apenas dados proprios. Rotas de diretoria dependem de
 perfil/permissao enviados pelo backend; o frontend nao deriva cargo, diretoria
 ou permissao a partir de dados locais.
+# Ajustes HOMOLOG de perfil
+
+- `meu-perfil`: leitura, edicao direta permitida e solicitacoes proprias;
+- `admin-correcoes-cadastrais`: exige `membros:analisar_correcoes`;
+- `admin-justificativas`: permanece protegida por `justificativas:analisar`;
+- `app/justificativas`: rota legada, redireciona para `frequencia`.
+
+Nao existe mais item `Minhas justificativas` no menu do membro. Os formularios
+e o acompanhamento permanecem dentro de `Minha frequencia`.

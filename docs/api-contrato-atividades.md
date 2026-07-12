@@ -424,9 +424,9 @@ Prazo e selo `FORA DO PRAZO` sao exclusivos de ausencias com contexto de
 justificativa. O frontend ignora defensivamente esses metadados em registros de
 presenca, inclusive ao receber payload antigo ainda presente em cache.
 
-A rota `app/justificativas` e o endpoint `/v2/minhas-justificativas` permanecem
-disponiveis por compatibilidade. Para membro comum, a rota deixa de aparecer no
-menu e, quando acessada diretamente, orienta a usar `Minha frequencia`. A rota
+O endpoint `/v2/minhas-justificativas` permanece disponivel apenas por
+compatibilidade. A rota do membro foi removida do menu e o caminho antigo
+redireciona para `Minha frequencia`. A rota
 administrativa `admin/justificativas` permanece separada e inalterada.
 
 O frontend nao altera presenca diretamente, nao escreve em `PORTAL_*` e invalida

@@ -1,10 +1,8 @@
 /**
  * Tela "Minha situacao no GEAPA".
  *
- * Nesta fase, o portal ja usa o cadastro localizado pelo GEAPA-CORE ou pelo
- * fallback de teste para exibir dados cadastrais basicos do proprio membro.
- * Frequencia, pendencias, certificados e historico ainda permanecem como
- * placeholders ate que o contrato definitivo seja criado no GEAPA-CORE.
+ * O Portal usa o GEAPA-CORE como fonte preferencial e preserva um fallback
+ * controlado apenas para indisponibilidade temporaria da view operacional.
  */
 
 /**
@@ -98,7 +96,7 @@ function portalMinhaSituacao(token) {
 
   return portalRespostaOk_(
     'MINHA_SITUACAO_PARCIAL',
-    'Dados cadastrais carregados. Os demais blocos ainda estão em preparação.',
+    'Minha situação foi carregada pelo fallback operacional.',
     {
       tokenRecebido: token || '',
       sessao: portalExtrairSessaoMinhaSituacao_(situacaoParcial),

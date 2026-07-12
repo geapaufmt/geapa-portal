@@ -5,8 +5,8 @@
       {
         "userSymbol": "GEAPA_CORE",
         "libraryId": "15Ha6cxA6NInRwyUTmLAqRX4pnmewetkZ32j4I_yFKh9hEwOHmPCL7F_d",
-        "version": "11",
-        "developmentMode": false
+        "version": "0",
+        "developmentMode": true
       },
       {
         "userSymbol": "GEAPA_ATIVIDADES",

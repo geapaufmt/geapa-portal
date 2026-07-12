@@ -417,3 +417,33 @@ function portalRunTesteAtividadesV2ApresentacoesVinculadas() {
   Logger.log(JSON.stringify(resultado, null, 2));
   return resultado;
 }
+
+function portalRunTestePerfilCorrecoesHomolog() {
+  var funcoes = [
+    'portalMeuPerfilAtualizar',
+    'portalMeuPerfilSolicitarCorrecao',
+    'portalMeuPerfilListarSolicitacoes',
+    'portalAdminCorrecoesCadastraisListar',
+    'portalAdminCorrecoesCadastraisAnalisar',
+    'portalAdminCorrecoesCadastraisAplicar'
+  ];
+  var localizadas = {
+    portalMeuPerfilAtualizar: typeof portalMeuPerfilAtualizar === 'function',
+    portalMeuPerfilSolicitarCorrecao: typeof portalMeuPerfilSolicitarCorrecao === 'function',
+    portalMeuPerfilListarSolicitacoes: typeof portalMeuPerfilListarSolicitacoes === 'function',
+    portalAdminCorrecoesCadastraisListar: typeof portalAdminCorrecoesCadastraisListar === 'function',
+    portalAdminCorrecoesCadastraisAnalisar: typeof portalAdminCorrecoesCadastraisAnalisar === 'function',
+    portalAdminCorrecoesCadastraisAplicar: typeof portalAdminCorrecoesCadastraisAplicar === 'function'
+  };
+  var visitante = portalMeuPerfilListarSolicitacoes('');
+  var resultado = {
+    ok: funcoes.every(function conferir(nome) { return localizadas[nome]; }) &&
+      visitante && visitante.ok === false,
+    ambiente: 'HOMOLOG',
+    coreDevelopmentModeEsperado: true,
+    funcoes: localizadas,
+    visitanteSemSessaoBloqueado: visitante && visitante.ok === false
+  };
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}

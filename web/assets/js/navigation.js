@@ -67,7 +67,6 @@
     rota('meu-perfil', 'Meu perfil', 'app/meu-perfil', 'meu-vinculo', 10, 'tela-meu-perfil', 'view-meu-perfil', true, LOGADOS, ['portal:acessar'], 'Dados cadastrais proprios em modo somente leitura.', 'implementado'),
     rota('minha-situacao', 'Minha situação', 'app/minha-situacao', 'meu-vinculo', 20, 'tela-situacao', 'view-situacao', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], ['situacao:ver_propria'], 'Painel operacional resumido do usuario logado.', 'implementado'),
     rota('frequencia', 'Minha frequência', 'app/frequencia', 'meu-vinculo', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['situacao:ver_propria', 'presencas:ler'], 'Frequência própria carregada pela view V2 filtrada no backend.', 'implementado'),
-    rota('justificativas', 'Minhas justificativas', 'app/justificativas', 'meu-vinculo', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['situacao:ver_propria', 'justificativas:ver_proprias'], 'Justificativas próprias carregadas pela view V2 filtrada no backend.', 'implementado'),
     rota('minhas-apresentacoes', 'Minhas apresentações', 'app/minhas-apresentacoes', 'meu-vinculo', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.EGRESSO, PERFIS.ADMIN], ['situacao:ver_propria', 'apresentacoes:ver_propria', 'apresentacoes:ver_ate_saida'], 'Apresentações próprias ou histórico permitido pelo backend.', 'implementado'),
     rota('certificados', 'Meus certificados', 'app/certificados', 'meu-vinculo', 70, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['certificados:ver_proprios'], 'Certificados próprios emitidos ou liberados.', 'placeholder'),
     rota('inscricoes', 'Minhas inscrições', 'app/inscricoes', 'meu-vinculo', 80, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['inscricoes:ver_proprias'], 'Inscrições próprias em atividades e processo seletivo.', 'placeholder'),
@@ -80,6 +79,7 @@
 
     rota('admin', 'Painel administrativo', 'admin', 'gestao-geapa', 10, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['gestao:acessar'], 'Painel operacional conforme perfil e permissões.', 'placeholder'),
     rota('admin-membros', 'Membros', 'admin/membros', 'gestao-geapa', 20, 'tela-admin-membros', 'view-admin-membros', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta operacional de membros autorizada pelo backend.', 'implementado'),
+    rota('admin-correcoes-cadastrais', 'Correções cadastrais', 'admin/correcoes-cadastrais', 'gestao-geapa', 25, 'tela-admin-correcoes-cadastrais', 'view-admin-correcoes-cadastrais', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:analisar_correcoes'], 'Análise e aplicação de solicitações cadastrais autorizadas pelo Core.', 'implementado'),
     rota('admin-atividades', 'Atividades', 'admin/atividades', 'gestao-geapa', 30, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['atividades:gerir'], 'Criação, edição e operação de atividades.', 'implementado'),
     rota('admin-chamadas', 'Chamadas', 'admin/chamadas', 'gestao-geapa', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['presencas:gerir'], 'Registro e acompanhamento de chamadas/presenças.', 'placeholder'),
     rota('admin-justificativas', 'Justificativas', 'admin/justificativas', 'gestao-geapa', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['justificativas:analisar'], 'Análise operacional e decisão de justificativas conforme permissão.', 'implementado'),
@@ -102,6 +102,8 @@
     'app/meu-cadastro': 'meu-perfil',
     cadastro: 'meu-perfil',
     perfil: 'meu-perfil',
+    justificativas: 'frequencia',
+    'app/justificativas': 'frequencia',
     atividades: 'atividades',
     agenda: 'atividades',
     'atividades-abertas': 'atividades',
@@ -174,7 +176,17 @@
   }
 
   function sincronizarRotaComHash() {
+    var hashBruto = obterHashBruto_();
     var idRota = obterRotaPorHash();
+
+    if (hashBruto === 'app/justificativas' || hashBruto === 'justificativas') {
+      irPara('frequencia', {
+        atualizarHash: true,
+        substituirHash: true,
+        motivo: 'justificativas-redirecionadas'
+      });
+      return;
+    }
 
     if (idRota) {
       irPara(idRota, { atualizarHash: false, origem: 'hash' });
@@ -407,28 +419,19 @@
     return ROTAS_PORTAL.filter(function filtrarRota(rota) {
       var sessaoAtual = sessao || getSessaoAtual();
       return rota.mostrarNoMenu &&
-        rotaVisivelNoMenuParaPerfil_(sessaoAtual, rota) &&
         routeFeatureEnabled(rota) &&
         resolveRouteAccess(sessaoAtual, rota).ok;
     }).sort(ordenarRotas);
   }
 
-  function rotaVisivelNoMenuParaPerfil_(sessao, rota) {
-    if (!rota || rota.id !== 'justificativas') return true;
-    var perfis = sessao && Array.isArray(sessao.perfisPortal) ? sessao.perfisPortal : [];
-    var privilegiados = [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN, PERFIS.ADMIN_TECNICO];
-    var membroComum = perfis.indexOf(PERFIS.MEMBRO) >= 0 && !privilegiados.some(function temPerfil(perfil) {
-      return perfis.indexOf(perfil) >= 0;
-    });
-    return !membroComum;
-  }
-
   function routeFeatureEnabled(rota) {
     var config = global.PortalGeapaConfig || {};
     var readOnly = config.READ_ONLY_MODE === true;
-    if (readOnly && rota.grupoMenu === 'gestao-geapa' && rota.id !== 'admin-membros') return false;
+    var gestaoPermitidaNoHomolog = ['admin-membros', 'admin-correcoes-cadastrais', 'admin-justificativas'];
+    if (readOnly && rota.grupoMenu === 'gestao-geapa' && gestaoPermitidaNoHomolog.indexOf(rota.id) < 0) return false;
     if (rota.id === 'admin-atividades' && config.ENABLE_ACTIVITY_MANAGEMENT === false) return false;
-    if (['justificativas', 'admin-justificativas'].indexOf(rota.id) >= 0 && config.ENABLE_JUSTIFICATIVAS === false) return false;
+    if (rota.id === 'admin-correcoes-cadastrais' && config.ENABLE_PROFILE_UPDATES !== true) return false;
+    if (rota.id === 'admin-justificativas' && config.ENABLE_JUSTIFICATIVAS === false) return false;
     return true;
   }
 
@@ -639,13 +642,17 @@
   }
 
   function obterRotaPorHash() {
-    var hash = String(global.location.hash || '').replace(/^#\/?/, '').trim();
+    var hash = obterHashBruto_();
 
     if (!hash) {
       return '';
     }
 
     return normalizarIdRota(hash);
+  }
+
+  function obterHashBruto_() {
+    return String(global.location.hash || '').replace(/^#\/?/, '').trim();
   }
 
   function atualizarHashDaRota(rota, opcoes) {

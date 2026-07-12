@@ -20,7 +20,7 @@ Firestore nao deve ser implementado antes dos ajustes abaixo:
 1. Tornar seletiva a atualizacao das views. Hoje varias escritas simples chamam
    `atividadesV2_atualizarViewsPortal_`, que rematerializa seis views em serie.
 2. Reduzir leituras integrais nas rotas privadas. Minha frequencia, Minhas
-   apresentacoes e Minhas justificativas ainda cruzam abas operacionais inteiras
+   apresentacoes e justificativas integradas a Minha frequencia ainda cruzam abas operacionais inteiras
    antes de filtrar o usuario.
 3. Formalizar a invalidacao entre as tres camadas de cache. Uma escrita pode
    limpar o cache do modulo e do Portal Apps Script, mas deixar outra sessao ou
@@ -82,7 +82,7 @@ wrappers equivalentes existentes no modulo Atividades.
 | Minha frequencia | `web/assets/js/portal-v2-readonly.js` | `GET /v2/minha-frequencia` -> `portalMinhaFrequenciaV2` | `atividadesV2_portalGetMinhaFrequencia`; le `Atividades`, `Atividades_Presencas_Registros` e `Atividades_Justificativas`, depois filtra o membro | Cache privado curto. O contrato detalhado nao usa apenas `PORTAL_FREQUENCIA_MEMBROS` | `PRECISA_AJUSTE_ANTES_FIRESTORE` |
 | Minhas apresentacoes | `portal-v2-readonly.js` | `GET /v2/minhas-apresentacoes` -> `portalMinhasApresentacoesV2` | `atividadesV2_portalGetMinhasApresentacoes`; cruza `Atividades`, `Atividades_Apresentacoes`, `Atividades_Arquivos` e config | Cache privado curto; filtro por pessoa ocorre no backend | `PRECISA_AJUSTE_ANTES_FIRESTORE` |
 | Pendencias de apresentacoes | `portal-v2-readonly.js` | `GET /v2/apresentacoes/pendencias` -> `portalApresentacoesPendenciasDiretoriaV2` | `atividadesV2_portalListarPendenciasApresentacoesDiretoria`; filtra e agrupa `PORTAL_PENDENCIAS_DIRETORIA` por apresentacao | Cache de gestao 90 s; um card por apresentacao | `PRECISA_AJUSTE_LEVE` |
-| Minhas justificativas | `portal-v2-readonly.js` | `GET /v2/minhas-justificativas` -> `portalMinhasJustificativasV2` | `atividadesV2_portalGetMinhasJustificativas`; justificativas, presencas e atividades operacionais | Cache privado curto; leitura precisa ser materializada por pessoa | `PRECISA_AJUSTE_ANTES_FIRESTORE` |
+| Justificativas na frequencia | `portal-v2-readonly.js` | `GET /v2/minha-frequencia` e endpoint legado de compatibilidade | justificativas, presencas e atividades operacionais | Cache privado curto; leitura precisa ser materializada por pessoa | `PRECISA_AJUSTE_ANTES_FIRESTORE` |
 | Configuracao de justificativas | `portal-v2-readonly.js` e `atividades.js` | `GET /v2/justificativas/config` -> `portalJustificativasConfigV2` | `atividadesV2_portalGetJustificativasConfig` | Cache front-end 20 min; payload pequeno | `OK_PARA_FIRESTORE` |
 | Justificativas para analise | `portal-v2-readonly.js` | `GET /v2/justificativas/pendencias` -> `portalJustificativasPendenciasDiretoriaV2` | `atividadesV2_portalListarJustificativasPendentesDiretoria`; filtra `Atividades_Justificativas` | Leitura global operacional; deve virar read model de gestao | `PRECISA_AJUSTE_ANTES_FIRESTORE` |
 | Pendencias da Diretoria | `portal-v2-readonly.js` | `GET /v2/pendencias-diretoria` -> `portalPendenciasDiretoriaV2` | `atividadesV2_portalGetPendenciasDiretoria`; `PORTAL_PENDENCIAS_DIRETORIA` | Cache curto de gestao | `OK_PARA_FIRESTORE` |

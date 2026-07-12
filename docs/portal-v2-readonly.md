@@ -56,7 +56,7 @@ Atividades, sem escrever em planilhas diretamente. Ainda ficam fora deste fluxo:
 
 As telas mantem consulta, loading, vazio e erro controlado. A lista de
 Atividades pode exibir `Justificar ausencia futura` quando o backend enviar a
-flag correspondente; `Minha frequencia` e `Minhas justificativas` podem abrir o
+flag correspondente; `Minha frequencia` pode abrir o
 fluxo de justificativa de falta registrada conforme permissoes do backend.
 
 ## Fluxo de dados

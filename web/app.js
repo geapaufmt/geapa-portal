@@ -11,6 +11,8 @@ const FIREBASE_LOGIN_STATE = {
   loginEmAndamento: false
 };
 let minhaSituacaoCarregamentoAtual = null;
+let meuPerfilCarregamentoAtual = null;
+let meuPerfilDadosAtuais = null;
 
 (function iniciarPortalGeapa() {
   if (typeof document === 'undefined') {
@@ -44,6 +46,7 @@ let minhaSituacaoCarregamentoAtual = null;
   configurarRotasConteudoPublicoEditorial();
   configurarRotaMinhaSituacao(situacao);
   configurarRotaMeuPerfil(meuPerfil);
+  configurarModalCorrecaoPerfil(meuPerfil);
 
   botaoAlternarLoginCodigo.addEventListener('click', function aoAlternarLoginCodigo() {
     const abrir = painelLoginCodigo.hidden;
@@ -1066,7 +1069,7 @@ function normalizarMeuPerfil(resposta) {
       linksPerfis: normalizarLinksPerfis(perfil.linksPerfis),
       cidadeOrigem: perfil.cidadeOrigem || '',
       ufOrigem: perfil.ufOrigem || '',
-      historicoAcademico: perfil.historicoAcademico || '',
+      historicoAcademico: perfil.historicoAcademico || perfil.resumoAcademico || '',
       statusCadastral: perfil.statusCadastral || ''
     },
     desempenho: {
@@ -1337,23 +1340,25 @@ function renderizarMeuPerfil(container, dados) {
     '<div class="member-header">',
     '<div>',
     '<p class="simulation-title">' + escaparHtml(perfil.nomeExibicao || perfil.nomeCompleto || 'Meu perfil') + '</p>',
-    '<p class="member-subtitle">Dados cadastrais em modo somente leitura</p>',
+    '<p class="member-subtitle">Dados cadastrais e solicitações de correção</p>',
     '</div>',
-    '<span class="status-pill">' + escaparHtml(perfil.statusCadastral || 'Status nao informado') + '</span>',
+    '<div class="profile-header-actions"><span class="status-pill">' + escaparHtml(perfil.statusCadastral || 'Status nao informado') + '</span>',
+    perfilEdicaoHabilitada() ? '<button class="secondary-button compact-button" type="button" data-profile-edit>Editar perfil</button>' : '', '</div>',
     '</div>',
+    '<div id="profile-persistent-feedback" class="portal-feedback-slot" hidden></div>',
     '<p class="section-note">Confira os dados que o GEAPA possui sobre voce. Campos vazios aparecem destacados para facilitar a regularizacao.</p>',
     '<h3 class="profile-section-title">Identidade</h3>',
     '<dl class="summary-grid">',
-    montarPerfilItem('Nome completo', perfil.nomeCompleto),
+    montarPerfilItemSensivel('Nome completo', perfil.nomeCompleto, 'NOME_COMPLETO'),
     montarPerfilItem('Nome de exibicao', perfil.nomeExibicao),
-    montarPerfilItem('RGA', perfil.rga),
-    montarPerfilItem('CPF', perfil.cpf),
-    montarPerfilItem('Data de nascimento', perfil.dataNascimento),
+    montarPerfilItemSensivel('RGA', perfil.rga, 'RGA'),
+    montarPerfilItemSensivel('CPF', perfil.cpf, 'CPF'),
+    montarPerfilItemSensivel('Data de nascimento', perfil.dataNascimento, 'DATA_NASCIMENTO'),
     montarPerfilItem('Status cadastral', perfil.statusCadastral),
     '</dl>',
     '<h3 class="profile-section-title">Contato e redes</h3>',
     '<dl class="summary-grid">',
-    montarPerfilItem('E-mail', perfil.email),
+    montarPerfilItemSensivel('E-mail principal', perfil.email, 'EMAIL_PRINCIPAL'),
     montarPerfilItem('Telefone', perfil.telefone),
     montarPerfilItem('Instagram', perfil.instagram),
     '</dl>',
@@ -1369,8 +1374,60 @@ function renderizarMeuPerfil(container, dados) {
     '<h3>Avisos</h3>',
     montarListaOuVazio(avisos, 'Nenhum aviso registrado.'),
     '</div>',
-    '<p class="profile-note">Edicao cadastral ainda nao esta habilitada nesta versao do Portal.</p>'
+    '<section class="situation-section" aria-labelledby="minhas-solicitacoes-title">',
+    '<h3 id="minhas-solicitacoes-title">Minhas solicitações cadastrais</h3>',
+    '<div data-profile-requests><p class="empty-state">Carregando solicitações...</p></div>',
+    '</section>'
   ].join('');
+
+  carregarSolicitacoesMeuPerfil(container);
+}
+
+function montarPerfilItemSensivel(rotulo, valor, campo) {
+  return [
+    '<div class="summary-item profile-sensitive-item">',
+    '<dt>' + escaparHtml(rotulo) + '</dt>',
+    '<dd>' + escaparHtml(valor || 'Não informado ainda') + '</dd>',
+    perfilEdicaoHabilitada() ? '<button class="btn-link profile-correction-link" type="button" data-profile-correction="' + escaparHtml(campo) + '" data-profile-current="' + escaparHtml(valor || '') + '">Solicitar correção</button>' : '',
+    '</div>'
+  ].join('');
+}
+
+function perfilEdicaoHabilitada() {
+  const config = window.PortalGeapaConfig || {};
+  return String(config.ENVIRONMENT || '').toUpperCase() === 'HOMOLOG' && config.ENABLE_PROFILE_UPDATES === true;
+}
+
+function renderizarEdicaoMeuPerfil(container, dados) {
+  const perfil = (dados && dados.perfil) || {};
+  const links = {};
+  (perfil.linksPerfis || []).forEach(function indexar(link) { links[link.tipo] = link.url; });
+  container.innerHTML = [
+    '<div class="member-header"><div><p class="simulation-title">Editar meu perfil</p>',
+    '<p class="member-subtitle">Os campos cadastrais sensíveis continuam sujeitos a solicitação.</p></div></div>',
+    '<div id="profile-persistent-feedback" class="portal-feedback-slot" hidden></div>',
+    '<form class="profile-edit-form" data-profile-edit-form>',
+    '<div class="profile-form-grid">',
+    campoPerfil('telefone', 'Telefone', perfil.telefone, 'tel'),
+    campoPerfil('instagram', 'Instagram', perfil.instagram, 'text'),
+    campoPerfil('cidadeOrigem', 'Cidade de origem', perfil.cidadeOrigem, 'text'),
+    campoPerfil('ufOrigem', 'UF de origem', perfil.ufOrigem, 'text', 2),
+    '</div>',
+    '<label class="profile-form-wide"><span>Resumo/histórico acadêmico</span><textarea name="resumoAcademico" rows="6" maxlength="3000">' + escaparHtml(perfil.historicoAcademico || '') + '</textarea></label>',
+    '<fieldset class="profile-links-fieldset"><legend>Links acadêmicos e profissionais</legend><div class="profile-form-grid">',
+    campoPerfil('linkLattes', 'Currículo Lattes', links.LATTES, 'url'),
+    campoPerfil('linkLinkedin', 'LinkedIn', links.LINKEDIN, 'url'),
+    campoPerfil('linkOrcid', 'ORCID', links.ORCID, 'url'),
+    campoPerfil('linkSite', 'Site pessoal', links.SITE_PESSOAL, 'url'),
+    '</div></fieldset>',
+    '<div class="profile-form-actions"><button class="secondary-button" type="button" data-profile-cancel>Cancelar</button>',
+    '<button class="primary-button" type="submit">Salvar alterações</button></div>',
+    '</form>'
+  ].join('');
+}
+
+function campoPerfil(nome, rotulo, valor, tipo, maxlength) {
+  return '<label><span>' + escaparHtml(rotulo) + '</span><input name="' + escaparHtml(nome) + '" type="' + escaparHtml(tipo || 'text') + '" value="' + escaparHtml(valor || '') + '"' + (maxlength ? ' maxlength="' + maxlength + '"' : '') + '></label>';
 }
 
 /**
@@ -1501,8 +1558,7 @@ function montarAtalhosMinhaSituacao() {
     { rota: 'meu-perfil', label: 'Meu perfil' },
     { rota: 'frequencia', label: 'Minha frequência' },
     { rota: 'minhas-apresentacoes', label: 'Minhas apresentações' },
-    { rota: 'certificados', label: 'Meus certificados' },
-    { rota: 'justificativas', label: 'Solicitações' }
+    { rota: 'certificados', label: 'Meus certificados' }
   ];
 
   return [
@@ -2881,6 +2937,9 @@ function configurarRotaMeuPerfil(container) {
   if (navegacao && typeof navegacao.getRotaAtual === 'function' && navegacao.getRotaAtual() === 'meu-perfil') {
     carregarERenderizarMeuPerfil(container);
   }
+
+  container.addEventListener('click', tratarCliqueMeuPerfil);
+  container.addEventListener('submit', tratarSubmitMeuPerfil);
 }
 
 /**
@@ -2900,10 +2959,13 @@ async function carregarERenderizarMeuPerfil(container) {
     return;
   }
 
+  if (meuPerfilCarregamentoAtual) return meuPerfilCarregamentoAtual;
   renderizarCarregandoMeuPerfil(container);
 
+  meuPerfilCarregamentoAtual = (async function carregarPerfilAtual() {
   try {
     const perfil = await carregarMeuPerfil(token);
+    meuPerfilDadosAtuais = perfil;
 
     if (rotaAindaAtual('meu-perfil')) {
       renderizarMeuPerfil(container, perfil);
@@ -2912,7 +2974,148 @@ async function carregarERenderizarMeuPerfil(container) {
     if (rotaAindaAtual('meu-perfil')) {
       renderizarErroMeuPerfil(container, erro.message);
     }
+  } finally {
+    meuPerfilCarregamentoAtual = null;
   }
+  })();
+
+  return meuPerfilCarregamentoAtual;
+}
+
+function tratarCliqueMeuPerfil(evento) {
+  const editar = evento.target.closest('[data-profile-edit]');
+  const cancelar = evento.target.closest('[data-profile-cancel]');
+  const corrigir = evento.target.closest('[data-profile-correction]');
+  if (editar) renderizarEdicaoMeuPerfil(evento.currentTarget, meuPerfilDadosAtuais || {});
+  if (cancelar) renderizarMeuPerfil(evento.currentTarget, meuPerfilDadosAtuais || {});
+  if (corrigir) abrirModalCorrecaoPerfil(corrigir.dataset.profileCorrection, corrigir.dataset.profileCurrent || '');
+}
+
+function tratarSubmitMeuPerfil(evento) {
+  const form = evento.target;
+  if (!form.matches('[data-profile-edit-form]')) return;
+  evento.preventDefault();
+  salvarEdicaoMeuPerfil(form, evento.currentTarget);
+}
+
+async function salvarEdicaoMeuPerfil(form, container) {
+  if (!window.confirm('Confirma a atualização destes dados do seu perfil?')) return;
+  const dados = new FormData(form);
+  const links = [
+    ['LATTES', 'Currículo Lattes', dados.get('linkLattes')],
+    ['LINKEDIN', 'LinkedIn', dados.get('linkLinkedin')],
+    ['ORCID', 'ORCID', dados.get('linkOrcid')],
+    ['SITE_PESSOAL', 'Site pessoal', dados.get('linkSite')]
+  ].map(function montarLink(item) { return { tipo: item[0], rotulo: item[1], url: String(item[2] || '').trim() }; });
+  const payload = {
+    chaveIdempotencia: gerarChavePerfil('perfil'),
+    telefone: String(dados.get('telefone') || '').trim(),
+    instagram: String(dados.get('instagram') || '').trim(),
+    cidadeOrigem: String(dados.get('cidadeOrigem') || '').trim(),
+    ufOrigem: String(dados.get('ufOrigem') || '').trim().toUpperCase(),
+    resumoAcademico: String(dados.get('resumoAcademico') || '').trim(),
+    links: links
+  };
+  const botao = form.querySelector('[type="submit"]');
+  if (botao) botao.disabled = true;
+  mostrarLoadingGlobal('Salvando perfil...');
+  try {
+    const resposta = await window.PortalGeapaApi.apiPost('/meu-perfil/atualizar', { payload: JSON.stringify(payload) });
+    if (!resposta || resposta.ok !== true) throw new Error(resposta && resposta.message || 'Não foi possível atualizar o perfil.');
+    window.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Perfil atualizado', message: resposta.message || 'Perfil atualizado com sucesso.' });
+    meuPerfilDadosAtuais = null;
+    await carregarERenderizarMeuPerfil(container);
+  } catch (erro) {
+    mostrarFeedbackPerfil('error', erro.message || 'Não foi possível atualizar o perfil.');
+  } finally {
+    if (botao) botao.disabled = false;
+    ocultarLoadingGlobal();
+  }
+}
+
+async function carregarSolicitacoesMeuPerfil(container) {
+  const alvo = container && container.querySelector('[data-profile-requests]');
+  if (!alvo || !window.PortalGeapaApi) return;
+  try {
+    const resposta = await window.PortalGeapaApi.apiGet('/meu-perfil/correcoes', {});
+    if (!resposta || resposta.ok !== true) throw new Error(resposta && resposta.message || 'Solicitações indisponíveis.');
+    const itens = Array.isArray(resposta.data && resposta.data.solicitacoes) ? resposta.data.solicitacoes : [];
+    alvo.innerHTML = itens.length ? '<div class="profile-request-list">' + itens.map(montarSolicitacaoMeuPerfil).join('') + '</div>' : '<p class="empty-state">Nenhuma solicitação cadastral registrada.</p>';
+  } catch (erro) {
+    alvo.innerHTML = '<p class="empty-state">' + escaparHtml(erro.message || 'Não foi possível carregar as solicitações.') + '</p>';
+  }
+}
+
+function montarSolicitacaoMeuPerfil(item) {
+  return '<article class="profile-request-card"><div><strong>' + escaparHtml(formatarCampoCorrecao(item.campo)) + '</strong><span class="status-pill">' + escaparHtml(item.status || 'PENDENTE') + '</span></div>' +
+    '<p>Solicitada em: ' + escaparHtml(formatarData(item.data) || '-') + '</p>' +
+    (item.decisao ? '<p>Decisão: ' + escaparHtml(item.decisao) + '</p>' : '') +
+    (item.motivoDecisao ? '<p>Motivo público: ' + escaparHtml(item.motivoDecisao) + '</p>' : '') +
+    (item.aplicadoEm ? '<p>Aplicada em: ' + escaparHtml(formatarData(item.aplicadoEm)) + '</p>' : '') + '</article>';
+}
+
+function abrirModalCorrecaoPerfil(campo, valorAtual) {
+  const modal = document.getElementById('profile-correction-modal');
+  const form = modal && modal.querySelector('[data-profile-correction-form]');
+  if (!modal || !form) return;
+  form.reset();
+  form.elements.campo.value = campo;
+  form.elements.valorAtual.value = valorAtual || 'Não informado';
+  form.querySelector('[data-profile-correction-label]').textContent = formatarCampoCorrecao(campo);
+  modal.hidden = false;
+  form.elements.valorSolicitado.focus();
+}
+
+function formatarCampoCorrecao(campo) {
+  const rotulos = { NOME_COMPLETO: 'Nome completo', CPF: 'CPF', RGA: 'RGA', DATA_NASCIMENTO: 'Data de nascimento', EMAIL_PRINCIPAL: 'E-mail principal' };
+  return rotulos[campo] || String(campo || '').replace(/_/g, ' ');
+}
+
+function gerarChavePerfil(prefixo) {
+  return String(prefixo || 'perfil') + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+}
+
+function mostrarFeedbackPerfil(tipo, mensagem) {
+  const alvo = document.getElementById('profile-persistent-feedback');
+  if (alvo && window.PortalGeapaUi) window.PortalGeapaUi.mostrarMensagemPersistente(alvo, { type: tipo, message: mensagem });
+  if (window.PortalGeapaUi) window.PortalGeapaUi.mostrarToast({ type: tipo, title: tipo === 'error' ? 'Não foi possível concluir' : 'Perfil', message: mensagem, persistent: tipo === 'error' });
+}
+
+function configurarModalCorrecaoPerfil(container) {
+  const modal = document.getElementById('profile-correction-modal');
+  if (!modal) return;
+  modal.addEventListener('click', function fechar(evento) {
+    if (evento.target.matches('[data-profile-correction-close]') || evento.target === modal) modal.hidden = true;
+  });
+  modal.addEventListener('submit', async function enviar(evento) {
+    const form = evento.target;
+    if (!form.matches('[data-profile-correction-form]')) return;
+    evento.preventDefault();
+    if (!window.confirm('Confirma o envio desta solicitação para análise?')) return;
+    const dados = new FormData(form);
+    const payload = {
+      chaveIdempotencia: gerarChavePerfil('correcao'),
+      campo: String(dados.get('campo') || ''),
+      valorSolicitado: String(dados.get('valorSolicitado') || '').trim(),
+      justificativa: String(dados.get('justificativa') || '').trim()
+    };
+    const botao = form.querySelector('[type="submit"]');
+    if (botao) botao.disabled = true;
+    mostrarLoadingGlobal('Enviando solicitação...');
+    try {
+      const resposta = await window.PortalGeapaApi.apiPost('/meu-perfil/correcoes/solicitar', { payload: JSON.stringify(payload) });
+      if (!resposta || resposta.ok !== true) throw new Error(resposta && resposta.message || 'Não foi possível enviar a solicitação.');
+      modal.hidden = true;
+      window.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Solicitação enviada', message: resposta.message || 'Solicitação cadastral enviada para análise.' });
+      await carregarSolicitacoesMeuPerfil(container);
+    } catch (erro) {
+      const erroAlvo = form.querySelector('[data-profile-correction-error]');
+      if (erroAlvo) { erroAlvo.textContent = erro.message; erroAlvo.hidden = false; }
+    } finally {
+      if (botao) botao.disabled = false;
+      ocultarLoadingGlobal();
+    }
+  });
 }
 
 function configurarRotasConteudoPublicoEditorial() {
