@@ -82,6 +82,7 @@ pelo mesmo guard.
 | `justificativas` | Area do membro | MEMBRO, DIRETORIA, SECRETARIA, ADMIN | `situacao:ver_propria`, `justificativas:ver_proprias` | Implementada V2 com envio de justificativa |
 | `atividades` | Atividades | Todos | `atividades:ver` | Implementada |
 | `admin-atividades` | Gestao | DIRETORIA, SECRETARIA, ADMIN, ADMIN_TECNICO | `atividades:gerir` | Implementada com status de slide, foto e pendencias dos entregaveis |
+| `admin-membros` | Gestao | SECRETARIA, DIRETORIA, ADMIN | `membros:ler` | Implementada, somente leitura, com filtros e paginacao via Core |
 | `diretoria` | Gestao | DIRETORIA, ADMIN | `membros:ler`, `atividades:gerir` | Placeholder |
 | `secretaria` | Gestao | SECRETARIA, DIRETORIA, ADMIN | `membros:ler`, `presencas:gerir`, `apresentacoes:gerir` | Placeholder |
 | `comunicacao` | Gestao | COMUNICACAO, DIRETORIA, ADMIN | `atividades:gerir`, `mensageria:ler` | Placeholder |
@@ -99,6 +100,12 @@ em `data.sessao.permissoes`. Para respostas legadas que ainda nao tragam
 permissoes canonicas, a politica visual tolera perfis permitidos para nao
 bloquear a V1 do Portal. Quando a sessao traz permissoes canonicas, o guard
 exige que a rota tenha ao menos uma permissao efetiva correspondente.
+
+Em `admin-membros`, o guard visual apenas organiza a navegacao. O Apps Script
+resolve novamente a sessao oficial e o Core repete a verificacao de
+`membros:ler`; um perfil `MEMBRO` comum recebe `ACESSO_NEGADO` mesmo que tente
+chamar a acao diretamente. Por nao possuir mutacoes, esta rota continua
+disponivel em ambientes com `READ_ONLY_MODE=true`.
 
 ## Motivos de bloqueio
 

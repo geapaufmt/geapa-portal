@@ -1278,6 +1278,69 @@ de presenca, `LockService` e logs. Registros de presenca ficam em
 `Atividades_Presencas_Registros` somente apos `FINALIZAR`; rascunhos e estado
 operacional ficam auditados em `Portal_Acoes`.
 
+## Gestao de membros: `adminMembrosListar`
+
+Lista membros em modo somente leitura para a rota `admin-membros`. O navegador
+envia apenas token e filtros ao Apps Script; o Apps Script resolve a sessao
+oficial pelo GEAPA-CORE e exige `membros:ler`. O Core repete a autorizacao e le
+`PESSOAS_V2_RESUMO_OPERACIONAL` como cache de consulta.
+
+Requisicao:
+
+```text
+acao=adminMembrosListar
+token=<sessao temporaria>
+filtros={"texto":"ana","statusVinculo":"ATIVO","pagina":1,"pageSize":25}
+```
+
+Filtros aceitos: `texto`, `tipoVinculo`, `statusVinculo`, `perfilPortal`,
+`portalAtivo`, `comPendencias`, `situacaoFrequencia`, `pagina` e `pageSize`.
+`pageSize` fica limitado a 100 e a ordenacao padrao e por nome de exibicao.
+
+Resposta resumida:
+
+```json
+{
+  "ok": true,
+  "code": "MEMBROS_ADMIN_LISTADOS",
+  "data": {
+    "itens": [
+      {
+        "idPessoa": "PES-000001",
+        "rga": "202600000001",
+        "nomeExibicao": "Membro GEAPA",
+        "email": "membro@example.org",
+        "tipoVinculoAtual": "MEMBRO_EFETIVO",
+        "statusVinculoAtual": "ATIVO",
+        "cargoFuncaoAtual": "Membro",
+        "perfilPortalCalculado": "MEMBRO",
+        "portalAtivo": true,
+        "tempoEfetivoNoGrupo": "1 ano e 2 meses",
+        "qtdSemestresNoGrupo": 3,
+        "qtdApresentacoesRealizadas": 2,
+        "cicloUltimaApresentacao": "CICLO_2026_1",
+        "frequenciaResumida": "REGULAR",
+        "pendenciasAbertas": "SEM_PENDENCIAS",
+        "flagJaFoiSuspenso": "NAO",
+        "statusElegibilidadeDiretoria": "ELEGIVEL",
+        "ultimaAtualizacao": "2026-07-11T12:00:00.000Z"
+      }
+    ],
+    "paginacao": {
+      "pagina": 1,
+      "pageSize": 25,
+      "totalItens": 1,
+      "totalPaginas": 1
+    },
+    "somenteLeitura": true,
+    "fonte": "PESSOAS_V2_RESUMO_OPERACIONAL"
+  }
+}
+```
+
+CPF, telefone, data de nascimento e observacoes internas nao fazem parte do
+contrato. O endpoint nao recalcula indicadores e nao escreve em Pessoas V2.
+
 ## Codigos de erro previstos
 
 - `ACAO_OBRIGATORIA`: nenhuma acao foi enviada.
@@ -1295,6 +1358,9 @@ operacional ficam auditados em `Portal_Acoes`.
 - `TENTATIVAS_EXCEDIDAS`: limite de tentativas foi atingido.
 - `SESSAO_OBRIGATORIA`: token de sessao nao foi informado.
 - `SESSAO_INVALIDA_OU_EXPIRADA`: sessao nao existe ou expirou.
+- `ACESSO_NEGADO`: sessao valida, mas sem a permissao `membros:ler`.
+- `FILTROS_INVALIDOS`: filtros administrativos nao formam um objeto JSON valido.
+- `MEMBROS_ADMIN_INDISPONIVEIS`: contrato do Core ou cache operacional indisponivel.
 - `MEMBRO_SESSAO_NAO_ENCONTRADO`: a sessao existe, mas o cadastro associado nao
   foi encontrado pelo core nem pelo fallback de teste.
 - `ATIVIDADES_INDISPONIVEIS`: biblioteca ou contrato de atividades ainda nao

@@ -279,6 +279,93 @@ function portalBuscarMeuPerfilViaGeapaCore_(identificadorSessao) {
   return resposta && resposta.ok === true ? resposta : null;
 }
 
+/** Indica se a sessao oficial possui a permissao canonica para ler membros. */
+function portalAdminMembrosSessaoAutorizada_(sessao) {
+  return !!(
+    sessao &&
+    sessao.ok !== false &&
+    sessao.autenticado === true &&
+    sessao.portalAtivo !== false &&
+    corePortalRequirePermission_(sessao, 'membros:ler')
+  );
+}
+
+/** Converte o filtro recebido pelo Web App em objeto sem aceitar codigo executavel. */
+function portalAdminMembrosLerFiltros_(value) {
+  if (!value) return { ok: true, data: {} };
+  if (typeof value === 'object') return { ok: true, data: value };
+  try {
+    var parsed = JSON.parse(String(value));
+    return { ok: true, data: parsed && typeof parsed === 'object' ? parsed : {} };
+  } catch (err) {
+    return { ok: false, data: {} };
+  }
+}
+
+/** Chama o contrato administrativo quando o Core estiver copiado no mesmo projeto. */
+function portalAdminMembrosChamarCoreGlobal_(filtros, contexto) {
+  if (typeof geapaCoreListarMembrosAdministracaoPortal !== 'function') return null;
+  return geapaCoreListarMembrosAdministracaoPortal(filtros || {}, contexto || {});
+}
+
+/** Chama o contrato administrativo pela Library oficial do GEAPA-CORE. */
+function portalAdminMembrosChamarCoreLibrary_(filtros, contexto) {
+  var libs = portalListarBibliotecasGeapaCore_();
+  for (var i = 0; i < libs.length; i++) {
+    var api = libs[i].api;
+    if (api && typeof api.geapaCoreListarMembrosAdministracaoPortal === 'function') {
+      return api.geapaCoreListarMembrosAdministracaoPortal(filtros || {}, contexto || {});
+    }
+  }
+  return null;
+}
+
+/**
+ * Lista membros para a area administrativa, validando token, sessao oficial e permissao.
+ * O Portal nao le planilhas e nao repassa permissao declarada pelo navegador ao Core.
+ */
+function portalAdminMembrosListar(token, filtrosJson) {
+  var tokenNormalizado = String(token || '').trim();
+  if (!tokenNormalizado) {
+    return portalRespostaErro_('SESSAO_OBRIGATORIA', 'Entre no portal para consultar membros.', {});
+  }
+  if (!portalSessaoTemporariaValida_(tokenNormalizado)) {
+    return portalRespostaErro_('SESSAO_INVALIDA_OU_EXPIRADA', 'Sessao invalida ou expirada. Entre novamente.', {});
+  }
+  var filtros = portalAdminMembrosLerFiltros_(filtrosJson);
+  if (!filtros.ok) {
+    return portalRespostaErro_('FILTROS_INVALIDOS', 'Os filtros informados sao invalidos.', {});
+  }
+  var identificador = portalGetIdentificadorSessao_(tokenNormalizado);
+  var sessao = portalResolverSessaoAtualViaGeapaCore_(identificador, { origem: 'adminMembrosListar' });
+  if (!portalAdminMembrosSessaoAutorizada_(sessao)) {
+    Logger.log('[portal-geapa][admin-members] ' + JSON.stringify({ ok: false, code: 'ACESSO_NEGADO' }));
+    return portalRespostaErro_('ACESSO_NEGADO', 'Seu perfil nao possui permissao para consultar membros.', {});
+  }
+  var contexto = { idPessoa: String(sessao.idPessoa || '').trim() };
+  var resposta = portalAdminMembrosChamarCoreGlobal_(filtros.data, contexto) ||
+    portalAdminMembrosChamarCoreLibrary_(filtros.data, contexto);
+  if (!resposta) {
+    return portalRespostaErro_('MEMBROS_ADMIN_INDISPONIVEIS', 'A consulta administrativa de membros ainda nao esta disponivel.', {});
+  }
+  if (resposta.ok !== true) {
+    return portalRespostaErro_(
+      resposta.errorCode || resposta.code || 'MEMBROS_ADMIN_INDISPONIVEIS',
+      resposta.message || 'Nao foi possivel consultar os membros.',
+      {}
+    );
+  }
+  var data = resposta.data || {};
+  Logger.log('[portal-geapa][admin-members] ' + JSON.stringify({
+    ok: true,
+    totalItens: data.paginacao ? Number(data.paginacao.totalItens || 0) : 0,
+    pagina: data.paginacao ? Number(data.paginacao.pagina || 0) : 0
+  }));
+  return portalRespostaOk_('MEMBROS_ADMIN_LISTADOS', 'Membros carregados.', data, {
+    membrosAdmin: { fonte: 'GEAPA_CORE', somenteLeitura: true }
+  });
+}
+
 /**
  * Tenta chamar o resolvedor de sessao quando ele estiver copiado no projeto.
  *

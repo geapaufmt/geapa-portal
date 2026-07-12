@@ -22,6 +22,8 @@ function doGet(e) {
         'portalLogin',
         'conteudoPublicoSnapshot',
         'minhaSituacao',
+        'meuPerfil',
+        'adminMembrosListar',
         'atividadesBundle',
         'atividadesListar',
         'atividadesDetalhesPreload',
@@ -160,6 +162,10 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'meuPerfil') {
     return portalMeuPerfil(requisicao.token || '');
+  }
+
+  if (acao === 'adminMembrosListar') {
+    return portalAdminMembrosListar(requisicao.token || '', requisicao.filtros || '{}');
   }
 
   if (acao === 'atividadesBundle') {

@@ -46,6 +46,39 @@ function portalRunTests() {
   return resultado;
 }
 
+/** Confirma que adminMembrosListar alcanca o roteador em vez de ACAO_NAO_RECONHECIDA. */
+function portalRunTesteRoteamentoAdminMembros() {
+  var response = portalExecutarAcao_({ acao: 'adminMembrosListar', token: '' });
+  if (response.code !== 'SESSAO_OBRIGATORIA') {
+    throw new Error('adminMembrosListar nao foi reconhecida corretamente pelo roteador.');
+  }
+  return { ok: true, code: response.code };
+}
+
+/** Testa a matriz minima de autorizacao do endpoint administrativo de membros. */
+function portalRunTesteAutorizacaoAdminMembros() {
+  function session(profile, permissions) {
+    return {
+      ok: true,
+      autenticado: true,
+      portalAtivo: true,
+      perfilPortalEfetivo: profile,
+      perfisPortal: [profile],
+      permissoes: permissions
+    };
+  }
+  var result = {
+    MEMBRO: portalAdminMembrosSessaoAutorizada_(session('MEMBRO', ['portal:acessar'])),
+    DIRETORIA: portalAdminMembrosSessaoAutorizada_(session('DIRETORIA', ['portal:acessar', 'membros:ler'])),
+    SECRETARIA: portalAdminMembrosSessaoAutorizada_(session('SECRETARIA', ['portal:acessar', 'membros:ler'])),
+    ADMIN: portalAdminMembrosSessaoAutorizada_(session('ADMIN', ['portal:acessar', 'membros:ler']))
+  };
+  if (result.MEMBRO !== false || result.DIRETORIA !== true || result.SECRETARIA !== true || result.ADMIN !== true) {
+    throw new Error('Matriz de autorizacao admin-membros divergente: ' + JSON.stringify(result));
+  }
+  return { ok: true, autorizacao: result };
+}
+
 /**
  * Teste pequeno para conferir somente a simulacao da tela "Minha situacao".
  *
