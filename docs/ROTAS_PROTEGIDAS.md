@@ -145,6 +145,23 @@ disponivel em ambientes com `READ_ONLY_MODE=true`.
 4. Se a tela carregar dados, escutar o evento `portal:navigationchange`.
 5. Revalidar qualquer leitura ou escrita no Apps Script/CORE.
 
+## Fluxo de Minha situação
+
+A tela `minha-situacao` e carregada por `configurarRotaMinhaSituacao()` em
+`web/app.js`. O listener reage a `portal:navigationchange` e tambem verifica a
+rota atual no momento do registro, evitando depender de um novo carregamento da
+pagina. O ciclo le o token local, mostra o estado de carregamento, chama a
+acao `minhaSituacao`, aplica o usuario resolvido e renderiza sucesso ou erro.
+
+`carregarMinhaSituacaoComControle()` compartilha a promessa em andamento entre
+a navegacao, a restauracao da sessao e as revalidacoes do Firebase. Assim,
+eventos repetidos nao criam chamadas concorrentes. O comportamento e coberto
+por `npm run test:minha-situacao-route`.
+
+Ao publicar uma alteracao dessa rota, atualizar a versao do `app.js` no
+`web/index.html` e o `GEAPA_CACHE_VERSION` em `web/service-worker.js` para que
+clientes PWA descartem o bundle anterior.
+
 ## Rotas V2 somente leitura
 
 As rotas `frequencia`, `minhas-apresentacoes`, `justificativas`,
