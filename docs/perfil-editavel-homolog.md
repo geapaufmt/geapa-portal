@@ -22,9 +22,10 @@ cadastrais`.
 `membros:analisar_correcoes`. A aprovacao nao aplica a alteracao: a aplicacao e
 uma segunda acao explicita. Complemento e indeferimento exigem motivo publico.
 
-O contrato sanitizado atual do Core nao retorna nome ou `ID_PESSOA` na fila
-administrativa. Por isso, nesta versao a busca por pessoa nao e oferecida; os
-filtros seguros sao status e campo. CPF completo nunca aparece na listagem.
+O Core resolve a pessoa internamente e retorna somente nome de exibicao, RGA e
+e-mail mascarados. A busca por nome, RGA ou e-mail e aplicada no backend antes
+da paginacao. `ID_PESSOA`, CPF e identificadores completos nao aparecem na
+listagem.
 
 ## Justificativas
 

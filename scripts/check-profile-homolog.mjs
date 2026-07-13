@@ -8,6 +8,7 @@ const app = read('web/app.js');
 const api = read('web/assets/js/api.js');
 const webapp = read('apps-script/03_webapp.gs');
 const bridge = read('apps-script/08_profile_corrections.gs');
+const adminCorrections = read('web/assets/js/admin-correcoes-cadastrais.js');
 const manifest = JSON.parse(read('apps-script/appsscript.json'));
 const homolog = read('web/assets/js/config.homolog.js');
 
@@ -29,6 +30,9 @@ assert.match(bridge, /ambientePortal: 'HOMOLOG'/, 'o contexto do Core deve ser f
 assert.doesNotMatch(app, /payload\s*=\s*\{[^}]*idPessoa/s, 'o frontend nao pode escolher ID_PESSOA');
 assert.match(app, /data-profile-edit-form/, 'Meu perfil deve oferecer modo de edicao');
 assert.match(app, /data-profile-correction-form/, 'Meu perfil deve oferecer solicitacao sensivel');
+assert.match(adminCorrections, /name="pessoa"/, 'a gestao deve oferecer filtro por pessoa');
+assert.match(adminCorrections, /p\.rgaMascarado/, 'a gestao deve usar RGA mascarado do Core');
+assert.match(adminCorrections, /p\.emailMascarado/, 'a gestao deve usar email mascarado do Core');
 assert.match(homolog, /ENABLE_PROFILE_UPDATES:\s*true/, 'a feature deve estar ativa somente na configuracao HOMOLOG');
 assert.match(homolog, /AKfycbxyUPuu4tb9mkAys5jwDiBxtgE-g4YYOdaid0qNMrVw5i2oWh_Uyv2BHFAQGJPYdnA2/, 'o preview deve usar o Apps Script HOMOLOG');
 
