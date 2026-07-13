@@ -1,8 +1,9 @@
-/** Fila administrativa de correcoes cadastrais no ambiente HOMOLOG. */
+/** Fila administrativa de correcoes cadastrais nos ambientes autorizados. */
 (function configurarCorrecoesCadastrais(global) {
   var api = global.PortalGeapaApi;
   var ui = global.PortalGeapaUi;
   var navigation = global.PortalGeapaNavigation;
+  var config = global.PortalGeapaConfig || {};
   var state = { active: false, loading: false, page: 1, items: [], pagination: {}, filters: {}, selected: null };
 
   function start() {
@@ -53,6 +54,8 @@
     var container = document.getElementById('admin-correcoes-cadastrais-content');
     if (!container || !state.active) return;
     container.innerHTML = '<header class="portal-page-header"><div class="portal-page-heading"><p class="portal-page-eyebrow">Gestão do GEAPA</p><h2 class="portal-page-title" id="admin-correcoes-title">Correções cadastrais</h2><p class="portal-page-description">Análise e aplicação explícita de solicitações autorizadas pelo Core.</p></div><span class="portal-page-badge">HOMOLOG</span></header>' + content;
+    var badge = container.querySelector('.portal-page-badge');
+    if (badge) badge.textContent = String(config.ENVIRONMENT || '').toUpperCase() === 'PROD' ? 'PRODUCAO' : 'HOMOLOG';
   }
 
   function table(items) {

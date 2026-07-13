@@ -14,7 +14,7 @@ assert.match(configBackend, /ambientePerfilCadastral:\s*'PROD'/, 'a versao Apps 
 assert.match(bridge, /ambientePortal:\s*ambiente/, 'o contexto do Core deve usar somente o ambiente resolvido no backend');
 assert.doesNotMatch(bridge, /ambientePortal:\s*['"]|origem\.ambiente|payload\.ambiente/, 'o navegador nao pode escolher o ambiente cadastral');
 assert.match(configProd, /ENVIRONMENT:\s*'PROD'/, 'config.prod deve identificar PROD');
-assert.match(configProd, /ENABLE_PROFILE_UPDATES:\s*true/, 'perfil editavel deve estar habilitado no build PROD revisado');
+assert.match(configProd, /ENABLE_PROFILE_UPDATES:\s*false/, 'perfil editavel deve permanecer protegido ate o Registry PROD estar pronto');
 assert.match(configHomolog, /ENVIRONMENT:\s*'HOMOLOG'/, 'config HOMOLOG deve permanecer separada');
 assert.match(app, /\['HOMOLOG', 'PROD'\]/, 'a UI deve aceitar somente os ambientes publicados e habilitados');
 assert.match(api, /ACOES_PERFIL_PORTAL/, 'as mutacoes cadastrais devem usar a allowlist dedicada');
@@ -23,4 +23,4 @@ const core = manifest.dependencies.libraries.find((item) => item.userSymbol === 
 assert.equal(core.developmentMode, false, 'PROD nao pode consumir Core em HEAD');
 assert.equal(core.version, '12', 'a branch reserva a proxima versao fixa do Core; confirme antes da publicacao');
 
-console.log('OK: contrato PROD preparado com ambiente backend e Core fixo v12.');
+console.log('OK: contrato PROD publicado com Core v12 e ativacao protegida por feature flag.');

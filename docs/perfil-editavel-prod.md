@@ -1,7 +1,8 @@
-# Perfil editavel e correcoes cadastrais - preparacao PROD
+# Perfil editavel e correcoes cadastrais - PROD
 
-Esta branch prepara o Portal para producao sem executar `clasp push`, criar
-versao Apps Script, atualizar deployment, fazer merge ou publicar Firebase.
+O backend foi publicado com `GEAPA_CORE` v12 e Portal Apps Script v89. A
+ativacao visual permanece protegida por `ENABLE_PROFILE_UPDATES=false` ate a
+infraestrutura cadastral PROD cumprir os pre-requisitos abaixo.
 
 ## Contrato de ambiente
 
@@ -12,25 +13,27 @@ O wrapper repassa ao Core apenas o ambiente resolvido no backend.
 O frontend habilita as acoes quando:
 
 - `ENVIRONMENT` e `PROD` ou `HOMOLOG`;
-- `ENABLE_PROFILE_UPDATES` e `true`;
+- `ENABLE_PROFILE_UPDATES` e `true` depois da liberacao operacional;
 - a sessao backend contem as permissoes exigidas.
 
 O Core continua revalidando sessao, propriedade e permissao em todas as
 escritas. O frontend nao escolhe `ID_PESSOA` nem concede acesso administrativo.
 
-## Dependencia planejada
+## Bloqueio operacional atual
 
-O manifesto reserva `GEAPA_CORE` v12 com `developmentMode=false`. A versao 12
-ainda nao deve ser consumida ou enviada pelo `clasp` antes de ser publicada no
-Core apos revisao. A ordem futura obrigatoria e:
+O Registry possui `PESSOAS_V2_BASE` e
+`PESSOAS_V2_SOLICITACOES_ATUALIZACAO_CADASTRAL` apenas em `DEV`. O Core v12
+recusa fallback de `PROD` para `DEV` ou `ALL`, portanto a feature nao pode ser
+ativada antes de existir uma base V2 oficial registrada em `PROD`.
 
-1. executar setup PROD do Core em dry-run;
-2. executar setup real somente apos aprovacao;
-3. publicar e testar Core v12;
-4. executar `clasp push` no Portal;
-5. criar nova versao do Portal;
-6. atualizar apenas o deployment PROD;
-7. somente depois promover o frontend Firebase.
+Ordem para liberar a feature:
+
+1. registrar a `PESSOAS_V2_BASE` oficial com ambiente `PROD`;
+2. executar o setup PROD do Core em dry-run;
+3. executar o setup real com a confirmacao dedicada;
+4. executar `geapaCoreRunTestesAtualizacaoCadastral()`;
+5. alterar `ENABLE_PROFILE_UPDATES` para `true`;
+6. publicar novamente somente o Firebase Hosting.
 
 ## Validacao
 
@@ -41,9 +44,9 @@ npm.cmd run test:minha-situacao-route
 npm.cmd run check:configs
 ```
 
-O deployment PROD atual deve permanecer em `@87` durante a revisao. O merge da
-branch tambem deve permanecer bloqueado ate a Library v12 existir e o setup
-PROD ter sido validado.
+O deployment PROD atual e `@89`; HOMOLOG permanece em `@88`. Enquanto a flag
+estiver desligada, o perfil continua em modo de leitura e a rota administrativa
+de correcoes cadastrais nao e exibida.
 
 ## Rollback futuro
 
