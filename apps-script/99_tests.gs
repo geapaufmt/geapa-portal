@@ -418,7 +418,7 @@ function portalRunTesteAtividadesV2ApresentacoesVinculadas() {
   return resultado;
 }
 
-function portalRunTestePerfilCorrecoesHomolog() {
+function portalRunTestePerfilCorrecoes() {
   var funcoes = [
     'portalMeuPerfilAtualizar',
     'portalMeuPerfilSolicitarCorrecao',
@@ -439,11 +439,19 @@ function portalRunTestePerfilCorrecoesHomolog() {
   var resultado = {
     ok: funcoes.every(function conferir(nome) { return localizadas[nome]; }) &&
       visitante && visitante.ok === false,
-    ambiente: 'HOMOLOG',
-    coreDevelopmentModeEsperado: true,
+    ambiente: portalPerfilCorrecoesAmbiente_(),
+    coreVersionFixaEsperadaEmProd: 12,
     funcoes: localizadas,
     visitanteSemSessaoBloqueado: visitante && visitante.ok === false
   };
   Logger.log(JSON.stringify(resultado, null, 2));
   return resultado;
+}
+
+function portalRunTestePerfilCorrecoesHomolog() {
+  return portalRunTestePerfilCorrecoes();
+}
+
+function portalRunTestePerfilCorrecoesProd() {
+  return portalRunTestePerfilCorrecoes();
 }

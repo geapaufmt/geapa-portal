@@ -1,5 +1,5 @@
 /**
- * Ponte segura entre o Portal HOMOLOG e os contratos cadastrais do GEAPA-CORE.
+ * Ponte segura entre o Portal e os contratos cadastrais do GEAPA-CORE.
  * A identidade-alvo sempre vem da sessao oficial resolvida no backend.
  */
 
@@ -99,8 +99,9 @@ function portalPerfilCorrecoesResolverAcesso_(token, permissao) {
   }
 
   var identificador = portalGetIdentificadorSessao_(tokenNormalizado);
+  var ambiente = portalPerfilCorrecoesAmbiente_();
   var sessao = portalResolverSessaoAtualViaGeapaCore_(identificador, {
-    origem: 'perfilCorrecoesHOMOLOG'
+    origem: 'perfilCorrecoes' + ambiente
   });
   if (!sessao || sessao.ok === false || sessao.autenticado === false || sessao.portalAtivo === false || !sessao.email) {
     return {
@@ -125,10 +126,19 @@ function portalPerfilCorrecoesResolverAcesso_(token, permissao) {
     ok: true,
     sessao: sessao,
     contexto: {
-      ambientePortal: 'HOMOLOG',
+      ambientePortal: ambiente,
       sessaoOficial: { email: String(sessao.email || '').trim().toLowerCase() }
     }
   };
+}
+
+function portalPerfilCorrecoesAmbiente_() {
+  var config = typeof PORTAL_CONFIG !== 'undefined' ? PORTAL_CONFIG : {};
+  var ambiente = String(config.ambientePerfilCadastral || '').trim().toUpperCase();
+  if (ambiente !== 'HOMOLOG' && ambiente !== 'PROD') {
+    throw new Error('AMBIENTE_PERFIL_CADASTRAL_INVALIDO');
+  }
+  return ambiente;
 }
 
 function portalPerfilCorrecoesExecutarCore_(nomeFuncao, argumentos, codigoSucesso, mensagemSucesso, inicio) {
@@ -137,7 +147,7 @@ function portalPerfilCorrecoesExecutarCore_(nomeFuncao, argumentos, codigoSucess
     if (typeof GEAPA_CORE === 'undefined' || typeof GEAPA_CORE[nomeFuncao] !== 'function') {
       return portalRespostaErro_(
         'CORE_CONTRATO_INDISPONIVEL',
-        'O contrato cadastral ainda nao esta disponivel no GEAPA-CORE HOMOLOG.',
+        'O contrato cadastral ainda nao esta disponivel no GEAPA-CORE.',
         {}
       );
     }
@@ -147,7 +157,7 @@ function portalPerfilCorrecoesExecutarCore_(nomeFuncao, argumentos, codigoSucess
       'CORE_PERFIL_INDISPONIVEL',
       'Nao foi possivel concluir a operacao cadastral.',
       { reasonCode: erro && erro.message ? String(erro.message) : 'ERRO_CORE' },
-      portalMetaDesempenho_('geapa-core-head', inicio)
+      portalMetaDesempenho_('geapa-core', inicio)
     );
   }
 
@@ -159,7 +169,7 @@ function portalPerfilCorrecoesExecutarCore_(nomeFuncao, argumentos, codigoSucess
         fieldErrors: resposta && resposta.fieldErrors || {},
         reasonCode: resposta && (resposta.errorCode || resposta.code) || 'ERRO_CADASTRAL'
       },
-      portalMetaDesempenho_('geapa-core-head', inicio)
+      portalMetaDesempenho_('geapa-core', inicio)
     );
   }
 
@@ -167,7 +177,7 @@ function portalPerfilCorrecoesExecutarCore_(nomeFuncao, argumentos, codigoSucess
     codigoSucesso,
     mensagemSucesso,
     resposta.data || {},
-    portalMetaDesempenho_('geapa-core-head', inicio)
+    portalMetaDesempenho_('geapa-core', inicio)
   );
 }
 

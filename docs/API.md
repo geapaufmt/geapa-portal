@@ -1460,9 +1460,9 @@ em `PORTAL_EMAILS_TESTE` quando o ambiente estiver em modo de teste.
 
 Erros futuros deverao usar codigos estaveis, sem expor detalhes sensiveis ao
 front-end.
-# Perfil editavel e correcoes cadastrais - HOMOLOG
+# Perfil editavel e correcoes cadastrais
 
-Contratos exclusivos da branch de homologacao:
+Contratos preparados para HOMOLOG e PROD, sempre com ambiente definido pelo backend:
 
 | Rota | Acao Apps Script | Regra |
 | --- | --- | --- |
@@ -1473,6 +1473,7 @@ Contratos exclusivos da branch de homologacao:
 | `POST /admin/correcoes-cadastrais/analisar` | `adminCorrecoesCadastraisAnalisar` | `membros:analisar_correcoes` |
 | `POST /admin/correcoes-cadastrais/aplicar` | `adminCorrecoesCadastraisAplicar` | Aplicacao explicita apos aprovacao |
 
-O Apps Script fixa `ambientePortal: HOMOLOG`, revalida a sessao e nao aceita
-identidade alvo enviada pelo navegador. Respostas seguem o envelope padrao
+O Apps Script resolve `ambientePortal` a partir da configuracao capturada pela
+versao do backend, revalida a sessao e nao aceita identidade alvo ou ambiente
+enviado pelo navegador. Respostas seguem o envelope padrao
 `ok`, `code`, `message`, `data` e `meta`.

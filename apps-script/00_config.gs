@@ -8,7 +8,8 @@
 var PORTAL_CONFIG = {
   nomePortal: 'Portal GEAPA',
   versaoContrato: 'v2-readonly',
-  ambiente: 'desenvolvimento',
+  ambiente: 'producao',
+  ambientePerfilCadastral: 'PROD',
   firebaseProjectId: 'portal-geapa',
 
   /**

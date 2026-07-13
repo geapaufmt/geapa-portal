@@ -1395,7 +1395,8 @@ function montarPerfilItemSensivel(rotulo, valor, campo) {
 
 function perfilEdicaoHabilitada() {
   const config = window.PortalGeapaConfig || {};
-  return String(config.ENVIRONMENT || '').toUpperCase() === 'HOMOLOG' && config.ENABLE_PROFILE_UPDATES === true;
+  const ambiente = String(config.ENVIRONMENT || '').toUpperCase();
+  return ['HOMOLOG', 'PROD'].indexOf(ambiente) >= 0 && config.ENABLE_PROFILE_UPDATES === true;
 }
 
 function renderizarEdicaoMeuPerfil(container, dados) {

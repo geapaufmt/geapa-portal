@@ -175,7 +175,7 @@ Apps Script.
 Membro comum recebe apenas dados proprios. Rotas de diretoria dependem de
 perfil/permissao enviados pelo backend; o frontend nao deriva cargo, diretoria
 ou permissao a partir de dados locais.
-# Ajustes HOMOLOG de perfil
+# Perfil editavel em HOMOLOG e PROD
 
 - `meu-perfil`: leitura, edicao direta permitida e solicitacoes proprias;
 - `admin-correcoes-cadastrais`: exige `membros:analisar_correcoes`;
