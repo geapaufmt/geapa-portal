@@ -16,9 +16,9 @@ assert.match(bridge, /ambientePortal:\s*ambiente/, 'o contexto do Core deve usar
 assert.doesNotMatch(bridge, /ambientePortal:\s*['"]|origem\.ambiente|payload\.ambiente/, 'o navegador nao pode escolher o ambiente cadastral');
 assert.match(configProd, /ENVIRONMENT:\s*'PROD'/, 'config.prod deve identificar PROD');
 assert.match(configProd, /DATA_ENVIRONMENT:\s*'PROD'/, 'config.prod nao pode manter rotulo ou dependencia DEV');
-assert.match(configProd, /ENABLE_PROFILE_UPDATES:\s*false/, 'perfil editavel deve permanecer desabilitado durante o rollback do timeout PROD');
+assert.match(configProd, /ENABLE_PROFILE_UPDATES:\s*true/, 'perfil editavel deve estar habilitado somente apos a homologacao do Core v18');
 assert.match(configGenerated, /"DATA_ENVIRONMENT":\s*"PROD"/, 'config.js publicado deve apontar para dados PROD');
-assert.match(configGenerated, /"ENABLE_PROFILE_UPDATES":\s*false/, 'config.js publicado deve desabilitar o perfil durante o rollback');
+assert.match(configGenerated, /"ENABLE_PROFILE_UPDATES":\s*true/, 'config.js publicado deve habilitar o perfil apos a homologacao operacional');
 assert.match(configHomolog, /ENVIRONMENT:\s*'HOMOLOG'/, 'config HOMOLOG deve permanecer separada');
 assert.match(app, /\['HOMOLOG', 'PROD'\]/, 'a UI deve aceitar somente os ambientes publicados e habilitados');
 assert.match(api, /ACOES_PERFIL_PORTAL/, 'as mutacoes cadastrais devem usar a allowlist dedicada');
@@ -27,4 +27,4 @@ const core = manifest.dependencies.libraries.find((item) => item.userSymbol === 
 assert.equal(core.developmentMode, false, 'PROD nao pode consumir Core em HEAD');
 assert.equal(core.version, '18', 'o candidato deve usar a versao fixa do Core com leituras cadastrais seletivas');
 
-console.log('OK: candidato mantem o perfil cadastral desabilitado durante o rollback PROD.');
+console.log('OK: candidato usa Core v18 e habilita perfil cadastral em PROD apos homologacao.');
