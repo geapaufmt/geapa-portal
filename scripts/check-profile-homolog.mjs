@@ -27,9 +27,14 @@ assert.match(portalV2, /montarPendenciasJustificativas/, 'a fila administrativa 
 });
 
 assert.match(bridge, /portalPerfilCorrecoesAmbiente_\(\)/, 'o ambiente deve ser resolvido pelo backend');
+assert.match(bridge, /\[dados\.payload, acesso\.contexto\]/, 'a solicitacao deve chegar ao Core como objeto plano');
+assert.match(bridge, /payloadType:[\s\S]*deserialized:[\s\S]*justificativaTamanho:/, 'a ponte deve registrar somente diagnostico seguro do payload');
+assert.match(bridge, /JUSTIFICATIVA_OBRIGATORIA/, 'a ponte deve preservar erros especificos');
 assert.doesNotMatch(app, /payload\s*=\s*\{[^}]*idPessoa/s, 'o frontend nao pode escolher ID_PESSOA');
 assert.match(app, /data-profile-edit-form/, 'Meu perfil deve oferecer modo de edicao');
 assert.match(app, /data-profile-correction-form/, 'Meu perfil deve oferecer solicitacao sensivel');
+assert.match(app, /normalizarDataNascimentoCorrecao_/, 'a data deve ser normalizada sem conversao de timezone');
+assert.match(app, /PORTAL_PROFILE_CORRECTION_RESPONSE/, 'o frontend deve registrar o envelope seguro da resposta');
 assert.match(adminCorrections, /name="pessoa"/, 'a gestao deve oferecer filtro por pessoa');
 assert.match(adminCorrections, /p\.rgaMascarado/, 'a gestao deve usar RGA mascarado do Core');
 assert.match(adminCorrections, /p\.emailMascarado/, 'a gestao deve usar email mascarado do Core');

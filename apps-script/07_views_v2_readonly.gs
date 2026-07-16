@@ -508,9 +508,7 @@ function portalMinhasJustificativasV2(token) {
     message: 'Minhas justificativas carregadas pelas views V2.',
     resumoChaves: ['resumo', 'totais'],
     destino: 'atividades',
-    registryKeys: [
-      'ATIVIDADES_V2_PORTAL_JUSTIFICATIVAS'
-    ],
+    domainLogicalSheet: 'PORTAL_JUSTIFICATIVAS',
     requerDiretoria: false,
     funcoes: [
       'atividadesV2_portalGetMinhasJustificativas',
@@ -698,9 +696,7 @@ function portalPendenciasDiretoriaV2(token) {
     listaChaves: ['pendencias', 'pendenciasDiretoria', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'atividades',
-    registryKeys: [
-      'ATIVIDADES_V2_PORTAL_PENDENCIAS_DIRETORIA'
-    ],
+    domainLogicalSheet: 'PORTAL_PENDENCIAS_DIRETORIA',
     requerDiretoria: true,
     permissoes: [
       'diretoria:pendencias',
@@ -751,10 +747,7 @@ function portalStatusViewsV2(token) {
     listaChaves: ['views', 'statusViews', 'status', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'atividades',
-    registryKeys: [
-      'ATIVIDADES_V2_PORTAL_STATUS',
-      'ATIVIDADES_V2_PORTAL_STATUS_ATIVIDADES'
-    ],
+    domainLogicalSheet: 'PORTAL_STATUS_ATIVIDADES',
     requerDiretoria: true,
     permissoes: [
       'sistema:status_v2',
@@ -1347,9 +1340,7 @@ function portalPainelDiretoriaV2PendenciasConfig_() {
     listaChaves: ['pendencias', 'pendenciasDiretoria', 'registros', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'atividades',
-    registryKeys: [
-      'ATIVIDADES_V2_PORTAL_PENDENCIAS_DIRETORIA'
-    ],
+    domainLogicalSheet: 'PORTAL_PENDENCIAS_DIRETORIA',
     requerDiretoria: true,
     permissoes: portalPainelDiretoriaV2Config_().permissoes,
     funcoes: [
@@ -1394,10 +1385,7 @@ function portalPainelDiretoriaV2StatusConfig_() {
     listaChaves: ['views', 'statusViews', 'status', 'itens'],
     resumoChaves: ['resumo', 'totais'],
     destino: 'atividades',
-    registryKeys: [
-      'ATIVIDADES_V2_PORTAL_STATUS',
-      'ATIVIDADES_V2_PORTAL_STATUS_ATIVIDADES'
-    ],
+    domainLogicalSheet: 'PORTAL_STATUS_ATIVIDADES',
     requerDiretoria: true,
     permissoes: portalPainelDiretoriaV2Config_().permissoes,
     funcoes: [
@@ -1759,7 +1747,7 @@ function portalExecutarLeituraV2_(token, config) {
     return contexto.resposta;
   }
 
-  var cacheKey = portalCacheKey_('viewsV2r2:' + config.id, contexto.identificadorSessao);
+  var cacheKey = portalCacheKey_('viewsV2r2:' + config.id, portalResolverAmbienteDadosV2_() + ':' + contexto.identificadorSessao);
   var cache = portalLerJsonCacheViewsV2_(cacheKey);
 
   if (cache) {
@@ -1801,7 +1789,7 @@ function portalExecutarMinhasJustificativasV2_(token, config) {
     return contexto.resposta;
   }
 
-  var cacheKey = portalCacheKey_('viewsV2r2:' + config.id, contexto.identificadorSessao);
+  var cacheKey = portalCacheKey_('viewsV2r2:' + config.id, portalResolverAmbienteDadosV2_() + ':' + contexto.identificadorSessao);
   var cache = portalLerJsonCacheViewsV2_(cacheKey);
 
   if (cache) {
@@ -1946,6 +1934,7 @@ function portalMontarContextoViewsV2_(token, config) {
       perfilPortalEfetivo: String((sessao && sessao.perfilPortalEfetivo) || usuario.perfilPrincipal || 'MEMBRO').trim(),
       perfisPortal: (sessao && sessao.perfisPortal) || usuario.perfisPortal || usuario.perfis || ['MEMBRO'],
       permissoes: (sessao && sessao.permissoes) || portalPermissoesListaDeMapaViewsV2_(usuario.permissoes),
+      ambienteBackend: portalResolverAmbienteDadosV2_(),
       somenteProprios: config.requerDiretoria !== true
     }
   };
@@ -2032,6 +2021,17 @@ function portalChamarContratoViewsV2_(config, contexto) {
 }
 
 function portalLerViewV2PorRegistry_(config) {
+  if (config.domainLogicalSheet) {
+    var domainErrors = [];
+    var domainRecords = portalLerRegistrosViewV2PorDomain_('ATIVIDADES', config.domainLogicalSheet, domainErrors);
+    if (domainRecords) {
+      return portalMontarRespostaViewV2PorRegistry_(config, 'ATIVIDADES_V2_DB/' + config.domainLogicalSheet, domainRecords);
+    }
+    if (domainErrors.length) {
+      Logger.log('GEAPA-PORTAL-VIEWS-V2-DOMAIN ' + JSON.stringify({ view: config.id, erros: domainErrors.slice(0, 3) }));
+    }
+    return portalMontarRespostaViewV2PorRegistry_(config, '', []);
+  }
   var keys = config.registryKeys || [];
   var erros = [];
 
@@ -2052,6 +2052,24 @@ function portalLerViewV2PorRegistry_(config) {
   }
 
   return portalMontarRespostaViewV2PorRegistry_(config, '', []);
+}
+
+function portalLerRegistrosViewV2PorDomain_(domain, logicalSheet, erros) {
+  var libs = portalListarBibliotecasGeapaCore_();
+  for (var i = 0; i < libs.length; i++) {
+    var api = libs[i].api || {};
+    try {
+      if (typeof api.coreReadDomainRecords !== 'function') continue;
+      return api.coreReadDomainRecords(domain, logicalSheet, {
+        ambiente: portalResolverAmbienteDadosV2_(),
+        headerRow: 1,
+        skipBlankRows: true
+      }) || [];
+    } catch (err) {
+      erros.push({ library: libs[i].nome || '', domain: domain, logicalSheet: logicalSheet, message: err && err.message ? err.message : String(err) });
+    }
+  }
+  return null;
 }
 
 function portalLerRegistrosViewV2PorKey_(key, erros) {

@@ -70,23 +70,48 @@
     }).join('') + '</div>';
   }
 
-  function open(item) {
-    if (!item) return;
-    state.selected = item;
+  function open(idSolicitacao, revelarDados) {
+    if (!idSolicitacao) return;
     var modal = document.getElementById('admin-correction-modal');
     var content = document.getElementById('admin-correction-modal-content');
     if (!modal || !content) return;
+    content.innerHTML = '<p class="empty-state">Carregando detalhe autorizado...</p>';
+    modal.hidden = false;
+    api.apiGet('/admin/correcoes-cadastrais/detalhe', {
+      payload: JSON.stringify({ idSolicitacao: idSolicitacao, revelarDados: revelarDados === true })
+    }).then(function response(result) {
+      if (!result || result.ok !== true || !result.data) throw new Error(result && result.message || 'Não foi possível carregar o detalhe da solicitação.');
+      state.selected = result.data;
+      renderDetail(result.data);
+    }).catch(function error(err) {
+      content.innerHTML = '<p class="empty-state">' + escape(err.message || 'Detalhe cadastral indisponível.') + '</p>';
+    });
+  }
+
+  function renderDetail(item) {
+    var content = document.getElementById('admin-correction-modal-content');
+    if (!content || !item) return;
     var canApply = String(item.status || '') === 'APROVADA';
+    var revealAction = item.requerRevelacao && !item.dadosRevelados
+      ? '<button class="secondary-button" type="button" data-admin-correction-reveal>Exibir dados para análise</button><p class="section-note">A autorização será verificada novamente e a visualização ficará registrada.</p>'
+      : '';
+    var history = Array.isArray(item.historicoDecisoes) && item.historicoDecisoes.length
+      ? '<div class="admin-correction-history"><h3>Histórico de decisões</h3>' + item.historicoDecisoes.map(function event(row) {
+          return '<article><strong>' + value(row.status || row.decisao) + '</strong><span>' + value(formatDate(row.analisadoEm)) + '</span>' + (row.motivoPublico ? '<p>' + value(row.motivoPublico) + '</p>' : '') + (row.analisadoPorMascarado ? '<small>Analisado por: ' + value(row.analisadoPorMascarado) + '</small>' : '') + '</article>';
+        }).join('') + '</div>'
+      : '<p class="section-note">Ainda não há decisões registradas.</p>';
     content.innerHTML = [
       '<div class="admin-correction-person">' + person(item) + '</div><dl class="summary-grid"><div class="summary-item"><dt>ID</dt><dd>' + value(item.id) + '</dd></div><div class="summary-item"><dt>Campo</dt><dd>' + value(label(item.campo)) + '</dd></div>',
-      '<div class="summary-item"><dt>Atual</dt><dd>' + value(item.valorAtualMascarado) + '</dd></div><div class="summary-item"><dt>Solicitado</dt><dd>' + value(item.valorSolicitadoMascarado) + '</dd></div></dl>',
+      '<div class="summary-item"><dt>Solicitada em</dt><dd>' + value(formatDate(item.solicitadoEm)) + '</dd></div><div class="summary-item"><dt>Status</dt><dd>' + chip(item.status) + '</dd></div></dl>',
+      '<div class="admin-correction-comparison"><section><span>Atual na fonte oficial</span><strong>' + value(item.valorAtual) + '</strong></section><section><span>Solicitado</span><strong>' + value(item.valorSolicitado) + '</strong></section></div>',
+      revealAction,
       item.justificativa ? '<p><strong>Justificativa:</strong> ' + value(item.justificativa) + '</p>' : '',
+      history,
       '<form data-admin-correction-action><label><span>Decisão</span><select name="acao" required><option value="">Selecione</option><option value="EM_ANALISE">Colocar em análise</option><option value="COMPLEMENTO_SOLICITADO">Solicitar complemento</option><option value="APROVADA">Aprovar</option><option value="INDEFERIDA">Indeferir</option></select></label>',
       '<label><span>Motivo público</span><textarea name="motivo" rows="4" maxlength="1000"></textarea></label><p class="section-note">Motivo obrigatório para complemento e indeferimento.</p>',
       '<div class="profile-form-actions"><button class="primary-button" type="submit">Registrar análise</button>',
       canApply ? '<button class="secondary-button" type="button" data-admin-correction-apply>Aplicar correção aprovada</button>' : '', '</div></form>'
     ].join('');
-    modal.hidden = false;
   }
 
   function onSubmit(event) {
@@ -104,8 +129,11 @@
 
   function onClick(event) {
     var detail = event.target.closest('[data-admin-correction-detail]');
-    if (detail) open(state.items.find(function find(item) { return String(item.id) === detail.dataset.adminCorrectionDetail; }));
+    if (detail) open(detail.dataset.adminCorrectionDetail, false);
     if (event.target.closest('[data-admin-correction-close]')) close();
+    if (event.target.closest('[data-admin-correction-reveal]') && state.selected && global.confirm('Exibir os dados completos necessários para análise? Esta visualização será auditada.')) {
+      open(state.selected.id, true);
+    }
     if (event.target.closest('[data-admin-corrections-clear]')) { state.filters = {}; state.page = 1; load(); }
     if (event.target.closest('[data-admin-correction-apply]') && state.selected && global.confirm('Aplicar esta correção aprovada na fonte oficial?')) {
       write('/admin/correcoes-cadastrais/aplicar', { idSolicitacao: state.selected.id }, 'Correção aplicada com sucesso.');
@@ -130,7 +158,7 @@
   function label(v) { return String(v || '').replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\S/g, function c(x) { return x.toUpperCase(); }); }
   function formatDate(v) { var d = new Date(v); return isNaN(d.getTime()) ? String(v || '-') : d.toLocaleString('pt-BR'); }
   function chip(v) { return '<span class="status-pill">' + value(v) + '</span>'; }
-  function person(item) { var p = item && item.pessoa || {}; return '<div class="admin-correction-person"><strong>' + value(p.nomeExibicao || 'Pessoa não identificada') + '</strong><small>' + value(p.rgaMascarado) + '</small><small>' + value(p.emailMascarado) + '</small></div>'; }
+  function person(item) { var p = item && item.pessoa || {}; return '<div class="admin-correction-person-lines"><strong>' + value(p.nomeExibicao || 'Pessoa não identificada') + '</strong><span>RGA: ' + value(p.rgaMascarado) + '</span><span>E-mail: ' + value(p.emailMascarado) + '</span></div>'; }
   function value(v) { return escape(v == null || v === '' ? '-' : v); }
   function escape(v) { return ui.escaparHtml(String(v == null ? '' : v)); }
 

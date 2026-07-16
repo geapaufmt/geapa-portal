@@ -28,6 +28,8 @@
     apresentacaoRevisarFotoReuniao: true,
     meuPerfilAtualizar: true,
     meuPerfilSolicitarCorrecao: true,
+    meuPerfilConsultarSolicitacao: true,
+    adminCorrecoesCadastraisDetalhe: true,
     adminCorrecoesCadastraisAnalisar: true,
     adminCorrecoesCadastraisAplicar: true
   };
@@ -532,13 +534,17 @@
       onTimeout: function abortar() { if (controller) controller.abort(); }
     })
       .then(function tratarResposta(resposta) {
-        if (!resposta.ok) {
-          var erroHttp = new Error('A API do Portal respondeu com erro. Tente novamente em alguns instantes.');
-          erroHttp.errorCode = 'API_HTTP_' + resposta.status;
-          throw erroHttp;
-        }
-
-        return resposta.json().catch(function respostaInvalida() {
+        var httpStatus = resposta.status;
+        return resposta.json().then(function respostaJson(resultado) {
+          var envelope = resultado && typeof resultado === 'object' ? resultado : {};
+          envelope.httpStatus = httpStatus;
+          if (!resposta.ok) {
+            envelope.ok = false;
+            envelope.code = envelope.code || envelope.errorCode || ('API_HTTP_' + httpStatus);
+            envelope.errorCode = envelope.errorCode || envelope.code;
+          }
+          return envelope;
+        }).catch(function respostaInvalida() {
           var erroJson = new Error('A API respondeu em formato inesperado. Atualize a pagina antes de tentar novamente.');
           erroJson.errorCode = 'API_RESPOSTA_INVALIDA';
           throw erroJson;
@@ -631,8 +637,10 @@
       '/admin/membros': 'adminMembrosListar',
       '/meu-perfil/atualizar': 'meuPerfilAtualizar',
       '/meu-perfil/correcoes/solicitar': 'meuPerfilSolicitarCorrecao',
+      '/meu-perfil/correcoes/consultar': 'meuPerfilConsultarSolicitacao',
       '/meu-perfil/correcoes': 'meuPerfilListarSolicitacoes',
       '/admin/correcoes-cadastrais': 'adminCorrecoesCadastraisListar',
+      '/admin/correcoes-cadastrais/detalhe': 'adminCorrecoesCadastraisDetalhe',
       '/admin/correcoes-cadastrais/analisar': 'adminCorrecoesCadastraisAnalisar',
       '/admin/correcoes-cadastrais/aplicar': 'adminCorrecoesCadastraisAplicar',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',

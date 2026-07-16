@@ -26,8 +26,10 @@ function doGet(e) {
         'meuPerfilAtualizar',
         'meuPerfilSolicitarCorrecao',
         'meuPerfilListarSolicitacoes',
+        'meuPerfilConsultarSolicitacao',
         'adminMembrosListar',
         'adminCorrecoesCadastraisListar',
+        'adminCorrecoesCadastraisDetalhe',
         'adminCorrecoesCadastraisAnalisar',
         'adminCorrecoesCadastraisAplicar',
         'atividadesBundle',
@@ -182,12 +184,20 @@ function portalExecutarAcao_(requisicao) {
     return portalMeuPerfilListarSolicitacoes(requisicao.token || '');
   }
 
+  if (acao === 'meuPerfilConsultarSolicitacao') {
+    return portalMeuPerfilConsultarSolicitacao(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
   if (acao === 'adminMembrosListar') {
     return portalAdminMembrosListar(requisicao.token || '', requisicao.filtros || '{}');
   }
 
   if (acao === 'adminCorrecoesCadastraisListar') {
     return portalAdminCorrecoesCadastraisListar(requisicao.token || '', requisicao.filtros || '{}');
+  }
+
+  if (acao === 'adminCorrecoesCadastraisDetalhe') {
+    return portalAdminCorrecoesCadastraisDetalhe(requisicao.token || '', requisicao.payload || requisicao);
   }
 
   if (acao === 'adminCorrecoesCadastraisAnalisar') {
