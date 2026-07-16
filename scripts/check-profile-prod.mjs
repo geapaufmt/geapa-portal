@@ -21,6 +21,6 @@ assert.match(api, /ACOES_PERFIL_PORTAL/, 'as mutacoes cadastrais devem usar a al
 
 const core = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
 assert.equal(core.developmentMode, false, 'PROD nao pode consumir Core em HEAD');
-assert.equal(core.version, '16', 'o candidato deve usar a versao fixa do Core validada em HOMOLOG');
+assert.equal(core.version, '17', 'o candidato deve usar a nova versao fixa do Core publicada a partir da main');
 
-console.log('OK: candidato usa Core v16 e mantem perfil protegido em PROD por feature flag.');
+console.log('OK: candidato usa Core v17 e mantem perfil protegido em PROD por feature flag.');
