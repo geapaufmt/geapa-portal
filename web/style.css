@@ -3147,7 +3147,7 @@ textarea[aria-invalid="true"] {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 900;
   display: grid;
   place-items: center;
   padding: 20px;
@@ -3648,5 +3648,56 @@ textarea[aria-invalid="true"] {
   .profile-form-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+.profile-request-card-highlight {
+  border-color: #1f6b45;
+  box-shadow: 0 0 0 3px rgba(31, 107, 69, 0.16);
+}
+
+.admin-correction-person-lines {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.admin-correction-person-lines strong,
+.admin-correction-person-lines span {
+  display: block;
+}
+
+.admin-correction-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.admin-correction-comparison section {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-correction-comparison span,
+.admin-correction-comparison strong {
+  display: block;
+}
+
+.admin-correction-comparison span {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-correction-history article {
+  border-left: 3px solid #1f6b45;
+  padding: 0.5rem 0 0.5rem 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .admin-correction-comparison {
+    grid-template-columns: 1fr;
   }
 }

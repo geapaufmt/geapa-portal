@@ -10,6 +10,7 @@ var PORTAL_CONFIG = {
   versaoContrato: 'v2-readonly',
   ambiente: 'producao',
   ambientePerfilCadastral: 'PROD',
+  ambienteDadosV2: 'PROD',
   firebaseProjectId: 'portal-geapa',
 
   /**
@@ -99,6 +100,15 @@ function portalGetConfigPublica() {
   return {
     nomePortal: PORTAL_CONFIG.nomePortal,
     versaoContrato: PORTAL_CONFIG.versaoContrato,
-    ambiente: PORTAL_CONFIG.ambiente
+    ambiente: PORTAL_CONFIG.ambiente,
+    ambienteDadosV2: portalResolverAmbienteDadosV2_()
   };
+}
+
+function portalResolverAmbienteDadosV2_() {
+  var environment = String(PORTAL_CONFIG.ambienteDadosV2 || '').trim().toUpperCase();
+  if (environment !== 'DEV' && environment !== 'PROD') {
+    throw new Error('PORTAL_CONFIG_AMBIENTE_DADOS_V2_INVALIDO');
+  }
+  return environment;
 }

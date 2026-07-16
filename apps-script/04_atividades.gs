@@ -22,7 +22,7 @@ function portalListarAtividades(token) {
 
   var cacheKey = portalCacheKey_(
     'atividadesLista:v2',
-    contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
+    contexto.contextoAtividades.ambienteBackend + ':' + contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
   );
   var cache = portalLerJsonCache_(cacheKey);
 
@@ -72,7 +72,7 @@ function portalAtividadesBundle(token) {
 
   var cacheKey = portalCacheKey_(
     'atividadesBundle',
-    contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
+    contexto.contextoAtividades.ambienteBackend + ':' + contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
   );
   var cache = portalLerJsonCache_(cacheKey);
 
@@ -126,7 +126,7 @@ function portalPrecarregarDetalhesAtividades(token) {
 
   var cacheKey = portalCacheKey_(
     'atividadesDetalhesPreload',
-    contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
+    contexto.contextoAtividades.ambienteBackend + ':' + contexto.identificadorSessao + ':' + contexto.contextoAtividades.perfil
   );
   var cache = portalLerJsonCache_(cacheKey);
 
@@ -680,6 +680,7 @@ function portalMontarContextoAtividades_(token) {
       perfilPortalEfetivo: String((sessao && sessao.perfilPortalEfetivo) || usuario.perfilPortalEfetivo || usuario.perfilPrincipal || '').trim(),
       perfisPortal: perfisPortal,
       permissoes: permissoes,
+      ambienteBackend: portalResolverAmbienteDadosV2_(),
       somenteVisiveis: perfilAtividades === 'MEMBRO'
     }
   };

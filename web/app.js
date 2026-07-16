@@ -13,6 +13,7 @@ const FIREBASE_LOGIN_STATE = {
 let minhaSituacaoCarregamentoAtual = null;
 let meuPerfilCarregamentoAtual = null;
 let meuPerfilDadosAtuais = null;
+let meuPerfilCorrecaoPendente = null;
 
 (function iniciarPortalGeapa() {
   if (typeof document === 'undefined') {
@@ -1384,11 +1385,12 @@ function renderizarMeuPerfil(container, dados) {
 }
 
 function montarPerfilItemSensivel(rotulo, valor, campo) {
+  const valorExibido = campo === 'DATA_NASCIMENTO' ? formatarDataNascimentoPerfil_(valor) : valor;
   return [
     '<div class="summary-item profile-sensitive-item">',
     '<dt>' + escaparHtml(rotulo) + '</dt>',
-    '<dd>' + escaparHtml(valor || 'Não informado ainda') + '</dd>',
-    perfilEdicaoHabilitada() ? '<button class="btn-link profile-correction-link" type="button" data-profile-correction="' + escaparHtml(campo) + '" data-profile-current="' + escaparHtml(valor || '') + '">Solicitar correção</button>' : '',
+    '<dd>' + escaparHtml(valorExibido || 'Não informado ainda') + '</dd>',
+    perfilEdicaoHabilitada() ? '<button class="btn-link profile-correction-link" type="button" data-profile-correction="' + escaparHtml(campo) + '" data-profile-current="' + escaparHtml(valorExibido || '') + '">Solicitar correção</button>' : '',
     '</div>'
   ].join('');
 }
@@ -2984,12 +2986,16 @@ async function carregarERenderizarMeuPerfil(container) {
 }
 
 function tratarCliqueMeuPerfil(evento) {
+  if (!evento.target || typeof evento.target.closest !== 'function') return;
   const editar = evento.target.closest('[data-profile-edit]');
   const cancelar = evento.target.closest('[data-profile-cancel]');
   const corrigir = evento.target.closest('[data-profile-correction]');
   if (editar) renderizarEdicaoMeuPerfil(evento.currentTarget, meuPerfilDadosAtuais || {});
   if (cancelar) renderizarMeuPerfil(evento.currentTarget, meuPerfilDadosAtuais || {});
-  if (corrigir) abrirModalCorrecaoPerfil(corrigir.dataset.profileCorrection, corrigir.dataset.profileCurrent || '');
+  if (corrigir) {
+    evento.preventDefault();
+    abrirModalCorrecaoPerfil(corrigir.dataset.profileCorrection, corrigir.dataset.profileCurrent || '', evento.currentTarget);
+  }
 }
 
 function tratarSubmitMeuPerfil(evento) {
@@ -3034,42 +3040,263 @@ async function salvarEdicaoMeuPerfil(form, container) {
   }
 }
 
-async function carregarSolicitacoesMeuPerfil(container) {
+async function carregarSolicitacoesMeuPerfil(container, destaqueId) {
   const alvo = container && container.querySelector('[data-profile-requests]');
   if (!alvo || !window.PortalGeapaApi) return;
   try {
     const resposta = await window.PortalGeapaApi.apiGet('/meu-perfil/correcoes', {});
     if (!resposta || resposta.ok !== true) throw new Error(resposta && resposta.message || 'Solicitações indisponíveis.');
     const itens = Array.isArray(resposta.data && resposta.data.solicitacoes) ? resposta.data.solicitacoes : [];
-    alvo.innerHTML = itens.length ? '<div class="profile-request-list">' + itens.map(montarSolicitacaoMeuPerfil).join('') + '</div>' : '<p class="empty-state">Nenhuma solicitação cadastral registrada.</p>';
+    alvo.innerHTML = itens.length ? '<div class="profile-request-list">' + itens.map(function montar(item) { return montarSolicitacaoMeuPerfil(item, destaqueId); }).join('') + '</div>' : '<p class="empty-state">Nenhuma solicitação cadastral registrada.</p>';
+    const destacado = Array.from(alvo.querySelectorAll('[data-profile-request-id]')).find(function encontrar(item) {
+      return String(item.dataset.profileRequestId || '') === String(destaqueId || '');
+    });
+    if (destacado && typeof destacado.scrollIntoView === 'function') destacado.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return itens;
   } catch (erro) {
     alvo.innerHTML = '<p class="empty-state">' + escaparHtml(erro.message || 'Não foi possível carregar as solicitações.') + '</p>';
+    return [];
   }
 }
 
-function montarSolicitacaoMeuPerfil(item) {
-  return '<article class="profile-request-card"><div><strong>' + escaparHtml(formatarCampoCorrecao(item.campo)) + '</strong><span class="status-pill">' + escaparHtml(item.status || 'PENDENTE') + '</span></div>' +
+function montarSolicitacaoMeuPerfil(item, destaqueId) {
+  const destacado = String(item && item.id || '') === String(destaqueId || '');
+  return '<article class="profile-request-card' + (destacado ? ' profile-request-card-highlight' : '') + '" data-profile-request-id="' + escaparHtml(item.id || '') + '"><div><strong>' + escaparHtml(formatarCampoCorrecao(item.campo)) + '</strong><span class="status-pill">' + escaparHtml(item.status || 'PENDENTE') + '</span></div>' +
+    '<p><strong>ID:</strong> ' + escaparHtml(item.id || '-') + '</p>' +
     '<p>Solicitada em: ' + escaparHtml(formatarData(item.data) || '-') + '</p>' +
     (item.decisao ? '<p>Decisão: ' + escaparHtml(item.decisao) + '</p>' : '') +
     (item.motivoDecisao ? '<p>Motivo público: ' + escaparHtml(item.motivoDecisao) + '</p>' : '') +
     (item.aplicadoEm ? '<p>Aplicada em: ' + escaparHtml(formatarData(item.aplicadoEm)) + '</p>' : '') + '</article>';
 }
 
-function abrirModalCorrecaoPerfil(campo, valorAtual) {
+function reportarModalCorrecaoPerfilIndisponivel_(container, detalhes) {
+  const mensagem = 'O formulário de solicitação de correção não foi carregado. Atualize a página e tente novamente.';
+  console.error('[PORTAL_PROFILE_CORRECTION_MODAL_UNAVAILABLE]', detalhes || {});
+
+  if (container) {
+    let alvo = container.querySelector('[data-profile-correction-setup-error]');
+    if (!alvo && typeof document.createElement === 'function') {
+      alvo = document.createElement('p');
+      alvo.className = 'portal-field-error';
+      alvo.setAttribute('role', 'alert');
+      alvo.setAttribute('data-profile-correction-setup-error', '');
+      if (typeof container.prepend === 'function') container.prepend(alvo);
+    }
+    if (alvo) {
+      alvo.textContent = mensagem;
+      alvo.hidden = false;
+    }
+  }
+
+  mostrarFeedbackPerfil('error', mensagem);
+  return false;
+}
+
+function fecharModalCorrecaoPerfil_(modal) {
+  if (modal) modal.hidden = true;
+  if (document.body) document.body.classList.remove('modal-open');
+}
+
+function abrirModalCorrecaoPerfil(campo, valorAtual, container) {
   const modal = document.getElementById('profile-correction-modal');
   const form = modal && modal.querySelector('[data-profile-correction-form]');
-  if (!modal || !form) return;
+  const label = modal && modal.querySelector('[data-profile-correction-label]');
+  const campoInput = form && form.querySelector('[name="campo"]');
+  const valorAtualInput = form && form.querySelector('[name="valorAtual"]');
+  const valorSolicitadoInput = form && form.querySelector('[name="valorSolicitado"]');
+  const justificativaInput = form && form.querySelector('[name="justificativa"]');
+  const camposObrigatorios = !!(campoInput && valorAtualInput && valorSolicitadoInput && justificativaInput);
+  if (!modal || !form || !label || !camposObrigatorios) {
+    return reportarModalCorrecaoPerfilIndisponivel_(container, {
+      modalEncontrado: !!modal,
+      formularioEncontrado: !!form,
+      labelEncontrado: !!label,
+      camposObrigatoriosEncontrados: !!camposObrigatorios
+    });
+  }
   form.reset();
-  form.elements.campo.value = campo;
-  form.elements.valorAtual.value = valorAtual || 'Não informado';
-  form.querySelector('[data-profile-correction-label]').textContent = formatarCampoCorrecao(campo);
+  campoInput.value = campo;
+  valorAtualInput.value = campo === 'DATA_NASCIMENTO' ? formatarDataNascimentoPerfil_(valorAtual) : (valorAtual || 'Não informado');
+  valorSolicitadoInput.placeholder = campo === 'DATA_NASCIMENTO' ? 'DD/MM/AAAA' : '';
+  valorSolicitadoInput.inputMode = campo === 'DATA_NASCIMENTO' ? 'numeric' : 'text';
+  label.textContent = formatarCampoCorrecao(campo);
+  const erroAlvo = form.querySelector('[data-profile-correction-error]');
+  if (erroAlvo) {
+    erroAlvo.textContent = '';
+    erroAlvo.hidden = true;
+  }
   modal.hidden = false;
-  form.elements.valorSolicitado.focus();
+  if (document.body) document.body.classList.add('modal-open');
+  valorSolicitadoInput.focus();
+  return true;
 }
 
 function formatarCampoCorrecao(campo) {
   const rotulos = { NOME_COMPLETO: 'Nome completo', CPF: 'CPF', RGA: 'RGA', DATA_NASCIMENTO: 'Data de nascimento', EMAIL_PRINCIPAL: 'E-mail principal' };
   return rotulos[campo] || String(campo || '').replace(/_/g, ' ');
+}
+
+function formatarDataNascimentoPerfil_(valor) {
+  const texto = String(valor || '').trim();
+  const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return iso[3] + '/' + iso[2] + '/' + iso[1];
+  const brasileira = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brasileira) return texto;
+  return texto;
+}
+
+function normalizarDataNascimentoCorrecao_(valor) {
+  const texto = String(valor || '').trim();
+  const brasileira = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!brasileira && !iso) {
+    const erroFormato = new Error('Formato de data inválido. Use DD/MM/AAAA.');
+    erroFormato.code = 'DATA_NASCIMENTO_INVALIDA';
+    throw erroFormato;
+  }
+  const ano = Number(brasileira ? brasileira[3] : iso[1]);
+  const mes = Number(brasileira ? brasileira[2] : iso[2]);
+  const dia = Number(brasileira ? brasileira[1] : iso[3]);
+  const bissexto = ano % 4 === 0 && (ano % 100 !== 0 || ano % 400 === 0);
+  const diasMes = [31, bissexto ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const hoje = new Date();
+  const numeroHoje = hoje.getFullYear() * 10000 + (hoje.getMonth() + 1) * 100 + hoje.getDate();
+  const numeroInformado = ano * 10000 + mes * 100 + dia;
+  if (ano < 1900 || mes < 1 || mes > 12 || dia < 1 || dia > diasMes[mes - 1] || numeroInformado > numeroHoje) {
+    const erroData = new Error('Formato de data inválido. Use DD/MM/AAAA.');
+    erroData.code = 'DATA_NASCIMENTO_INVALIDA';
+    throw erroData;
+  }
+  return String(ano).padStart(4, '0') + '-' + String(mes).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
+}
+
+function normalizarValorSolicitadoCorrecao_(campo, valor) {
+  const field = String(campo || '').trim().toUpperCase();
+  const texto = String(valor || '').trim();
+  if (field === 'DATA_NASCIMENTO') return normalizarDataNascimentoCorrecao_(texto);
+  if (field === 'RGA') {
+    const rga = texto.replace(/\s+/g, '');
+    if (!/^[A-Za-z0-9.-]{4,30}$/.test(rga)) {
+      const erroRga = new Error('Informe um RGA válido.');
+      erroRga.code = 'RGA_INVALIDO';
+      throw erroRga;
+    }
+    return rga;
+  }
+  return texto;
+}
+
+function mensagemErroCorrecaoPerfil_(respostaOuErro) {
+  const resposta = respostaOuErro && respostaOuErro.portalResponse || respostaOuErro || {};
+  const data = resposta.data || {};
+  const codigo = String(resposta.code || resposta.errorCode || resposta.reasonCode || data.reasonCode || respostaOuErro && respostaOuErro.code || '').toUpperCase();
+  const mensagens = {
+    VALOR_SEM_ALTERACAO: 'O novo valor é igual ao valor atual.',
+    RGA_INVALIDO: 'Informe um RGA válido.',
+    SOLICITACAO_DUPLICADA: 'Já existe uma solicitação pendente para este campo.',
+    SESSAO_INVALIDA: 'Sua sessão expirou. Entre novamente.',
+    SESSAO_INVALIDA_OU_EXPIRADA: 'Sua sessão expirou. Entre novamente.',
+    SESSAO_CORE_INVALIDA: 'Sua sessão expirou. Entre novamente.',
+    DATA_NASCIMENTO_INVALIDA: 'Formato de data inválido. Use DD/MM/AAAA.',
+    JUSTIFICATIVA_OBRIGATORIA: 'Explique o motivo da correção com pelo menos 20 caracteres.',
+    VALOR_SOLICITADO_OBRIGATORIO: 'Informe o novo valor solicitado.',
+    CHAVE_IDEMPOTENCIA_INVALIDA: 'Atualize a página e tente novamente.',
+    CAMPO_SENSIVEL_NAO_PERMITIDO: 'Este campo não pode ser corrigido por este fluxo.'
+  };
+  if (mensagens[codigo]) return mensagens[codigo];
+  if (/FONTE_INDISPONIVEL|DOMAIN_|PESSOAS_V2_|REGISTRY_/.test(codigo)) return 'Não foi possível acessar a fila de solicitações.';
+  const mensagem = String(resposta.userMessage || resposta.message || respostaOuErro && respostaOuErro.message || '').trim();
+  if (mensagem && mensagem !== 'Solicitação inválida ou indisponível.') return mensagem;
+  return codigo ? 'Não foi possível enviar a solicitação. Código: ' + codigo + '.' : 'Não foi possível enviar a solicitação.';
+}
+
+function diagnosticoSeguroCorrecaoPerfil_(payload) {
+  const valor = String(payload && payload.valorSolicitado || '');
+  const justificativa = String(payload && payload.justificativa || '');
+  const chave = String(payload && payload.chaveIdempotencia || '');
+  return {
+    campo: String(payload && payload.campo || ''),
+    valorSolicitadoPresente: valor.length > 0,
+    valorSolicitadoTamanho: valor.length,
+    justificativaPresente: justificativa.length > 0,
+    justificativaTamanho: justificativa.length,
+    chaveIdempotenciaPresente: chave.length > 0,
+    chaveIdempotenciaTamanho: chave.length,
+    requestId: String(payload && payload.requestId || '')
+  };
+}
+
+function envelopeSeguroCorrecaoPerfil_(resposta, requestId) {
+  const origem = resposta || {};
+  const data = origem.data || {};
+  return {
+    httpStatus: Number(origem.httpStatus || 0),
+    ok: origem.ok === true,
+    code: String(origem.code || ''),
+    errorCode: String(origem.errorCode || ''),
+    reasonCode: String(origem.reasonCode || data.reasonCode || ''),
+    message: String(origem.message || ''),
+    fieldErrors: origem.fieldErrors || data.fieldErrors || {},
+    details: origem.details || data.details || {},
+    requestId: String(origem.requestId || data.requestId || requestId || '')
+  };
+}
+
+function respostaCorrecaoIncerta_(respostaOuErro) {
+  const origem = respostaOuErro && respostaOuErro.portalResponse || respostaOuErro || {};
+  const codigo = String(origem.code || origem.errorCode || respostaOuErro && respostaOuErro.code || '').toUpperCase();
+  return codigo === 'API_WRITE_TIMEOUT' || codigo === 'API_RESPOSTA_INVALIDA' || codigo === 'ERRO_API' || codigo.indexOf('API_HTTP_') === 0;
+}
+
+function aguardarConfirmacaoCorrecao_(milissegundos) {
+  return new Promise(function aguardar(resolve) { window.setTimeout(resolve, milissegundos); });
+}
+
+async function reconciliarSolicitacaoCorrecao_(payload) {
+  const intervalos = [0, 700, 1400];
+  for (let tentativa = 0; tentativa < intervalos.length; tentativa += 1) {
+    if (intervalos[tentativa]) await aguardarConfirmacaoCorrecao_(intervalos[tentativa]);
+    const resposta = await window.PortalGeapaApi.apiGet('/meu-perfil/correcoes/consultar', {
+      chaveIdempotencia: String(payload.chaveIdempotencia || '')
+    });
+    if (resposta && resposta.ok === true && resposta.data && resposta.data.encontrada === true && resposta.data.solicitacao) {
+      return { encontrada: true, resposta: resposta };
+    }
+    if (resposta && resposta.ok === false && !respostaCorrecaoIncerta_(resposta)) return { encontrada: false, resposta: resposta };
+  }
+  return { encontrada: false, resposta: null };
+}
+
+async function confirmarSucessoSolicitacaoCorrecao_(modal, form, container, resposta) {
+  const data = resposta && resposta.data || {};
+  const solicitacao = data.solicitacao || {};
+  const idSolicitacao = String(solicitacao.id || data.idSolicitacao || '');
+  const status = String(solicitacao.status || data.status || 'PENDENTE');
+  meuPerfilCorrecaoPendente = null;
+  form.reset();
+  fecharModalCorrecaoPerfil_(modal);
+  const mensagem = 'Solicitação ' + (idSolicitacao || 'cadastral') + ' registrada com status ' + status + '.';
+  const persistente = document.getElementById('profile-persistent-feedback');
+  try {
+    if (persistente && window.PortalGeapaUi && typeof window.PortalGeapaUi.mostrarMensagemPersistente === 'function') {
+      window.PortalGeapaUi.mostrarMensagemPersistente(persistente, { type: 'success', message: mensagem });
+    }
+  } catch (erroPersistente) {
+    console.error('[PORTAL_PROFILE_CORRECTION_ACK_UI]', { etapa: 'mensagem_persistente', code: String(erroPersistente && erroPersistente.message || 'ERRO_UI') });
+  }
+  try {
+    if (window.PortalGeapaUi && typeof window.PortalGeapaUi.mostrarToast === 'function') {
+      window.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Solicitação registrada', message: mensagem });
+    }
+  } catch (erroToast) {
+    console.error('[PORTAL_PROFILE_CORRECTION_ACK_UI]', { etapa: 'toast', code: String(erroToast && erroToast.message || 'ERRO_UI') });
+  }
+  try {
+    await carregarSolicitacoesMeuPerfil(container, idSolicitacao);
+  } catch (erroLista) {
+    console.error('[PORTAL_PROFILE_CORRECTION_ACK_UI]', { etapa: 'lista', code: String(erroLista && erroLista.message || 'ERRO_UI') });
+  }
+  return { idSolicitacao: idSolicitacao, status: status };
 }
 
 function gerarChavePerfil(prefixo) {
@@ -3084,39 +3311,105 @@ function mostrarFeedbackPerfil(tipo, mensagem) {
 
 function configurarModalCorrecaoPerfil(container) {
   const modal = document.getElementById('profile-correction-modal');
-  if (!modal) return;
+  const form = modal && modal.querySelector('[data-profile-correction-form]');
+  if (!modal || !form) {
+    return reportarModalCorrecaoPerfilIndisponivel_(container, {
+      modalEncontrado: !!modal,
+      formularioEncontrado: !!form,
+      etapa: 'configuracao'
+    });
+  }
   modal.addEventListener('click', function fechar(evento) {
-    if (evento.target.matches('[data-profile-correction-close]') || evento.target === modal) modal.hidden = true;
+    if (evento.target.matches('[data-profile-correction-close]') || evento.target === modal) fecharModalCorrecaoPerfil_(modal);
   });
   modal.addEventListener('submit', async function enviar(evento) {
-    const form = evento.target;
-    if (!form.matches('[data-profile-correction-form]')) return;
+    const formEnviado = evento.target;
+    if (!formEnviado.matches('[data-profile-correction-form]')) return;
     evento.preventDefault();
+    if (formEnviado.dataset.profileSubmitting === 'true') return;
+    const dados = new FormData(formEnviado);
+    const campoFormulario = String(dados.get('campo') || '').trim().toUpperCase();
+    const botao = formEnviado.querySelector('[type="submit"]');
+    const textoOriginalBotao = botao ? String(botao.textContent || 'Enviar solicitação') : '';
+    if (meuPerfilCorrecaoPendente) {
+      const erroPendente = formEnviado.querySelector('[data-profile-correction-error]');
+      if (erroPendente) {
+        erroPendente.textContent = 'Este envio ainda aguarda confirmação. Não reenvie: consulte Minhas solicitações cadastrais.';
+        erroPendente.hidden = false;
+      }
+      return;
+    }
     if (!window.confirm('Confirma o envio desta solicitação para análise?')) return;
-    const dados = new FormData(form);
-    const payload = {
-      chaveIdempotencia: gerarChavePerfil('correcao'),
-      campo: String(dados.get('campo') || ''),
-      valorSolicitado: String(dados.get('valorSolicitado') || '').trim(),
-      justificativa: String(dados.get('justificativa') || '').trim()
-    };
-    const botao = form.querySelector('[type="submit"]');
-    if (botao) botao.disabled = true;
+    const requestId = gerarChavePerfil('req');
+    let payload;
+    try {
+      const justificativa = String(dados.get('justificativa') || '').trim();
+      if (justificativa.length < 20) {
+        const erroJustificativa = new Error('Explique o motivo da correção com pelo menos 20 caracteres.');
+        erroJustificativa.code = 'JUSTIFICATIVA_OBRIGATORIA';
+        throw erroJustificativa;
+      }
+      payload = {
+        requestId: requestId,
+        chaveIdempotencia: gerarChavePerfil('correcao'),
+        campo: campoFormulario,
+        valorSolicitado: normalizarValorSolicitadoCorrecao_(campoFormulario, dados.get('valorSolicitado')),
+        justificativa: justificativa
+      };
+    } catch (erroValidacao) {
+      const erroAlvoValidacao = formEnviado.querySelector('[data-profile-correction-error]');
+      if (erroAlvoValidacao) {
+        erroAlvoValidacao.textContent = mensagemErroCorrecaoPerfil_(erroValidacao);
+        erroAlvoValidacao.hidden = false;
+      }
+      return;
+    }
+    console.info('[PORTAL_PROFILE_CORRECTION_SUBMIT]', diagnosticoSeguroCorrecaoPerfil_(payload));
+    meuPerfilCorrecaoPendente = { payload: payload };
+    formEnviado.dataset.profileSubmitting = 'true';
+    if (botao) { botao.disabled = true; botao.textContent = 'Enviando...'; }
     mostrarLoadingGlobal('Enviando solicitação...');
     try {
       const resposta = await window.PortalGeapaApi.apiPost('/meu-perfil/correcoes/solicitar', { payload: JSON.stringify(payload) });
-      if (!resposta || resposta.ok !== true) throw new Error(resposta && resposta.message || 'Não foi possível enviar a solicitação.');
-      modal.hidden = true;
-      window.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Solicitação enviada', message: resposta.message || 'Solicitação cadastral enviada para análise.' });
-      await carregarSolicitacoesMeuPerfil(container);
+      const envelopeSeguro = envelopeSeguroCorrecaoPerfil_(resposta, requestId);
+      console.info('[PORTAL_PROFILE_CORRECTION_RESPONSE]', envelopeSeguro);
+      if (!resposta || resposta.ok !== true) {
+        const erroResposta = new Error(mensagemErroCorrecaoPerfil_(resposta));
+        erroResposta.code = envelopeSeguro.errorCode || envelopeSeguro.code || envelopeSeguro.reasonCode;
+        erroResposta.portalResponse = resposta || {};
+        throw erroResposta;
+      }
+      await confirmarSucessoSolicitacaoCorrecao_(modal, formEnviado, container, resposta);
     } catch (erro) {
-      const erroAlvo = form.querySelector('[data-profile-correction-error]');
-      if (erroAlvo) { erroAlvo.textContent = erro.message; erroAlvo.hidden = false; }
+      const erroAlvo = formEnviado.querySelector('[data-profile-correction-error]');
+      if (respostaCorrecaoIncerta_(erro)) {
+        let reconciliacao = { encontrada: false, resposta: null };
+        try {
+          reconciliacao = await reconciliarSolicitacaoCorrecao_(payload);
+        } catch (erroConsulta) {
+          console.error('[PORTAL_PROFILE_CORRECTION_RECONCILE]', { ok: false, code: String(erroConsulta && erroConsulta.code || 'CONSULTA_INDISPONIVEL'), requestId: requestId });
+        }
+        if (reconciliacao.encontrada) {
+          await confirmarSucessoSolicitacaoCorrecao_(modal, formEnviado, container, reconciliacao.resposta);
+        } else {
+          const mensagemIncerta = 'A solicitação pode ter sido registrada, mas a confirmação demorou. Não reenvie agora; consulte Minhas solicitações cadastrais.';
+          if (erroAlvo) { erroAlvo.textContent = mensagemIncerta; erroAlvo.hidden = false; }
+          mostrarFeedbackPerfil('warning', mensagemIncerta);
+        }
+      } else {
+        meuPerfilCorrecaoPendente = null;
+        if (erroAlvo) { erroAlvo.textContent = mensagemErroCorrecaoPerfil_(erro); erroAlvo.hidden = false; }
+      }
     } finally {
-      if (botao) botao.disabled = false;
+      formEnviado.dataset.profileSubmitting = 'false';
+      if (botao) {
+        botao.disabled = !!meuPerfilCorrecaoPendente;
+        botao.textContent = meuPerfilCorrecaoPendente ? 'Aguardando confirmação' : textoOriginalBotao;
+      }
       ocultarLoadingGlobal();
     }
   });
+  return true;
 }
 
 function configurarRotasConteudoPublicoEditorial() {
