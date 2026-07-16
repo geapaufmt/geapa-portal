@@ -7,7 +7,7 @@
 window.PortalGeapaConfig = {
   "MOCK_MODE": false,
   "ENVIRONMENT": "PROD",
-  "DATA_ENVIRONMENT": "PILOTO_V2_DEV_CONTROLADO",
+  "DATA_ENVIRONMENT": "PROD",
   "BUILD_CHANNEL": "live",
   "PORTAL_VERSION": "stable",
   "GEAPA_API_BASE_URL": "https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec",
@@ -24,6 +24,7 @@ window.PortalGeapaConfig = {
   "API_UPLOAD_WRITE_TIMEOUT_MS": 90000,
   "ENABLE_ACTIVITY_MANAGEMENT": true,
   "ENABLE_JUSTIFICATIVAS": true,
+  "ENABLE_PROFILE_UPDATES": false,
   "READ_ONLY_MODE": false,
   "SHOW_ENV_BADGE": false,
   "MAINTENANCE_BANNER": "",
