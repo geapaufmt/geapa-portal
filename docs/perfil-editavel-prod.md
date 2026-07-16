@@ -1,8 +1,9 @@
 # Perfil editavel e correcoes cadastrais - PROD
 
-O backend foi publicado com `GEAPA_CORE` v12 e Portal Apps Script v89. A
-ativacao visual permanece protegida por `ENABLE_PROFILE_UPDATES=false` ate a
-infraestrutura cadastral PROD cumprir os pre-requisitos abaixo.
+O fluxo foi homologado com `GEAPA_CORE` v18 e promovido para uma nova versao
+imutavel do Portal Apps Script PROD. O frontend PROD usa
+`ENABLE_PROFILE_UPDATES=true` somente depois da homologacao do fluxo completo
+de gravacao e reconciliacao.
 
 ## Contrato de ambiente
 
@@ -19,21 +20,15 @@ O frontend habilita as acoes quando:
 O Core continua revalidando sessao, propriedade e permissao em todas as
 escritas. O frontend nao escolhe `ID_PESSOA` nem concede acesso administrativo.
 
-## Bloqueio operacional atual
+## Estado operacional
 
-O Registry possui `PESSOAS_V2_BASE` e
-`PESSOAS_V2_SOLICITACOES_ATUALIZACAO_CADASTRAL` apenas em `DEV`. O Core v12
-recusa fallback de `PROD` para `DEV` ou `ALL`, portanto a feature nao pode ser
-ativada antes de existir uma base V2 oficial registrada em `PROD`.
-
-Ordem para liberar a feature:
-
-1. registrar a `PESSOAS_V2_BASE` oficial com ambiente `PROD`;
-2. executar o setup PROD do Core em dry-run;
-3. executar o setup real com a confirmacao dedicada;
-4. executar `geapaCoreRunTestesAtualizacaoCadastral()`;
-5. alterar `ENABLE_PROFILE_UPDATES` para `true`;
-6. publicar novamente somente o Firebase Hosting.
+- Registry e bases V2 DEV/PROD auditados;
+- aba `SOLICITACOES_ATUALIZACAO_CADASTRAL` disponivel em PROD;
+- Core v18 reduz as leituras do fluxo cadastral para a fila e a fonte oficial
+  estritamente necessaria;
+- homologacao confirmou gravacao, resposta de sucesso e exibicao da
+  solicitacao sem timeout;
+- o backend continua impedindo fallback entre DEV e PROD.
 
 ## Validacao
 
@@ -44,13 +39,12 @@ npm.cmd run test:minha-situacao-route
 npm.cmd run check:configs
 ```
 
-O deployment PROD atual e `@89`; HOMOLOG permanece em `@88`. Enquanto a flag
-estiver desligada, o perfil continua em modo de leitura e a rota administrativa
-de correcoes cadastrais nao e exibida.
+O deployment `@89` permanece disponivel como rollback. A versao PROD promovida
+deve usar Core v18, ambiente cadastral `PROD` e `developmentMode=false`.
 
 ## Rollback futuro
 
-- retornar o deployment Apps Script PROD para `@87`;
-- restaurar a release Firebase anterior;
-- manter o Portal apontando para Core v11;
+- retornar o deployment Apps Script PROD para `@89`;
+- restaurar no Hosting `ENABLE_PROFILE_UPDATES=false`;
+- manter o Core v18 publicado; o rollback do Portal nao exige apagar a Library;
 - preservar solicitacoes ja registradas como trilha auditavel.
