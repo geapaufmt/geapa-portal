@@ -25,6 +25,6 @@ assert.match(api, /ACOES_PERFIL_PORTAL/, 'as mutacoes cadastrais devem usar a al
 
 const core = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
 assert.equal(core.developmentMode, false, 'PROD nao pode consumir Core em HEAD');
-assert.equal(core.version, '17', 'o candidato deve usar a nova versao fixa do Core publicada a partir da main');
+assert.equal(core.version, '18', 'o candidato deve usar a versao fixa do Core com leituras cadastrais seletivas');
 
 console.log('OK: candidato mantem o perfil cadastral desabilitado durante o rollback PROD.');
