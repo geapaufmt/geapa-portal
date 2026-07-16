@@ -1,8 +1,8 @@
-/** Configuracao publica PROD/PILOTO. Nao adicionar segredos. */
+/** Configuracao publica PROD. Nao adicionar segredos. */
 window.PortalGeapaConfig = {
   MOCK_MODE: false,
   ENVIRONMENT: 'PROD',
-  DATA_ENVIRONMENT: 'PILOTO_V2_DEV_CONTROLADO',
+  DATA_ENVIRONMENT: 'PROD',
   BUILD_CHANNEL: 'live',
   PORTAL_VERSION: 'stable',
   GEAPA_API_BASE_URL: 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec',

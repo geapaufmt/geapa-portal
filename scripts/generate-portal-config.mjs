@@ -42,6 +42,7 @@ const requiredFlags = [
   'APPS_SCRIPT_FALLBACK_ENABLED',
   'ENABLE_ACTIVITY_MANAGEMENT',
   'ENABLE_JUSTIFICATIVAS',
+  'ENABLE_PROFILE_UPDATES',
   'READ_ONLY_MODE'
 ];
 requiredFlags.forEach((key) => {
