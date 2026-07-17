@@ -43,6 +43,7 @@ const requiredFlags = [
   'ENABLE_ACTIVITY_MANAGEMENT',
   'ENABLE_JUSTIFICATIVAS',
   'ENABLE_PROFILE_UPDATES',
+  'ENABLE_VINCULO_REQUESTS',
   'READ_ONLY_MODE'
 ];
 requiredFlags.forEach((key) => {

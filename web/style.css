@@ -25,6 +25,38 @@
   --portal-row-hover: rgba(231, 244, 236, 0.64);
 }
 
+/* Gestão V2 de solicitações voluntárias de vínculo. */
+.vinculo-solicitacoes-host { margin-top: 1rem; }
+.vinculo-card { border: 1px solid var(--border-color, #d9e1db); border-radius: 18px; background: #fff; padding: clamp(1rem, 2vw, 1.5rem); box-shadow: 0 8px 24px rgba(26, 54, 38, .06); }
+.vinculo-heading, .vinculo-actions, .vinculo-request-item > div, .vinculo-admin-person { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.vinculo-heading h3, .vinculo-requests h4 { margin: .15rem 0; }
+.vinculo-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; margin: 1rem 0; }
+.vinculo-summary > div { padding: .8rem; border-radius: 12px; background: #f5f8f6; }
+.vinculo-summary dt { color: #577064; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+.vinculo-summary dd { margin: .25rem 0 0; font-weight: 650; }
+.vinculo-actions { justify-content: flex-start; flex-wrap: wrap; margin: 1rem 0; }
+.vinculo-alerta { padding: .85rem 1rem; border-left: 4px solid #a67c00; background: #fff8df; border-radius: 8px; }
+.vinculo-request-list { display: grid; gap: .75rem; }
+.vinculo-request-item { border: 1px solid #dde5df; border-radius: 12px; padding: .85rem; }
+.vinculo-request-item > div { align-items: flex-start; }
+.vinculo-request-item span { display: block; color: #52675b; font-size: .9rem; }
+.status-chip { display: inline-block !important; padding: .2rem .55rem; border-radius: 999px; background: #e9f3ec; color: #245b35 !important; font-weight: 650; }
+.vinculo-form, [data-admin-vinculo-action] { display: grid; gap: .9rem; }
+.vinculo-form label, [data-admin-vinculo-action] label, .vinculo-filter-grid label { display: grid; gap: .35rem; font-weight: 600; }
+.vinculo-form input, .vinculo-form select, .vinculo-form textarea, [data-admin-vinculo-action] input, [data-admin-vinculo-action] select, [data-admin-vinculo-action] textarea, .vinculo-filter-grid input, .vinculo-filter-grid select { width: 100%; box-sizing: border-box; }
+.vinculo-date-grid, .vinculo-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; }
+.vinculo-filter-grid { margin: 1rem 0; align-items: end; }
+.vinculo-admin-person { justify-content: flex-start; flex-wrap: wrap; padding: .8rem; background: #f5f8f6; border-radius: 12px; }
+.vinculo-admin-person strong { flex-basis: 100%; }
+.vinculo-admin-modal-panel { width: min(900px, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; }
+.vinculo-admin-modal-panel section { padding: .8rem 0; border-bottom: 1px solid #e4e9e5; }
+.vinculo-admin-modal-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .78rem; }
+
+@media (max-width: 640px) {
+  .vinculo-heading, .vinculo-request-item > div { align-items: stretch; flex-direction: column; }
+  .vinculo-actions > button { width: 100%; }
+}
+
 * {
   box-sizing: border-box;
 }

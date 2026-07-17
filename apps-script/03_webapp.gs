@@ -32,6 +32,22 @@ function doGet(e) {
         'adminCorrecoesCadastraisDetalhe',
         'adminCorrecoesCadastraisAnalisar',
         'adminCorrecoesCadastraisAplicar',
+        'meuVinculoOpcoesSolicitacao',
+        'meuVinculoSolicitacoesListar',
+        'meuVinculoSolicitarSuspensao',
+        'meuVinculoSolicitarDesligamento',
+        'meuVinculoCancelarSolicitacao',
+        'adminSolicitacoesVinculoListar',
+        'adminSolicitacaoVinculoDetalhe',
+        'adminSolicitacaoVinculoIniciarAnalise',
+        'adminSolicitacaoVinculoSolicitarComplemento',
+        'adminSolicitacaoVinculoRegistrarAnalisePreliminar',
+        'adminSolicitacaoVinculoIndeferir',
+        'adminSolicitacaoVinculoHomologarSuspensao',
+        'adminSolicitacaoVinculoHomologarEfetivarDesligamento',
+        'adminSolicitacaoVinculoCancelar',
+        'adminSolicitacaoVinculoReprocessar',
+        'adminSolicitacaoVinculoReenviarNotificacao',
         'atividadesBundle',
         'atividadesListar',
         'atividadesDetalhesPreload',
@@ -207,6 +223,23 @@ function portalExecutarAcao_(requisicao) {
   if (acao === 'adminCorrecoesCadastraisAplicar') {
     return portalAdminCorrecoesCadastraisAplicar(requisicao.token || '', requisicao.payload || requisicao);
   }
+
+  if (acao === 'meuVinculoOpcoesSolicitacao') return portalMeuVinculoOpcoesSolicitacao(requisicao.token || '');
+  if (acao === 'meuVinculoSolicitacoesListar') return portalMeuVinculoSolicitacoesListar(requisicao.token || '');
+  if (acao === 'meuVinculoSolicitarSuspensao') return portalMeuVinculoSolicitarSuspensao(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'meuVinculoSolicitarDesligamento') return portalMeuVinculoSolicitarDesligamento(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'meuVinculoCancelarSolicitacao') return portalMeuVinculoCancelarSolicitacao(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacoesVinculoListar') return portalAdminSolicitacoesVinculoListar(requisicao.token || '', requisicao.filtros || requisicao.payload || '{}');
+  if (acao === 'adminSolicitacaoVinculoDetalhe') return portalAdminSolicitacaoVinculoDetalhe(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoIniciarAnalise') return portalAdminSolicitacaoVinculoIniciarAnalise(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoSolicitarComplemento') return portalAdminSolicitacaoVinculoSolicitarComplemento(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoRegistrarAnalisePreliminar') return portalAdminSolicitacaoVinculoRegistrarAnalisePreliminar(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoIndeferir') return portalAdminSolicitacaoVinculoIndeferir(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoHomologarSuspensao') return portalAdminSolicitacaoVinculoHomologarSuspensao(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoHomologarEfetivarDesligamento') return portalAdminSolicitacaoVinculoHomologarEfetivarDesligamento(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoCancelar') return portalAdminSolicitacaoVinculoCancelar(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoReprocessar') return portalAdminSolicitacaoVinculoReprocessar(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminSolicitacaoVinculoReenviarNotificacao') return portalAdminSolicitacaoVinculoReenviarNotificacao(requisicao.token || '', requisicao.payload || requisicao);
 
   if (acao === 'atividadesBundle') {
     return portalAtividadesBundle(requisicao.token || '');

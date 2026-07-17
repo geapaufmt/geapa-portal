@@ -80,6 +80,7 @@
     rota('admin', 'Painel administrativo', 'admin', 'gestao-geapa', 10, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['gestao:acessar'], 'Painel operacional conforme perfil e permissões.', 'placeholder'),
     rota('admin-membros', 'Membros', 'admin/membros', 'gestao-geapa', 20, 'tela-admin-membros', 'view-admin-membros', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta operacional de membros autorizada pelo backend.', 'implementado'),
     rota('admin-correcoes-cadastrais', 'Correções cadastrais', 'admin/correcoes-cadastrais', 'gestao-geapa', 25, 'tela-admin-correcoes-cadastrais', 'view-admin-correcoes-cadastrais', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:analisar_correcoes'], 'Análise e aplicação de solicitações cadastrais autorizadas pelo Core.', 'implementado'),
+    rota('admin-solicitacoes-vinculo', 'Solicitações de vínculo', 'admin/membros/solicitacoes-vinculo', 'gestao-geapa', 27, 'tela-admin-solicitacoes-vinculo', 'view-admin-solicitacoes-vinculo', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:analisar_solicitacoes_vinculo'], 'Análise humana de suspensões e desligamentos voluntários.', 'implementado'),
     rota('admin-atividades', 'Atividades', 'admin/atividades', 'gestao-geapa', 30, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['atividades:gerir'], 'Criação, edição e operação de atividades.', 'implementado'),
     rota('admin-chamadas', 'Chamadas', 'admin/chamadas', 'gestao-geapa', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['presencas:gerir'], 'Registro e acompanhamento de chamadas/presenças.', 'placeholder'),
     rota('admin-justificativas', 'Justificativas', 'admin/justificativas', 'gestao-geapa', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['justificativas:analisar'], 'Análise operacional e decisão de justificativas conforme permissão.', 'implementado'),
@@ -427,10 +428,11 @@
   function routeFeatureEnabled(rota) {
     var config = global.PortalGeapaConfig || {};
     var readOnly = config.READ_ONLY_MODE === true;
-    var gestaoPermitidaNoHomolog = ['admin-membros', 'admin-correcoes-cadastrais', 'admin-justificativas'];
+    var gestaoPermitidaNoHomolog = ['admin-membros', 'admin-correcoes-cadastrais', 'admin-solicitacoes-vinculo', 'admin-justificativas'];
     if (readOnly && rota.grupoMenu === 'gestao-geapa' && gestaoPermitidaNoHomolog.indexOf(rota.id) < 0) return false;
     if (rota.id === 'admin-atividades' && config.ENABLE_ACTIVITY_MANAGEMENT === false) return false;
     if (rota.id === 'admin-correcoes-cadastrais' && config.ENABLE_PROFILE_UPDATES !== true) return false;
+    if (rota.id === 'admin-solicitacoes-vinculo' && config.ENABLE_VINCULO_REQUESTS !== true) return false;
     if (rota.id === 'admin-justificativas' && config.ENABLE_JUSTIFICATIVAS === false) return false;
     return true;
   }
