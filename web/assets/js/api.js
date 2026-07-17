@@ -31,7 +31,19 @@
     meuPerfilConsultarSolicitacao: true,
     adminCorrecoesCadastraisDetalhe: true,
     adminCorrecoesCadastraisAnalisar: true,
-    adminCorrecoesCadastraisAplicar: true
+    adminCorrecoesCadastraisAplicar: true,
+    meuVinculoSolicitarSuspensao: true,
+    meuVinculoSolicitarDesligamento: true,
+    meuVinculoCancelarSolicitacao: true,
+    adminSolicitacaoVinculoIniciarAnalise: true,
+    adminSolicitacaoVinculoSolicitarComplemento: true,
+    adminSolicitacaoVinculoRegistrarAnalisePreliminar: true,
+    adminSolicitacaoVinculoIndeferir: true,
+    adminSolicitacaoVinculoHomologarSuspensao: true,
+    adminSolicitacaoVinculoHomologarEfetivarDesligamento: true,
+    adminSolicitacaoVinculoCancelar: true,
+    adminSolicitacaoVinculoReprocessar: true,
+    adminSolicitacaoVinculoReenviarNotificacao: true
   };
   var ACOES_GESTAO_ATIVIDADES = {
     atividadeAdminSalvarEdicao: true,
@@ -49,6 +61,20 @@
     meuPerfilSolicitarCorrecao: true,
     adminCorrecoesCadastraisAnalisar: true,
     adminCorrecoesCadastraisAplicar: true
+  };
+  var ACOES_VINCULO = {
+    meuVinculoSolicitarSuspensao: true,
+    meuVinculoSolicitarDesligamento: true,
+    meuVinculoCancelarSolicitacao: true,
+    adminSolicitacaoVinculoIniciarAnalise: true,
+    adminSolicitacaoVinculoSolicitarComplemento: true,
+    adminSolicitacaoVinculoRegistrarAnalisePreliminar: true,
+    adminSolicitacaoVinculoIndeferir: true,
+    adminSolicitacaoVinculoHomologarSuspensao: true,
+    adminSolicitacaoVinculoHomologarEfetivarDesligamento: true,
+    adminSolicitacaoVinculoCancelar: true,
+    adminSolicitacaoVinculoReprocessar: true,
+    adminSolicitacaoVinculoReenviarNotificacao: true
   };
   var ACOES_UPLOAD = {
     apresentacaoRegistrarMaterial: true,
@@ -601,6 +627,14 @@
       };
     }
 
+    if (config.ENABLE_VINCULO_REQUESTS !== true && ACOES_VINCULO[acaoNormalizada]) {
+      return {
+        ok: false,
+        errorCode: 'FEATURE_VINCULO_REQUESTS_DISABLED',
+        message: 'As solicitacoes de vinculo estao desativadas neste ambiente.'
+      };
+    }
+
     return null;
   }
 
@@ -609,6 +643,7 @@
     if (['HOMOLOG', 'PROD'].indexOf(ambiente) < 0) return false;
     if (ACOES_PERFIL_PORTAL[acao]) return config.ENABLE_PROFILE_UPDATES === true;
     if (ACOES_JUSTIFICATIVAS[acao]) return config.ENABLE_JUSTIFICATIVAS === true;
+    if (ACOES_VINCULO[acao]) return config.ENABLE_VINCULO_REQUESTS === true;
     return false;
   }
 
@@ -643,6 +678,22 @@
       '/admin/correcoes-cadastrais/detalhe': 'adminCorrecoesCadastraisDetalhe',
       '/admin/correcoes-cadastrais/analisar': 'adminCorrecoesCadastraisAnalisar',
       '/admin/correcoes-cadastrais/aplicar': 'adminCorrecoesCadastraisAplicar',
+      '/meu-vinculo/opcoes': 'meuVinculoOpcoesSolicitacao',
+      '/meu-vinculo/solicitacoes': 'meuVinculoSolicitacoesListar',
+      '/meu-vinculo/suspensao/solicitar': 'meuVinculoSolicitarSuspensao',
+      '/meu-vinculo/desligamento/solicitar': 'meuVinculoSolicitarDesligamento',
+      '/meu-vinculo/solicitacao/cancelar': 'meuVinculoCancelarSolicitacao',
+      '/admin/solicitacoes-vinculo': 'adminSolicitacoesVinculoListar',
+      '/admin/solicitacoes-vinculo/detalhe': 'adminSolicitacaoVinculoDetalhe',
+      '/admin/solicitacoes-vinculo/iniciar-analise': 'adminSolicitacaoVinculoIniciarAnalise',
+      '/admin/solicitacoes-vinculo/solicitar-complemento': 'adminSolicitacaoVinculoSolicitarComplemento',
+      '/admin/solicitacoes-vinculo/analise-preliminar': 'adminSolicitacaoVinculoRegistrarAnalisePreliminar',
+      '/admin/solicitacoes-vinculo/indeferir': 'adminSolicitacaoVinculoIndeferir',
+      '/admin/solicitacoes-vinculo/homologar-suspensao': 'adminSolicitacaoVinculoHomologarSuspensao',
+      '/admin/solicitacoes-vinculo/homologar-efetivar-desligamento': 'adminSolicitacaoVinculoHomologarEfetivarDesligamento',
+      '/admin/solicitacoes-vinculo/cancelar': 'adminSolicitacaoVinculoCancelar',
+      '/admin/solicitacoes-vinculo/reprocessar': 'adminSolicitacaoVinculoReprocessar',
+      '/admin/solicitacoes-vinculo/reenviar-notificacao': 'adminSolicitacaoVinculoReenviarNotificacao',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',

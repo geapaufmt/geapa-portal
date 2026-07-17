@@ -25,6 +25,7 @@ window.PortalGeapaConfig = {
   "ENABLE_ACTIVITY_MANAGEMENT": true,
   "ENABLE_JUSTIFICATIVAS": true,
   "ENABLE_PROFILE_UPDATES": true,
+  "ENABLE_VINCULO_REQUESTS": false,
   "READ_ONLY_MODE": false,
   "SHOW_ENV_BADGE": false,
   "MAINTENANCE_BANNER": "",
