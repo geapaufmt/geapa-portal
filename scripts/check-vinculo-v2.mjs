@@ -31,8 +31,10 @@ required(admin.includes('ataReferencia') && admin.includes('confirmacaoReforcada
 required(serviceWorker.includes('portal-geapa-pwa-v113'), 'cache do service worker nao incrementado');
 required(serviceWorker.includes('/assets/js/vinculo-solicitacoes.js') && serviceWorker.includes('/assets/js/admin-solicitacoes-vinculo.js'), 'scripts fora do cache PWA');
 
+const coreLibrary = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
+required(coreLibrary && String(coreLibrary.version) === '19' && coreLibrary.developmentMode === false, 'GEAPA_CORE deve usar versao imutavel 19');
 const library = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_MEMBROS');
-required(library && library.developmentMode === false, 'GEAPA_MEMBROS ausente ou em developmentMode');
+required(library && String(library.version) === '5' && library.developmentMode === false, 'GEAPA_MEMBROS deve usar versao imutavel 5');
 
 function config(file) {
   const sandbox = { window: {} }; vm.createContext(sandbox); vm.runInContext(read(file), sandbox); return sandbox.window.PortalGeapaConfig;

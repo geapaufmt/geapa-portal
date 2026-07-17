@@ -10,12 +10,13 @@ Na primeira entrega, `ENABLE_VINCULO_REQUESTS` fica `true` apenas em
 Situação; apenas a Diretoria/Secretaria autorizada recebe a subárea
 Gestão do GEAPA > Membros > Solicitações de vínculo.
 
-## Ordem de publicação futura
+## Ordem de publicação e estado atual
 
-1. mesclar e publicar uma versão imutável do Core;
-2. fixar essa versão no manifest do Membros, removendo qualquer
-   `developmentMode`, e publicar uma versão imutável do Membros;
-3. atualizar o manifest do Portal para essa nova versão do Membros;
+1. Core mesclado e publicado na versão imutável 19;
+2. Membros fixado no Core 19, sem `developmentMode`, e publicado na versão
+   imutável 5;
+3. manifest do Portal fixado no Core 19 e Membros 5, ambos sem
+   `developmentMode`;
 4. configurar no snapshot Apps Script HOMOLOG `ambienteDadosV2: DEV` e
    `ambientePerfilCadastral: HOMOLOG`;
 5. confirmar as entradas DEV do Registry e executar apenas os setups
@@ -24,6 +25,5 @@ Gestão do GEAPA > Membros > Solicitações de vínculo.
    validar cache `portal-geapa-pwa-v113`;
 7. manter PROD com a feature desligada até nova promoção formal.
 
-O manifest desta branch referencia a versão imutável já existente do Membros
-somente para manter o projeto válido. Ela deve ser substituída pela nova versão
-que contiver os contratos V2 antes de qualquer teste funcional em HOMOLOG.
+O manifest desta branch já referencia as versões que contêm os contratos V2.
+Isso não publica nem habilita o Portal PROD.
