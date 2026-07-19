@@ -28,7 +28,7 @@ required(!/\b(idPessoa|idVinculo|rga|email)\s*:/.test(member), 'frontend do memb
 required(member.includes('parametroSuspensao') && member.includes('minimum.valor'), 'frontend nao usa parametro normativo retornado pelo backend');
 required(member.includes('Date.UTC') && !member.includes('new Date(start)'), 'calculo civil inseguro');
 required(admin.includes('ataReferencia') && admin.includes('confirmacaoReforcada'), 'decisao final sem controles de ata/confirmacao');
-required(serviceWorker.includes('portal-geapa-pwa-v117'), 'cache do service worker nao incrementado');
+required(serviceWorker.includes('portal-geapa-pwa-v118'), 'cache do service worker nao incrementado');
 required(serviceWorker.includes('/assets/js/vinculo-solicitacoes.js') && serviceWorker.includes('/assets/js/admin-solicitacoes-vinculo.js'), 'scripts fora do cache PWA');
 required(member.includes('var form = event.target;'), 'submit do vinculo deve usar o formulario originador do evento');
 required(!member.includes('var form = event.currentTarget;'), 'submit delegado nao pode tratar document como formulario');
@@ -53,7 +53,7 @@ function config(file) {
   const sandbox = { window: {} }; vm.createContext(sandbox); vm.runInContext(read(file), sandbox); return sandbox.window.PortalGeapaConfig;
 }
 required(config('web/assets/js/config.homolog.js').ENABLE_VINCULO_REQUESTS === true, 'feature HOMOLOG deve estar habilitada');
-required(config('web/assets/js/config.prod.js').ENABLE_VINCULO_REQUESTS === false, 'feature PROD deve permanecer desligada');
+required(config('web/assets/js/config.prod.js').ENABLE_VINCULO_REQUESTS === true, 'feature PROD deve estar habilitada apos promocao formal');
 
 const operational = [member, admin, backend].join('\n');
 ['GEAPA_DESLIGAMENTOS','OFFBOARD_RESPONSES','OFFBOARD_QUEUE_SUSPENSIONS','OFFBOARD_QUEUE_DISMISSALS','PEDIDOS_SUSPENSAO','PEDIDOS_DESLIGAMENTO'].forEach((legacy) => required(!operational.includes(legacy), `dependencia legada: ${legacy}`));
