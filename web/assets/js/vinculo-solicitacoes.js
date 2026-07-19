@@ -97,7 +97,10 @@
 
   async function enviar(event) {
     event.preventDefault();
-    var form = event.currentTarget;
+    var form = event.target;
+    if (!form || !form.elements || !form.matches('[data-vinculo-form]')) {
+      throw new Error('O formulario de solicitacao de vinculo nao foi identificado. Atualize a pagina e tente novamente.');
+    }
     var tipo = form.elements.tipo.value;
     var button = form.querySelector('[type="submit"]');
     if (button.disabled) return;
@@ -150,6 +153,14 @@
     else if (button.dataset.vinculoNew) abrir(button.dataset.vinculoNew);
     else if (button.dataset.vinculoCancel) cancelar(button.dataset.vinculoCancel);
   });
-  document.addEventListener('submit', function(event) { if (event.target.matches('[data-vinculo-form]')) enviar(event); });
+  document.addEventListener('submit', function(event) {
+    if (!event.target.matches('[data-vinculo-form]')) return;
+    enviar(event).catch(function(error) {
+      console.error('[Portal GEAPA][Vinculo] Falha inesperada ao processar o formulario.', {
+        code: String(error && (error.code || error.errorCode) || 'VINCULO_SUBMIT_UNEXPECTED_ERROR')
+      });
+      mostrarErro(error && error.message || 'Nao foi possivel processar a solicitacao. Atualize a pagina e tente novamente.');
+    });
+  });
   document.addEventListener('change', function(event) { if (event.target.matches('[data-vinculo-form] input[type="date"]')) atualizarDuracao(event.target.form); });
 })(window);
