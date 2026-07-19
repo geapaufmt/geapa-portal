@@ -53,6 +53,7 @@
       '<section><h3>Pedido</h3><p><strong>Motivo:</strong> ' + esc(request.MOTIVO_CATEGORIA || '—') + '</p><p><strong>Justificativa:</strong> ' + esc(request.JUSTIFICATIVA || request.OBSERVACOES_MEMBRO || '—') + '</p><p><strong>Documento:</strong> ' + esc(request.DOCUMENTO_REFERENCIA || '—') + '</p></section>',
       '<section><h3>Semestre e validações</h3><p>' + esc(request.ID_SEMESTRE_REFERENCIA || 'Sem referência') + ' · snapshot ' + esc(request.DATA_FIM_SEMESTRE_SNAPSHOT || '—') + '</p><p>' + esc(request.MENSAGEM_VALIDACAO || request.RESULTADO_VALIDACAO || '—') + '</p></section>',
       '<section><h3>Parâmetros normativos</h3>' + differences + '</section>',
+      '<p class="section-note">' + esc(actionGuidance(request)) + '</p>',
       '<form data-admin-vinculo-action><input type="hidden" name="idSolicitacao" value="' + esc(request.ID_SOLICITACAO) + '"><label>Ação<select name="acao" required>' + actionOptions(request) + '</select></label><label>Observação / justificativa<textarea name="observacao" rows="4"></textarea></label><label>Referência oficial da ata (obrigatória na decisão final de desligamento)<input name="ataReferencia"></label><label>Tratamento de transição<select name="tratamentoTransicao"><option value="">Não aplicável</option><option>APLICAR_VIGENTE</option><option>APLICAR_SNAPSHOT</option></select></label><label>Justificativa administrativa reforçada<textarea name="justificativaAdministrativaReforcada" rows="3"></textarea></label><label class="profile-confirmation"><input type="checkbox" name="confirmacaoReforcada"> Confirmo a decisão final e seus efeitos institucionais.</label><button class="primary-button" type="submit">Registrar ação</button></form>'
     ].join('');
   }
@@ -62,15 +63,27 @@
     if (status === 'RECEBIDO') options.push(['iniciar-analise','Iniciar análise']);
     if (['RECEBIDO','EM_ANALISE','AGENDADO_PARA_ANALISE_FINAL','PRONTO_PARA_ANALISE_FINAL'].indexOf(status) >= 0) options.push(['solicitar-complemento','Solicitar complemento'], ['indeferir','Indeferir'], ['cancelar','Cancelar administrativamente']);
     if (status === 'EM_ANALISE' && request.MODALIDADE_SOLICITADA === 'DESLIGAMENTO_FIM_SEMESTRE') options.push(['analise-preliminar','Registrar análise preliminar']);
-    if (status === 'EM_ANALISE' && type === 'SUSPENSAO_VOLUNTARIA') options.push(['homologar-suspensao','Aprovar suspensão']);
-    if ((status === 'EM_ANALISE' || status === 'PRONTO_PARA_ANALISE_FINAL') && type === 'DESLIGAMENTO_VOLUNTARIO') options.push(['homologar-efetivar-desligamento','Homologar e efetivar desligamento']);
+    if (status === 'EM_ANALISE' && type === 'SUSPENSAO_VOLUNTARIA') options.push(['homologar-suspensao','Deferir / aprovar suspensão']);
+    if ((status === 'EM_ANALISE' || status === 'PRONTO_PARA_ANALISE_FINAL') && type === 'DESLIGAMENTO_VOLUNTARIO') options.push(['homologar-efetivar-desligamento','Deferir, homologar e efetivar desligamento']);
     if (status === 'ERRO_EXECUCAO') options.push(['reprocessar','Reprocessar erro recuperável']);
     if (status !== 'ERRO_EXECUCAO') options.push(['reenviar-notificacao','Reenviar notificação']);
     return '<option value="">Selecione</option>' + options.map(function(item) { return '<option value="' + item[0] + '">' + esc(item[1]) + '</option>'; }).join('');
   }
 
+  function actionGuidance(request) {
+    var status = String(request && request.STATUS_SOLICITACAO || '');
+    if (status === 'RECEBIDO') return 'Primeiro registre “Iniciar análise”. Depois disso, o deferimento ficará disponível conforme o tipo do pedido.';
+    if (status === 'EM_ANALISE' && request.TIPO_SOLICITACAO === 'SUSPENSAO_VOLUNTARIA') return 'Para deferir, selecione “Deferir / aprovar suspensão”. A referência de ata é opcional para suspensão.';
+    if ((status === 'EM_ANALISE' || status === 'PRONTO_PARA_ANALISE_FINAL') && request.TIPO_SOLICITACAO === 'DESLIGAMENTO_VOLUNTARIO') return 'Para deferir, selecione “Deferir, homologar e efetivar desligamento”. A decisão final exige referência oficial de ata na regra vigente.';
+    return 'As ações disponíveis dependem do status, do tipo do pedido e das permissões confirmadas pelo backend.';
+  }
+
   async function submitAction(event) {
-    event.preventDefault(); var form = event.currentTarget; var values = Object.fromEntries(new FormData(form).entries());
+    event.preventDefault(); var form = event.target;
+    if (!form || !form.elements || !form.matches('[data-admin-vinculo-action]')) {
+      throw new Error('O formulário da decisão administrativa não foi identificado. Atualize a página e tente novamente.');
+    }
+    var values = Object.fromEntries(new FormData(form).entries());
     var route = '/admin/solicitacoes-vinculo/' + values.acao; var payload = { idSolicitacao: values.idSolicitacao, obsDecisao: values.observacao, observacao: values.observacao, mensagem: values.observacao, motivo: values.observacao, ataReferencia: values.ataReferencia, tratamentoTransicao: values.tratamentoTransicao, justificativaAdministrativaReforcada: values.justificativaAdministrativaReforcada, overrideJustificativa: values.justificativaAdministrativaReforcada, confirmacaoReforcada: form.elements.confirmacaoReforcada.checked };
     var button = form.querySelector('[type="submit"]'); button.disabled = true; button.textContent = 'Registrando...';
     try { var response = await global.PortalGeapaApi.apiPost(route, { payload: JSON.stringify(payload) }); if (!response.ok) throw response; if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Gestão de vínculo', message: response.message }); await openDetail(values.idSolicitacao); await load(); }
@@ -79,6 +92,15 @@
   }
 
   document.addEventListener('portal:navigationchange', function(event) { if (event.detail && event.detail.rota && event.detail.rota.id === 'admin-solicitacoes-vinculo') load(); });
-  document.addEventListener('submit', function(event) { if (event.target.matches('[data-admin-vinculo-filters]')) { event.preventDefault(); load(); } else if (event.target.matches('[data-admin-vinculo-action]')) submitAction(event); });
+  document.addEventListener('submit', function(event) {
+    if (event.target.matches('[data-admin-vinculo-filters]')) { event.preventDefault(); load(); return; }
+    if (!event.target.matches('[data-admin-vinculo-action]')) return;
+    submitAction(event).catch(function(error) {
+      console.error('[Portal GEAPA][Admin Vinculo] Falha inesperada ao processar a acao.', {
+        code: String(error && (error.code || error.errorCode) || 'ADMIN_VINCULO_SUBMIT_UNEXPECTED_ERROR')
+      });
+      if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'error', title: 'Não foi possível registrar', message: error && error.message || 'Falha inesperada na ação administrativa.', persistent: true });
+    });
+  });
   document.addEventListener('click', function(event) { var target = event.target.closest('[data-admin-vinculo-detail],[data-admin-vinculo-refresh],[data-admin-vinculo-close]'); if (!target) return; if (target.dataset.adminVinculoDetail) openDetail(target.dataset.adminVinculoDetail); else if (target.hasAttribute('data-admin-vinculo-refresh')) load(); else modal().hidden = true; });
 })(window);
