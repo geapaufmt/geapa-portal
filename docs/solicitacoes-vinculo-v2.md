@@ -5,10 +5,11 @@ O Portal é somente consumidor. A sessão é validada no Apps Script, o ambiente
 repete identidade e autorização. O navegador nunca envia pessoa ou vínculo
 como alvo confiável.
 
-Na primeira entrega, `ENABLE_VINCULO_REQUESTS` fica `true` apenas em
-`config.homolog.js` e `false` em PROD. O bloco do membro integra a tela Minha
-Situação; apenas a Diretoria/Secretaria autorizada recebe a subárea
-Gestão do GEAPA > Membros > Solicitações de vínculo.
+Após a homologação e a promoção formal, `ENABLE_VINCULO_REQUESTS` fica `true`
+em `config.homolog.js` e `config.prod.js`. O bloco do membro integra a tela
+Minha Situação; apenas a Diretoria/Secretaria autorizada recebe a subárea
+Gestão do GEAPA > Membros > Solicitações de vínculo. O ambiente e os IDs das
+bases continuam resolvidos exclusivamente pelo backend.
 
 ## Decisão administrativa e regra de ata
 
@@ -39,21 +40,21 @@ não autoriza ignorar uma função ativa: a pessoa autorizada deve antes confirm
 nas fontes oficiais que ela foi encerrada, substituída ou transferida. Permissão,
 override e auditoria continuam sob autoridade do backend.
 
-## Ordem de publicação e estado atual
+## Ordem de publicação e estado promovido
 
-1. Core mesclado e publicado na versão imutável 19;
+1. Core publicado na versão imutável 20;
 2. Membros fixado no Core 20, sem `developmentMode`, e publicado na versão
-   imutável 6;
+   imutável 7;
 3. manifest do Portal fixado no Core 20 e Membros 7, ambos sem
    `developmentMode`;
-4. configurar no snapshot Apps Script HOMOLOG `ambienteDadosV2: DEV` e
-   `ambientePerfilCadastral: HOMOLOG`;
-5. confirmar as entradas DEV do Registry e executar apenas os setups
-   previamente revisados, fora desta entrega;
-6. publicar backend e frontend apenas em HOMOLOG, gerar `config:homolog` e
-   validar cache `portal-geapa-pwa-v117` e o asset
-   `admin-solicitacoes-vinculo.js?v=4`;
-7. manter PROD com a feature desligada até nova promoção formal.
+4. Apps Script PROD publicado primeiro com o frontend ainda protegido;
+5. executar health check e confirmar que HOMOLOG permaneceu no deployment
+   anterior;
+6. promover `ENABLE_VINCULO_REQUESTS` em commit próprio, gerar `config:prod` e
+   publicar somente o Hosting PROD;
+7. validar cache `portal-geapa-pwa-v118`, `config.js?v=8`, ambiente `PROD` e
+   endpoint Apps Script PROD.
 
-O manifest desta branch já referencia as versões que contêm os contratos V2.
-Isso não publica nem habilita o Portal PROD.
+O manifest referencia versões imutáveis que contêm os contratos V2. A flag
+habilita somente a interface; sessão, permissões, ambiente, regras normativas e
+autorizações administrativas continuam validados no backend.

@@ -97,6 +97,6 @@ function portalConfig(file) {
   vm.runInContext(read(file), configSandbox);
   return configSandbox.window.PortalGeapaConfig;
 }
-required(portalConfig('web/assets/js/config.prod.js').ENABLE_VINCULO_REQUESTS === false, 'Feature de vinculo deve permanecer desabilitada em PROD.');
+required(portalConfig('web/assets/js/config.prod.js').ENABLE_VINCULO_REQUESTS === true, 'Feature de vinculo deve estar habilitada em PROD apos promocao formal.');
 
-console.log('Painel administrativo: validacoes manuais, payload e protecao PROD validados (10 cenarios).');
+console.log('Painel administrativo: validacoes manuais, payload e ativacao controlada PROD validados (10 cenarios).');
