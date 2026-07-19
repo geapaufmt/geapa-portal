@@ -7,7 +7,53 @@
   var esc = function(v) { return global.PortalGeapaUi ? global.PortalGeapaUi.escaparHtml(String(v == null ? '' : v)) : String(v == null ? '' : v); };
   var label = function(v) { return String(v || '').toLowerCase().replace(/_/g, ' ').replace(/^./, function(c) { return c.toUpperCase(); }); };
   var asBoolean = function(v) { return v === true || ['SIM','TRUE','1'].indexOf(String(v == null ? '' : v).trim().toUpperCase()) >= 0; };
-  var isFinalAction = function(action) { return ['indeferir','homologar-efetivar-desligamento'].indexOf(String(action || '')) >= 0; };
+  var isFinalAction = function(action) { return ['indeferir','homologar-suspensao','homologar-efetivar-desligamento'].indexOf(String(action || '')) >= 0; };
+  var manualValidationStatuses = ['NAO_VERIFICADO','PENDENTE','ATIVA','CONFLITO'];
+  var validationLabels = [
+    ['VALIDACAO_VINCULO_ATIVO', 'Vínculo ativo'],
+    ['VALIDACAO_SEMESTRE', 'Semestre'],
+    ['VALIDACAO_APRESENTACAO', 'Apresentação'],
+    ['VALIDACAO_ARQUIVOS_PENDENTES', 'Arquivos pendentes'],
+    ['VALIDACAO_OBRIGACOES', 'Obrigações'],
+    ['VALIDACAO_FUNCAO_ATIVA', 'Função ativa'],
+    ['RESULTADO_VALIDACAO', 'Resultado geral']
+  ];
+
+  function statusToken(value) { return String(value || '').trim().toUpperCase(); }
+  function validationNeedsManualReview(value) { return manualValidationStatuses.indexOf(statusToken(value)) >= 0 || statusToken(value) === 'PENDENTE_ANALISE_MANUAL'; }
+  function requestNeedsManualReview(request) {
+    return ['VALIDACAO_APRESENTACAO','VALIDACAO_ARQUIVOS_PENDENTES','VALIDACAO_OBRIGACOES','VALIDACAO_FUNCAO_ATIVA'].some(function(field) {
+      return validationNeedsManualReview(request && request[field]);
+    });
+  }
+  function functionNeedsConfirmation(request) { return validationNeedsManualReview(request && request.VALIDACAO_FUNCAO_ATIVA); }
+
+  function manualReviewMessage(status) {
+    var token = statusToken(status);
+    if (token === 'NAO_VERIFICADO') return 'Conferência manual necessária: a integração automática não conseguiu concluir.';
+    if (token === 'ATIVA') return 'Conferência manual necessária: não prossiga enquanto a situação ativa não estiver formalmente regularizada.';
+    if (token === 'CONFLITO') return 'Conferência manual necessária: existe conflito registrado para análise.';
+    return 'Conferência manual necessária antes da decisão final.';
+  }
+
+  function renderValidations(request) {
+    return '<dl class="vinculo-summary vinculo-validation-summary">' + validationLabels.map(function(item) {
+      var value = request[item[0]] || 'NAO_INFORMADO';
+      var warning = validationNeedsManualReview(value) ? '<span class="section-note">' + esc(manualReviewMessage(value)) + '</span>' : '';
+      return '<div><dt>' + esc(item[1]) + '</dt><dd><span class="status-chip">' + esc(label(value)) + '</span>' + warning + '</dd></div>';
+    }).join('') + '</dl>';
+  }
+
+  function functionConfirmationText(status) {
+    var token = statusToken(status);
+    if (token === 'NAO_VERIFICADO') return 'Confirmo que consultei as bases oficiais e que a pessoa não possui função ativa.';
+    return 'Confirmo que a função anteriormente ativa foi formalmente encerrada, substituída ou transferida antes desta decisão.';
+  }
+
+  function renderFunctionConfirmation(request) {
+    if (!functionNeedsConfirmation(request)) return '';
+    return '<label class="profile-confirmation" data-admin-vinculo-function-confirmation><input type="checkbox" name="confirmacaoFuncaoRegularizada"> ' + esc(functionConfirmationText(request.VALIDACAO_FUNCAO_ATIVA)) + '</label>';
+  }
 
   async function load() {
     var container = root(); if (!container || !global.PortalGeapaApi) return;
@@ -54,11 +100,11 @@
       '<div class="vinculo-admin-person"><strong>' + esc(person.nome || 'Pessoa') + '</strong><span>' + esc(person.rgaMascarado || '') + '</span><span>' + esc(person.emailMascarado || '') + '</span></div>',
       '<dl class="vinculo-summary"><div><dt>Protocolo</dt><dd>' + esc(request.ID_SOLICITACAO) + '</dd></div><div><dt>Status</dt><dd>' + esc(label(request.STATUS_SOLICITACAO)) + '</dd></div><div><dt>Tipo</dt><dd>' + esc(label(request.TIPO_SOLICITACAO)) + '</dd></div><div><dt>Modalidade</dt><dd>' + esc(label(request.MODALIDADE_SOLICITADA)) + '</dd></div></dl>',
       '<section><h3>Pedido</h3><p><strong>Motivo:</strong> ' + esc(request.MOTIVO_CATEGORIA || '—') + '</p><p><strong>Justificativa:</strong> ' + esc(request.JUSTIFICATIVA || request.OBSERVACOES_MEMBRO || '—') + '</p><p><strong>Documento:</strong> ' + esc(request.DOCUMENTO_REFERENCIA || '—') + '</p></section>',
-      '<section><h3>Semestre e validações</h3><p>' + esc(request.ID_SEMESTRE_REFERENCIA || 'Sem referência') + ' · snapshot ' + esc(request.DATA_FIM_SEMESTRE_SNAPSHOT || '—') + '</p><p>' + esc(request.MENSAGEM_VALIDACAO || request.RESULTADO_VALIDACAO || '—') + '</p></section>',
+      '<section><h3>Semestre e validações</h3><p>' + esc(request.ID_SEMESTRE_REFERENCIA || 'Sem referência') + ' · snapshot ' + esc(request.DATA_FIM_SEMESTRE_SNAPSHOT || '—') + '</p>' + renderValidations(request) + (request.MENSAGEM_VALIDACAO ? '<p class="section-note">' + esc(request.MENSAGEM_VALIDACAO) + '</p>' : '') + '</section>',
       '<section><h3>Parâmetros normativos</h3>' + differences + '</section>',
       minutesRule,
       '<p class="section-note">' + esc(actionGuidance(request)) + '</p>',
-      '<form data-admin-vinculo-action><input type="hidden" name="idSolicitacao" value="' + esc(request.ID_SOLICITACAO) + '"><label>Ação<select name="acao" required>' + actionOptions(request) + '</select></label><label>Observação / justificativa<textarea name="observacao" rows="4"></textarea></label><label data-admin-vinculo-ata-label>Referência oficial da ata (opcional) <input name="ataReferencia"></label><label>Tratamento de transição<select name="tratamentoTransicao"><option value="">Não aplicável</option><option>APLICAR_VIGENTE</option><option>APLICAR_SNAPSHOT</option></select></label><label>Justificativa administrativa reforçada<textarea name="justificativaAdministrativaReforcada" rows="3"></textarea></label><label class="profile-confirmation"><input type="checkbox" name="confirmacaoReforcada"> Confirmo a decisão final e seus efeitos institucionais.</label><button class="primary-button" type="submit">Registrar ação</button></form>'
+      '<form data-admin-vinculo-action><input type="hidden" name="idSolicitacao" value="' + esc(request.ID_SOLICITACAO) + '"><label>Ação<select name="acao" required>' + actionOptions(request) + '</select></label><label>Observação / justificativa<textarea name="observacao" rows="4"></textarea></label><label data-admin-vinculo-ata-label>Referência oficial da ata (opcional) <input name="ataReferencia"></label><label>Tratamento de transição<select name="tratamentoTransicao"><option value="">Não aplicável</option><option>APLICAR_VIGENTE</option><option>APLICAR_SNAPSHOT</option></select></label><label>Justificativa administrativa reforçada<textarea name="justificativaAdministrativaReforcada" rows="3" minlength="20"></textarea></label>' + renderFunctionConfirmation(request) + '<label class="profile-confirmation"><input type="checkbox" name="confirmacaoReforcada"> Confirmo a decisão final e seus efeitos institucionais.</label><button class="primary-button" type="submit">Registrar ação</button></form>'
     ].join('');
     syncFinalDecisionRequirements(document.querySelector('[data-admin-vinculo-action]'));
   }
@@ -106,6 +152,43 @@
     if (snapshotOption) snapshotOption.disabled = !!(rule.snapshot && rule.snapshot.disponivel === false);
     input.required = requirement === true;
     labelElement.childNodes[0].nodeValue = requirement === true ? 'Referência oficial da ata (obrigatória) ' : (requirement === null ? 'Referência oficial da ata (defina primeiro o tratamento de transição) ' : 'Referência oficial da ata (opcional) ');
+    var finalDecision = isFinalAction(action);
+    var request = state.detail && state.detail.solicitacao || {};
+    var functionConfirmation = form.elements.confirmacaoFuncaoRegularizada;
+    if (functionConfirmation) functionConfirmation.required = finalDecision && functionNeedsConfirmation(request);
+    var reinforcedJustification = form.elements.justificativaAdministrativaReforcada;
+    if (reinforcedJustification) reinforcedJustification.required = finalDecision && requestNeedsManualReview(request);
+    var reinforcedConfirmation = form.elements.confirmacaoReforcada;
+    if (reinforcedConfirmation) reinforcedConfirmation.required = action === 'homologar-efetivar-desligamento';
+  }
+
+  function validateManualReview(form, values, request) {
+    if (!isFinalAction(values.acao)) return;
+    if (requestNeedsManualReview(request) && String(values.justificativaAdministrativaReforcada || '').trim().length < 20) {
+      throw new Error('Registre uma justificativa administrativa reforçada com pelo menos 20 caracteres para as validações pendentes.');
+    }
+    if (functionNeedsConfirmation(request) && !(form.elements.confirmacaoFuncaoRegularizada && form.elements.confirmacaoFuncaoRegularizada.checked)) {
+      throw new Error('Confirme a conferência da função antes da decisão final. A confirmação não substitui o encerramento, a transferência ou a substituição de uma função efetivamente ativa.');
+    }
+    if (values.acao === 'homologar-efetivar-desligamento' && !(form.elements.confirmacaoReforcada && form.elements.confirmacaoReforcada.checked)) {
+      throw new Error('Confirme explicitamente a decisão final e seus efeitos institucionais.');
+    }
+  }
+
+  function buildActionPayload(form, values) {
+    return {
+      idSolicitacao: values.idSolicitacao,
+      obsDecisao: values.observacao,
+      observacao: values.observacao,
+      mensagem: values.observacao,
+      motivo: values.observacao,
+      ataReferencia: values.ataReferencia,
+      tratamentoTransicao: values.tratamentoTransicao,
+      justificativaAdministrativaReforcada: values.justificativaAdministrativaReforcada,
+      overrideJustificativa: values.justificativaAdministrativaReforcada,
+      confirmacaoFuncaoRegularizada: form.elements.confirmacaoFuncaoRegularizada ? form.elements.confirmacaoFuncaoRegularizada.checked : false,
+      confirmacaoReforcada: form.elements.confirmacaoReforcada ? form.elements.confirmacaoReforcada.checked : false
+    };
   }
 
   async function submitAction(event) {
@@ -117,11 +200,27 @@
     var minutesRequirement = isFinalAction(values.acao) ? effectiveMinutesRequirement(form) : false;
     if (minutesRequirement === null) throw new Error('Selecione o tratamento de transição normativa antes da decisão final.');
     if (minutesRequirement === true && !String(values.ataReferencia || '').trim()) throw new Error('Informe a referência oficial da ata exigida para esta decisão final.');
-    var route = '/admin/solicitacoes-vinculo/' + values.acao; var payload = { idSolicitacao: values.idSolicitacao, obsDecisao: values.observacao, observacao: values.observacao, mensagem: values.observacao, motivo: values.observacao, ataReferencia: values.ataReferencia, tratamentoTransicao: values.tratamentoTransicao, justificativaAdministrativaReforcada: values.justificativaAdministrativaReforcada, overrideJustificativa: values.justificativaAdministrativaReforcada, confirmacaoReforcada: form.elements.confirmacaoReforcada.checked };
+    var request = state.detail && state.detail.solicitacao || {};
+    validateManualReview(form, values, request);
+    var route = '/admin/solicitacoes-vinculo/' + values.acao; var payload = buildActionPayload(form, values);
     var button = form.querySelector('[type="submit"]'); button.disabled = true; button.textContent = 'Registrando...';
     try { var response = await global.PortalGeapaApi.apiPost(route, { payload: JSON.stringify(payload) }); if (!response.ok) throw response; if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Gestão de vínculo', message: response.message }); await openDetail(values.idSolicitacao); await load(); }
     catch (error) { if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'error', title: 'Não foi possível registrar', message: error.message || 'Falha na ação administrativa.', persistent: true }); }
     finally { button.disabled = false; button.textContent = 'Registrar ação'; }
+  }
+
+  if (global.__PORTAL_VINCULO_TEST__ === true) {
+    global.__PortalAdminVinculoTestHooks = Object.freeze({
+      validationNeedsManualReview: validationNeedsManualReview,
+      requestNeedsManualReview: requestNeedsManualReview,
+      functionNeedsConfirmation: functionNeedsConfirmation,
+      functionConfirmationText: functionConfirmationText,
+      renderFunctionConfirmation: renderFunctionConfirmation,
+      renderValidations: renderValidations,
+      validateManualReview: validateManualReview,
+      buildActionPayload: buildActionPayload,
+      isFinalAction: isFinalAction
+    });
   }
 
   document.addEventListener('portal:navigationchange', function(event) { if (event.detail && event.detail.rota && event.detail.rota.id === 'admin-solicitacoes-vinculo') load(); });

@@ -15,6 +15,7 @@
     "test:profile-homolog": "node scripts/check-profile-homolog.mjs",
     "test:profile-prod": "node scripts/check-profile-prod.mjs",
     "test:v2-environment": "node scripts/check-v2-domain-environment.mjs",
-    "test:vinculo-v2": "node scripts/check-vinculo-v2.mjs"
+    "test:vinculo-v2": "node scripts/check-vinculo-v2.mjs && node scripts/check-admin-vinculo-manual-validation.mjs",
+    "test:vinculo-validacoes-manuais": "node scripts/check-admin-vinculo-manual-validation.mjs"
   }
 }
