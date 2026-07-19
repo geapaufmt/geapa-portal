@@ -44,7 +44,7 @@ override e auditoria continuam sob autoridade do backend.
 1. Core mesclado e publicado na versão imutável 19;
 2. Membros fixado no Core 20, sem `developmentMode`, e publicado na versão
    imutável 6;
-3. manifest do Portal fixado no Core 20 e Membros 6, ambos sem
+3. manifest do Portal fixado no Core 20 e Membros 7, ambos sem
    `developmentMode`;
 4. configurar no snapshot Apps Script HOMOLOG `ambienteDadosV2: DEV` e
    `ambientePerfilCadastral: HOMOLOG`;
