@@ -51,10 +51,25 @@
 .vinculo-admin-modal-panel { width: min(900px, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; }
 .vinculo-admin-modal-panel section { padding: .8rem 0; border-bottom: 1px solid #e4e9e5; }
 .vinculo-admin-modal-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .78rem; }
+.admin-vinculo-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.admin-vinculo-table { min-width: 760px; }
+.admin-vinculo-cards { display: none; }
+.admin-vinculo-card { display: grid; gap: .85rem; padding: 1rem; border: 1px solid #dde5df; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(26, 54, 38, .05); }
+.admin-vinculo-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.admin-vinculo-card-header strong { min-width: 0; overflow-wrap: anywhere; }
+.admin-vinculo-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin: 0; }
+.admin-vinculo-card dl > div { min-width: 0; }
+.admin-vinculo-card dt { color: #577064; font-size: .76rem; letter-spacing: .04em; text-transform: uppercase; }
+.admin-vinculo-card dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
 
 @media (max-width: 640px) {
   .vinculo-heading, .vinculo-request-item > div { align-items: stretch; flex-direction: column; }
   .vinculo-actions > button { width: 100%; }
+  .admin-vinculo-table-wrap { display: none; }
+  .admin-vinculo-cards { display: grid; gap: .85rem; }
+  .admin-vinculo-card dl { grid-template-columns: 1fr; }
+  .admin-vinculo-card > button, .vinculo-filter-grid > button { width: 100%; }
+  .vinculo-admin-modal-panel { width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); }
 }
 
 * {

@@ -14,6 +14,7 @@ const admin = read('web/assets/js/admin-solicitacoes-vinculo.js');
 const backend = read('apps-script/09_vinculo_solicitacoes.gs');
 const router = read('apps-script/03_webapp.gs');
 const serviceWorker = read('web/service-worker.js');
+const styles = read('web/style.css');
 const manifest = JSON.parse(read('apps-script/appsscript.json'));
 
 ['meu-vinculo-solicitacoes','vinculo-solicitacao-modal','admin-solicitacoes-vinculo-content','admin-vinculo-modal'].forEach((id) => required(index.includes(`id="${id}"`), `HTML ausente: ${id}`));
@@ -28,7 +29,7 @@ required(!/\b(idPessoa|idVinculo|rga|email)\s*:/.test(member), 'frontend do memb
 required(member.includes('parametroSuspensao') && member.includes('minimum.valor'), 'frontend nao usa parametro normativo retornado pelo backend');
 required(member.includes('Date.UTC') && !member.includes('new Date(start)'), 'calculo civil inseguro');
 required(admin.includes('ataReferencia') && admin.includes('confirmacaoReforcada'), 'decisao final sem controles de ata/confirmacao');
-required(serviceWorker.includes('portal-geapa-pwa-v118'), 'cache do service worker nao incrementado');
+required(serviceWorker.includes('portal-geapa-pwa-v119'), 'cache do service worker nao incrementado');
 required(serviceWorker.includes('/assets/js/vinculo-solicitacoes.js') && serviceWorker.includes('/assets/js/admin-solicitacoes-vinculo.js'), 'scripts fora do cache PWA');
 required(member.includes('var form = event.target;'), 'submit do vinculo deve usar o formulario originador do evento');
 required(!member.includes('var form = event.currentTarget;'), 'submit delegado nao pode tratar document como formulario');
@@ -42,7 +43,9 @@ required(admin.includes("status === 'RECEBIDO' || status === 'EM_ANALISE'") && a
 required(admin.includes('requisitosDecisaoFinal') && admin.includes('effectiveMinutesRequirement') && admin.includes('input.required = requirement === true'), 'exigencia de ata nao depende do contrato protegido');
 required(admin.includes('confirmacaoFuncaoRegularizada') && admin.includes('validateManualReview'), 'conferencia manual de funcao ausente');
 required(admin.includes('VALIDACAO_VINCULO_ATIVO') && admin.includes('VALIDACAO_OBRIGACOES') && admin.includes('RESULTADO_VALIDACAO'), 'validacoes individuais nao renderizadas');
-required(index.includes('admin-solicitacoes-vinculo.js?v=4'), 'cache-buster do painel administrativo nao incrementado');
+required(admin.includes('admin-vinculo-table-wrap') && admin.includes('admin-vinculo-cards') && admin.includes('admin-vinculo-card'), 'listagem administrativa sem alternativa responsiva em cartoes');
+required(styles.includes('.admin-vinculo-table-wrap') && styles.includes('overflow-x: auto') && styles.includes('.admin-vinculo-cards'), 'estilos responsivos da listagem administrativa ausentes');
+required(index.includes('style.css?v=57') && index.includes('admin-solicitacoes-vinculo.js?v=5'), 'cache-busters do painel administrativo nao incrementados');
 
 const coreLibrary = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
 required(coreLibrary && String(coreLibrary.version) === '20' && coreLibrary.developmentMode === false, 'GEAPA_CORE deve usar versao imutavel 20');
