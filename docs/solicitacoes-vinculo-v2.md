@@ -25,6 +25,20 @@ preliminar e agendar a decisão final, sem produzir efeito no vínculo. Essas
 opções não ampliam permissões: homologação e execução continuam validadas no
 backend.
 
+## Conferência manual de validações
+
+O detalhe administrativo apresenta separadamente vínculo, semestre,
+apresentação, arquivos, obrigações, função e resultado geral. Estados
+`NAO_VERIFICADO`, `PENDENTE`, `ATIVA` ou `CONFLITO` ficam sinalizados para
+conferência humana. `NAO_VERIFICADO` não significa função ativa: significa
+somente que a integração automática não concluiu a verificação.
+
+Em decisão final com função não resolvida, o Portal exige justificativa
+administrativa reforçada e envia `confirmacaoFuncaoRegularizada`. A confirmação
+não autoriza ignorar uma função ativa: a pessoa autorizada deve antes confirmar
+nas fontes oficiais que ela foi encerrada, substituída ou transferida. Permissão,
+override e auditoria continuam sob autoridade do backend.
+
 ## Ordem de publicação e estado atual
 
 1. Core mesclado e publicado na versão imutável 19;
@@ -37,8 +51,8 @@ backend.
 5. confirmar as entradas DEV do Registry e executar apenas os setups
    previamente revisados, fora desta entrega;
 6. publicar backend e frontend apenas em HOMOLOG, gerar `config:homolog` e
-   validar cache `portal-geapa-pwa-v116` e o asset
-   `admin-solicitacoes-vinculo.js?v=3`;
+   validar cache `portal-geapa-pwa-v117` e o asset
+   `admin-solicitacoes-vinculo.js?v=4`;
 7. manter PROD com a feature desligada até nova promoção formal.
 
 O manifest desta branch já referencia as versões que contêm os contratos V2.
