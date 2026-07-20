@@ -45,6 +45,7 @@ const requiredFlags = [
   'ENABLE_PROFILE_UPDATES',
   'ENABLE_VINCULO_REQUESTS',
   'ENABLE_EGRESS_FEEDBACK',
+  'ENABLE_MEMBER_REGISTRATION',
   'READ_ONLY_MODE'
 ];
 requiredFlags.forEach((key) => {
