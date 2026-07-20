@@ -1,7 +1,7 @@
 /** Area administrativa protegida para solicitacoes voluntarias de vinculo. */
 (function configurarAdminSolicitacoesVinculo(global) {
   'use strict';
-  var state = { items: [], detail: null };
+  var state = { items: [], detail: null, scope: 'PENDENTES' };
   var root = function() { return document.getElementById('admin-solicitacoes-vinculo-content'); };
   var modal = function() { return document.getElementById('admin-vinculo-modal'); };
   var esc = function(v) { return global.PortalGeapaUi ? global.PortalGeapaUi.escaparHtml(String(v == null ? '' : v)) : String(v == null ? '' : v); };
@@ -9,6 +9,7 @@
   var asBoolean = function(v) { return v === true || ['SIM','TRUE','1'].indexOf(String(v == null ? '' : v).trim().toUpperCase()) >= 0; };
   var isFinalAction = function(action) { return ['indeferir','homologar-suspensao','homologar-efetivar-desligamento'].indexOf(String(action || '')) >= 0; };
   var manualValidationStatuses = ['NAO_VERIFICADO','PENDENTE','ATIVA','CONFLITO'];
+  var terminalStatuses = ['CANCELADO_PELO_MEMBRO','CANCELADO_PELA_DIRETORIA','INDEFERIDO','EXECUTADO','CONCLUIDO'];
   var validationLabels = [
     ['VALIDACAO_VINCULO_ATIVO', 'Vínculo ativo'],
     ['VALIDACAO_SEMESTRE', 'Semestre'],
@@ -20,6 +21,7 @@
   ];
 
   function statusToken(value) { return String(value || '').trim().toUpperCase(); }
+  function isTerminal(item) { return item && item.terminal === true || terminalStatuses.indexOf(statusToken(item && (item.status || item.STATUS_SOLICITACAO))) >= 0; }
   function validationNeedsManualReview(value) { return manualValidationStatuses.indexOf(statusToken(value)) >= 0 || statusToken(value) === 'PENDENTE_ANALISE_MANUAL'; }
   function requestNeedsManualReview(request) {
     return ['VALIDACAO_APRESENTACAO','VALIDACAO_ARQUIVOS_PENDENTES','VALIDACAO_OBRIGACOES','VALIDACAO_FUNCAO_ATIVA'].some(function(field) {
@@ -62,7 +64,7 @@
     var response = await global.PortalGeapaApi.apiGet('/admin/solicitacoes-vinculo', { filtros: JSON.stringify(filters) });
     if (!response.ok) return renderError(response.message);
     state.items = (response.data && response.data.items) || [];
-    renderList();
+    renderListV2();
   }
 
   function readFilters() {
@@ -85,6 +87,24 @@
       '<div class="admin-vinculo-cards">' + cards + '</div>';
   }
 
+  function renderListV2() {
+    var container = root();
+    var visibleItems = state.items.filter(function(item) { return state.scope === 'ENCERRADAS' ? isTerminal(item) : !isTerminal(item); });
+    var pendingCount = state.items.filter(function(item) { return !isTerminal(item); }).length;
+    var closedCount = state.items.length - pendingCount;
+    function actionLabel(item, compact) { return isTerminal(item) ? (compact ? 'Ver histórico' : 'Visualizar') : 'Analisar'; }
+    var rows = visibleItems.length ? visibleItems.map(function(item) {
+      return '<tr><td><strong>' + esc(item.idSolicitacao) + '</strong></td><td>' + esc(label(item.tipo)) + '</td><td>' + esc(label(item.modalidade)) + '</td><td>' + esc(item.idSemestre || '—') + '</td><td><span class="status-chip">' + esc(label(item.status)) + '</span></td><td><button type="button" class="secondary-button compact-button" data-admin-vinculo-detail="' + esc(item.idSolicitacao) + '">' + actionLabel(item, false) + '</button></td></tr>';
+    }).join('') : '<tr><td colspan="6">Nenhuma solicitação encontrada nesta seção.</td></tr>';
+    var cards = visibleItems.length ? visibleItems.map(function(item) {
+      return '<article class="admin-vinculo-card"><div class="admin-vinculo-card-header"><strong>' + esc(item.idSolicitacao) + '</strong><span class="status-chip">' + esc(label(item.status)) + '</span></div><dl><div><dt>Tipo</dt><dd>' + esc(label(item.tipo)) + '</dd></div><div><dt>Modalidade</dt><dd>' + esc(label(item.modalidade)) + '</dd></div><div><dt>Semestre</dt><dd>' + esc(item.idSemestre || '—') + '</dd></div></dl><button type="button" class="secondary-button compact-button" data-admin-vinculo-detail="' + esc(item.idSolicitacao) + '">' + actionLabel(item, true) + '</button></article>';
+    }).join('') : '<p class="empty-state">Nenhuma solicitação encontrada nesta seção.</p>';
+    container.innerHTML = '<div class="situation-topbar"><div><p class="eyebrow">Gestão do GEAPA · Membros</p><h2>Solicitações de vínculo</h2></div><button class="secondary-button compact-button" type="button" data-admin-vinculo-refresh>Atualizar</button></div>' +
+      '<div class="admin-vinculo-scope" role="tablist" aria-label="Situação das solicitações"><button type="button" role="tab" data-admin-vinculo-scope="PENDENTES" aria-selected="' + (state.scope === 'PENDENTES') + '">Pendentes (' + pendingCount + ')</button><button type="button" role="tab" data-admin-vinculo-scope="ENCERRADAS" aria-selected="' + (state.scope === 'ENCERRADAS') + '">Encerradas (' + closedCount + ')</button></div>' +
+      '<form class="vinculo-filter-grid" data-admin-vinculo-filters><label>Tipo<select name="tipo"><option value="">Todos</option><option>SUSPENSAO_VOLUNTARIA</option><option>DESLIGAMENTO_VOLUNTARIO</option></select></label><label>Modalidade<select name="modalidade"><option value="">Todas</option><option>SUSPENSAO_TEMPORARIA</option><option>DESLIGAMENTO_APOS_HOMOLOGACAO</option><option>DESLIGAMENTO_FIM_SEMESTRE</option></select></label><label>Status<input name="status"></label><label>Semestre<input name="idSemestre"></label><label>Data inicial<input type="date" name="dataInicio"></label><label>Data final<input type="date" name="dataFim"></label><label>Membro<input name="membro"></label><label>Responsável<input name="responsavel"></label><button class="secondary-button" type="submit">Filtrar</button></form>' +
+      '<div class="table-scroll admin-vinculo-table-wrap"><table class="portal-table admin-vinculo-table"><thead><tr><th>Protocolo</th><th>Tipo</th><th>Modalidade</th><th>Semestre</th><th>Status</th><th>Ação</th></tr></thead><tbody>' + rows + '</tbody></table></div><div class="admin-vinculo-cards">' + cards + '</div>';
+  }
+
   function renderError(message) { var container = root(); if (container) container.innerHTML = '<p class="portal-feedback is-error">' + esc(message || 'Não foi possível carregar.') + '</p>'; }
 
   async function openDetail(id) {
@@ -98,6 +118,7 @@
 
   function renderDetail() {
     var d = state.detail || {}; var request = d.solicitacao || {}; var person = d.pessoa || {}; var norm = d.parametrosNormativos || {}; var requirements = d.requisitosDecisaoFinal || {};
+    if (d.somenteLeitura === true || isTerminal(request)) { renderTerminalDetail(d, request, person); return; }
     var differences = (norm.divergencias || []).length ? '<div class="portal-feedback is-warning"><strong>Parâmetros alterados após o pedido.</strong><pre>' + esc(JSON.stringify(norm.divergencias, null, 2)) + '</pre></div>' : '<p class="section-note">Parâmetros vigentes coincidem com o snapshot do pedido.</p>';
     var minutesRule = request.TIPO_SOLICITACAO === 'DESLIGAMENTO_VOLUNTARIO' ? '<p class="section-note" data-admin-vinculo-ata-rule>' + esc(requirements.exigeTratamentoTransicao ? 'A regra de ata mudou desde o pedido. Selecione o tratamento de transição antes da decisão final.' : (requirements.exigeAta ? 'A decisão final exige referência oficial de ata. Base legal: ' + (requirements.baseLegal || 'não informada') : 'A regra normativa vigente dispensa ata nesta decisão final. A referência documental permanece opcional.')) + '</p>' : '';
     document.getElementById('admin-vinculo-modal-content').innerHTML = [
@@ -111,6 +132,22 @@
       '<form data-admin-vinculo-action><input type="hidden" name="idSolicitacao" value="' + esc(request.ID_SOLICITACAO) + '"><label>Ação<select name="acao" required>' + actionOptions(request) + '</select></label><label>Observação / justificativa<textarea name="observacao" rows="4"></textarea></label><label data-admin-vinculo-ata-label>Referência oficial da ata (opcional) <input name="ataReferencia"></label><label>Tratamento de transição<select name="tratamentoTransicao"><option value="">Não aplicável</option><option>APLICAR_VIGENTE</option><option>APLICAR_SNAPSHOT</option></select></label><label>Justificativa administrativa reforçada<textarea name="justificativaAdministrativaReforcada" rows="3" minlength="20"></textarea></label>' + renderFunctionConfirmation(request) + '<label class="profile-confirmation"><input type="checkbox" name="confirmacaoReforcada"> Confirmo a decisão final e seus efeitos institucionais.</label><button class="primary-button" type="submit">Registrar ação</button></form>'
     ].join('');
     syncFinalDecisionRequirements(document.querySelector('[data-admin-vinculo-action]'));
+  }
+
+  function renderTerminalDetail(detail, request, person) {
+    document.getElementById('admin-vinculo-modal-content').innerHTML = [
+      '<div class="vinculo-admin-person"><strong>' + esc(person.nome || 'Pessoa') + '</strong><span>' + esc(person.rgaMascarado || '') + '</span><span>' + esc(person.emailMascarado || '') + '</span></div>',
+      '<div class="portal-feedback"><strong>Status terminal: ' + esc(label(request.STATUS_SOLICITACAO)) + '.</strong> Este registro está disponível somente para consulta.</div>',
+      '<dl class="vinculo-summary"><div><dt>Protocolo</dt><dd>' + esc(request.ID_SOLICITACAO || '—') + '</dd></div><div><dt>Cancelado por</dt><dd>' + esc(request.CANCELADO_POR || '—') + '</dd></div><div><dt>Cancelado em</dt><dd>' + esc(request.CANCELADO_EM || '—') + '</dd></div><div><dt>Motivo do cancelamento</dt><dd>' + esc(request.MOTIVO_CANCELAMENTO || '—') + '</dd></div><div><dt>Decisão</dt><dd>' + esc(request.DECISAO_DIRETORIA || '—') + '</dd></div><div><dt>Decidido por</dt><dd>' + esc(request.DECIDIDO_POR || '—') + '</dd></div><div><dt>Data da decisão</dt><dd>' + esc(request.DATA_DECISAO || '—') + '</dd></div><div><dt>Data efetiva</dt><dd>' + esc(request.DATA_EFETIVA || '—') + '</dd></div></dl>',
+      '<section class="admin-vinculo-history"><h3>Histórico</h3><pre>' + esc(request.HISTORICO_STATUS_JSON || '[]') + '</pre><h3>Auditoria autorizada</h3><pre>' + esc(request.AUDITORIA_JSON || '[]') + '</pre></section>',
+      '<button type="button" class="secondary-button" data-admin-vinculo-resend="' + esc(request.ID_SOLICITACAO) + '">Reenviar notificação</button>'
+    ].join('');
+  }
+
+  async function resendNotification(id) {
+    var response = await global.PortalGeapaApi.apiPost('/admin/solicitacoes-vinculo/reenviar-notificacao', { payload: JSON.stringify({ idSolicitacao: id }) });
+    if (!response.ok) throw response;
+    if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Notificação', message: response.message || 'Notificação reenviada.' });
   }
 
   function actionOptions(request) {
@@ -223,7 +260,8 @@
       renderValidations: renderValidations,
       validateManualReview: validateManualReview,
       buildActionPayload: buildActionPayload,
-      isFinalAction: isFinalAction
+      isFinalAction: isFinalAction,
+      isTerminal: isTerminal
     });
   }
 
@@ -239,5 +277,5 @@
     });
   });
   document.addEventListener('change', function(event) { if (event.target.matches('[data-admin-vinculo-action] [name="acao"],[data-admin-vinculo-action] [name="tratamentoTransicao"]')) syncFinalDecisionRequirements(event.target.form); });
-  document.addEventListener('click', function(event) { var target = event.target.closest('[data-admin-vinculo-detail],[data-admin-vinculo-refresh],[data-admin-vinculo-close]'); if (!target) return; if (target.dataset.adminVinculoDetail) openDetail(target.dataset.adminVinculoDetail); else if (target.hasAttribute('data-admin-vinculo-refresh')) load(); else modal().hidden = true; });
+  document.addEventListener('click', function(event) { var target = event.target.closest('[data-admin-vinculo-detail],[data-admin-vinculo-refresh],[data-admin-vinculo-close],[data-admin-vinculo-scope],[data-admin-vinculo-resend]'); if (!target) return; if (target.dataset.adminVinculoDetail) openDetail(target.dataset.adminVinculoDetail); else if (target.dataset.adminVinculoScope) { state.scope = target.dataset.adminVinculoScope; renderListV2(); } else if (target.dataset.adminVinculoResend) resendNotification(target.dataset.adminVinculoResend).catch(function(error) { if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'error', title: 'Falha no reenvio', message: error.message || 'Não foi possível reenviar.', persistent: true }); }); else if (target.hasAttribute('data-admin-vinculo-refresh')) load(); else modal().hidden = true; });
 })(window);
