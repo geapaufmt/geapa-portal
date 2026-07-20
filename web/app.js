@@ -1070,6 +1070,20 @@ function normalizarMeuPerfil(resposta) {
       linksPerfis: normalizarLinksPerfis(perfil.linksPerfis),
       cidadeOrigem: perfil.cidadeOrigem || '',
       ufOrigem: perfil.ufOrigem || '',
+      paisOrigemCodigo: perfil.paisOrigemCodigo || '',
+      paisOrigemNome: perfil.paisOrigemNome || '',
+      municipioOrigemCodigo: perfil.municipioOrigemCodigo || '',
+      regiaoOrigem: perfil.regiaoOrigem || '',
+      cursoId: perfil.cursoId || '',
+      cursoNome: perfil.cursoNome || '',
+      instituicaoEnsino: perfil.instituicaoEnsino || '',
+      campus: perfil.campus || '',
+      nivelCurso: perfil.nivelCurso || '',
+      periodoIngressoCurso: perfil.periodoIngressoCurso || '',
+      semestreAtualCursoCalculado: perfil.semestreAtualCursoCalculado || '',
+      semestreAtualCursoCalculadoEm: perfil.semestreAtualCursoCalculadoEm || '',
+      statusCompletudeCadastral: perfil.statusCompletudeCadastral || 'PENDENTE',
+      explicacaoSemestreAtualCurso: perfil.explicacaoSemestreAtualCurso || '',
       historicoAcademico: perfil.historicoAcademico || perfil.resumoAcademico || '',
       statusCadastral: perfil.statusCadastral || ''
     },
@@ -1332,7 +1346,9 @@ function renderizarMinhaSituacao(container, dados) {
  */
 function renderizarMeuPerfil(container, dados) {
   const perfil = (dados && dados.perfil) || {};
-  const localOrigem = [perfil.cidadeOrigem, perfil.ufOrigem].filter(Boolean).join(' / ');
+  const localOrigem = perfil.paisOrigemCodigo === 'BR'
+    ? [perfil.cidadeOrigem, perfil.ufOrigem, perfil.paisOrigemNome].filter(Boolean).join(' / ')
+    : [perfil.cidadeOrigem, perfil.regiaoOrigem, perfil.paisOrigemNome].filter(Boolean).join(' / ');
   const avisos = (dados && dados.avisos && dados.avisos.length)
     ? dados.avisos
     : ['Dados carregados pelo backend seguro do Portal GEAPA.'];
@@ -1371,6 +1387,16 @@ function renderizarMeuPerfil(container, dados) {
     montarPerfilItem('Cidade/UF de origem', localOrigem),
     montarPerfilItem('Historico academico', perfil.historicoAcademico),
     '</dl>',
+    '<h3 class="profile-section-title">Formação acadêmica</h3>',
+    '<dl class="summary-grid">',
+    montarPerfilItemSensivel('Curso', perfil.cursoNome, 'CURSO_ID'),
+    montarPerfilItem('Instituição / campus', [perfil.instituicaoEnsino, perfil.campus].filter(Boolean).join(' / ')),
+    montarPerfilItem('Nível', perfil.nivelCurso),
+    montarPerfilItem('Período de ingresso no curso', perfil.periodoIngressoCurso),
+    montarPerfilItem('Semestre atual estimado', perfil.semestreAtualCursoCalculado ? perfil.semestreAtualCursoCalculado + 'º semestre' : ''),
+    montarPerfilItem('Completude cadastral', perfil.statusCompletudeCadastral),
+    '</dl>',
+    '<p class="section-note">' + escaparHtml(perfil.explicacaoSemestreAtualCurso || 'Estimativa calculada pelo período de ingresso registrado no RGA e pelo calendário acadêmico. Pode não refletir trancamentos ou alterações individuais.') + '</p>',
     '<div class="situation-section">',
     '<h3>Avisos</h3>',
     montarListaOuVazio(avisos, 'Nenhum aviso registrado.'),
@@ -1413,8 +1439,7 @@ function renderizarEdicaoMeuPerfil(container, dados) {
     '<div class="profile-form-grid">',
     campoPerfil('telefone', 'Telefone', perfil.telefone, 'tel'),
     campoPerfil('instagram', 'Instagram', perfil.instagram, 'text'),
-    campoPerfil('cidadeOrigem', 'Cidade de origem', perfil.cidadeOrigem, 'text'),
-    campoPerfil('ufOrigem', 'UF de origem', perfil.ufOrigem, 'text', 2),
+    window.PortalGeapaLocalidades ? window.PortalGeapaLocalidades.renderFields(perfil) : '<p class="portal-feedback is-error">Catálogo de localidades indisponível.</p>',
     '</div>',
     '<label class="profile-form-wide"><span>Resumo/histórico acadêmico</span><textarea name="resumoAcademico" rows="6" maxlength="3000">' + escaparHtml(perfil.historicoAcademico || '') + '</textarea></label>',
     '<fieldset class="profile-links-fieldset"><legend>Links acadêmicos e profissionais</legend><div class="profile-form-grid">',
@@ -1427,6 +1452,7 @@ function renderizarEdicaoMeuPerfil(container, dados) {
     '<button class="primary-button" type="submit">Salvar alterações</button></div>',
     '</form>'
   ].join('');
+  if (window.PortalGeapaLocalidades) window.PortalGeapaLocalidades.hydrate(container.querySelector('[data-profile-edit-form]'));
 }
 
 function campoPerfil(nome, rotulo, valor, tipo, maxlength) {
@@ -3018,8 +3044,7 @@ async function salvarEdicaoMeuPerfil(form, container) {
     chaveIdempotencia: gerarChavePerfil('perfil'),
     telefone: String(dados.get('telefone') || '').trim(),
     instagram: String(dados.get('instagram') || '').trim(),
-    cidadeOrigem: String(dados.get('cidadeOrigem') || '').trim(),
-    ufOrigem: String(dados.get('ufOrigem') || '').trim().toUpperCase(),
+    ...(window.PortalGeapaLocalidades ? window.PortalGeapaLocalidades.serialize(form) : {}),
     resumoAcademico: String(dados.get('resumoAcademico') || '').trim(),
     links: links
   };
@@ -3132,7 +3157,7 @@ function abrirModalCorrecaoPerfil(campo, valorAtual, container) {
 }
 
 function formatarCampoCorrecao(campo) {
-  const rotulos = { NOME_COMPLETO: 'Nome completo', CPF: 'CPF', RGA: 'RGA', DATA_NASCIMENTO: 'Data de nascimento', EMAIL_PRINCIPAL: 'E-mail principal' };
+  const rotulos = { NOME_COMPLETO: 'Nome completo', CPF: 'CPF', RGA: 'RGA', DATA_NASCIMENTO: 'Data de nascimento', EMAIL_PRINCIPAL: 'E-mail principal', CURSO_ID: 'Curso / instituição / campus' };
   return rotulos[campo] || String(campo || '').replace(/_/g, ' ');
 }
 
