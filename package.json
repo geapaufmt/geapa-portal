@@ -20,6 +20,7 @@
     "test:vinculo-estados-terminais": "node scripts/check-admin-vinculo-terminal-states.mjs",
     "test:egress-feedback": "node scripts/check-egress-feedback.mjs",
     "test:profile-localities": "node scripts/check-profile-localities.mjs",
-    "test:member-registration": "node scripts/check-member-registration.mjs"
+    "test:member-registration": "node scripts/check-member-registration.mjs",
+    "test:evolution-integration": "node scripts/check-evolution-homolog-integration.mjs"
   }
 }
