@@ -1,4 +1,4 @@
-const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v119';
+const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v120';
 
 const STATIC_ASSETS = [
   '/',
@@ -17,15 +17,19 @@ const STATIC_ASSETS = [
   '/assets/js/atividades.js',
   '/assets/js/admin-atividades.js',
   '/assets/js/admin-membros.js',
+  '/assets/js/admin-cadastro-membros.js',
   '/assets/js/admin-correcoes-cadastrais.js',
+  '/assets/js/perfil-localidades.js',
   '/assets/js/vinculo-solicitacoes.js',
   '/assets/js/admin-solicitacoes-vinculo.js',
+  '/assets/js/avaliacao-egresso.js',
   '/assets/js/portal-v2-readonly.js',
   '/assets/js/painel-diretoria-v2.js',
   '/assets/js/firebase-auth.js',
   '/assets/js/firestore-session-cache.js',
   '/assets/js/firestore-activities.js',
   '/assets/js/pwa.js',
+  '/assets/data/localidades-ibge-v1.json',
   '/assets/img/geapa-loader-brain.svg',
   '/assets/icons/icon-192.png',
   '/assets/icons/icon-512.png',

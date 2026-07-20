@@ -463,6 +463,8 @@
   var entregaveisApresentacoesMock = {};
 
   function apiGet(route, params) {
+    var bloqueio = obterBloqueioAcao_(obterAcaoAppsScript(route));
+    if (bloqueio) return Promise.resolve(bloqueio);
     if (config.MOCK_MODE) {
       return apiGetMock(route, params || {});
     }
