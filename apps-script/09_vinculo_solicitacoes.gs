@@ -8,6 +8,10 @@ function portalVinculoContexto_(token, permissao) {
   if (!acesso.ok) return acesso;
   acesso.contexto.ambienteDadosV2 = portalResolverAmbienteDadosV2_();
   acesso.contexto.origem = 'PORTAL_SOLICITACOES_VINCULO_V2';
+  acesso.contexto.featureFlags = {
+    ENABLE_MEMBER_REGISTRATION: acesso.contexto.ambienteDadosV2 === 'DEV',
+    ENABLE_EGRESS_FEEDBACK: acesso.contexto.ambienteDadosV2 === 'DEV'
+  };
   return acesso;
 }
 
@@ -72,5 +76,11 @@ function portalAdminSolicitacaoVinculoHomologarEfetivarDesligamento(token, paylo
 function portalAdminSolicitacaoVinculoCancelar(token, payload) { return portalVinculoExecutar_(token, 'membros:analisar_solicitacoes_vinculo', 'membersAdminSolicitacaoVinculoCancelar', payload); }
 function portalAdminSolicitacaoVinculoReprocessar(token, payload) { return portalVinculoExecutar_(token, 'membros:executar_solicitacoes_vinculo', 'membersAdminSolicitacaoVinculoReprocessar', payload); }
 function portalAdminSolicitacaoVinculoReenviarNotificacao(token, payload) { return portalVinculoExecutar_(token, 'membros:analisar_solicitacoes_vinculo', 'membersAdminSolicitacaoVinculoReenviarNotificacao', payload); }
+function portalAdminIngressosMembrosCatalogos(token) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosCatalogos', {}); }
+function portalAdminIngressosMembrosCadastrar(token, payload) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosCadastrar', payload); }
+function portalAdminIngressosMembrosReprocessar(token, payload) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosReprocessar', payload); }
+function portalAdminIngressosMembrosCatalogos(token) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosCatalogos', {}); }
+function portalAdminIngressosMembrosCadastrar(token, payload) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosCadastrar', payload); }
+function portalAdminIngressosMembrosReprocessar(token, payload) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosReprocessar', payload); }
 function portalAvaliacaoEgressoConsultar(payload) { return portalEgressFeedbackExecutar_('membersAvaliacaoEgressoConsultarPorToken', payload); }
 function portalAvaliacaoEgressoResponder(payload) { return portalEgressFeedbackExecutar_('membersAvaliacaoEgressoResponder', payload); }

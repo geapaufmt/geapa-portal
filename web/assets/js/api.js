@@ -44,6 +44,8 @@
     adminSolicitacaoVinculoCancelar: true,
     adminSolicitacaoVinculoReprocessar: true,
     adminSolicitacaoVinculoReenviarNotificacao: true,
+    adminIngressosMembrosCadastrar: true,
+    adminIngressosMembrosReprocessar: true,
     avaliacaoEgressoResponder: true
   };
   var ACOES_GESTAO_ATIVIDADES = {
@@ -78,6 +80,7 @@
     adminSolicitacaoVinculoReenviarNotificacao: true
   };
   var ACOES_AVALIACAO_EGRESSO = { avaliacaoEgressoConsultar: true, avaliacaoEgressoResponder: true };
+  var ACOES_CADASTRO_MEMBROS = { adminIngressosMembrosCatalogos: true, adminIngressosMembrosCadastrar: true, adminIngressosMembrosReprocessar: true };
   var ACOES_UPLOAD = {
     apresentacaoRegistrarMaterial: true,
     apresentacaoRegistrarFotoReuniao: true,
@@ -637,6 +640,7 @@
       };
     }
     if (config.ENABLE_EGRESS_FEEDBACK !== true && ACOES_AVALIACAO_EGRESSO[acaoNormalizada]) return { ok: false, errorCode: 'FEATURE_EGRESS_FEEDBACK_DISABLED', message: 'A avaliacao de egresso esta desativada neste ambiente.' };
+    if (config.ENABLE_MEMBER_REGISTRATION !== true && ACOES_CADASTRO_MEMBROS[acaoNormalizada]) return { ok: false, errorCode: 'FEATURE_MEMBER_REGISTRATION_DISABLED', message: 'O cadastro administrativo de membros esta desativado neste ambiente.' };
 
     return null;
   }
@@ -648,6 +652,7 @@
     if (ACOES_JUSTIFICATIVAS[acao]) return config.ENABLE_JUSTIFICATIVAS === true;
     if (ACOES_VINCULO[acao]) return config.ENABLE_VINCULO_REQUESTS === true;
     if (ACOES_AVALIACAO_EGRESSO[acao]) return config.ENABLE_EGRESS_FEEDBACK === true;
+    if (ACOES_CADASTRO_MEMBROS[acao]) return config.ENABLE_MEMBER_REGISTRATION === true;
     return false;
   }
 
@@ -674,6 +679,9 @@
       '/admin/atividades/cancelar': 'atividadeAdminCancelar',
       '/admin/atividades/reabrir': 'atividadeAdminReabrir',
       '/admin/membros': 'adminMembrosListar',
+      '/admin/ingressos-membros/catalogos': 'adminIngressosMembrosCatalogos',
+      '/admin/ingressos-membros/cadastrar': 'adminIngressosMembrosCadastrar',
+      '/admin/ingressos-membros/reprocessar': 'adminIngressosMembrosReprocessar',
       '/meu-perfil/atualizar': 'meuPerfilAtualizar',
       '/meu-perfil/correcoes/solicitar': 'meuPerfilSolicitarCorrecao',
       '/meu-perfil/correcoes/consultar': 'meuPerfilConsultarSolicitacao',

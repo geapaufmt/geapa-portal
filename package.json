@@ -19,6 +19,7 @@
     "test:vinculo-validacoes-manuais": "node scripts/check-admin-vinculo-manual-validation.mjs",
     "test:vinculo-estados-terminais": "node scripts/check-admin-vinculo-terminal-states.mjs",
     "test:egress-feedback": "node scripts/check-egress-feedback.mjs",
-    "test:profile-localities": "node scripts/check-profile-localities.mjs"
+    "test:profile-localities": "node scripts/check-profile-localities.mjs",
+    "test:member-registration": "node scripts/check-member-registration.mjs"
   }
 }

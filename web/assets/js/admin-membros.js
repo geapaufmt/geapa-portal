@@ -31,6 +31,7 @@
     document.addEventListener('change', handleChange);
     document.addEventListener('input', handleInput);
     document.addEventListener('click', handleClick);
+    document.addEventListener('portal:memberregistered', function reloadAfterRegistration() { state.page = 1; loadMembers(); });
     if (navigation.getRotaAtual && navigation.getRotaAtual() === 'admin-membros') {
       state.active = true;
       loadMembers();
@@ -74,7 +75,8 @@
       '<header class="portal-page-header admin-members-hero">',
       '<div class="portal-page-heading"><p class="portal-page-eyebrow eyebrow">Gestao do GEAPA</p><h2 class="portal-page-title" id="admin-membros-title">Membros</h2>',
       '<p class="portal-page-description intro">Visao operacional somente leitura para acompanhamento da Secretaria e Diretoria.</p></div>',
-      '<span class="portal-page-badge portal-page-badge--readonly admin-members-readonly">Somente leitura</span>',
+      '<div class="admin-members-hero-actions"><span class="portal-page-badge portal-page-badge--readonly admin-members-readonly">Consulta</span>' +
+      (global.PortalGeapaMemberRegistration ? global.PortalGeapaMemberRegistration.renderAction() : '') + '</div>',
       '</header>',
       content
     ].join('');

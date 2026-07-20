@@ -48,6 +48,9 @@ function doGet(e) {
         'adminSolicitacaoVinculoCancelar',
         'adminSolicitacaoVinculoReprocessar',
         'adminSolicitacaoVinculoReenviarNotificacao',
+        'adminIngressosMembrosCatalogos',
+        'adminIngressosMembrosCadastrar',
+        'adminIngressosMembrosReprocessar',
         'avaliacaoEgressoConsultar',
         'avaliacaoEgressoResponder',
         'atividadesBundle',
@@ -242,6 +245,9 @@ function portalExecutarAcao_(requisicao) {
   if (acao === 'adminSolicitacaoVinculoCancelar') return portalAdminSolicitacaoVinculoCancelar(requisicao.token || '', requisicao.payload || requisicao);
   if (acao === 'adminSolicitacaoVinculoReprocessar') return portalAdminSolicitacaoVinculoReprocessar(requisicao.token || '', requisicao.payload || requisicao);
   if (acao === 'adminSolicitacaoVinculoReenviarNotificacao') return portalAdminSolicitacaoVinculoReenviarNotificacao(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminIngressosMembrosCatalogos') return portalAdminIngressosMembrosCatalogos(requisicao.token || '');
+  if (acao === 'adminIngressosMembrosCadastrar') return portalAdminIngressosMembrosCadastrar(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminIngressosMembrosReprocessar') return portalAdminIngressosMembrosReprocessar(requisicao.token || '', requisicao.payload || requisicao);
   if (acao === 'avaliacaoEgressoConsultar') return portalAvaliacaoEgressoConsultar(requisicao.payload || requisicao);
   if (acao === 'avaliacaoEgressoResponder') return portalAvaliacaoEgressoResponder(requisicao.payload || requisicao);
 
