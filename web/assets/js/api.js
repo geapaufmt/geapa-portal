@@ -43,7 +43,8 @@
     adminSolicitacaoVinculoHomologarEfetivarDesligamento: true,
     adminSolicitacaoVinculoCancelar: true,
     adminSolicitacaoVinculoReprocessar: true,
-    adminSolicitacaoVinculoReenviarNotificacao: true
+    adminSolicitacaoVinculoReenviarNotificacao: true,
+    avaliacaoEgressoResponder: true
   };
   var ACOES_GESTAO_ATIVIDADES = {
     atividadeAdminSalvarEdicao: true,
@@ -76,6 +77,7 @@
     adminSolicitacaoVinculoReprocessar: true,
     adminSolicitacaoVinculoReenviarNotificacao: true
   };
+  var ACOES_AVALIACAO_EGRESSO = { avaliacaoEgressoConsultar: true, avaliacaoEgressoResponder: true };
   var ACOES_UPLOAD = {
     apresentacaoRegistrarMaterial: true,
     apresentacaoRegistrarFotoReuniao: true,
@@ -634,6 +636,7 @@
         message: 'As solicitacoes de vinculo estao desativadas neste ambiente.'
       };
     }
+    if (config.ENABLE_EGRESS_FEEDBACK !== true && ACOES_AVALIACAO_EGRESSO[acaoNormalizada]) return { ok: false, errorCode: 'FEATURE_EGRESS_FEEDBACK_DISABLED', message: 'A avaliacao de egresso esta desativada neste ambiente.' };
 
     return null;
   }
@@ -644,6 +647,7 @@
     if (ACOES_PERFIL_PORTAL[acao]) return config.ENABLE_PROFILE_UPDATES === true;
     if (ACOES_JUSTIFICATIVAS[acao]) return config.ENABLE_JUSTIFICATIVAS === true;
     if (ACOES_VINCULO[acao]) return config.ENABLE_VINCULO_REQUESTS === true;
+    if (ACOES_AVALIACAO_EGRESSO[acao]) return config.ENABLE_EGRESS_FEEDBACK === true;
     return false;
   }
 
@@ -694,6 +698,8 @@
       '/admin/solicitacoes-vinculo/cancelar': 'adminSolicitacaoVinculoCancelar',
       '/admin/solicitacoes-vinculo/reprocessar': 'adminSolicitacaoVinculoReprocessar',
       '/admin/solicitacoes-vinculo/reenviar-notificacao': 'adminSolicitacaoVinculoReenviarNotificacao',
+      '/avaliacao-egresso/consultar': 'avaliacaoEgressoConsultar',
+      '/avaliacao-egresso/responder': 'avaliacaoEgressoResponder',
       '/conteudo-publico/snapshot': 'conteudoPublicoSnapshot',
       '/v2/minha-frequencia': 'minhaFrequencia',
       '/v2/minhas-apresentacoes': 'minhasApresentacoes',

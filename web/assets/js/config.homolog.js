@@ -21,6 +21,7 @@ window.PortalGeapaConfig = {
   ENABLE_JUSTIFICATIVAS: true,
   ENABLE_PROFILE_UPDATES: true,
   ENABLE_VINCULO_REQUESTS: true,
+  ENABLE_EGRESS_FEEDBACK: true,
   READ_ONLY_MODE: true,
   SHOW_ENV_BADGE: true,
   MAINTENANCE_BANNER: 'Ambiente de homologacao com dados controlados.',
