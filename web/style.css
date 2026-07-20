@@ -3748,6 +3748,43 @@ textarea[aria-invalid="true"] {
   font-weight: 700;
 }
 
+.profile-locality-fields {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.profile-locality-fields > legend,
+.profile-locality-fields > .section-note,
+.profile-locality-fields [data-locality-source] {
+  grid-column: 1 / -1;
+}
+
+.profile-locality-fields [data-locality-brazil],
+.profile-locality-fields [data-locality-foreign] {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.profile-locality-fields [hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .profile-locality-fields,
+  .profile-locality-fields [data-locality-brazil],
+  .profile-locality-fields [data-locality-foreign] {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-correction-person-lines strong,
 .admin-correction-person-lines span {
   display: block;

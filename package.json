@@ -18,6 +18,7 @@
     "test:vinculo-v2": "node scripts/check-vinculo-v2.mjs && node scripts/check-admin-vinculo-manual-validation.mjs",
     "test:vinculo-validacoes-manuais": "node scripts/check-admin-vinculo-manual-validation.mjs",
     "test:vinculo-estados-terminais": "node scripts/check-admin-vinculo-terminal-states.mjs",
-    "test:egress-feedback": "node scripts/check-egress-feedback.mjs"
+    "test:egress-feedback": "node scripts/check-egress-feedback.mjs",
+    "test:profile-localities": "node scripts/check-profile-localities.mjs"
   }
 }
