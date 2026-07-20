@@ -61,6 +61,7 @@
     rota('parceiros', 'Parceiros', 'parceiros', 'publico', 80, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Instituições e parceiros públicos do GEAPA.', 'implementado'),
     rota('processo-seletivo', 'Processo seletivo', 'processo-seletivo', 'publico', 90, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Informações públicas sobre ingresso e processo seletivo.', 'placeholder'),
     rota('contato', 'Contato', 'contato', 'publico', 100, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Canais públicos de contato do GEAPA.', 'placeholder'),
+    rota('avaliacao-egresso', 'Avaliação de egresso', 'avaliacao-egresso', 'publico', 105, 'tela-avaliacao-egresso', 'view-avaliacao-egresso', false, PUBLICO, [], 'Formulário voluntário e protegido por token.', 'implementado', false),
     rota('login', 'Entrar', 'login', 'publico', 110, 'tela-acesso', 'view-login', false, PUBLICO, [], 'Entrada por Google ou código temporário.', 'implementado', false),
     rota('interesse', 'Tenho interesse', 'interesse', 'publico', 120, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Formulário futuro para cadastro de interesse sem conceder acesso interno automaticamente.', 'placeholder'),
 
@@ -654,7 +655,7 @@
   }
 
   function obterHashBruto_() {
-    return String(global.location.hash || '').replace(/^#\/?/, '').trim();
+    return String(global.location.hash || '').replace(/^#\/?/, '').trim().split('?')[0];
   }
 
   function atualizarHashDaRota(rota, opcoes) {

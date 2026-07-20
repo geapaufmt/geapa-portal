@@ -48,6 +48,8 @@ function doGet(e) {
         'adminSolicitacaoVinculoCancelar',
         'adminSolicitacaoVinculoReprocessar',
         'adminSolicitacaoVinculoReenviarNotificacao',
+        'avaliacaoEgressoConsultar',
+        'avaliacaoEgressoResponder',
         'atividadesBundle',
         'atividadesListar',
         'atividadesDetalhesPreload',
@@ -240,6 +242,8 @@ function portalExecutarAcao_(requisicao) {
   if (acao === 'adminSolicitacaoVinculoCancelar') return portalAdminSolicitacaoVinculoCancelar(requisicao.token || '', requisicao.payload || requisicao);
   if (acao === 'adminSolicitacaoVinculoReprocessar') return portalAdminSolicitacaoVinculoReprocessar(requisicao.token || '', requisicao.payload || requisicao);
   if (acao === 'adminSolicitacaoVinculoReenviarNotificacao') return portalAdminSolicitacaoVinculoReenviarNotificacao(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'avaliacaoEgressoConsultar') return portalAvaliacaoEgressoConsultar(requisicao.payload || requisicao);
+  if (acao === 'avaliacaoEgressoResponder') return portalAvaliacaoEgressoResponder(requisicao.payload || requisicao);
 
   if (acao === 'atividadesBundle') {
     return portalAtividadesBundle(requisicao.token || '');
