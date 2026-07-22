@@ -1,34 +1,36 @@
 /**
  * ARQUIVO GERADO. Nao edite manualmente.
- * Fonte: config.prod.js
+ * Fonte: config.homolog.js
  * Gerador: scripts/generate-portal-config.mjs
  */
 
 window.PortalGeapaConfig = {
   "MOCK_MODE": false,
-  "ENVIRONMENT": "PROD",
-  "DATA_ENVIRONMENT": "PROD",
-  "BUILD_CHANNEL": "live",
-  "PORTAL_VERSION": "stable",
-  "GEAPA_API_BASE_URL": "https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec",
+  "ENVIRONMENT": "HOMOLOG",
+  "DATA_ENVIRONMENT": "PILOTO_DEV",
+  "BUILD_CHANNEL": "homolog",
+  "PORTAL_VERSION": "candidate",
+  "GEAPA_API_BASE_URL": "https://script.google.com/macros/s/AKfycbxyUPuu4tb9mkAys5jwDiBxtgE-g4YYOdaid0qNMrVw5i2oWh_Uyv2BHFAQGJPYdnA2/exec",
   "FIRESTORE_ENABLED": true,
   "FIRESTORE_SNAPSHOT_ENABLED": true,
   "FIRESTORE_COLLECTION_FALLBACK_ENABLED": true,
   "APPS_SCRIPT_FALLBACK_ENABLED": true,
-  "FIRESTORE_PATH_PREFIX": "",
-  "FIRESTORE_SESSION_TTL_MS": 21600000,
-  "FIRESTORE_ACTIVITIES_TTL_MS": 21600000,
-  "ATIVIDADES_CACHE_TTL_MS": 1800000,
+  "FIRESTORE_PATH_PREFIX": "environments/homolog",
+  "FIRESTORE_SESSION_TTL_MS": 7200000,
+  "FIRESTORE_ACTIVITIES_TTL_MS": 7200000,
+  "ATIVIDADES_CACHE_TTL_MS": 900000,
   "API_READ_TIMEOUT_MS": 35000,
   "API_WRITE_TIMEOUT_MS": 30000,
   "API_UPLOAD_WRITE_TIMEOUT_MS": 90000,
-  "ENABLE_ACTIVITY_MANAGEMENT": true,
+  "ENABLE_ACTIVITY_MANAGEMENT": false,
   "ENABLE_JUSTIFICATIVAS": true,
   "ENABLE_PROFILE_UPDATES": true,
-  "ENABLE_VINCULO_REQUESTS": false,
-  "READ_ONLY_MODE": false,
-  "SHOW_ENV_BADGE": false,
-  "MAINTENANCE_BANNER": "",
+  "ENABLE_VINCULO_REQUESTS": true,
+  "ENABLE_EGRESS_FEEDBACK": true,
+  "ENABLE_MEMBER_REGISTRATION": true,
+  "READ_ONLY_MODE": true,
+  "SHOW_ENV_BADGE": true,
+  "MAINTENANCE_BANNER": "Ambiente de homologacao com dados controlados.",
   "FIREBASE": {
     "apiKey": "AIzaSyCiHX3n1NbYnGkVtELqzU-JztZ_53gjkd8",
     "authDomain": "portal-geapa.firebaseapp.com",
