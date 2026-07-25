@@ -6,7 +6,7 @@
   `74254f3`;
 - Apps Script HOMOLOG: deployment `@101`;
 - Apps Script PROD preservado: deployment `@100`;
-- Libraries do manifest HOMOLOG:
+- Libraries do manifest HOMOLOG antes desta correção:
   - `GEAPA_CORE` 21;
   - `GEAPA_MEMBROS` 8;
   - `GEAPA_ATIVIDADES` 19;
@@ -28,6 +28,7 @@ snapshot versionado do backend HOMOLOG e ser transmitido ao Core.
 ## Resultado do patch
 
 - backend desta branch: HOMOLOG -> DEV;
+- publicação HOMOLOG consolidada: `GEAPA_CORE` 22 imutável;
 - nenhuma constante de dados PROD permanece no backend HOMOLOG;
 - cache de sessão, código, Minha situação e demais caches construídos por
   `portalCacheKey_` ficam separados por ambiente;

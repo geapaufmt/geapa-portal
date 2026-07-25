@@ -48,7 +48,7 @@ required(styles.includes('.admin-vinculo-table-wrap') && styles.includes('overfl
 required(index.includes('style.css?v=59') && index.includes('admin-solicitacoes-vinculo.js?v=6'), 'cache-busters do painel administrativo nao incrementados');
 
 const coreLibrary = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
-required(coreLibrary && String(coreLibrary.version) === '21' && coreLibrary.developmentMode === false, 'GEAPA_CORE deve usar versao imutavel 21');
+required(coreLibrary && String(coreLibrary.version) === '22' && coreLibrary.developmentMode === false, 'GEAPA_CORE deve usar versao imutavel 22');
 const library = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_MEMBROS');
 required(library && String(library.version) === '8' && library.developmentMode === false, 'GEAPA_MEMBROS deve usar versao imutavel 8');
 
