@@ -87,11 +87,19 @@
     justificativaEnviar: true
   };
   var requisicoesPendentes = {};
+  var leiturasPendentes = {};
   var REQUEST_ID_TTL_MS = 10 * 60 * 1000;
 
   function criarRequestId() {
     var random = Math.random().toString(36).slice(2, 10).toUpperCase();
     return 'GEAPA-REQ-' + Date.now() + '-' + random;
+  }
+
+  function notificarEstadoLeitura(pendente, acao) {
+    if (typeof document === 'undefined' || typeof CustomEvent !== 'function') return;
+    document.dispatchEvent(new CustomEvent('portal:readrequeststate', {
+      detail: { pending: pendente === true, action: String(acao || '') }
+    }));
   }
 
   function assinaturaSubmissao(acao, payloadJson) {
@@ -553,13 +561,28 @@
     if (token && !corpo.has('token')) {
       corpo.set('token', token);
     }
+    if (!corpo.has('requestId')) corpo.set('requestId', criarRequestId());
+
+    var leituraKey = '';
+    if (!escrita) {
+      leituraKey = assinaturaSubmissao(
+        acaoNormalizada,
+        Array.from(corpo.entries()).filter(function semRequestId(item) {
+          return item[0] !== 'requestId';
+        }).map(function serializar(item) {
+          return item[0] + '=' + item[1];
+        }).sort().join('&')
+      );
+      if (leiturasPendentes[leituraKey]) return leiturasPendentes[leituraKey];
+      notificarEstadoLeitura(true, acaoNormalizada);
+    }
 
     var request = fetch(config.GEAPA_API_BASE_URL, {
       method: 'POST',
       body: corpo,
       signal: controller ? controller.signal : undefined
     });
-    return withTimeout(request, timeoutMs, {
+    var resultadoPromise = withTimeout(request, timeoutMs, {
       errorCode: escrita ? 'API_WRITE_TIMEOUT' : 'API_READ_TIMEOUT',
       userMessage: escrita
         ? 'A solicitacao ainda esta em processamento. Evite reenviar. Atualize a pagina em alguns instantes ou consulte o historico.'
@@ -600,9 +623,24 @@
       .then(function finalizarResposta(result) {
         if (result && result.userMessage) result.message = result.userMessage;
         if (result && !result.code) result.code = result.errorCode || (result.ok ? 'OK' : 'ERRO_API');
+        if (result && result.meta && result.meta.traceId) result.traceId = result.meta.traceId;
         finalizarSubmissao(submission.key, result);
         return result;
+      }).then(function liberarLeitura(result) {
+        if (leituraKey) {
+          delete leiturasPendentes[leituraKey];
+          notificarEstadoLeitura(false, acaoNormalizada);
+        }
+        return result;
+      }, function liberarLeituraComErro(error) {
+        if (leituraKey) {
+          delete leiturasPendentes[leituraKey];
+          notificarEstadoLeitura(false, acaoNormalizada);
+        }
+        throw error;
       });
+    if (leituraKey) leiturasPendentes[leituraKey] = resultadoPromise;
+    return resultadoPromise;
   }
 
   function obterBloqueioAcao_(acao) {

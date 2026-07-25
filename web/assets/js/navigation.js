@@ -121,6 +121,7 @@
   var rotaAtual = 'inicio';
   var inicializado = false;
   var ignorarProximoHash = false;
+  var leiturasAtivas = 0;
 
   function iniciar() {
     if (inicializado || typeof document === 'undefined') {
@@ -157,6 +158,14 @@
 
   function registrarEventos() {
     document.addEventListener('click', function navegarPorAtributo(evento) {
+      var atualizar = evento.target.closest('[data-refresh-current-route]');
+      if (atualizar) {
+        evento.preventDefault();
+        if (!atualizar.disabled && rotaAtual) {
+          irPara(rotaAtual, { atualizarHash: false, motivo: 'atualizacao-manual' });
+        }
+        return;
+      }
       var alvo = evento.target.closest('[data-route-target]');
 
       if (!alvo || alvo.disabled) {
@@ -174,6 +183,10 @@
       }
 
       sincronizarRotaComHash();
+    });
+    document.addEventListener('portal:readrequeststate', function atualizarEstadoLeitura(evento) {
+      leiturasAtivas = Math.max(0, leiturasAtivas + (evento.detail && evento.detail.pending ? 1 : -1));
+      atualizarControleAtualizacao_(resolverRota(rotaAtual));
     });
   }
 
@@ -265,10 +278,32 @@
     }
 
     mostrarSecao(rota.sectionId);
+    atualizarControleAtualizacao_(rota);
 
     if (rota.status === 'placeholder') {
       renderPlaceholderRoute(rota, getSessaoAtual());
     }
+  }
+
+  function atualizarControleAtualizacao_(rota) {
+    var app = document.getElementById('portal-app');
+    if (!app) return;
+    var toolbar = app.querySelector('[data-route-refresh-toolbar]');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.className = 'portal-route-refresh-toolbar';
+      toolbar.setAttribute('data-route-refresh-toolbar', '');
+      toolbar.innerHTML = '<button class="secondary-button compact-button" type="button" data-refresh-current-route aria-live="polite">Atualizar</button>';
+      app.insertBefore(toolbar, app.firstChild);
+    }
+    var visible = !!rota;
+    toolbar.hidden = !visible;
+    var button = toolbar.querySelector('[data-refresh-current-route]');
+    if (!button) return;
+    button.disabled = leiturasAtivas > 0;
+    button.textContent = leiturasAtivas > 0 ? 'Atualizando...' : 'Atualizar';
+    button.setAttribute('aria-busy', leiturasAtivas > 0 ? 'true' : 'false');
+    button.setAttribute('aria-label', rota ? 'Atualizar a aba ' + rota.label : 'Atualizar a aba atual');
   }
 
   function aplicarViewAcessoNegado() {

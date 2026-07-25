@@ -107,6 +107,8 @@ function portalSolicitarCodigo(emailOuRga) {
   cache.put(chaveCodigo, portalHashCodigo_(identificadorSessao, codigo), validadeSegundos);
   cache.put(chaveTentativas, '0', validadeSegundos);
   cache.put(chaveRateLimit, '1', PORTAL_CONFIG.intervaloSolicitacaoSegundos);
+  cache.put(portalCacheKey_('codigoReferencia', identificador), identificadorSessao, validadeSegundos);
+  cache.put(portalCacheKey_('codigoReferencia', identificadorSessao), identificadorSessao, validadeSegundos);
 
   portalEnviarCodigoEmail_(membro.emailCadastrado, codigo);
 
@@ -150,18 +152,15 @@ function portalValidarCodigo(emailOuRga, codigo) {
     );
   }
 
-  var membro = portalBuscarMembroPorEmailOuRga_(identificador);
-
-  if (!membro) {
+  var cache = CacheService.getScriptCache();
+  var identificadorSessao = cache.get(portalCacheKey_('codigoReferencia', identificador)) || '';
+  if (!identificadorSessao) {
     return portalRespostaErro_(
-      'MEMBRO_NAO_ENCONTRADO_TESTE',
-      'Cadastro de teste não encontrado para o e-mail ou RGA informado.',
+      'CODIGO_EXPIRADO_OU_INEXISTENTE',
+      'Código expirado ou inexistente. Solicite um novo código.',
       {}
     );
   }
-
-  var identificadorSessao = membro.emailCadastrado;
-  var cache = CacheService.getScriptCache();
   var chaveCodigo = portalCacheKey_('codigo', identificadorSessao);
   var chaveTentativas = portalCacheKey_('tentativas', identificadorSessao);
   var hashSalvo = cache.get(chaveCodigo);
@@ -204,9 +203,6 @@ function portalValidarCodigo(emailOuRga, codigo) {
     );
   }
 
-  cache.remove(chaveCodigo);
-  cache.remove(chaveTentativas);
-
   var sessaoResolvida = portalResolverSessaoAtualViaGeapaCore_(identificadorSessao, {
     origem: 'validarCodigo'
   });
@@ -225,6 +221,20 @@ function portalValidarCodigo(emailOuRga, codigo) {
       portalMetaDesempenho_('sessao-core-bloqueada', inicio)
     );
   }
+
+  if (!sessaoResolvida) {
+    return portalRespostaErro_(
+      'CORE_SESSAO_NAO_RESOLVIDA',
+      'Não foi possível validar a sessão no GEAPA-CORE.',
+      {},
+      portalMetaDesempenho_('sessao-core-ausente', inicio)
+    );
+  }
+
+  var membro = portalMontarMembroDeSessaoPortal_(sessaoResolvida, 'GEAPA_CORE.session');
+  cache.remove(chaveCodigo);
+  cache.remove(chaveTentativas);
+  cache.remove(portalCacheKey_('codigoReferencia', identificador));
 
   var sessionToken = portalCriarSessaoTemporaria_(identificadorSessao);
 
@@ -357,6 +367,7 @@ function portalGerarCodigo_() {
 function portalCacheKey_(tipo, identificador) {
   return [
     'portal',
+    portalResolverAmbienteDadosV2_(),
     tipo,
     portalHashTexto_(identificador).slice(0, 32)
   ].join(':');

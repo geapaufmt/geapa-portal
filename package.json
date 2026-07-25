@@ -21,6 +21,7 @@
     "test:egress-feedback": "node scripts/check-egress-feedback.mjs",
     "test:profile-localities": "node scripts/check-profile-localities.mjs",
     "test:member-registration": "node scripts/check-member-registration.mjs",
-    "test:evolution-integration": "node scripts/check-evolution-homolog-integration.mjs"
+    "test:evolution-integration": "node scripts/check-evolution-homolog-integration.mjs",
+    "test:session-performance": "node scripts/check-session-environment-performance.mjs"
   }
 }

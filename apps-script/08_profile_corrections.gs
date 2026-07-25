@@ -171,8 +171,11 @@ function portalPerfilCorrecoesResolverAcesso_(token, permissao) {
 function portalPerfilCorrecoesAmbiente_() {
   var config = typeof PORTAL_CONFIG !== 'undefined' ? PORTAL_CONFIG : {};
   var ambiente = String(config.ambientePerfilCadastral || '').trim().toUpperCase();
-  if (ambiente !== 'HOMOLOG' && ambiente !== 'PROD') {
+  if (ambiente !== 'DEV' && ambiente !== 'PROD') {
     throw new Error('AMBIENTE_PERFIL_CADASTRAL_INVALIDO');
+  }
+  if (ambiente !== portalResolverAmbienteDadosV2_()) {
+    throw new Error('AMBIENTE_PERFIL_CADASTRAL_DIVERGENTE');
   }
   return ambiente;
 }

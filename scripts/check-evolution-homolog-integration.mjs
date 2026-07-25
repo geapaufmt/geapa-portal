@@ -10,9 +10,9 @@ const manifest = JSON.parse(read('apps-script/appsscript.json')); const sw = rea
 required(homolog.ENABLE_EGRESS_FEEDBACK === true && homolog.ENABLE_MEMBER_REGISTRATION === true, 'HOMOLOG nao habilita as duas features.');
 required(prod.ENABLE_EGRESS_FEEDBACK === false && prod.ENABLE_MEMBER_REGISTRATION === false, 'PROD deve manter as duas features desligadas.');
 required(manifest.dependencies.libraries.every((library) => library.developmentMode === false), 'Library em developmentMode.');
-required(/portal-geapa-pwa-v120/.test(sw), 'Cache PWA nao foi incrementado.');
+required(/portal-geapa-pwa-v121/.test(sw), 'Cache PWA nao foi incrementado.');
 ['/assets/js/perfil-localidades.js','/assets/js/admin-cadastro-membros.js','/assets/js/avaliacao-egresso.js','/assets/data/localidades-ibge-v1.json'].forEach((asset) => required(sw.includes(asset), `Asset ausente do cache: ${asset}`));
-required(index.includes('style.css?v=58') && index.includes('api.js?v=50') && index.includes('app.js?v=36'), 'Cache-busters finais nao foram atualizados.');
+required(index.includes('style.css?v=59') && index.includes('api.js?v=51') && index.includes('app.js?v=37'), 'Cache-busters finais nao foram atualizados.');
 required(/function apiGet[\s\S]*obterBloqueioAcao_/.test(api), 'Leitura conhecida por URL nao passa pelo gate frontend.');
 required(bridge.includes("ambienteDadosV2 === 'DEV'"), 'Backend nao deriva as flags do ambiente oficial.');
 required(!/SPREADSHEET_ID\s*=\s*['\"][A-Za-z0-9_-]{20,}/.test(bridge), 'ID de planilha hardcoded na ponte.');
