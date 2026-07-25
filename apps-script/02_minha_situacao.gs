@@ -64,6 +64,17 @@ function portalMinhaSituacao(token) {
 
   var situacaoCore = portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao);
 
+  if (situacaoCore && situacaoCore.ok === false) {
+    return portalRespostaErro_(
+      situacaoCore.errorCode || situacaoCore.code || 'MINHA_SITUACAO_CORE_INDISPONIVEL',
+      situacaoCore.message || 'Não foi possível carregar Minha situação no ambiente solicitado.',
+      {
+        failedStage: situacaoCore.failedStage || 'geapaCoreBuscarMinhaSituacaoParaPortal'
+      },
+      portalMetaDesempenho_('geapa-core-erro', inicio)
+    );
+  }
+
   if (situacaoCore) {
     portalSalvarMinhaSituacaoCache_(identificadorSessao, situacaoCore);
     return portalRespostaOk_(
@@ -78,10 +89,18 @@ function portalMinhaSituacao(token) {
     );
   }
 
-  var membro = portalBuscarMembroPorIdentificadorSessao_(identificadorSessao);
-  var sessaoFallback = portalResolverSessaoAtualViaGeapaCore_(identificadorSessao, {
-    origem: 'minhaSituacao-fallback'
-  });
+  var configAuth = portalGetAuthRuntimeConfig_();
+  if (!portalModoAcessoTeste_(configAuth)) {
+    return portalRespostaErro_(
+      'MINHA_SITUACAO_CORE_NAO_RESOLVIDA',
+      'Não foi possível carregar Minha situação pelo GEAPA-CORE.',
+      {},
+      portalMetaDesempenho_('geapa-core-ausente', inicio)
+    );
+  }
+
+  var membro = portalBuscarMembroTestePorIdentificador_(identificadorSessao);
+  var sessaoFallback = null;
 
   if (!membro) {
     return portalRespostaErro_(
@@ -825,10 +844,13 @@ function portalSalvarMinhaSituacaoCache_(identificadorSessao, situacao) {
  * @return {Object} Metadados extras para a API.
  */
 function portalMetaDesempenho_(origem, inicioMs) {
+  var tempo = Math.max(portalAgoraMs_() - inicioMs, 0);
   return {
     desempenho: {
       origemDados: origem,
-      tempoMs: Math.max(portalAgoraMs_() - inicioMs, 0),
+      tempoMs: tempo,
+      ambiente: portalResolverAmbienteDadosV2_(),
+      traceId: portalTraceIdAtual_(),
       cacheMinhaSituacaoSegundos: PORTAL_CONFIG.cacheMinhaSituacaoSegundos
     }
   };

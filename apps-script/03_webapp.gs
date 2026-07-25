@@ -151,6 +151,16 @@ function portalLerRequisicao_(e) {
  */
 function portalExecutarAcao_(requisicao) {
   var acao = requisicao.acao || '';
+  var requestId = String(requisicao.requestId || '').trim();
+  if (!requestId && requisicao.payload) {
+    try {
+      var payloadTrace = typeof requisicao.payload === 'string'
+        ? JSON.parse(requisicao.payload)
+        : requisicao.payload;
+      requestId = String(payloadTrace && payloadTrace.requestId || '').trim();
+    } catch (tracePayloadError) {}
+  }
+  portalIniciarTrace_(acao, requestId);
 
   if (!acao) {
     return portalRespostaErro_(
@@ -522,6 +532,9 @@ function portalResposta_(ok, code, message, data, metaExtra) {
       meta[chave] = metaExtra[chave];
     });
   }
+  meta.trace = portalTraceMeta_();
+  meta.traceId = meta.trace.traceId || '';
+  meta.ambiente = meta.trace.ambiente || portalResolverAmbienteDadosV2_();
 
   var warnings = dados.warnings || dados.avisos || meta.warnings || meta.avisos || [];
   var fieldErrors = dados.fieldErrors || {};
@@ -530,6 +543,7 @@ function portalResposta_(ok, code, message, data, metaExtra) {
   return {
     ok: ok,
     code: code,
+    errorCode: ok ? '' : code,
     message: message,
     userMessage: String(dados.userMessage || meta.userMessage || message || ''),
     entityId: String(dados.entityId || dados.idJustificativa || dados.idApresentacao || dados.idAtividade || ''),
@@ -538,7 +552,8 @@ function portalResposta_(ok, code, message, data, metaExtra) {
     warnings: Array.isArray(warnings) ? warnings : (warnings ? [warnings] : []),
     fieldErrors: fieldErrors && typeof fieldErrors === 'object' ? fieldErrors : {},
     nextActions: Array.isArray(nextActions) ? nextActions : (nextActions ? [nextActions] : []),
-    meta: meta
+    meta: meta,
+    traceId: meta.traceId || ''
   };
 }
 
