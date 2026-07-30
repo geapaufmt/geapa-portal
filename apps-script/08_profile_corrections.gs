@@ -3,6 +3,30 @@
  * A identidade-alvo sempre vem da sessao oficial resolvida no backend.
  */
 
+var PORTAL_PERFIL_BACKEND_VERSION = 'PORTAL_PROFILE_SESSION_ENV_V1';
+
+function portalPerfilDiagnosticoSeguro_(errorCode, etapa, ambiente, upstream) {
+  var source = upstream && typeof upstream === 'object' ? upstream : {};
+  return {
+    errorCode: String(errorCode || source.errorCode || 'ERRO_CADASTRAL').slice(0, 100),
+    etapa: String(etapa || source.etapa || 'perfilCadastral').slice(0, 80),
+    traceId: String(source.traceId || portalTraceIdAtual_() || '').slice(0, 80),
+    ambienteEfetivo: String(ambiente || source.ambienteEfetivo || portalResolverAmbienteDadosV2_()).slice(0, 20),
+    versaoBackend: String(source.versaoBackend || PORTAL_PERFIL_BACKEND_VERSION).slice(0, 60)
+  };
+}
+
+function portalPerfilRegistrarDiagnosticoSeguro_(diagnostico) {
+  var safe = diagnostico && typeof diagnostico === 'object' ? diagnostico : {};
+  Logger.log('[portal][perfil-session] ' + JSON.stringify({
+    errorCode: String(safe.errorCode || '').slice(0, 100),
+    etapa: String(safe.etapa || '').slice(0, 80),
+    traceId: String(safe.traceId || '').slice(0, 80),
+    ambienteEfetivo: String(safe.ambienteEfetivo || '').slice(0, 20),
+    versaoBackend: String(safe.versaoBackend || PORTAL_PERFIL_BACKEND_VERSION).slice(0, 60)
+  }));
+}
+
 function portalMeuPerfilAtualizar(token, payload) {
   var inicio = portalAgoraMs_();
   var acesso = portalPerfilCorrecoesResolverAcesso_(token, 'portal:acessar');
@@ -143,22 +167,43 @@ function portalAdminCorrecoesCadastraisAprovarAplicar(token, payload) {
 
 function portalPerfilCorrecoesResolverAcesso_(token, permissao) {
   var tokenNormalizado = String(token || '').trim();
+  var ambiente = portalPerfilCorrecoesAmbiente_();
   if (!tokenNormalizado || !portalSessaoTemporariaValida_(tokenNormalizado)) {
+    var diagnosticoSessao = portalPerfilDiagnosticoSeguro_(
+      'SESSAO_INVALIDA_OU_EXPIRADA',
+      'portalSessaoTemporariaValida',
+      ambiente
+    );
+    portalPerfilRegistrarDiagnosticoSeguro_(diagnosticoSessao);
     return {
       ok: false,
-      resposta: portalRespostaErro_('SESSAO_INVALIDA_OU_EXPIRADA', 'Sessao invalida ou expirada. Entre novamente.', {})
+      resposta: portalRespostaErro_(
+        'SESSAO_INVALIDA_OU_EXPIRADA',
+        'Sessao invalida ou expirada. Entre novamente.',
+        { diagnosticoSeguro: diagnosticoSessao }
+      )
     };
   }
 
   var identificador = portalGetIdentificadorSessao_(tokenNormalizado);
-  var ambiente = portalPerfilCorrecoesAmbiente_();
   var sessao = portalResolverSessaoAtualViaGeapaCore_(identificador, {
     origem: 'perfilCorrecoes' + ambiente
   });
   if (!sessao || sessao.ok === false || sessao.autenticado === false || sessao.portalAtivo === false || !sessao.email) {
+    var code = String(sessao && sessao.motivoBloqueio || 'SESSAO_CORE_NAO_RESOLVIDA');
+    var etapa = String(sessao && sessao.failedStage || 'portalResolverSessaoAtualViaGeapaCore');
+    var diagnosticoCore = portalPerfilDiagnosticoSeguro_(code, etapa, ambiente);
+    portalPerfilRegistrarDiagnosticoSeguro_(diagnosticoCore);
+    var expirou = code === 'SESSAO_INVALIDA' || code === 'SESSAO_INVALIDA_OU_EXPIRADA';
     return {
       ok: false,
-      resposta: portalRespostaErro_('SESSAO_CORE_INVALIDA', 'Nao foi possivel confirmar sua sessao oficial.', {})
+      resposta: portalRespostaErro_(
+        code,
+        expirou
+          ? 'Sessao invalida ou expirada. Entre novamente.'
+          : 'Nao foi possivel validar o acesso nas bases do ambiente solicitado.',
+        { diagnosticoSeguro: diagnosticoCore }
+      )
     };
   }
 
@@ -179,7 +224,9 @@ function portalPerfilCorrecoesResolverAcesso_(token, permissao) {
     sessao: sessao,
     contexto: {
       ambientePortal: ambiente,
-      sessaoOficial: { email: String(sessao.email || '').trim().toLowerCase() }
+      sessaoOficial: { email: String(sessao.email || '').trim().toLowerCase() },
+      traceId: String(portalTraceIdAtual_() || '').slice(0, 80),
+      backendVersion: PORTAL_PERFIL_BACKEND_VERSION
     }
   };
 }
@@ -226,11 +273,23 @@ function portalPerfilCorrecoesExecutarCore_(nomeFuncao, argumentos, codigoSucess
     var codigoErro = String(resposta && (resposta.errorCode || resposta.code) || 'ERRO_CADASTRAL');
     var mensagemCore = String(resposta && resposta.message || '');
     var mensagemErro = portalPerfilCorrecoesMensagemErro_(codigoErro, mensagemCore);
+    var detalheCore = resposta && resposta.details && typeof resposta.details === 'object'
+      ? resposta.details
+      : {};
+    var ambienteEfetivo = argumentos && argumentos.length > 1 && argumentos[1]
+      ? argumentos[1].ambientePortal
+      : portalResolverAmbienteDadosV2_();
+    var detalheSeguroCore = portalPerfilDiagnosticoSeguro_(
+      codigoErro,
+      detalheCore.etapa || 'geapaCore.' + nomeFuncao,
+      ambienteEfetivo,
+      detalheCore
+    );
     var respostaErro = portalPerfilCorrecoesRespostaErroDiagnostico_(
       codigoErro,
       mensagemErro,
       resposta && resposta.fieldErrors || {},
-      diag.details || {},
+      detalheSeguroCore,
       requestId,
       portalMetaDesempenho_('geapa-core', inicio)
     );
@@ -304,7 +363,7 @@ function portalPerfilCorrecoesMensagemErro_(codigo, fallback) {
   };
   if (mensagens[code]) return mensagens[code];
   if (/FONTE_INDISPONIVEL|DOMAIN_|PESSOAS_V2_|REGISTRY_/.test(code)) {
-    return 'Nao foi possivel acessar a fila de solicitacoes.';
+    return 'Nao foi possivel acessar os dados cadastrais no ambiente solicitado.';
   }
   var mensagem = String(fallback || '').trim();
   if (mensagem && mensagem !== 'Solicitacao invalida ou indisponivel.') return mensagem;
@@ -339,7 +398,10 @@ function portalPerfilCorrecoesLogSeguro_(evento, resposta, diagnostico) {
     code: String(result.code || ''),
     errorCode: String(result.errorCode || ''),
     reasonCode: String(result.reasonCode || ''),
-    requestId: String(diag.requestId || result.requestId || '')
+    requestId: String(diag.requestId || result.requestId || ''),
+    etapa: String(result.details && result.details.etapa || ''),
+    ambienteEfetivo: String(result.details && result.details.ambienteEfetivo || ''),
+    versaoBackend: String(result.details && result.details.versaoBackend || '')
   }));
 }
 

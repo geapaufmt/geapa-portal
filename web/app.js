@@ -3053,7 +3053,12 @@ async function salvarEdicaoMeuPerfil(form, container) {
   mostrarLoadingGlobal('Salvando perfil...');
   try {
     const resposta = await window.PortalGeapaApi.apiPost('/meu-perfil/atualizar', { payload: JSON.stringify(payload) });
-    if (!resposta || resposta.ok !== true) throw new Error(resposta && resposta.message || 'Não foi possível atualizar o perfil.');
+    if (!resposta || resposta.ok !== true) {
+      registrarDiagnosticoSeguroAtualizacaoPerfil(resposta);
+      const erroResposta = new Error(resposta && resposta.message || 'Não foi possível atualizar o perfil.');
+      erroResposta.code = String(resposta && (resposta.errorCode || resposta.code) || 'ERRO_ATUALIZACAO_PERFIL');
+      throw erroResposta;
+    }
     window.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Perfil atualizado', message: resposta.message || 'Perfil atualizado com sucesso.' });
     meuPerfilDadosAtuais = null;
     await carregarERenderizarMeuPerfil(container);
@@ -3063,6 +3068,20 @@ async function salvarEdicaoMeuPerfil(form, container) {
     if (botao) botao.disabled = false;
     ocultarLoadingGlobal();
   }
+}
+
+function registrarDiagnosticoSeguroAtualizacaoPerfil(resposta) {
+  const envelope = resposta && typeof resposta === 'object' ? resposta : {};
+  const detalhe = envelope.details && typeof envelope.details === 'object'
+    ? envelope.details
+    : (envelope.data && envelope.data.diagnosticoSeguro || {});
+  console.error('[PORTAL_PROFILE_UPDATE_ERROR]', {
+    errorCode: String(envelope.errorCode || envelope.code || detalhe.errorCode || 'ERRO_ATUALIZACAO_PERFIL').slice(0, 100),
+    etapa: String(detalhe.etapa || 'meuPerfilAtualizar').slice(0, 80),
+    traceId: String(envelope.traceId || detalhe.traceId || '').slice(0, 80),
+    ambienteEfetivo: String(detalhe.ambienteEfetivo || envelope.meta && envelope.meta.ambiente || '').slice(0, 20),
+    versaoBackend: String(detalhe.versaoBackend || '').slice(0, 60)
+  });
 }
 
 async function carregarSolicitacoesMeuPerfil(container, destaqueId) {

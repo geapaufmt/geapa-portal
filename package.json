@@ -23,6 +23,7 @@
     "test:profile-localities": "node scripts/check-profile-localities.mjs",
     "test:member-registration": "node scripts/check-member-registration.mjs",
     "test:evolution-integration": "node scripts/check-evolution-homolog-integration.mjs",
-    "test:session-performance": "node scripts/check-session-environment-performance.mjs"
+    "test:session-performance": "node scripts/check-session-environment-performance.mjs",
+    "test:profile-session-environment": "node scripts/check-profile-session-environment.mjs"
   }
 }

@@ -33,6 +33,6 @@ assert.doesNotMatch(admin, /analisadoPor\s*:/i);
 assert.match(index, /admin-correcoes-cadastrais\.js\?v=6/);
 assert.match(index, /api\.js\?v=52/);
 assert.match(index, /style\.css\?v=60/);
-assert.match(worker, /portal-geapa-pwa-v122/);
+assert.match(worker, /portal-geapa-pwa-v123/);
 
 console.log(JSON.stringify({ ok: true, checks: 24 }));
