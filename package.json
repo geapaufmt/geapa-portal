@@ -12,6 +12,7 @@
     "test:profile-modal": "node scripts/check-profile-correction-modal.mjs",
     "test:profile-correction-submit": "node scripts/check-profile-correction-submit.mjs",
     "test:profile-correction-ack": "node scripts/check-profile-correction-ack.mjs",
+    "test:profile-approve-apply": "node scripts/check-profile-approve-apply.mjs",
     "test:profile-homolog": "node scripts/check-profile-homolog.mjs",
     "test:profile-prod": "node scripts/check-profile-prod.mjs",
     "test:v2-environment": "node scripts/check-v2-domain-environment.mjs",

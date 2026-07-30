@@ -4,7 +4,7 @@
   var ui = global.PortalGeapaUi;
   var navigation = global.PortalGeapaNavigation;
   var config = global.PortalGeapaConfig || {};
-  var state = { active: false, loading: false, page: 1, items: [], pagination: {}, filters: {}, selected: null };
+  var state = { active: false, loading: false, writing: false, page: 1, items: [], pagination: {}, filters: {}, selected: null };
 
   function start() {
     if (!api || !ui || !navigation) return;
@@ -91,7 +91,9 @@
   function renderDetail(item) {
     var content = document.getElementById('admin-correction-modal-content');
     if (!content || !item) return;
-    var canApply = String(item.status || '') === 'APROVADA';
+    var status = String(item.status || '').toUpperCase();
+    var canApproveApply = ['PENDENTE', 'EM_ANALISE', 'COMPLEMENTO_SOLICITADO', 'APROVADA', 'ERRO_APLICACAO'].indexOf(status) >= 0;
+    var canAnalyze = ['PENDENTE', 'EM_ANALISE', 'COMPLEMENTO_SOLICITADO'].indexOf(status) >= 0;
     var revealAction = item.requerRevelacao && !item.dadosRevelados
       ? '<button class="secondary-button" type="button" data-admin-correction-reveal>Exibir dados para análise</button><p class="section-note">A autorização será verificada novamente e a visualização ficará registrada.</p>'
       : '';
@@ -100,6 +102,17 @@
           return '<article><strong>' + value(row.status || row.decisao) + '</strong><span>' + value(formatDate(row.analisadoEm)) + '</span>' + (row.motivoPublico ? '<p>' + value(row.motivoPublico) + '</p>' : '') + (row.analisadoPorMascarado ? '<small>Analisado por: ' + value(row.analisadoPorMascarado) + '</small>' : '') + '</article>';
         }).join('') + '</div>'
       : '<p class="section-note">Ainda não há decisões registradas.</p>';
+    var actionPanel = '';
+    if (canAnalyze || canApproveApply) {
+      actionPanel = [
+        canAnalyze ? '<form data-admin-correction-action><label><span>Decisão</span><select name="acao" required><option value="">Selecione</option><option value="EM_ANALISE">Colocar em análise</option><option value="COMPLEMENTO_SOLICITADO">Solicitar complemento</option><option value="INDEFERIDA">Indeferir</option></select></label>' : '<div class="profile-apply-panel">',
+        canAnalyze ? '<label><span>Motivo público</span><textarea name="motivo" rows="4" maxlength="1000"></textarea></label><p class="section-note">Motivo obrigatório para complemento e indeferimento.</p>' : '',
+        '<div class="profile-form-actions">', canAnalyze ? '<button class="secondary-button" type="submit">Registrar análise</button>' : '',
+        canApproveApply ? '<button class="primary-button" type="button" data-admin-correction-approve-apply>Aprovar e aplicar alteração</button>' : '', '</div>',
+        '<p class="profile-apply-warning">A aprovação aplicará imediatamente o valor solicitado nas fontes oficiais e atualizará as visões derivadas.</p>',
+        canAnalyze ? '</form>' : '</div>'
+      ].join('');
+    }
     content.innerHTML = [
       '<div class="admin-correction-person">' + person(item) + '</div><dl class="summary-grid"><div class="summary-item"><dt>ID</dt><dd>' + value(item.id) + '</dd></div><div class="summary-item"><dt>Campo</dt><dd>' + value(label(item.campo)) + '</dd></div>',
       '<div class="summary-item"><dt>Solicitada em</dt><dd>' + value(formatDate(item.solicitadoEm)) + '</dd></div><div class="summary-item"><dt>Status</dt><dd>' + chip(item.status) + '</dd></div></dl>',
@@ -107,10 +120,7 @@
       revealAction,
       item.justificativa ? '<p><strong>Justificativa:</strong> ' + value(item.justificativa) + '</p>' : '',
       history,
-      '<form data-admin-correction-action><label><span>Decisão</span><select name="acao" required><option value="">Selecione</option><option value="EM_ANALISE">Colocar em análise</option><option value="COMPLEMENTO_SOLICITADO">Solicitar complemento</option><option value="APROVADA">Aprovar</option><option value="INDEFERIDA">Indeferir</option></select></label>',
-      '<label><span>Motivo público</span><textarea name="motivo" rows="4" maxlength="1000"></textarea></label><p class="section-note">Motivo obrigatório para complemento e indeferimento.</p>',
-      '<div class="profile-form-actions"><button class="primary-button" type="submit">Registrar análise</button>',
-      canApply ? '<button class="secondary-button" type="button" data-admin-correction-apply>Aplicar correção aprovada</button>' : '', '</div></form>'
+      actionPanel
     ].join('');
   }
 
@@ -135,21 +145,65 @@
       open(state.selected.id, true);
     }
     if (event.target.closest('[data-admin-corrections-clear]')) { state.filters = {}; state.page = 1; load(); }
-    if (event.target.closest('[data-admin-correction-apply]') && state.selected && global.confirm('Aplicar esta correção aprovada na fonte oficial?')) {
-      write('/admin/correcoes-cadastrais/aplicar', { idSolicitacao: state.selected.id }, 'Correção aplicada com sucesso.');
+    var approveApply = event.target.closest('[data-admin-correction-approve-apply]');
+    if (approveApply && state.selected && global.confirm('Aprovar e aplicar esta alteração nas fontes oficiais agora?')) {
+      writeApproveApply(approveApply);
     }
     var page = event.target.closest('[data-admin-corrections-page]');
     if (page) { state.page = Number(page.dataset.adminCorrectionsPage || 1); load(); }
   }
 
   function write(route, payload, success) {
+    if (state.writing) return;
+    state.writing = true;
     payload.chaveIdempotencia = 'admin-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
     ui.mostrarLoading('Salvando decisão...');
     api.apiPost(route, { payload: JSON.stringify(payload) }).then(function result(response) {
       if (!response || response.ok !== true) throw new Error(response && response.message || 'Não foi possível concluir a ação.');
       ui.mostrarToast({ type: 'success', title: 'Correção cadastral', message: response.message || success });
       close(); load();
-    }).catch(function error(err) { ui.mostrarToast({ type: 'error', critical: true, message: err.message }); }).then(function done() { ui.ocultarLoading(); });
+    }).catch(function error(err) { ui.mostrarToast({ type: 'error', critical: true, message: err.message }); }).then(function done() { state.writing = false; ui.ocultarLoading(); });
+  }
+
+  function writeApproveApply(button) {
+    if (state.writing || !state.selected) return;
+    state.writing = true;
+    var originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Aplicando alteração...';
+    var payload = {
+      idSolicitacao: state.selected.id,
+      confirmacao: true,
+      chaveIdempotencia: 'admin-apply-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10)
+    };
+    ui.mostrarLoading('Aprovando e aplicando alteração...');
+    api.apiPost('/admin/correcoes-cadastrais/aprovar-aplicar', { payload: JSON.stringify(payload) }).then(function result(response) {
+      if (!response || response.ok !== true) throw new Error(response && response.message || 'Não foi possível aprovar e aplicar a alteração.');
+      renderApplySuccess(response.data || {});
+      ui.mostrarToast({ type: 'success', title: 'Alteração aplicada', message: response.message || 'Solicitação aprovada e aplicada com sucesso.' });
+      load();
+    }).catch(function error(err) {
+      button.disabled = false;
+      button.textContent = originalText;
+      ui.mostrarToast({ type: 'error', critical: true, message: err.message });
+    }).then(function done() {
+      state.writing = false;
+      ui.ocultarLoading();
+    });
+  }
+
+  function renderApplySuccess(data) {
+    var content = document.getElementById('admin-correction-modal-content');
+    if (!content) return;
+    content.innerHTML = [
+      '<div class="portal-success-panel"><h3>Alteração aplicada</h3>',
+      '<p>A solicitação foi aprovada e aplicada nas fontes oficiais.</p>',
+      '<dl class="summary-grid"><div class="summary-item"><dt>Status</dt><dd>' + value(data.status || 'APLICADA') + '</dd></div>',
+      '<div class="summary-item"><dt>Solicitação</dt><dd>' + value(data.idSolicitacao || state.selected && state.selected.id) + '</dd></div>',
+      '<div class="summary-item"><dt>Aplicada em</dt><dd>' + value(formatDate(data.aplicadoEm)) + '</dd></div>',
+      '<div class="summary-item"><dt>Responsável</dt><dd>' + value(data.analisadoPorMascarado) + '</dd></div>',
+      '<div class="summary-item"><dt>Log</dt><dd>' + value(data.idLog) + '</dd></div></dl></div>'
+    ].join('');
   }
 
   function close() { var modal = document.getElementById('admin-correction-modal'); if (modal) modal.hidden = true; state.selected = null; }

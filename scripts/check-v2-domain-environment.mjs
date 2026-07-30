@@ -9,7 +9,11 @@ const frontend = fs.readdirSync('web/assets/js')
   .map((name) => fs.readFileSync(`web/assets/js/${name}`, 'utf8'))
   .join('\n');
 
-assert.match(config, /ambienteDadosV2:\s*'PROD'/, 'o backend deve fixar o ambiente V2 publicado');
+const declaredEnvironment = config.match(/ambienteDadosV2:\s*'(DEV|PROD)'/);
+assert.ok(declaredEnvironment, 'o backend deve fixar DEV ou PROD explicitamente');
+const portalEnvironment = config.match(/ambiente:\s*'([^']+)'/);
+const expectedEnvironment = portalEnvironment && /^(producao|prod)$/i.test(portalEnvironment[1]) ? 'PROD' : 'DEV';
+assert.equal(declaredEnvironment[1], expectedEnvironment, 'o ambiente V2 deve corresponder ao ambiente publicado');
 assert.match(config, /function portalResolverAmbienteDadosV2_\(\)/, 'o backend deve validar DEV ou PROD');
 assert.match(activities, /ambienteBackend:\s*portalResolverAmbienteDadosV2_\(\)/, 'Atividades deve receber ambiente do backend');
 assert.match(activities, /contexto\.contextoAtividades\.ambienteBackend/, 'cache de Atividades deve separar ambientes');

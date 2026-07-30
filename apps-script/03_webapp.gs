@@ -31,6 +31,7 @@ function doGet(e) {
         'adminCorrecoesCadastraisListar',
         'adminCorrecoesCadastraisDetalhe',
         'adminCorrecoesCadastraisAnalisar',
+        'adminCorrecoesCadastraisAprovarAplicar',
         'adminCorrecoesCadastraisAplicar',
         'meuVinculoOpcoesSolicitacao',
         'meuVinculoSolicitacoesListar',
@@ -233,6 +234,10 @@ function portalExecutarAcao_(requisicao) {
 
   if (acao === 'adminCorrecoesCadastraisAnalisar') {
     return portalAdminCorrecoesCadastraisAnalisar(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
+  if (acao === 'adminCorrecoesCadastraisAprovarAplicar') {
+    return portalAdminCorrecoesCadastraisAprovarAplicar(requisicao.token || '', requisicao.payload || requisicao);
   }
 
   if (acao === 'adminCorrecoesCadastraisAplicar') {
