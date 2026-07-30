@@ -125,6 +125,22 @@ function portalAdminCorrecoesCadastraisAplicar(token, payload) {
   );
 }
 
+function portalAdminCorrecoesCadastraisAprovarAplicar(token, payload) {
+  var inicio = portalAgoraMs_();
+  var acesso = portalPerfilCorrecoesResolverAcesso_(token, 'membros:analisar_correcoes');
+  if (!acesso.ok) return acesso.resposta;
+  var dados = portalPerfilCorrecoesPayloadAplicacao_(payload);
+  if (!dados.ok) return dados.resposta;
+  dados.payload.confirmacao = true;
+  return portalPerfilCorrecoesExecutarCore_(
+    'geapaCoreAprovarEAplicarSolicitacaoCadastralPortal',
+    [dados.payload, acesso.contexto],
+    'CORRECAO_CADASTRAL_APROVADA_APLICADA',
+    'Alteracao aprovada e aplicada com sucesso.',
+    inicio
+  );
+}
+
 function portalPerfilCorrecoesResolverAcesso_(token, permissao) {
   var tokenNormalizado = String(token || '').trim();
   if (!tokenNormalizado || !portalSessaoTemporariaValida_(tokenNormalizado)) {
@@ -219,20 +235,47 @@ function portalPerfilCorrecoesExecutarCore_(nomeFuncao, argumentos, codigoSucess
     return respostaErro;
   }
 
-  var dadosResposta = resposta.data && typeof resposta.data === 'object' ? resposta.data : {};
-  if (requestId) {
-    dadosResposta = Object.keys(dadosResposta).reduce(function copiar(acumulado, chave) {
-      acumulado[chave] = dadosResposta[chave];
-      return acumulado;
-    }, {});
-    dadosResposta.requestId = requestId;
-  }
+  var dadosCore = resposta.data && typeof resposta.data === 'object' ? resposta.data : {};
+  var invalidacaoInterna = dadosCore._cacheInvalidation;
+  if (invalidacaoInterna) portalPerfilCorrecoesInvalidarCachesAlvo_(invalidacaoInterna);
+  var dadosResposta = Object.keys(dadosCore).reduce(function copiar(acumulado, chave) {
+    if (chave !== '_cacheInvalidation') acumulado[chave] = dadosCore[chave];
+    return acumulado;
+  }, {});
+  if (requestId) dadosResposta.requestId = requestId;
   return portalRespostaOk_(
     codigoSucesso,
     mensagemSucesso,
     dadosResposta,
     portalMetaDesempenho_('geapa-core', inicio)
   );
+}
+
+function portalPerfilCorrecoesInvalidarCachesAlvo_(internal) {
+  var identifiers = internal && Array.isArray(internal.identificadores)
+    ? internal.identificadores
+    : [];
+  var cache;
+  try {
+    cache = CacheService.getScriptCache();
+  } catch (cacheError) {
+    return { ok: false, removidos: 0 };
+  }
+  var removidos = 0;
+  identifiers.forEach(function(identifier) {
+    var normalized = String(identifier || '').trim().toLowerCase();
+    if (!normalized) return;
+    [
+      portalMontarChaveSessaoCoreCache_(normalized),
+      portalCacheKey_('minhaSituacaoV2', normalized)
+    ].filter(String).forEach(function(key) {
+      try {
+        cache.remove(key);
+        removidos++;
+      } catch (ignored) {}
+    });
+  });
+  return { ok: true, removidos: removidos };
 }
 
 function portalPerfilCorrecoesMensagemErro_(codigo, fallback) {
@@ -248,7 +291,13 @@ function portalPerfilCorrecoesMensagemErro_(codigo, fallback) {
     JUSTIFICATIVA_OBRIGATORIA: 'Explique o motivo da correcao com pelo menos 20 caracteres.',
     VALOR_SOLICITADO_OBRIGATORIO: 'Informe o novo valor solicitado.',
     CHAVE_IDEMPOTENCIA_INVALIDA: 'Atualize a pagina e tente novamente.',
-    CAMPO_SENSIVEL_NAO_PERMITIDO: 'Este campo nao pode ser corrigido por este fluxo.'
+    CAMPO_SENSIVEL_NAO_PERMITIDO: 'Este campo nao pode ser corrigido por este fluxo.',
+    EMAIL_JA_VINCULADO_A_OUTRA_PESSOA: 'O e-mail informado ja esta associado a outra pessoa.',
+    RGA_JA_VINCULADO_A_OUTRA_PESSOA: 'O RGA informado ja esta associado a outra pessoa.',
+    VALOR_ATUAL_ALTERADO_INCOMPATIVEL: 'O cadastro mudou desde a solicitacao. Revise os valores antes de decidir.',
+    CONFIRMACAO_APROVAR_APLICAR_OBRIGATORIA: 'Confirme a aplicacao da alteracao cadastral.',
+    SOLICITACAO_TERMINAL: 'Esta solicitacao ja foi concluida e nao pode ser aplicada novamente.',
+    ERRO_RECALCULO_VIEW: 'A alteracao nao foi concluida porque a atualizacao das visoes derivadas falhou.'
   };
   if (mensagens[code]) return mensagens[code];
   if (/FONTE_INDISPONIVEL|DOMAIN_|PESSOAS_V2_|REGISTRY_/.test(code)) {

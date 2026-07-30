@@ -3748,3 +3748,16 @@ textarea[aria-invalid="true"] {
     grid-template-columns: 1fr;
   }
 }
+.profile-apply-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-apply-warning {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-left: 4px solid var(--color-warning, #b7791f);
+  border-radius: 0.5rem;
+  background: #fffaf0;
+  color: #5f370e;
+}
