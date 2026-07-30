@@ -31,6 +31,7 @@
     meuPerfilConsultarSolicitacao: true,
     adminCorrecoesCadastraisDetalhe: true,
     adminCorrecoesCadastraisAnalisar: true,
+    adminCorrecoesCadastraisAprovarAplicar: true,
     adminCorrecoesCadastraisAplicar: true,
     meuVinculoSolicitarSuspensao: true,
     meuVinculoSolicitarDesligamento: true,
@@ -60,6 +61,7 @@
     meuPerfilAtualizar: true,
     meuPerfilSolicitarCorrecao: true,
     adminCorrecoesCadastraisAnalisar: true,
+    adminCorrecoesCadastraisAprovarAplicar: true,
     adminCorrecoesCadastraisAplicar: true
   };
   var ACOES_VINCULO = {
@@ -677,6 +679,7 @@
       '/admin/correcoes-cadastrais': 'adminCorrecoesCadastraisListar',
       '/admin/correcoes-cadastrais/detalhe': 'adminCorrecoesCadastraisDetalhe',
       '/admin/correcoes-cadastrais/analisar': 'adminCorrecoesCadastraisAnalisar',
+      '/admin/correcoes-cadastrais/aprovar-aplicar': 'adminCorrecoesCadastraisAprovarAplicar',
       '/admin/correcoes-cadastrais/aplicar': 'adminCorrecoesCadastraisAplicar',
       '/meu-vinculo/opcoes': 'meuVinculoOpcoesSolicitacao',
       '/meu-vinculo/solicitacoes': 'meuVinculoSolicitacoesListar',
