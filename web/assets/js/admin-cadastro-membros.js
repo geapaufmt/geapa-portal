@@ -42,6 +42,7 @@
   function renderForm() {
     content().innerHTML = [
       '<form data-member-registration-form novalidate>',
+      '<div class="member-registration-scroll">',
       '<div class="member-registration-mode" role="radiogroup" aria-label="Modalidade do cadastro"><label><input type="radio" name="modalidadeCadastro" value="RAPIDO" checked> Cadastro rapido e convite</label><label><input type="radio" name="modalidadeCadastro" value="COMPLETO"> Cadastro completo</label></div>',
       '<p class="section-note">Use esta tela somente depois da aprovacao institucional do ingresso. O Portal nao administra processo seletivo.</p>',
       '<div class="member-registration-grid">',
@@ -56,6 +57,7 @@
       '<div class="member-registration-grid">' + field('dataNascimento', 'Data de nascimento', 'date', false) + field('instagram', 'Instagram', 'text', false) + '</div>',
       (global.PortalGeapaLocalidades ? global.PortalGeapaLocalidades.renderFields({ paisOrigemCodigo: 'BR' }) : ''),
       '</section>',
+      '</div>',
       '<div class="member-registration-feedback" data-member-registration-feedback role="status" aria-live="polite"></div>',
       '<div class="portal-modal-actions"><button type="button" class="secondary-button" data-member-registration-close>Cancelar</button><button type="submit" class="primary-button" data-member-registration-submit>Executar cadastro</button></div>',
       '</form>'

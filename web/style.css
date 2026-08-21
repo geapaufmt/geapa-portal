@@ -2392,7 +2392,93 @@ textarea[aria-invalid="true"] {
 }
 
 .admin-members-hero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
-.member-registration-card { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; }
+
+.portal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.portal-modal[hidden] {
+  display: none;
+}
+
+.portal-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(13, 47, 32, 0.42);
+}
+
+.portal-modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(760px, 100%);
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 22px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.portal-modal-header {
+  position: sticky;
+  top: -22px;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 0 12px;
+  background: var(--white);
+}
+
+.portal-modal-header h2 {
+  margin: 0;
+}
+
+.portal-modal-header .eyebrow {
+  margin: 0 0 4px;
+}
+
+.portal-modal-actions {
+  position: sticky;
+  bottom: -22px;
+  z-index: 3;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 18px -22px -22px;
+  border-top: 1px solid var(--border);
+  padding: 14px 22px 22px;
+  background: var(--white);
+}
+
+.member-registration-card {
+  display: flex;
+  flex-direction: column;
+  width: min(900px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+.member-registration-card .portal-modal-header { flex: 0 0 auto; }
+.member-registration-card [data-member-registration-content],
+.member-registration-card [data-member-registration-form] { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.member-registration-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding-right: 4px; }
+.member-registration-card .portal-modal-actions { position: static; flex: 0 0 auto; margin: 14px 0 0; padding: 14px 0 0; }
 .member-registration-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .member-registration-grid label, .member-registration-mode label, .member-registration-card fieldset label { margin: 0; }
 .member-registration-wide { grid-column: 1 / -1; }
@@ -2568,6 +2654,26 @@ textarea[aria-invalid="true"] {
 }
 
 @media (max-width: 820px) {
+  .portal-modal {
+    padding: 8px;
+  }
+
+  .portal-modal-card {
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+    padding: 16px;
+  }
+
+  .portal-modal-header {
+    top: -16px;
+  }
+
+  .portal-modal-actions {
+    bottom: -16px;
+    margin: 18px -16px -16px;
+    padding: 12px 16px 16px;
+  }
+
   .admin-activities-filters,
   .admin-activity-form-grid,
   .admin-protected-fields dl,

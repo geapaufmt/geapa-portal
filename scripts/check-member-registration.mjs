@@ -9,6 +9,9 @@ const bridge = read('apps-script/09_vinculo_solicitacoes.gs');
 const router = read('apps-script/03_webapp.gs');
 const homolog = read('web/assets/js/config.homolog.js');
 const prod = read('web/assets/js/config.prod.js');
+const styles = read('web/style.css');
+const index = read('web/index.html');
+const serviceWorker = read('web/service-worker.js');
 
 new vm.Script(source);
 required(source.includes("hasPermissao('membros:cadastrar_novos_membros')"), 'Botao nao confere permissao resolvida.');
@@ -19,10 +22,17 @@ required(!/idPessoa|idVinculo|criadoPor|executadoPor/.test(source), 'Frontend en
 required(!/semestreAtualCursoCalculado|periodoIngressoCurso/.test(source), 'Frontend tenta definir campos academicos calculados.');
 required(source.includes('button.disabled = true') && source.includes('chaveIdempotencia'), 'Clique duplo/idempotencia nao estao protegidos.');
 required(source.includes('PortalGeapaLocalidades.serialize'), 'Cadastro completo nao usa o catalogo local oficial.');
+required(source.includes('class="member-registration-scroll"'), 'Formulario nao separa a regiao rolavel das acoes.');
 required(api.includes('adminIngressosMembrosCadastrar') && api.includes('ACOES_CADASTRO_MEMBROS'), 'API nao possui gate proprio.');
 required(bridge.includes("'membros:cadastrar_novos_membros'"), 'Ponte nao repete a permissao no backend.');
 required(bridge.includes("ENABLE_MEMBER_REGISTRATION: acesso.contexto.ambienteDadosV2 === 'DEV'"), 'Backend nao restringe a feature a DEV.');
 required(router.includes("acao === 'adminIngressosMembrosCadastrar'"), 'Roteador nao publica o contrato.');
 required(/ENABLE_MEMBER_REGISTRATION:\s*true/.test(homolog), 'HOMOLOG deve habilitar a feature.');
 required(/ENABLE_MEMBER_REGISTRATION:\s*false/.test(prod), 'PROD deve manter a feature desabilitada.');
-process.stdout.write('Cadastro administrativo de membros aprovado: 14 verificacoes passaram.\n');
+required(/\.portal-modal\s*\{[^}]*place-items:\s*center/s.test(styles) && /\.portal-modal\[hidden\]\s*\{[^}]*display:\s*none/s.test(styles), 'Modal nao preserva estado oculto ou centralizacao.');
+required(/\.member-registration-card\s*\{[^}]*overflow:\s*hidden/s.test(styles), 'Card nao isola a rolagem do formulario.');
+required(/\.member-registration-scroll\s*\{[^}]*overflow:\s*auto/s.test(styles), 'Formulario nao possui regiao rolavel propria.');
+required(/\.member-registration-card \.portal-modal-actions\s*\{[^}]*position:\s*static/s.test(styles), 'Acoes nao permanecem fora da regiao rolavel.');
+required(index.includes('style.css?v=58') && index.includes('admin-cadastro-membros.js?v=2') && serviceWorker.includes('portal-geapa-pwa-v120'), 'Cache-busters da correcao visual nao foram incrementados.');
+required(serviceWorker.includes("'/assets/js/admin-cadastro-membros.js'"), 'Service worker nao inclui o cadastro de membros.');
+process.stdout.write('Cadastro administrativo de membros aprovado: 21 verificacoes passaram.\n');

@@ -1,4 +1,4 @@
-const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v119';
+const GEAPA_CACHE_VERSION = 'portal-geapa-pwa-v120';
 
 const STATIC_ASSETS = [
   '/',
@@ -17,6 +17,7 @@ const STATIC_ASSETS = [
   '/assets/js/atividades.js',
   '/assets/js/admin-atividades.js',
   '/assets/js/admin-membros.js',
+  '/assets/js/admin-cadastro-membros.js',
   '/assets/js/admin-correcoes-cadastrais.js',
   '/assets/js/vinculo-solicitacoes.js',
   '/assets/js/admin-solicitacoes-vinculo.js',
