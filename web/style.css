@@ -3708,6 +3708,45 @@ textarea[aria-invalid="true"] {
   gap: 0.2rem;
 }
 
+.admin-vinculo-scope {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.admin-vinculo-scope button {
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--green-900);
+  font-weight: 700;
+}
+
+.admin-vinculo-scope button[aria-selected="true"] {
+  color: var(--white);
+  background: var(--green-700);
+}
+
+.admin-vinculo-history pre {
+  max-height: 16rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.egress-feedback-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 48rem;
+}
+
+.egress-feedback-form label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 700;
+}
 .admin-correction-person-lines strong,
 .admin-correction-person-lines span {
   display: block;

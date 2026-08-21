@@ -44,6 +44,7 @@ const requiredFlags = [
   'ENABLE_JUSTIFICATIVAS',
   'ENABLE_PROFILE_UPDATES',
   'ENABLE_VINCULO_REQUESTS',
+  'ENABLE_EGRESS_FEEDBACK',
   'READ_ONLY_MODE'
 ];
 requiredFlags.forEach((key) => {
