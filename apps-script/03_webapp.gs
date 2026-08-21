@@ -31,6 +31,7 @@ function doGet(e) {
         'adminCorrecoesCadastraisListar',
         'adminCorrecoesCadastraisDetalhe',
         'adminCorrecoesCadastraisAnalisar',
+        'adminCorrecoesCadastraisAprovarAplicar',
         'adminCorrecoesCadastraisAplicar',
         'meuVinculoOpcoesSolicitacao',
         'meuVinculoSolicitacoesListar',
@@ -48,6 +49,11 @@ function doGet(e) {
         'adminSolicitacaoVinculoCancelar',
         'adminSolicitacaoVinculoReprocessar',
         'adminSolicitacaoVinculoReenviarNotificacao',
+        'adminIngressosMembrosCatalogos',
+        'adminIngressosMembrosCadastrar',
+        'adminIngressosMembrosReprocessar',
+        'avaliacaoEgressoConsultar',
+        'avaliacaoEgressoResponder',
         'atividadesBundle',
         'atividadesListar',
         'atividadesDetalhesPreload',
@@ -146,6 +152,16 @@ function portalLerRequisicao_(e) {
  */
 function portalExecutarAcao_(requisicao) {
   var acao = requisicao.acao || '';
+  var requestId = String(requisicao.requestId || '').trim();
+  if (!requestId && requisicao.payload) {
+    try {
+      var payloadTrace = typeof requisicao.payload === 'string'
+        ? JSON.parse(requisicao.payload)
+        : requisicao.payload;
+      requestId = String(payloadTrace && payloadTrace.requestId || '').trim();
+    } catch (tracePayloadError) {}
+  }
+  portalIniciarTrace_(acao, requestId);
 
   if (!acao) {
     return portalRespostaErro_(
@@ -220,6 +236,10 @@ function portalExecutarAcao_(requisicao) {
     return portalAdminCorrecoesCadastraisAnalisar(requisicao.token || '', requisicao.payload || requisicao);
   }
 
+  if (acao === 'adminCorrecoesCadastraisAprovarAplicar') {
+    return portalAdminCorrecoesCadastraisAprovarAplicar(requisicao.token || '', requisicao.payload || requisicao);
+  }
+
   if (acao === 'adminCorrecoesCadastraisAplicar') {
     return portalAdminCorrecoesCadastraisAplicar(requisicao.token || '', requisicao.payload || requisicao);
   }
@@ -240,6 +260,11 @@ function portalExecutarAcao_(requisicao) {
   if (acao === 'adminSolicitacaoVinculoCancelar') return portalAdminSolicitacaoVinculoCancelar(requisicao.token || '', requisicao.payload || requisicao);
   if (acao === 'adminSolicitacaoVinculoReprocessar') return portalAdminSolicitacaoVinculoReprocessar(requisicao.token || '', requisicao.payload || requisicao);
   if (acao === 'adminSolicitacaoVinculoReenviarNotificacao') return portalAdminSolicitacaoVinculoReenviarNotificacao(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminIngressosMembrosCatalogos') return portalAdminIngressosMembrosCatalogos(requisicao.token || '');
+  if (acao === 'adminIngressosMembrosCadastrar') return portalAdminIngressosMembrosCadastrar(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'adminIngressosMembrosReprocessar') return portalAdminIngressosMembrosReprocessar(requisicao.token || '', requisicao.payload || requisicao);
+  if (acao === 'avaliacaoEgressoConsultar') return portalAvaliacaoEgressoConsultar(requisicao.payload || requisicao);
+  if (acao === 'avaliacaoEgressoResponder') return portalAvaliacaoEgressoResponder(requisicao.payload || requisicao);
 
   if (acao === 'atividadesBundle') {
     return portalAtividadesBundle(requisicao.token || '');
@@ -512,6 +537,9 @@ function portalResposta_(ok, code, message, data, metaExtra) {
       meta[chave] = metaExtra[chave];
     });
   }
+  meta.trace = portalTraceMeta_();
+  meta.traceId = meta.trace.traceId || '';
+  meta.ambiente = meta.trace.ambiente || portalResolverAmbienteDadosV2_();
 
   var warnings = dados.warnings || dados.avisos || meta.warnings || meta.avisos || [];
   var fieldErrors = dados.fieldErrors || {};
@@ -520,6 +548,7 @@ function portalResposta_(ok, code, message, data, metaExtra) {
   return {
     ok: ok,
     code: code,
+    errorCode: ok ? '' : code,
     message: message,
     userMessage: String(dados.userMessage || meta.userMessage || message || ''),
     entityId: String(dados.entityId || dados.idJustificativa || dados.idApresentacao || dados.idAtividade || ''),
@@ -528,7 +557,8 @@ function portalResposta_(ok, code, message, data, metaExtra) {
     warnings: Array.isArray(warnings) ? warnings : (warnings ? [warnings] : []),
     fieldErrors: fieldErrors && typeof fieldErrors === 'object' ? fieldErrors : {},
     nextActions: Array.isArray(nextActions) ? nextActions : (nextActions ? [nextActions] : []),
-    meta: meta
+    meta: meta,
+    traceId: meta.traceId || ''
   };
 }
 

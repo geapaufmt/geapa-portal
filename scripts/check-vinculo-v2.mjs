@@ -48,9 +48,9 @@ required(styles.includes('.admin-vinculo-table-wrap') && styles.includes('overfl
 required(index.includes('style.css?v=57') && index.includes('admin-solicitacoes-vinculo.js?v=5'), 'cache-busters do painel administrativo nao incrementados');
 
 const coreLibrary = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
-required(coreLibrary && String(coreLibrary.version) === '20' && coreLibrary.developmentMode === false, 'GEAPA_CORE deve usar versao imutavel 20');
+required(coreLibrary && String(coreLibrary.version) === '23' && coreLibrary.developmentMode === false, 'GEAPA_CORE deve usar versao imutavel 23');
 const library = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_MEMBROS');
-required(library && String(library.version) === '7' && library.developmentMode === false, 'GEAPA_MEMBROS deve usar versao imutavel 7');
+required(library && String(library.version) === '8' && library.developmentMode === false, 'GEAPA_MEMBROS deve usar versao imutavel 8');
 
 function config(file) {
   const sandbox = { window: {} }; vm.createContext(sandbox); vm.runInContext(read(file), sandbox); return sandbox.window.PortalGeapaConfig;

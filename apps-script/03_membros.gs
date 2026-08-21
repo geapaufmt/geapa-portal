@@ -117,27 +117,66 @@ function portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) {
  * @param {Object=} opts Opcoes tecnicas nao sensiveis.
  * @return {Object|null} Sessao canonica segura.
  */
+var __portal_sessao_core_execution_memo = {};
+
 function portalResolverSessaoAtualViaGeapaCore_(entrada, opts) {
+  var inicio = portalAgoraMs_();
+  var opcoesCore = portalMontarOpcoesCore_((opts && opts.origem) || 'resolverSessao', opts || {});
+  var memoKey = portalMontarChaveSessaoCoreCache_(entrada);
+  if (memoKey && __portal_sessao_core_execution_memo[memoKey]) {
+    portalTraceEtapa_('sessaoCore.memoExecucao', inicio, 'HIT', 'memoria-execucao');
+    return __portal_sessao_core_execution_memo[memoKey];
+  }
   var cache = portalLerSessaoCoreCache_(entrada);
 
   if (cache) {
+    if (memoKey) __portal_sessao_core_execution_memo[memoKey] = cache;
+    portalTraceEtapa_('sessaoCore.cache', inicio, 'HIT', 'CacheService');
     return cache;
   }
 
   var resposta = null;
 
   try {
-    resposta = portalChamarResolverSessaoGeapaCoreGlobal_(entrada, opts);
+    resposta = portalChamarResolverSessaoGeapaCoreGlobal_(entrada, opcoesCore);
 
     if (!resposta) {
-      resposta = portalChamarResolverSessaoGeapaCoreLibrary_(entrada, opts);
+      resposta = portalChamarResolverSessaoGeapaCoreLibrary_(entrada, opcoesCore);
     }
   } catch (erro) {
+    var errorCode = String(erro && erro.code || erro && erro.message || 'CORE_SESSAO_ERRO_INTERNO')
+      .trim().slice(0, 100);
     Logger.log('GEAPA-PORTAL-SESSAO-CORE ' + JSON.stringify({
+      traceId: portalTraceIdAtual_(),
+      ambiente: portalResolverAmbienteDadosV2_(),
       etapa: 'corePortalResolverUsuarioAtual',
-      erro: erro && erro.message ? erro.message : String(erro)
+      errorCode: errorCode
     }));
-    return null;
+    var erroSessao = {
+      ok: false,
+      autenticado: false,
+      portalAtivo: false,
+      motivoBloqueio: errorCode,
+      mensagemBloqueio: 'Nao foi possivel validar o acesso nas bases do ambiente solicitado.',
+      failedStage: 'corePortalResolverUsuarioAtual'
+    };
+    if (memoKey) __portal_sessao_core_execution_memo[memoKey] = erroSessao;
+    portalTraceEtapa_('sessaoCore.resolver', inicio, errorCode, 'GEAPA_CORE');
+    return erroSessao;
+  }
+
+  if (!resposta) {
+    var contratoAusente = {
+      ok: false,
+      autenticado: false,
+      portalAtivo: false,
+      motivoBloqueio: 'CORE_CONTRATO_SESSAO_INDISPONIVEL',
+      mensagemBloqueio: 'O contrato de sessao do GEAPA-CORE nao esta disponivel.',
+      failedStage: 'resolverContratoCore'
+    };
+    if (memoKey) __portal_sessao_core_execution_memo[memoKey] = contratoAusente;
+    portalTraceEtapa_('sessaoCore.resolver', inicio, contratoAusente.motivoBloqueio, 'GEAPA_CORE');
+    return contratoAusente;
   }
 
   var sessao = portalNormalizarSessaoPortalCore_(resposta);
@@ -145,6 +184,13 @@ function portalResolverSessaoAtualViaGeapaCore_(entrada, opts) {
   if (sessao && sessao.ok !== false && sessao.autenticado !== false) {
     portalSalvarSessaoCoreCache_(entrada, sessao);
   }
+  if (memoKey && sessao) __portal_sessao_core_execution_memo[memoKey] = sessao;
+  portalTraceEtapa_(
+    'sessaoCore.resolver',
+    inicio,
+    sessao && sessao.ok !== false ? 'OK' : String(sessao && sessao.motivoBloqueio || 'NAO_RESOLVIDA'),
+    'GEAPA_CORE'
+  );
 
   return sessao;
 }
@@ -247,12 +293,25 @@ function portalBuscarMinhaSituacaoViaGeapaCore_(identificadorSessao) {
   var sessao = portalResolverSessaoAtualViaGeapaCore_(identificador, {
     origem: 'minhaSituacao'
   });
-  var resposta = portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador);
+  if (!sessao || sessao.ok === false || sessao.autenticado === false) {
+    return {
+      ok: false,
+      errorCode: String(sessao && sessao.motivoBloqueio || 'CORE_SESSAO_NAO_RESOLVIDA'),
+      message: String(sessao && sessao.mensagemBloqueio || 'Nao foi possivel resolver a sessao no Core.'),
+      failedStage: String(sessao && sessao.failedStage || 'sessaoCore')
+    };
+  }
+  var opcoesCore = portalMontarOpcoesCore_('minhaSituacao', {
+    sessao: sessao,
+    allowLegacyFallback: false
+  });
+  var resposta = portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador, opcoesCore);
 
   if (!resposta) {
-    resposta = portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador);
+    resposta = portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador, opcoesCore);
   }
 
+  if (resposta && resposta.ok === false) return resposta;
   return portalNormalizarMinhaSituacaoCore_(resposta, sessao);
 }
 
@@ -270,10 +329,13 @@ function portalBuscarMeuPerfilViaGeapaCore_(identificadorSessao) {
     return null;
   }
 
-  resposta = portalChamarMeuPerfilGeapaCoreGlobal_(identificador);
+  var sessao = portalResolverSessaoAtualViaGeapaCore_(identificador, { origem: 'meuPerfil' });
+  if (!sessao || sessao.ok === false || sessao.autenticado === false) return null;
+  var options = portalMontarOpcoesCore_('meuPerfil', { sessao: sessao });
+  resposta = portalChamarMeuPerfilGeapaCoreGlobal_(identificador, options);
 
   if (!resposta) {
-    resposta = portalChamarMeuPerfilGeapaCoreLibrary_(identificador);
+    resposta = portalChamarMeuPerfilGeapaCoreLibrary_(identificador, options);
   }
 
   return resposta && resposta.ok === true ? resposta : null;
@@ -342,7 +404,12 @@ function portalAdminMembrosListar(token, filtrosJson) {
     Logger.log('[portal-geapa][admin-members] ' + JSON.stringify({ ok: false, code: 'ACESSO_NEGADO' }));
     return portalRespostaErro_('ACESSO_NEGADO', 'Seu perfil nao possui permissao para consultar membros.', {});
   }
-  var contexto = { idPessoa: String(sessao.idPessoa || '').trim() };
+  var contexto = {
+    idPessoa: String(sessao.idPessoa || '').trim(),
+    sessao: sessao,
+    ambiente: portalResolverAmbienteDadosV2_(),
+    traceId: portalTraceIdAtual_()
+  };
   var resposta = portalAdminMembrosChamarCoreGlobal_(filtros.data, contexto) ||
     portalAdminMembrosChamarCoreLibrary_(filtros.data, contexto);
   if (!resposta) {
@@ -387,12 +454,12 @@ function portalChamarResolverSessaoGeapaCoreGlobal_(entrada, opts) {
  * @param {string} identificador Identificador normalizado.
  * @return {Object|null} Resposta do GEAPA-CORE ou nulo.
  */
-function portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador) {
+function portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador, options) {
   if (typeof geapaCoreBuscarMinhaSituacaoParaPortal !== 'function') {
     return null;
   }
 
-  return geapaCoreBuscarMinhaSituacaoParaPortal(identificador);
+  return geapaCoreBuscarMinhaSituacaoParaPortal(identificador, options || {});
 }
 
 /**
@@ -401,12 +468,12 @@ function portalChamarMinhaSituacaoGeapaCoreGlobal_(identificador) {
  * @param {string} identificador Identificador normalizado.
  * @return {Object|null} Resposta do GEAPA-CORE ou nulo.
  */
-function portalChamarMeuPerfilGeapaCoreGlobal_(identificador) {
+function portalChamarMeuPerfilGeapaCoreGlobal_(identificador, options) {
   if (typeof geapaCoreBuscarMeuPerfilParaPortal !== 'function') {
     return null;
   }
 
-  return geapaCoreBuscarMeuPerfilParaPortal(identificador);
+  return geapaCoreBuscarMeuPerfilParaPortal(identificador, options || {});
 }
 
 /**
@@ -416,13 +483,13 @@ function portalChamarMeuPerfilGeapaCoreGlobal_(identificador) {
  * @param {string} identificador Identificador normalizado.
  * @return {Object|null} Resposta do GEAPA-CORE ou nulo.
  */
-function portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador) {
+function portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador, options) {
   var libs = portalListarBibliotecasGeapaCore_();
 
   for (var i = 0; i < libs.length; i++) {
-    var resposta = portalChamarMinhaSituacaoCoreLibrary_(libs[i].api, identificador);
+    var resposta = portalChamarMinhaSituacaoCoreLibrary_(libs[i].api, identificador, options);
 
-    if (resposta && resposta.ok === true) {
+    if (resposta) {
       return resposta;
     }
   }
@@ -436,11 +503,11 @@ function portalChamarMinhaSituacaoGeapaCoreLibrary_(identificador) {
  * @param {string} identificador Identificador normalizado.
  * @return {Object|null} Resposta do GEAPA-CORE ou nulo.
  */
-function portalChamarMeuPerfilGeapaCoreLibrary_(identificador) {
+function portalChamarMeuPerfilGeapaCoreLibrary_(identificador, options) {
   var libs = portalListarBibliotecasGeapaCore_();
 
   for (var i = 0; i < libs.length; i++) {
-    var resposta = portalChamarMeuPerfilCoreLibrary_(libs[i].api, identificador);
+    var resposta = portalChamarMeuPerfilCoreLibrary_(libs[i].api, identificador, options);
 
     if (resposta && resposta.ok === true) {
       return resposta;
@@ -612,20 +679,20 @@ function portalChamarBuscaMembroCoreLibrary_(api, identificador) {
  * @param {string} identificador Identificador normalizado.
  * @return {Object|null} Resposta retornada pela biblioteca.
  */
-function portalChamarMinhaSituacaoCoreLibrary_(api, identificador) {
+function portalChamarMinhaSituacaoCoreLibrary_(api, identificador, options) {
   if (!api) {
     return null;
   }
 
   if (typeof api.geapaCoreBuscarMinhaSituacaoParaPortal === 'function') {
-    return api.geapaCoreBuscarMinhaSituacaoParaPortal(identificador);
+    return api.geapaCoreBuscarMinhaSituacaoParaPortal(identificador, options || {});
   }
 
   if (
     api.portal &&
     typeof api.portal.buscarMinhaSituacaoParaPortal === 'function'
   ) {
-    return api.portal.buscarMinhaSituacaoParaPortal(identificador);
+    return api.portal.buscarMinhaSituacaoParaPortal(identificador, options || {});
   }
 
   return null;
@@ -638,20 +705,20 @@ function portalChamarMinhaSituacaoCoreLibrary_(api, identificador) {
  * @param {string} identificador Identificador normalizado.
  * @return {Object|null} Resposta retornada pela biblioteca.
  */
-function portalChamarMeuPerfilCoreLibrary_(api, identificador) {
+function portalChamarMeuPerfilCoreLibrary_(api, identificador, options) {
   if (!api) {
     return null;
   }
 
   if (typeof api.geapaCoreBuscarMeuPerfilParaPortal === 'function') {
-    return api.geapaCoreBuscarMeuPerfilParaPortal(identificador);
+    return api.geapaCoreBuscarMeuPerfilParaPortal(identificador, options || {});
   }
 
   if (
     api.portal &&
     typeof api.portal.buscarMeuPerfilParaPortal === 'function'
   ) {
-    return api.portal.buscarMeuPerfilParaPortal(identificador);
+    return api.portal.buscarMeuPerfilParaPortal(identificador, options || {});
   }
 
   return null;

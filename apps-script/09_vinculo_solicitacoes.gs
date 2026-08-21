@@ -8,7 +8,26 @@ function portalVinculoContexto_(token, permissao) {
   if (!acesso.ok) return acesso;
   acesso.contexto.ambienteDadosV2 = portalResolverAmbienteDadosV2_();
   acesso.contexto.origem = 'PORTAL_SOLICITACOES_VINCULO_V2';
+  acesso.contexto.featureFlags = {
+    ENABLE_MEMBER_REGISTRATION: acesso.contexto.ambienteDadosV2 === 'DEV',
+    ENABLE_EGRESS_FEEDBACK: acesso.contexto.ambienteDadosV2 === 'DEV'
+  };
   return acesso;
+}
+
+function portalEgressFeedbackContexto_() {
+  var environment = portalResolverAmbienteDadosV2_();
+  return { ambienteDadosV2: environment, origem: 'PORTAL_AVALIACAO_EGRESSO_V2', featureFlags: { ENABLE_EGRESS_FEEDBACK: environment === 'DEV' } };
+}
+
+function portalEgressFeedbackExecutar_(nomeContrato, payload) {
+  var inicio = portalAgoraMs_();
+  try {
+    if (typeof GEAPA_MEMBROS === 'undefined' || !GEAPA_MEMBROS || typeof GEAPA_MEMBROS[nomeContrato] !== 'function') return portalRespostaErro_('AVALIACAO_EGRESSO_INDISPONIVEL', 'A avaliacao de egresso nao esta disponivel.', {}, portalMetaDesempenho_('geapa-membros', inicio));
+    var result = GEAPA_MEMBROS[nomeContrato](portalVinculoObjeto_(payload), portalEgressFeedbackContexto_()) || {};
+    if (result.ok === false) return portalRespostaErro_(result.code || result.errorCode, result.message, { details: result.details || {} }, portalMetaDesempenho_('geapa-membros', inicio));
+    return portalRespostaOk_(result.code, result.message, result.data || {}, portalMetaDesempenho_('geapa-membros', inicio));
+  } catch (error) { return portalRespostaErro_(error.code || 'AVALIACAO_EGRESSO_ERRO', error.message || 'Nao foi possivel concluir.', {}, portalMetaDesempenho_('geapa-membros', inicio)); }
 }
 
 function portalVinculoObjeto_(value) {
@@ -57,3 +76,8 @@ function portalAdminSolicitacaoVinculoHomologarEfetivarDesligamento(token, paylo
 function portalAdminSolicitacaoVinculoCancelar(token, payload) { return portalVinculoExecutar_(token, 'membros:analisar_solicitacoes_vinculo', 'membersAdminSolicitacaoVinculoCancelar', payload); }
 function portalAdminSolicitacaoVinculoReprocessar(token, payload) { return portalVinculoExecutar_(token, 'membros:executar_solicitacoes_vinculo', 'membersAdminSolicitacaoVinculoReprocessar', payload); }
 function portalAdminSolicitacaoVinculoReenviarNotificacao(token, payload) { return portalVinculoExecutar_(token, 'membros:analisar_solicitacoes_vinculo', 'membersAdminSolicitacaoVinculoReenviarNotificacao', payload); }
+function portalAdminIngressosMembrosCatalogos(token) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosCatalogos', {}); }
+function portalAdminIngressosMembrosCadastrar(token, payload) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosCadastrar', payload); }
+function portalAdminIngressosMembrosReprocessar(token, payload) { return portalVinculoExecutar_(token, 'membros:cadastrar_novos_membros', 'membersAdminIngressosMembrosReprocessar', payload); }
+function portalAvaliacaoEgressoConsultar(payload) { return portalEgressFeedbackExecutar_('membersAvaliacaoEgressoConsultarPorToken', payload); }
+function portalAvaliacaoEgressoResponder(payload) { return portalEgressFeedbackExecutar_('membersAvaliacaoEgressoResponder', payload); }

@@ -25,6 +25,6 @@ assert.match(api, /ACOES_PERFIL_PORTAL/, 'as mutacoes cadastrais devem usar a al
 
 const core = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
 assert.equal(core.developmentMode, false, 'PROD nao pode consumir Core em HEAD');
-assert.equal(core.version, '20', 'o candidato deve usar a versao fixa do Core com suporte normativo tipado');
+assert.equal(core.version, '23', 'o candidato recuperado deve usar a versao fixa do Core com resolucao de ambiente');
 
-console.log('OK: candidato usa Core v20 e habilita perfil cadastral em PROD apos homologacao.');
+console.log('OK: candidato usa Core v23 e habilita perfil cadastral em PROD apos homologacao.');

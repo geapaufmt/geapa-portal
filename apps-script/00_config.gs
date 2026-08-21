@@ -110,5 +110,59 @@ function portalResolverAmbienteDadosV2_() {
   if (environment !== 'DEV' && environment !== 'PROD') {
     throw new Error('PORTAL_CONFIG_AMBIENTE_DADOS_V2_INVALIDO');
   }
+  var portalEnvironment = String(PORTAL_CONFIG.ambiente || '').trim().toUpperCase();
+  var expected = portalEnvironment === 'PRODUCAO' || portalEnvironment === 'PROD' ? 'PROD' : 'DEV';
+  if (environment !== expected) {
+    throw new Error('PORTAL_CONFIG_AMBIENTES_DIVERGENTES');
+  }
   return environment;
+}
+
+function portalMontarOpcoesCore_(origem, extras) {
+  return Object.assign({}, extras || {}, {
+    origem: String(origem || '').slice(0, 80),
+    ambiente: portalResolverAmbienteDadosV2_(),
+    environment: portalResolverAmbienteDadosV2_(),
+    traceId: portalTraceIdAtual_()
+  });
+}
+
+var __portal_trace_context = null;
+
+function portalIniciarTrace_(acao, requestId) {
+  __portal_trace_context = {
+    traceId: String(requestId || ('PORTAL-' + Utilities.getUuid())).slice(0, 80),
+    acao: String(acao || '').slice(0, 80),
+    ambiente: portalResolverAmbienteDadosV2_(),
+    inicioMs: new Date().getTime(),
+    etapas: []
+  };
+  return __portal_trace_context;
+}
+
+function portalTraceIdAtual_() {
+  return __portal_trace_context ? __portal_trace_context.traceId : '';
+}
+
+function portalTraceEtapa_(etapa, inicioMs, code, origem) {
+  if (!__portal_trace_context) return;
+  __portal_trace_context.etapas.push({
+    etapa: String(etapa || '').slice(0, 80),
+    duracaoMs: Math.max(new Date().getTime() - Number(inicioMs || new Date().getTime()), 0),
+    code: String(code || '').slice(0, 80),
+    origem: String(origem || '').slice(0, 80)
+  });
+}
+
+function portalTraceMeta_() {
+  if (!__portal_trace_context) {
+    return { ambiente: portalResolverAmbienteDadosV2_() };
+  }
+  return {
+    traceId: __portal_trace_context.traceId,
+    ambiente: __portal_trace_context.ambiente,
+    acao: __portal_trace_context.acao,
+    tempoTotalMs: Math.max(new Date().getTime() - __portal_trace_context.inicioMs, 0),
+    etapas: __portal_trace_context.etapas.slice()
+  };
 }
