@@ -9,8 +9,10 @@
 - Backend e dados resolvidos como `DEV`.
 - PROD permanece no Portal 100 e nao faz parte destes testes.
 
-O frontend HOMOLOG deve ser publicado a partir da branch
+O frontend HOMOLOG foi publicado a partir do commit `59d052d` da branch
 `recuperacao-live-2026-07-30`, gerando `config.js` com o perfil `homolog`.
+O canal de teste e
+`https://portal-geapa--homolog-zfd2lh6h.web.app` e expira em 2026-09-20.
 
 ## Verificacoes automatizadas locais
 

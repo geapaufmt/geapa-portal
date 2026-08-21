@@ -80,5 +80,17 @@ versoes, mantendo `developmentMode: false`.
 - Smoke Core 24: `CONTEUDO_PUBLICO_CORE`, ambiente `DEV`.
 - Smoke Membros 9: token ficticio rejeitado com `CONVITE_AVALIACAO_INVALIDO`,
   ambiente `DEV`.
-- Publicacao das branches Git e do frontend HOMOLOG permanece pendente de
-  autorizacao especifica para `git push`, exigida pelo controle de seguranca.
+- As quatro branches de recuperacao foram publicadas no GitHub e conferidas por SHA.
+- Frontend HOMOLOG publicado a partir de `59d052d` no canal `homolog`, URL
+  `https://portal-geapa--homolog-zfd2lh6h.web.app`, com expiracao em 2026-09-20.
+- O canal Firebase Hosting `live` permaneceu no release de 2026-07-19 e nao foi
+  alterado.
+
+## Gate adicional antes de PROD
+
+Uma geracao local de `config.js` a partir de `config.prod.js` habilita
+`ENABLE_VINCULO_REQUESTS` e materializa os flags de ingresso e egresso, enquanto o
+artefato PROD atualmente versionado mantem vinculo desabilitado e nao materializa os
+dois flags novos. Isso nao afeta HOMOLOG e nenhum artefato PROD foi publicado, mas a
+promocao futura deve decidir explicitamente os tres flags e conferir o diff gerado
+antes de qualquer deploy do canal `live`.
