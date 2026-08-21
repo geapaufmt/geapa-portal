@@ -123,6 +123,11 @@
       event.preventDefault();
       var form = event.target; var data2 = new FormData(form); var action = String(data2.get('acao') || ''); var reason = String(data2.get('motivo') || '').trim();
       if ((action === 'COMPLEMENTO_SOLICITADO' || action === 'INDEFERIDA') && reason.length < 10) { ui.mostrarToast({ type: 'warning', message: 'Informe um motivo público com pelo menos 10 caracteres.' }); return; }
+      if (action === 'APROVADA') {
+        if (!global.confirm('Aprovar e aplicar esta correção na fonte oficial em uma única operação?')) return;
+        write('/admin/correcoes-cadastrais/aprovar-aplicar', { idSolicitacao: state.selected.id, confirmacao: true, motivo: reason }, 'Correção aprovada e aplicada com sucesso.');
+        return;
+      }
       write('/admin/correcoes-cadastrais/analisar', { idSolicitacao: state.selected.id, acao: action, motivo: reason }, 'Análise cadastrada.');
     }
   }

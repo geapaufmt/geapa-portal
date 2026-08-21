@@ -468,7 +468,7 @@ function portalPerfilCorrecoesPayloadCorrecao_(valor) {
 
 function portalPerfilCorrecoesPayloadAnalise_(valor) {
   var origem = portalPerfilCorrecoesLerObjeto_(valor);
-  var acoes = ['EM_ANALISE', 'COMPLEMENTO_SOLICITADO', 'APROVADA', 'INDEFERIDA'];
+  var acoes = ['EM_ANALISE', 'COMPLEMENTO_SOLICITADO', 'INDEFERIDA'];
   var acao = String(origem.acao || '').trim().toUpperCase();
   var payload = {
     chaveIdempotencia: portalPerfilCorrecoesChave_(origem.chaveIdempotencia),

@@ -17,7 +17,7 @@
     "test:v2-environment": "node scripts/check-v2-domain-environment.mjs",
     "test:vinculo-v2": "node scripts/check-vinculo-v2.mjs && node scripts/check-admin-vinculo-manual-validation.mjs",
     "test:vinculo-validacoes-manuais": "node scripts/check-admin-vinculo-manual-validation.mjs",
-    "test:vinculo-estados-terminais": "node scripts/check-admin-vinculo-terminal-states.mjs",
-    "test:egress-feedback": "node scripts/check-egress-feedback.mjs"
+    "test:egress-feedback": "node scripts/check-egress-feedback.mjs",
+    "test:member-registration": "node scripts/check-member-registration.mjs"
   }
 }

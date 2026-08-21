@@ -20,7 +20,8 @@ assert.match(portalV2, /montarPendenciasJustificativas/, 'a fila administrativa 
 
 [
   'meuPerfilAtualizar', 'meuPerfilSolicitarCorrecao', 'meuPerfilListarSolicitacoes',
-  'adminCorrecoesCadastraisListar', 'adminCorrecoesCadastraisAnalisar', 'adminCorrecoesCadastraisAplicar'
+  'adminCorrecoesCadastraisListar', 'adminCorrecoesCadastraisAnalisar',
+  'adminCorrecoesCadastraisAprovarAplicar', 'adminCorrecoesCadastraisAplicar'
 ].forEach((action) => {
   assert.match(webapp, new RegExp("acao === '" + action + "'"), `roteamento ausente: ${action}`);
   assert.match(api, new RegExp(action), `mapeamento de API ausente: ${action}`);
@@ -38,6 +39,8 @@ assert.match(app, /PORTAL_PROFILE_CORRECTION_RESPONSE/, 'o frontend deve registr
 assert.match(adminCorrections, /name="pessoa"/, 'a gestao deve oferecer filtro por pessoa');
 assert.match(adminCorrections, /p\.rgaMascarado/, 'a gestao deve usar RGA mascarado do Core');
 assert.match(adminCorrections, /p\.emailMascarado/, 'a gestao deve usar email mascarado do Core');
+assert.match(adminCorrections, /correcoes-cadastrais\/aprovar-aplicar/, 'a aprovacao deve usar a operacao coordenada');
+assert.doesNotMatch(bridge.match(/function portalPerfilCorrecoesPayloadAnalise_[\s\S]*?\n\}/)[0], /APROVADA/, 'a analise simples nao pode aceitar aprovacao');
 assert.match(homolog, /ENABLE_PROFILE_UPDATES:\s*true/, 'a feature deve permanecer ativa na configuracao HOMOLOG');
 assert.match(homolog, /AKfycbxyUPuu4tb9mkAys5jwDiBxtgE-g4YYOdaid0qNMrVw5i2oWh_Uyv2BHFAQGJPYdnA2/, 'o preview deve usar o Apps Script HOMOLOG');
 
