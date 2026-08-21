@@ -6,9 +6,9 @@ ou alteracao remota foi executado.
 
 | Consumidor | Biblioteca | Versao declarada |
 | --- | --- | --- |
-| Portal | GEAPA_CORE | 23 |
-| Portal | GEAPA_ATIVIDADES | 19 |
-| Portal | GEAPA_MEMBROS | 8 |
+| Portal | GEAPA_CORE | 24 |
+| Portal | GEAPA_ATIVIDADES | 20 |
+| Portal | GEAPA_MEMBROS | 9 |
 | Membros | GEAPA_CORE | 21 |
 | Atividades | GEAPA_CORE | 15 |
 
@@ -41,20 +41,20 @@ versao 15 nao possui equivalencia integral com um unico SHA localizado.
 
 | Modulo | HEAD remoto conciliado | Correspondencia | HEAD local corrigido | Estado de publicacao |
 | --- | --- | --- | --- | --- |
-| Core | 54/54 arquivos identicos | `6424bdc` | `9b2d3cd` | correcao local ainda nao publicada |
-| Membros | `54debb9`, salvo `Código.js` | recuperacao funcional em `54debb9` | `f2a76e8` | correcao local ainda nao publicada |
-| Atividades | 49/49 arquivos identicos | `500a784` | `e22a4b0` | correcoes locais ainda nao publicadas |
+| Core | publicado a partir do HEAD local corrigido | `9b2d3cd` | `9b2d3cd` | versao 24 criada |
+| Membros | publicado a partir do HEAD local corrigido | `f2a76e8` | `f2a76e8` | versao 9 criada |
+| Atividades | publicado a partir do HEAD local corrigido | `e22a4b0` | `e22a4b0` | versao 20 criada |
 
-O `Código.js` do HEAD remoto de Membros acrescenta, em relacao ao arquivo recuperado,
-a rotina manual `testarDryRunsVinculoDev`. Ela nao integra a versao 8 publicada, nao pertence aos
-contratos consumidos pelo Portal e foi deliberadamente mantida fora da recuperacao
-para nao introduzir ferramenta DEV no codigo versionado de producao.
+Antes da publicacao da versao 9, o `Código.js` do HEAD remoto de Membros acrescentava,
+em relacao ao arquivo recuperado, a rotina manual `testarDryRunsVinculoDev`. Ela nao
+integrava a versao 8 publicada, nao pertencia aos contratos consumidos pelo Portal e
+foi deliberadamente removida do HEAD ao publicar `f2a76e8`, evitando introduzir uma
+ferramenta DEV no codigo versionado de producao.
 
-As correcoes locais devem receber novas versoes, sem reutilizar ou sobrescrever as
-versoes conciliadas. Numeracao esperada, sujeita a confirmacao no momento da
-publicacao: Core 24, Membros 9 e Atividades 20. Os manifests consumidores somente
-devem ser alterados depois que cada versao existir e tiver sido conferida por
-conteudo e descricao contendo o SHA Git.
+As correcoes locais receberam novas versoes imutaveis, sem reutilizar ou sobrescrever
+as versoes conciliadas: Core 24 (`9b2d3cd`), Membros 9 (`f2a76e8`) e Atividades 20
+(`e22a4b0`). O manifest do Portal foi atualizado somente depois da criacao dessas
+versoes, mantendo `developmentMode: false`.
 
 ## Ordem controlada para DEV/HOMOLOG
 

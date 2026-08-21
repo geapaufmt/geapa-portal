@@ -24,7 +24,13 @@ assert.match(app, /\['HOMOLOG', 'PROD'\]/, 'a UI deve aceitar somente os ambient
 assert.match(api, /ACOES_PERFIL_PORTAL/, 'as mutacoes cadastrais devem usar a allowlist dedicada');
 
 const core = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
+const atividades = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_ATIVIDADES');
+const membros = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_MEMBROS');
 assert.equal(core.developmentMode, false, 'PROD nao pode consumir Core em HEAD');
-assert.equal(core.version, '23', 'o candidato recuperado deve usar a versao fixa do Core com resolucao de ambiente');
+assert.equal(atividades.developmentMode, false, 'PROD nao pode consumir Atividades em HEAD');
+assert.equal(membros.developmentMode, false, 'PROD nao pode consumir Membros em HEAD');
+assert.equal(core.version, '24', 'o candidato deve usar o Core corrigido e versionado');
+assert.equal(atividades.version, '20', 'o candidato deve usar Atividades corrigido e versionado');
+assert.equal(membros.version, '9', 'o candidato deve usar Membros corrigido e versionado');
 
-console.log('OK: candidato usa Core v23 e habilita perfil cadastral em PROD apos homologacao.');
+console.log('OK: candidato usa Core v24, Atividades v20 e Membros v9 com perfil cadastral controlado.');
