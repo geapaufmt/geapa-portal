@@ -1272,6 +1272,29 @@ function extrairSessaoPortal(resposta, dadosSituacao) {
     null;
 }
 
+function ehMembroIngressanteMinhaSituacao(dados, resumoOperacional) {
+  const resumo = resumoOperacional || {};
+  const usuario = dados && dados.usuario || {};
+  const tipo = String(
+    resumo.tipoVinculo || usuario.tipoVinculoAtual || dados && dados.vinculo || ''
+  ).trim().toUpperCase().replace(/\s+/g, '_');
+  return tipo === 'MEMBRO_INGRESSANTE' || tipo === 'INGRESSANTE';
+}
+
+function montarSituacaoMembroIngressante(dados, resumoOperacional) {
+  if (!ehMembroIngressanteMinhaSituacao(dados, resumoOperacional)) return '';
+  return [
+    '<section class="situation-section incoming-member-notice" aria-label="Situação de membro ingressante">',
+    '<dl class="summary-grid">',
+    montarResumoOperacionalItem('Situação no GEAPA', 'tipoVinculo', 'Membro ingressante'),
+    montarResumoOperacionalItem('Status', 'statusVinculo', 'Ativo — em período de integração'),
+    montarResumoOperacionalItem('Efetivação', 'statusElegibilidadeDiretoria', 'Pendente de avaliação da Diretoria'),
+    '</dl>',
+    '<p class="section-note">Você está em período de integração como membro ingressante. Sua efetivação como membro efetivo dependerá dos critérios definidos pela Diretoria, como participação, frequência, conduta, resposta às comunicações e cumprimento das atividades introdutórias.</p>',
+    '</section>'
+  ].join('');
+}
+
 /**
  * Renderiza a area "Minha situacao".
  *
@@ -1281,6 +1304,10 @@ function extrairSessaoPortal(resposta, dadosSituacao) {
 function renderizarMinhaSituacao(container, dados) {
   const resumoOperacional = dados.resumoOperacional || {};
   const apresentacoes = dados.participacao.apresentacoes || {};
+  const membroIngressante = ehMembroIngressanteMinhaSituacao(dados, resumoOperacional);
+  const statusExibido = membroIngressante
+    ? 'Ativo — em período de integração'
+    : (resumoOperacional.statusVinculo || dados.situacaoGeral);
   const pendenciasTexto = resumoOperacional.pendenciasAbertas && resumoOperacional.pendenciasAbertas !== 'SEM_PENDENCIAS'
     ? resumoOperacional.pendenciasAbertas
     : String(dados.resumo.pendenciasAbertas || dados.pendencias.length || 0);
@@ -1291,8 +1318,9 @@ function renderizarMinhaSituacao(container, dados) {
     '<p class="simulation-title">' + escaparHtml(dados.nomeExibicao) + '</p>',
     '<p class="member-subtitle">Painel operacional resumido do seu vínculo no GEAPA</p>',
     '</div>',
-    '<span class="status-pill">' + escaparHtml(valorResumoOperacional('statusVinculo', resumoOperacional.statusVinculo || dados.situacaoGeral)) + '</span>',
+    '<span class="status-pill">' + escaparHtml(valorResumoOperacional('statusVinculo', statusExibido)) + '</span>',
     '</div>',
+    montarSituacaoMembroIngressante(dados, resumoOperacional),
     '<p class="section-note">Dados consolidados pelo GEAPA-CORE a partir de PESSOAS_RESUMO_OPERACIONAL e demais views oficiais. Dados cadastrais detalhados ficam em Meu perfil.</p>',
     '<dl class="summary-grid">',
     montarResumoOperacionalItem('Status do vínculo', 'statusVinculo', resumoOperacional.statusVinculo || dados.situacaoGeral),

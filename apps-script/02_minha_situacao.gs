@@ -299,6 +299,7 @@ function portalNormalizarMinhaSituacaoCore_(resposta, sessaoResolvida) {
       pendenciasAbertas: Number(resumo.pendenciasAbertas || 0),
       certificadosDisponiveis: Number(resumo.certificadosDisponiveis || 0)
     },
+    resumoOperacional: portalNormalizarResumoOperacionalCore_(situacao.resumoOperacional),
     pendencias: Array.isArray(situacao.pendencias) ? situacao.pendencias : [],
     participacao: {
       frequenciaGeral: participacao.frequenciaGeral || 'Participação e frequência serão integradas em uma próxima etapa.',
@@ -310,6 +311,23 @@ function portalNormalizarMinhaSituacaoCore_(resposta, sessaoResolvida) {
     diretoria: portalNormalizarDiretoriaCore_(diretoria),
     certificados: Array.isArray(situacao.certificados) ? situacao.certificados : [],
     avisos: avisos
+  };
+}
+
+function portalNormalizarResumoOperacionalCore_(resumo) {
+  var dados = resumo || {};
+  return {
+    statusVinculo: String(dados.statusVinculo || '').trim(),
+    tipoVinculo: String(dados.tipoVinculo || '').trim(),
+    cargoFuncaoAtual: String(dados.cargoFuncaoAtual || '').trim(),
+    tempoEfetivoNoGrupo: String(dados.tempoEfetivoNoGrupo || '').trim(),
+    qtdSemestresNoGrupo: portalNormalizarNumeroNaoNegativo_(dados.qtdSemestresNoGrupo),
+    frequenciaResumida: String(dados.frequenciaResumida || '').trim(),
+    qtdApresentacoesRealizadas: portalNormalizarNumeroNaoNegativo_(dados.qtdApresentacoesRealizadas),
+    cicloUltimaApresentacao: String(dados.cicloUltimaApresentacao || '').trim(),
+    periodoUltimaApresentacao: String(dados.periodoUltimaApresentacao || '').trim(),
+    certificadosDisponiveis: portalNormalizarNumeroNaoNegativo_(dados.certificadosDisponiveis),
+    pendenciasAbertas: String(dados.pendenciasAbertas || '').trim()
   };
 }
 
@@ -440,6 +458,7 @@ function portalNormalizarPerfilUsuario_(perfil) {
     'EXTERNO',
     'COLABORADOR',
     'EGRESSO',
+    'MEMBRO_INGRESSANTE',
     'MEMBRO',
     'DIRETORIA',
     'PRESIDENCIA',

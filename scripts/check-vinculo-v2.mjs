@@ -29,7 +29,7 @@ required(!/\b(idPessoa|idVinculo|rga|email)\s*:/.test(member), 'frontend do memb
 required(member.includes('parametroSuspensao') && member.includes('minimum.valor'), 'frontend nao usa parametro normativo retornado pelo backend');
 required(member.includes('Date.UTC') && !member.includes('new Date(start)'), 'calculo civil inseguro');
 required(admin.includes('ataReferencia') && admin.includes('confirmacaoReforcada'), 'decisao final sem controles de ata/confirmacao');
-required(serviceWorker.includes('portal-geapa-pwa-v120'), 'cache do service worker nao incrementado');
+required(serviceWorker.includes('portal-geapa-pwa-v121'), 'cache do service worker nao incrementado');
 required(serviceWorker.includes('/assets/js/vinculo-solicitacoes.js') && serviceWorker.includes('/assets/js/admin-solicitacoes-vinculo.js'), 'scripts fora do cache PWA');
 required(member.includes('var form = event.target;'), 'submit do vinculo deve usar o formulario originador do evento');
 required(!member.includes('var form = event.currentTarget;'), 'submit delegado nao pode tratar document como formulario');
@@ -48,9 +48,9 @@ required(styles.includes('.admin-vinculo-table-wrap') && styles.includes('overfl
 required(index.includes('style.css?v=58') && index.includes('admin-solicitacoes-vinculo.js?v=5'), 'cache-busters do painel administrativo nao incrementados');
 
 const coreLibrary = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_CORE');
-required(coreLibrary && String(coreLibrary.version) === '24' && coreLibrary.developmentMode === false, 'GEAPA_CORE deve usar versao imutavel 24');
+required(coreLibrary && String(coreLibrary.version) === '25' && coreLibrary.developmentMode === false, 'GEAPA_CORE deve usar versao imutavel 25');
 const library = manifest.dependencies.libraries.find((item) => item.userSymbol === 'GEAPA_MEMBROS');
-required(library && String(library.version) === '9' && library.developmentMode === false, 'GEAPA_MEMBROS deve usar versao imutavel 9');
+required(library && String(library.version) === '10' && library.developmentMode === false, 'GEAPA_MEMBROS deve usar versao imutavel 10');
 
 function config(file) {
   const sandbox = { window: {} }; vm.createContext(sandbox); vm.runInContext(read(file), sandbox); return sandbox.window.PortalGeapaConfig;

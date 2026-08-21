@@ -1,4 +1,4 @@
-/** Cadastro administrativo de pessoas cujo ingresso no GEAPA ja foi aprovado. */
+/** Admissao administrativa de membro ingressante cujo seletivo ja foi aprovado. */
 (function configurarCadastroMembros(global) {
   'use strict';
   var api = global.PortalGeapaApi; var ui = global.PortalGeapaUi; var busy = false; var courses = [];
@@ -9,7 +9,7 @@
   }
 
   function renderAction() {
-    return enabled() ? '<button class="primary-button compact-button" type="button" data-member-registration-open>Cadastrar novo membro</button>' : '';
+    return enabled() ? '<button class="primary-button compact-button" type="button" data-member-registration-open>Admitir membro ingressante</button>' : '';
   }
 
   function esc(value) { return ui.escaparHtml(String(value == null ? '' : value)); }
@@ -18,7 +18,7 @@
   function ensureModal() {
     if (modal()) return modal();
     var node = document.createElement('div'); node.id = 'member-registration-modal'; node.className = 'portal-modal member-registration-modal'; node.hidden = true;
-    node.innerHTML = '<div class="portal-modal-backdrop" data-member-registration-close></div><section class="portal-modal-card member-registration-card" role="dialog" aria-modal="true" aria-labelledby="member-registration-title"><header class="portal-modal-header"><div><p class="eyebrow">Ingresso ja aprovado</p><h2 id="member-registration-title">Cadastrar novo membro</h2></div><button type="button" class="icon-button" data-member-registration-close aria-label="Fechar">&times;</button></header><div data-member-registration-content></div></section>';
+    node.innerHTML = '<div class="portal-modal-backdrop" data-member-registration-close></div><section class="portal-modal-card member-registration-card" role="dialog" aria-modal="true" aria-labelledby="member-registration-title"><header class="portal-modal-header"><div><p class="eyebrow">Processo seletivo ja aprovado</p><h2 id="member-registration-title">Admitir membro ingressante</h2></div><button type="button" class="icon-button" data-member-registration-close aria-label="Fechar">&times;</button></header><div data-member-registration-content></div></section>';
     document.body.appendChild(node); return node;
   }
 
@@ -50,6 +50,7 @@
       field('emailPrincipal', 'E-mail principal', 'email', true), field('telefone', 'Telefone', 'tel', false),
       field('rga', 'RGA', 'text', true), courseField(), field('dataIngresso', 'Data oficial de ingresso', 'date', true),
       field('semestreEntrada', 'Semestre de entrada no GEAPA', 'text', true, 'Ex.: 2026/1'), formaIngressoField(),
+      origemCadastroField(),
       field('documentoReferencia', 'Referencia administrativa', 'text', false),
       '<label class="member-registration-wide"><span>Observacao administrativa</span><textarea name="observacaoAdministrativa" maxlength="1500"></textarea></label>',
       '</div>',
@@ -74,7 +75,10 @@
     return '<label><span>Curso</span><select name="cursoId" required><option value="">Selecione</option>' + courses.map(function(course) { var suffix = [course.instituicao, course.campus].filter(Boolean).join(' - '); return '<option value="' + esc(course.cursoId) + '">' + esc(course.nomeCurso + (suffix ? ' - ' + suffix : '')) + '</option>'; }).join('') + '</select></label><label data-course-other hidden><span>Nome do curso</span><input name="cursoNomeOutro" type="text"></label>';
   }
   function formaIngressoField() {
-    return '<label><span>Forma de ingresso</span><select name="formaIngresso" required><option value="">Selecione</option><option value="PROCESSO_SELETIVO">Processo seletivo ja concluido</option><option value="CONVITE_DIRETORIA">Convite da Diretoria</option><option value="TRANSFERENCIA_INTERNA">Transferencia interna</option><option value="OUTRO">Outro</option></select></label>';
+    return '<label><span>Forma de ingresso</span><select name="formaIngresso" required><option value="PROCESSO_SELETIVO" selected>Processo seletivo ja concluido</option></select></label>';
+  }
+  function origemCadastroField() {
+    return '<label><span>Origem do cadastro</span><select name="origemCadastro" required><option value="">Selecione</option><option value="CADASTRO_INTERESSE">Cadastro de interesse/acompanhamento</option><option value="CADASTRO_MANUAL">Cadastro administrativo manual</option><option value="SELETIVO_FECHADO">Lista final do processo seletivo</option></select></label>';
   }
   function syncMode(form) { var complete = form.elements.modalidadeCadastro.value === 'COMPLETO'; form.querySelector('[data-member-registration-complete]').hidden = !complete; }
   function syncCourse(form) { var other = form.elements.cursoId.value === 'OUTRO'; form.querySelector('[data-course-other]').hidden = !other; form.elements.cursoNomeOutro.required = other; }
@@ -86,7 +90,7 @@
       chaveIdempotencia: form.dataset.idempotencyKey || (form.dataset.idempotencyKey = key()), modalidadeCadastro: data.get('modalidadeCadastro'),
       nomeCompleto: data.get('nomeCompleto'), nomeExibicao: data.get('nomeExibicao'), emailPrincipal: data.get('emailPrincipal'), telefone: data.get('telefone'),
       rga: data.get('rga'), cursoId: data.get('cursoId'), cursoNomeOutro: data.get('cursoNomeOutro'), dataIngresso: data.get('dataIngresso'),
-      semestreEntrada: data.get('semestreEntrada'), formaIngresso: data.get('formaIngresso'), documentoReferencia: data.get('documentoReferencia'), observacaoAdministrativa: data.get('observacaoAdministrativa')
+      semestreEntrada: data.get('semestreEntrada'), formaIngresso: data.get('formaIngresso'), origemCadastro: data.get('origemCadastro'), documentoReferencia: data.get('documentoReferencia'), observacaoAdministrativa: data.get('observacaoAdministrativa')
     };
     if (complete) {
       result.dadosComplementares = { dataNascimento: data.get('dataNascimento'), instagram: data.get('instagram') };
@@ -100,8 +104,8 @@
     busy = true; var button = form.querySelector('[data-member-registration-submit]'); button.disabled = true; button.textContent = 'Cadastrando...';
     api.apiPost('/admin/ingressos-membros/cadastrar', { payload: JSON.stringify(payload(form)) }).then(function(response) {
       if (!response || response.ok !== true) throw response || new Error('Nao foi possivel cadastrar.');
-      content().innerHTML = '<div class="member-registration-success"><strong>Novo membro cadastrado</strong><p>' + esc(response.message || 'O vinculo esta ativo.') + '</p><dl><dt>Protocolo do ingresso</dt><dd>' + esc(response.data && response.data.idIngresso || '') + '</dd><dt>Status</dt><dd>EXECUTADO</dd></dl><p>O convite foi enfileirado sem bloquear o cadastro.</p><button type="button" class="primary-button" data-member-registration-close>Concluir</button></div>';
-      toast('success', 'Novo membro cadastrado e vinculo ativado.');
+      content().innerHTML = '<div class="member-registration-success"><strong>Membro ingressante admitido</strong><p>' + esc(response.message || 'O vinculo de membro ingressante esta ativo.') + '</p><dl><dt>Protocolo do ingresso</dt><dd>' + esc(response.data && response.data.idIngresso || '') + '</dd><dt>Status</dt><dd>EXECUTADO</dd></dl><p>A pessoa esta em periodo de integracao. O convite e enfileirado sem bloquear a admissao.</p><button type="button" class="primary-button" data-member-registration-close>Concluir</button></div>';
+      toast('success', 'Membro ingressante admitido e vinculo ativado.');
       document.dispatchEvent(new CustomEvent('portal:memberregistered'));
     }).catch(function(error) {
       var feedback = form.querySelector('[data-member-registration-feedback]'); feedback.textContent = error && error.message || 'Nao foi possivel cadastrar.'; feedback.className = 'member-registration-feedback is-error';
