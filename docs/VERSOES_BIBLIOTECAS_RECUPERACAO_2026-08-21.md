@@ -1,8 +1,7 @@
 # Versoes de bibliotecas na recuperacao de 2026-08-21
 
-Este registro documenta o estado encontrado e a conciliacao somente leitura realizada
-com as versoes publicadas do Google Apps Script. Nenhum `clasp push`, `clasp deploy`
-ou alteracao remota foi executado.
+Este registro documenta o estado encontrado, a conciliacao por conteudo e a
+publicacao controlada realizada em 2026-08-21. O deployment PROD nao foi alterado.
 
 | Consumidor | Biblioteca | Versao declarada |
 | --- | --- | --- |
@@ -67,3 +66,19 @@ versoes, mantendo `developmentMode: false`.
 5. Executar smoke tests em DEV e depois em HOMOLOG na cadeia
    Core -> Membros/Atividades -> Portal.
 6. Nao promover para PROD antes de registrar resultados, SHAs, versoes e rollback.
+
+## Registro da publicacao HOMOLOG
+
+- Core 24 criado a partir de `9b2d3cd`; comparacao pos-publicacao: 54/54 arquivos.
+- Membros 9 criado a partir de `f2a76e8`; comparacao pos-publicacao: 26/26 arquivos.
+- Atividades 20 criado a partir de `e22a4b0`; comparacao pos-publicacao: 49/49 arquivos.
+- Portal 104 criado com ambiente backend `DEV` e dependencias Core 24,
+  Atividades 20 e Membros 9.
+- Deployment HOMOLOG atualizado de 103 para 104, preservando a mesma URL.
+- Deployment PROD mantido na versao 100, sem alteracao.
+- Smoke GET: `PORTAL_API_OK`, ambiente efetivo `DEV`.
+- Smoke Core 24: `CONTEUDO_PUBLICO_CORE`, ambiente `DEV`.
+- Smoke Membros 9: token ficticio rejeitado com `CONVITE_AVALIACAO_INVALIDO`,
+  ambiente `DEV`.
+- Publicacao das branches Git e do frontend HOMOLOG permanece pendente de
+  autorizacao especifica para `git push`, exigida pelo controle de seguranca.
