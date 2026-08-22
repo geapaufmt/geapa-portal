@@ -31,6 +31,6 @@ required(model.includes("MEMBRO_INGRESSANTE: 'MEMBRO_INGRESSANTE'"), 'Modelo vis
 required(registration.includes("origemCadastro: data.get('origemCadastro')"), 'Admissao nao envia a origem administrativa.');
 required(registration.includes('value="PROCESSO_SELETIVO" selected') && !registration.includes('CONVITE_DIRETORIA'), 'Admissao permite forma diferente de processo seletivo.');
 required(index.includes('portal-model.js?v=2') && index.includes('auth.js?v=3') && index.includes('navigation.js?v=36') && index.includes('admin-cadastro-membros.js?v=3') && index.includes('app.js?v=36'), 'Cache-busters dos arquivos alterados nao foram atualizados.');
-required(serviceWorker.includes('portal-geapa-pwa-v121'), 'Cache do service worker nao foi incrementado.');
+required(serviceWorker.includes('portal-geapa-pwa-v122'), 'Cache do service worker nao foi incrementado.');
 
 process.stdout.write('Contrato de membro ingressante no Portal aprovado: 14 verificacoes passaram.\n');

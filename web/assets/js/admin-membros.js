@@ -76,6 +76,7 @@
       '<div class="portal-page-heading"><p class="portal-page-eyebrow eyebrow">Gestao do GEAPA</p><h2 class="portal-page-title" id="admin-membros-title">Membros</h2>',
       '<p class="portal-page-description intro">Visao operacional somente leitura para acompanhamento da Secretaria e Diretoria.</p></div>',
       '<div class="admin-members-hero-actions"><span class="portal-page-badge portal-page-badge--readonly admin-members-readonly">Consulta</span>' +
+      '<button class="secondary-button compact-button" type="button" data-admin-members-refresh>Atualizar</button>' +
       (global.PortalGeapaMemberRegistration ? global.PortalGeapaMemberRegistration.renderAction() : '') + '</div>',
       '</header>',
       content
@@ -118,12 +119,12 @@
     return [
       '<form class="portal-filter-panel admin-members-filters" data-admin-members-filters>',
       '<div class="portal-filter-grid portal-filter-grid--primary">',
-      fieldText('texto', 'Buscar membro', 'Nome, RGA ou e-mail'),
+      fieldText('texto', 'Buscar membro', 'Nome, ID, RGA, e-mail, vinculo ou perfil'),
       '</div>',
       '<details class="portal-filter-advanced" open>',
       '<summary>Filtros avancados <span class="portal-filter-count">' + filtrosAtivos + ' ativo(s)</span></summary>',
       '<div class="portal-filter-grid">',
-      fieldSelect('tipoVinculo', 'Tipo de vinculo', state.options.tiposVinculo),
+      fieldSelect('tipoVinculo', 'Categoria do membro', state.options.tiposVinculo),
       fieldSelect('statusVinculo', 'Status do vinculo', state.options.statusVinculo),
       fieldSelect('perfilPortal', 'Perfil no Portal', state.options.perfisPortal),
       fieldSelect('portalAtivo', 'Portal ativo', ['SIM', 'NAO']),
@@ -240,7 +241,7 @@
     content.innerHTML = [
       '<div class="admin-member-detail-lead">' + chip(item.statusVinculoAtual) + '<span>' + value(item.tipoVinculoAtual) + '</span></div>',
       '<dl class="admin-member-detail-grid">',
-      detail('RGA', item.rga), detail('E-mail', item.email), detail('Ocupacao atual', item.cargoFuncaoAtual),
+      detail('ID da pessoa', item.idPessoa), detail('RGA', item.rga), detail('E-mail', item.email), detail('Ocupacao atual', item.cargoFuncaoAtual),
       detail('Perfil no Portal', item.perfilPortalCalculado), detail('Portal ativo', booleanLabel(item.portalAtivo)),
       detail('Tempo efetivo no grupo', item.tempoEfetivoNoGrupo), detail('Semestres no grupo', item.qtdSemestresNoGrupo),
       detail('Apresentacoes realizadas', item.qtdApresentacoesRealizadas), detail('Ciclo da ultima apresentacao', item.cicloUltimaApresentacao),
@@ -296,11 +297,13 @@
     var detailButton = event.target.closest('[data-admin-member-detail]');
     var closeButton = event.target.closest('[data-admin-member-close]');
     var clearButton = event.target.closest('[data-admin-members-clear]');
+    var refreshButton = event.target.closest('[data-admin-members-refresh]');
     var retryButton = event.target.closest('[data-admin-members-retry]');
     var pageButton = event.target.closest('[data-admin-members-page]');
     if (detailButton) return openDetail(detailButton.getAttribute('data-admin-member-detail'));
     if (closeButton) return closeDetail();
     if (!state.active) return;
+    if (refreshButton) return loadMembers();
     if (clearButton) { state.filters = {}; state.page = 1; return loadMembers(); }
     if (retryButton) return loadMembers();
     if (pageButton && !pageButton.disabled) {

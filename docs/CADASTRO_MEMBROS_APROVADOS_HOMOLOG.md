@@ -8,6 +8,12 @@ O botao `Cadastrar novo membro` aparece apenas quando `ENABLE_MEMBER_REGISTRATIO
 
 Cadastro rapido e cadastro completo enviam o mesmo contrato. O navegador nao envia `ID_PESSOA`, `ID_VINCULO`, ator, periodo de ingresso no curso ou semestre atual calculado. Cursos sao lidos de `CURSOS_CATALOGO`; localidades usam o catalogo IBGE versionado e continuam validadas no Core.
 
+Para pessoa nova, `ID_PESSOA` e reservado no backend no formato sequencial
+`PES-000001`. A administracao permite pesquisar por esse ID e diferencia
+explicitamente membro ingressante, efetivo e em espera. O botao `Atualizar`
+repete a consulta com os filtros e a pagina atuais, sem recalcular dados no
+navegador.
+
 ## Riscos e protecoes
 
 - A escrita depende dos setups DEV de Pessoas V2 e da Library Membros contendo os contratos de ingresso.

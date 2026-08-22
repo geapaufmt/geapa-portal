@@ -1296,6 +1296,11 @@ filtros={"texto":"ana","statusVinculo":"ATIVO","pagina":1,"pageSize":25}
 Filtros aceitos: `texto`, `tipoVinculo`, `statusVinculo`, `perfilPortal`,
 `portalAtivo`, `comPendencias`, `situacaoFrequencia`, `pagina` e `pageSize`.
 `pageSize` fica limitado a 100 e a ordenacao padrao e por nome de exibicao.
+`texto` pesquisa nome, `ID_PESSOA`, RGA, e-mail, tipo/status de vinculo, cargo e
+perfil. Perfis compostos, como `DIRETORIA; ADMIN`, sao separados nas opcoes e
+podem ser filtrados individualmente. `situacaoFrequencia` aceita as categorias
+estaveis `REGULAR`, `COM_FALTAS` e `SEM_DADOS`; o resumo textual completo
+continua sendo retornado apenas para exibicao.
 
 Resposta resumida:
 
@@ -1320,6 +1325,7 @@ Resposta resumida:
         "qtdApresentacoesRealizadas": 2,
         "cicloUltimaApresentacao": "CICLO_2026_1",
         "frequenciaResumida": "REGULAR",
+        "situacaoFrequencia": "REGULAR",
         "pendenciasAbertas": "SEM_PENDENCIAS",
         "flagJaFoiSuspenso": "NAO",
         "statusElegibilidadeDiretoria": "ELEGIVEL",
