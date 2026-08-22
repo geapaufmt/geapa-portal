@@ -54,7 +54,7 @@ Apps Script fisicamente separado.
 
 O backend versionado permanece com `producao/PROD` como perfil default. O perfil
 declarativo [`profiles/apps-script.dev.json`](../profiles/apps-script.dev.json)
-fixa separadamente `homologacao/DEV`, Core 30, Atividades 22 e Membros 12. Para
+fixa separadamente `homologacao/DEV`, Core 30, Atividades 23 e Membros 12. Para
 validar ou gerar o pacote sem alterar a fonte PROD, execute:
 
 ```powershell
