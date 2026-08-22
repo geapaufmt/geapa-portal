@@ -1,5 +1,7 @@
 # Auditoria de ambientes - fase 1
 
+> Documento historico de 2026-07-03. A decisao de namespace descrita abaixo foi substituida em 2026-08-21 por projetos Firebase separados para DEV e PROD. Consulte `AMBIENTES_E_DEPLOY.md` e `geapa-atividades/docs/firestore-canonical-cadastro-agenda.md`.
+
 Data da auditoria: 2026-07-03. Esta auditoria usa o codigo dos repositorios e o
 inventario de Registry informado para a fase; nenhuma planilha foi alterada.
 

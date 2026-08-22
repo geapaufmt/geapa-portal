@@ -3,7 +3,9 @@ import {
   doc,
   getDoc,
   getDocs,
-  getFirestore
+  getFirestore,
+  query,
+  where
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 /**
@@ -13,10 +15,12 @@ import {
  */
 (function configurarFirestoreActivities(global) {
   var COLLECTION = 'portalActivities';
+  var CANONICAL_COLLECTION = 'activities';
   var SNAPSHOT_COLLECTION = 'portalActivityCalendarSnapshots';
   var SNAPSHOT_ID = 'current';
   var SCHEMA_VERSION = 'portal-activity-calendar-v3';
   var SNAPSHOT_SCHEMA_VERSION = 'portal-activity-calendar-snapshot-v1';
+  var CANONICAL_SCHEMA_VERSION = 'activity-canonical-v1';
   var DEFAULT_TTL_MS = 6 * 60 * 60 * 1000;
 
   function flagEnabled(name, defaultValue) {
@@ -68,6 +72,16 @@ import {
     );
   }
 
+  function documentoCanonicoValido(data) {
+    return Boolean(
+      data &&
+      data.idAtividade &&
+      data.ativo === true &&
+      data.canonicalSource === 'FIRESTORE' &&
+      data.schemaVersion === CANONICAL_SCHEMA_VERSION
+    );
+  }
+
   function snapshotValido(data, ttlMs) {
     var updatedAt = obterTempoMs(data && data.cacheUpdatedAt);
     return Boolean(
@@ -97,7 +111,7 @@ import {
     var statusPublico = String(data.statusPublico || data.statusPublicacaoPortal || data.statusOperacional || '').trim();
     return {
       idAtividade: String(data.idAtividade || '').trim(),
-      tituloPublico: String(data.titulo || '').trim(),
+      tituloPublico: String(data.tituloPublico || data.titulo || '').trim(),
       tituloConteudoPublico: String(data.tituloConteudoPublico || '').trim(),
       tipoPublico: String(data.tipoPublico || '').trim(),
       tipoAtividade: String(data.tipoAtividade || '').trim(),
@@ -246,6 +260,47 @@ import {
     };
   }
 
+  async function buscarColecaoCanonica(db, inicio) {
+    var canonicalCollection = collection.apply(null, [db].concat(
+      firestorePathSegments(CANONICAL_COLLECTION)
+    ));
+    var snapshot = await getDocs(query(canonicalCollection, where('ativo', '==', true)));
+    var invalidos = 0;
+    var docs = [];
+    snapshot.forEach(function(docSnapshot) {
+      var data = docSnapshot.data() || {};
+      if (!documentoCanonicoValido(data)) {
+        invalidos++;
+        return;
+      }
+      docs.push(normalizarDocumento(data));
+    });
+    if (snapshot.empty || !docs.length) {
+      return {
+        ok: false,
+        code: snapshot.empty ? 'FIRESTORE_CANONICAL_VAZIO' : 'FIRESTORE_CANONICAL_INVALIDO',
+        total: docs.length,
+        invalidos: invalidos,
+        readsEstimados: snapshot.size
+      };
+    }
+    docs.sort(compararAtividades);
+    registrarDiagnostico('FIRESTORE_CANONICAL', inicio, {
+      total: docs.length,
+      invalidos: invalidos,
+      readsEstimados: snapshot.size,
+      schemaVersion: CANONICAL_SCHEMA_VERSION
+    });
+    return {
+      ok: true,
+      origem: 'FIRESTORE_CANONICAL',
+      code: 'FIRESTORE_CANONICAL_OK',
+      data: docs,
+      schemaVersion: CANONICAL_SCHEMA_VERSION,
+      readsEstimados: snapshot.size
+    };
+  }
+
   async function buscarCalendario(options) {
     var inicio = obterTempoAtual();
     var config = global.PortalGeapaConfig || {};
@@ -262,6 +317,17 @@ import {
         readsEstimados: 0
       });
       return { ok: false, origem: 'APPS_SCRIPT_FALLBACK', code: codigoIndisponibilidade, data: [] };
+    }
+
+    if (user && flagEnabled('FIRESTORE_CANONICAL_ACTIVITIES_ENABLED', false)) {
+      try {
+        var canonicalResult = await buscarColecaoCanonica(db, inicio);
+        if (canonicalResult.ok) return canonicalResult;
+      } catch (canonicalError) {
+        registrarDiagnostico('FIRESTORE_CANONICAL_FALHOU', inicio, {
+          code: canonicalError && canonicalError.code ? canonicalError.code : 'FIRESTORE_CANONICAL_FALHOU'
+        });
+      }
     }
 
     var snapshotResult = flagEnabled('FIRESTORE_SNAPSHOT_ENABLED', true)

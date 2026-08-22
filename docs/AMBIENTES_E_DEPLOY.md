@@ -1,162 +1,70 @@
-# Ambientes e deploy do Portal GEAPA
+# Ambientes Firebase e deploy do Portal GEAPA
 
-## Modelo leve da fase 1
+## Projetos separados
 
-Esta fase usa um unico projeto Firebase (`portal-geapa`) e os projetos Apps
-Script existentes. A separacao ocorre por configuracao publica, canal Hosting,
-feature flags e prefixo Firestore. Nao ha novos projetos, copia integral de
-planilhas ou migracao de Registry.
+DEV/HOMOLOG usam um projeto Firebase DEV e PROD usa outro projeto Firebase. A separacao e fisica por projeto; `FIRESTORE_PATH_PREFIX` deve permanecer vazio e caminhos como `environments/dev/*` nao sao aceitos pelas Rules.
 
-| Item | DEV | HOMOLOG | PROD/PILOTO |
+| Item | DEV | HOMOLOG | PROD |
 | --- | --- | --- | --- |
-| URL | local ou canal temporario | preview de PR ou canal `homolog` | `https://portal-geapa.web.app` |
-| Firebase project | `portal-geapa` | `portal-geapa` | `portal-geapa` |
-| Hosting channel | local/temporario | preview PR ou `homolog` | `live` |
+| Firebase project | projeto DEV, a confirmar | o mesmo projeto DEV | `portal-geapa` |
+| Firestore path | raiz do projeto DEV | raiz do projeto DEV | raiz do projeto PROD |
 | Config fonte | `config.dev.js` | `config.homolog.js` | `config.prod.js` |
-| Firestore prefix | `environments/dev` | `environments/homolog` | vazio, preserva caminhos atuais |
-| Registry/dados | DEV | DEV controlado | `PILOTO_V2_DEV_CONTROLADO` enquanto a migracao nao terminar |
-| Apps Script | HEAD permitido | candidato versionado recomendado | versao fixa obrigatoria antes de PROD oficial |
-| Aprovacao | desenvolvedor | Luis/diretoria/testadores | Luis ou responsavel do Environment `production` |
+| Escrita remota nesta fase | somente apos autorizacao | bloqueada/read-only | bloqueada para a migracao |
+| Hosting | local/canal temporario | preview/canal homolog | live |
 
-O endpoint Apps Script permanece igual nesta fase. HOMOLOG usa `READ_ONLY_MODE`
-e flags de mutacao desligadas para impedir operacao acidental sobre dados reais.
+Os arquivos DEV/HOMOLOG versionados deixam Firestore desabilitado e usam `geapa-dev-unconfigured` como marcador inerte. Isso impede fallback acidental para PROD antes de existir configuracao autorizada.
 
-## Configuracao publica
+## Preparacao da configuracao DEV
 
-Nunca edite `web/assets/js/config.js` para trocar ambiente. Gere-o:
+Depois que o projeto Firebase DEV for criado e autorizado, informe a configuracao web apenas no processo de geracao:
 
 ```powershell
+$env:FIREBASE_DEV_WEB_CONFIG_JSON = '<json-publico-do-projeto-dev>'
 npm run config:dev
-npm run config:homolog
-npm run config:prod
 ```
 
-Ou informe metadados do build:
+Para HOMOLOG use a mesma variavel e `npm run config:homolog`. O gerador habilita Firestore somente quando recebe essa configuracao, rejeita `portal-geapa` em DEV/HOMOLOG e rejeita qualquer namespace.
 
-```powershell
-node scripts/generate-portal-config.mjs homolog --channel homolog --version abc123
-```
-
-O gerador valida flags obrigatorias, endpoint HTTPS, projeto Firebase e chaves
-proibidas. `config.js` commitado e PROD por defesa adicional.
-
-## Feature flags
-
-- `FIRESTORE_ENABLED`: desliga todas as leituras Firestore do Portal;
-- `FIRESTORE_SNAPSHOT_ENABLED`: desliga o snapshot agregado;
-- `FIRESTORE_COLLECTION_FALLBACK_ENABLED`: desliga a colecao por atividade;
-- `APPS_SCRIPT_FALLBACK_ENABLED`: controla o fallback de calendario;
-- `ENABLE_ACTIVITY_MANAGEMENT`: controla a rota de gestao de atividades;
-- `ENABLE_JUSTIFICATIVAS`: controla rotas e novas acoes de justificativa;
-- `READ_ONLY_MODE`: oculta rotas de gestao e bloqueia acoes mutaveis conhecidas
-  na camada comum de API;
-- `FIRESTORE_PATH_PREFIX`: seleciona o namespace Firestore.
-
-As validacoes criticas continuam no backend. Flags do front-end organizam
-experiencia e rollout, mas nao substituem autorizacao Apps Script. O bloqueio
-local de escrita evita operacoes acidentais; chamadas forjadas ainda precisam
-ser recusadas pelo backend.
-
-Nesta fase, alterar uma flag publica exige gerar `config.js` e republicar o
-Hosting. Override remoto sem deploy fica para a proxima fase.
-
-## Fluxo diario
+No Core Apps Script, as propriedades independentes sao:
 
 ```text
-feature branch
--> pull request
--> preview Firebase automatico com config HOMOLOG
--> teste pelo Luis
--> merge em homolog/develop quando necessario
--> canal homolog automatico
--> merge em main
--> workflow manual Firebase Hosting Production
--> aprovacao do Environment production
+GEAPA_CORE_FIRESTORE_DEV_PROJECT_ID=<projeto-dev>
+GEAPA_CORE_FIRESTORE_DEV_DATABASE_ID=(default)
+GEAPA_CORE_FIRESTORE_PROD_PROJECT_ID=portal-geapa
+GEAPA_CORE_FIRESTORE_PROD_DATABASE_ID=(default)
 ```
 
-PR e canal HOMOLOG nunca publicam `live` e nunca publicam Firestore Rules.
+As propriedades antigas sem `DEV`/`PROD` nao sao fallback das APIs novas.
 
-## Preparacao unica no GitHub
+## Emulator Suite
 
-Em `Settings -> Environments`, crie:
+O teste local usa o project ID ficticio `demo-geapa-dev`; por ser um demo project, tentativas de atingir servicos nao emulados falham. Execute:
 
-- `homolog`, sem aprovacao obrigatoria;
-- `production`, com Luis/responsavel como required reviewer e protecao para
-  branch `main`.
-
-Ative branch protection em `main`: PR obrigatorio, ao menos uma aprovacao e
-checks do preview concluídos.
-
-## Deploy manual PROD
-
-1. Homologue a URL de preview.
-2. Confirme que `main` contem somente o candidato aprovado.
-3. Abra Actions -> Firebase Hosting Production -> Run workflow.
-4. Digite `PUBLICAR_PROD`.
-5. Aprove o Environment `production`.
-6. Confirme no rodape/console que o build e PROD e o canal e `live`.
-
-GitHub Pages fica como fallback legado e tambem e manual. Use apenas quando a
-URL Pages ainda for necessaria.
-
-## Apps Script e Registry
-
-Producao oficial nao pode usar biblioteca `version: "0"` ou
-`developmentMode: true`. Como esta fase nao cria projetos Apps Script, a
-correcao fica registrada como pendencia critica para a fase 2:
-
-1. publicar versoes imutaveis de Core e Atividades;
-2. fixar essas versoes no manifesto do Portal/Atividades;
-3. criar deployment candidato para HOMOLOG;
-4. promover deployment versionado para PROD;
-5. manter anotados deployment IDs e versoes para rollback.
-
-Tambem fica pendente criar `AMBIENTES_SISTEMA` no Registry. Nenhuma aba ou linha
-foi criada automaticamente nesta fase.
-
-## Diagnostico seguro
-
-No console:
-
-```javascript
-PortalGeapaDebug.getEnvironment()
-PortalGeapaDebug.getBuildInfo()
-PortalGeapaDebug.getDataSources()
+```powershell
+npm run test:firestore-emulator
 ```
 
-O endpoint Apps Script aparece mascarado e nenhum token ou dado pessoal e
-registrado.
+O wrapper isola a configuracao do CLI no workspace, usa Firestore em `127.0.0.1:8080` e encerra o emulador ao final. Nenhum login ou project ID remoto e necessario.
 
-## Escritas com timeout e idempotencia
+## Rules e indexes
 
-O front gera `requestId` e `clientSubmittedAt` para acoes mutaveis. Durante uma
-submissao ou depois de timeout, o mesmo payload reutiliza o ID por ate dez
-minutos. O backend pode reconhecer a solicitacao sem repetir a escrita.
+`firestore.rules` e `firestore.indexes.json` estao preparados, mas nao devem ser publicados nesta tarefa. A `.firebaserc` nao possui alias `default` nem `dev`; somente o alias explicito `prod` permanece. Isso faz comandos sem `--project` falharem em vez de escolherem PROD implicitamente.
 
-- acoes simples: timeout de 30 segundos;
-- uploads de material, foto ou comprovante: timeout de 90 segundos;
-- em timeout, a interface e destravada e orienta o usuario a consultar a tela
-  antes de reenviar;
-- `userMessage` tem prioridade sobre mensagens tecnicas.
+Antes do primeiro deploy remoto no projeto DEV, e obrigatorio:
 
-O preview HOMOLOG permanece `READ_ONLY_MODE=true`; ele valida interface,
-contrato e bloqueios, mas nao deve ser usado para testar escrita real. Escritas
-devem ser homologadas com `config.dev.js` em canal temporario controlado e com
-dados DEV.
+1. obter autorizacao explicita;
+2. confirmar o project ID DEV;
+3. adicionar um alias local `dev` apontando para esse projeto;
+4. repetir `npm run test:firestore-emulator`;
+5. revisar o diff de Rules/indexes;
+6. executar o deploy com `--project <project-id-dev>` explicito.
 
-O pos-processamento de views, Firestore e Mail Hub ocorre pelo job do modulo
-Atividades. Uma falha secundaria nao deve mudar para erro uma gravacao oficial
-ja concluida no Google Sheets.
+Nenhuma Rule, index, Hosting, Script Property ou dado remoto foi alterado pela implementacao local.
 
-## Checklist de deploy
+Os workflows de preview e HOMOLOG exigem disparo manual e confirmacao textual. Eles usam `FIREBASE_DEV_PROJECT_ID`, `FIREBASE_DEV_WEB_CONFIG_JSON` e `FIREBASE_SERVICE_ACCOUNT_GEAPA_DEV`; nenhum deles aponta para `portal-geapa`.
 
-- [ ] Preview usa `ENVIRONMENT=HOMOLOG`.
-- [ ] Preview nao publicou canal `live` nem Firestore Rules.
-- [ ] Nenhum segredo foi adicionado ao front-end.
-- [ ] `npm run check:configs` passou.
-- [ ] Fallback Apps Script foi preservado nas telas criticas.
-- [ ] Prefixo Firestore corresponde ao ambiente.
-- [ ] Ambiente de dados foi conferido, especialmente o PILOTO V2.
-- [ ] Bibliotecas/deployment Apps Script utilizados foram anotados.
-- [ ] Plano de rollback foi revisado.
-- [ ] Deploy PROD foi aprovado no GitHub Environment.
+## Compatibilidade temporaria
+
+O Portal ainda le `portalUsers`, `portalActivities` e `portalActivityCalendarSnapshots` na raiz do projeto correto. Esses caminhos sao caches/read models derivados. As collections canonicas novas do piloto sao `activities` e `activityPrivate`; a segunda nunca e acessivel pelo navegador.
+
+Detalhes do contrato de cadastro/agenda, importacao e exportacao estao em `geapa-atividades/docs/firestore-canonical-cadastro-agenda.md`.

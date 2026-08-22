@@ -20,7 +20,7 @@ Validar, com poucos membros, se o portal:
 - [ ] Confirmar que o Firebase Hosting publica apenas a pasta `web/`.
 - [ ] Confirmar que o front-end não contém dados reais, tokens ou IDs sensíveis.
 - [ ] Confirmar que `API_URL` aponta para a implantação correta do Apps Script.
-- [ ] Configurar `GEAPA_FIREBASE_WEB_API_KEY` nas propriedades do Apps Script.
+- [ ] Configurar `GEAPA_FIREBASE_DEV_WEB_API_KEY` somente no Apps Script DEV autorizado.
 - [ ] Configurar `FIREBASE_SERVICE_ACCOUNT_PORTAL_GEAPA` nos secrets do GitHub.
 - [ ] Liberar os dominios do portal no Firebase Authentication.
 - [ ] Confirmar que o manifesto PWA carrega em `https://portal-geapa.web.app/manifest.json`.
@@ -45,7 +45,7 @@ PORTAL_ENVIO_EMAIL_HABILITADO=true
 PORTAL_MODO_ACESSO=TESTE
 PORTAL_EMAILS_TESTE=email1@exemplo.org,email2@exemplo.org
 PORTAL_CODIGO_SALT=valor-aleatorio-longo
-GEAPA_FIREBASE_WEB_API_KEY=api-key-publica-do-firebase-web
+GEAPA_FIREBASE_DEV_WEB_API_KEY=api-key-publica-do-projeto-dev
 PORTAL_DIAGNOSTICO_IDENTIFICADOR=email-ou-rga-para-teste
 ```
 

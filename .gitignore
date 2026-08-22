@@ -3,9 +3,10 @@
 
 # Dependencias e saidas comuns, caso o frontend evolua no futuro.
 node_modules/
+.firebase-cli-config/
+.firebase/
 dist/
 build/
-.firebase/
 
 # Segredos e credenciais locais.
 .env

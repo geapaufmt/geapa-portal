@@ -1,7 +1,16 @@
 name: Firebase Hosting Preview
 
 on:
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: 'Digite PUBLICAR_PREVIEW_DEV para liberar o preview'
+        required: true
+        type: string
+      channel_id:
+        description: 'Canal temporario (ex.: pr-123)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -10,6 +19,7 @@ permissions:
 
 jobs:
   preview:
+    if: ${{ inputs.confirmacao == 'PUBLICAR_PREVIEW_DEV' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +32,9 @@ jobs:
           node-version: '20'
 
       - name: Gerar configuracao HOMOLOG para o preview
-        run: node scripts/generate-portal-config.mjs homolog --channel "pr-${{ github.event.number }}" --version "${GITHUB_SHA}"
+        env:
+          FIREBASE_DEV_WEB_CONFIG_JSON: ${{ vars.FIREBASE_DEV_WEB_CONFIG_JSON }}
+        run: node scripts/generate-portal-config.mjs homolog --channel "${{ inputs.channel_id }}" --version "${GITHUB_SHA}"
 
       - name: Validar configuracao gerada
         run: node --check web/assets/js/config.js
@@ -30,7 +42,7 @@ jobs:
       - name: Publicar preview no Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PORTAL_GEAPA }}
-          projectId: portal-geapa
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GEAPA_DEV }}
+          projectId: ${{ vars.FIREBASE_DEV_PROJECT_ID }}
+          channelId: ${{ inputs.channel_id }}
           expires: 7d

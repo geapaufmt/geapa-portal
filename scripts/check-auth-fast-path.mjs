@@ -23,7 +23,7 @@ function buildDebug(prefix, environment) {
       ENVIRONMENT: environment,
       DATA_ENVIRONMENT: 'TEST',
       FIRESTORE_PATH_PREFIX: prefix,
-      FIREBASE: { projectId: 'portal-geapa' }
+      FIREBASE: { projectId: environment === 'PROD' ? 'portal-geapa' : 'geapa-dev-test' }
     },
     console: { info() {} }
   };
@@ -53,9 +53,14 @@ function buildSessionValidator() {
 }
 
 const prodDebug = buildDebug('', 'PROD');
-const homologDebug = buildDebug('environments/homolog', 'HOMOLOG');
+const homologDebug = buildDebug('', 'HOMOLOG');
 assert.equal(prodDebug.getStatus().expectedPortalUserPath, 'portalUsers/uid-1234567890');
-assert.equal(homologDebug.getStatus().expectedPortalUserPath, 'environments/homolog/portalUsers/uid-1234567890');
+assert.equal(homologDebug.getStatus().expectedPortalUserPath, 'portalUsers/uid-1234567890');
+const invalidNamespaceDebug = buildDebug('environments/homolog', 'HOMOLOG');
+assert.throws(
+  () => invalidNamespaceDebug.getStatus(),
+  /FIRESTORE_PATH_PREFIX nao e suportado/
+);
 
 prodDebug.record('PORTAL_USER_DOC_FOUND', {
   uid: 'uid-1234567890',

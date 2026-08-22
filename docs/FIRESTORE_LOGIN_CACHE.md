@@ -1,5 +1,7 @@
 # Cache de Login via Firestore
 
+> Atualizacao 2026-08-21: DEV/HOMOLOG e PROD usam projetos Firebase separados. Todas as chamadas do Core recebem ambiente explicito; namespaces nao sao usados. Escritas PROD da API nova estao bloqueadas nesta fase.
+
 O Portal pode ler `portalUsers/{uid}` no Firestore depois do Firebase Auth para
 abrir a interface mais rapidamente. Esse documento e apenas cache operacional:
 GEAPA-CORE + PESSOAS v2 continuam sendo a fonte oficial.
@@ -17,7 +19,7 @@ Authorization: Bearer ScriptApp.getOAuthToken()
 O CORE grava diretamente:
 
 ```text
-projects/portal-geapa/databases/(default)/documents/portalUsers/{uid}
+projects/{projectId-resolvido}/databases/(default)/documents/portalUsers/{uid}
 ```
 
 No fluxo normal, essa escrita acontece automaticamente durante
@@ -27,7 +29,7 @@ inclui um resumo `cacheFirestore` para diagnostico, mas falha de cache nao deve
 bloquear a sessao oficial.
 
 O backend consulta `accounts:lookup` com o ID token e, depois da resposta
-valida, confere `aud`, `iss` e `sub` contra o projeto `portal-geapa` e o UID
+valida, confere `aud`, `iss` e `sub` contra o projeto Firebase do ambiente resolvido e o UID
 retornado. UID e e-mail nunca sao aceitos como identidade apenas porque vieram
 do navegador.
 
@@ -50,12 +52,14 @@ explicitos no `appsscript.json`, inclua tambem `datastore` e
 No projeto Apps Script do GEAPA-CORE, salve em Script Properties:
 
 ```text
-GEAPA_CORE_FIRESTORE_PROJECT_ID=portal-geapa
-GEAPA_CORE_FIRESTORE_DATABASE_ID=(default)
+GEAPA_CORE_FIRESTORE_DEV_PROJECT_ID=<projeto-dev>
+GEAPA_CORE_FIRESTORE_DEV_DATABASE_ID=(default)
+GEAPA_CORE_FIRESTORE_PROD_PROJECT_ID=portal-geapa
+GEAPA_CORE_FIRESTORE_PROD_DATABASE_ID=(default)
 ```
 
-`GEAPA_CORE_FIRESTORE_DATABASE_ID` e opcional; se ausente, o CORE usa
-`(default)`.
+As propriedades `*_DATABASE_ID` sao opcionais; se ausentes, o CORE usa
+`(default)`. As propriedades legadas sem ambiente nao sao fallback.
 
 Nao ha segredo compartilhado nesse caminho. A autorizacao vem do OAuth do Apps
 Script e das permissoes do usuario/projeto que executa o script no Google Cloud.
@@ -135,10 +139,11 @@ Nao crie UID manualmente nem documento por e-mail. O primeiro login valido cria
 
 ## Teste administrativo pelo CORE
 
-Depois de configurar `GEAPA_CORE_FIRESTORE_PROJECT_ID`, execute no Apps Script:
+Depois de configurar o projeto DEV e obter autorizacao explicita, execute no Apps Script DEV:
 
 ```js
 corePortalSyncFirestoreUserByEmail('email@exemplo.com', {
+  ambiente: 'DEV',
   uid: 'UID_FIREBASE_DO_USUARIO',
   dryRun: true
 });
@@ -181,7 +186,7 @@ O fast path so e concedido quando existe Firebase Auth com e-mail verificado e
 o documento do proprio UID possui `portalAtivo=true`, `stale!=true`, schema
 `portal-user-v1` ou `portal-user-v2`, e-mail compativel e cache dentro de
 `FIRESTORE_SESSION_TTL_MS`. Em PROD, o caminho calculado e
-`portalUsers/{uid}`; DEV/HOMOLOG respeitam `FIRESTORE_PATH_PREFIX`.
+`portalUsers/{uid}` na raiz do projeto resolvido; `FIRESTORE_PATH_PREFIX` deve ficar vazio.
 
 Quando o fast path e valido, a interface privada pode abrir imediatamente com
 as permissoes cacheadas. O Apps Script roda em segundo plano e continua sendo a

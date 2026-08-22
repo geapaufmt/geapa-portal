@@ -140,6 +140,7 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       providerId: dados.providerId || ''
     };
     var provisionOptions = {
+      ambiente: portalResolverAmbienteDadosV2_(),
       uid: uid,
       sessao: dados.sessao || null,
       identityVerified: true,
@@ -162,6 +163,7 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       resultado = GEAPA_CORE.portal.access.provisionarFirestoreUserAutenticado(identity, provisionOptions);
     } else if (typeof corePortalSyncFirestoreUserByEmail === 'function') {
       resultado = corePortalSyncFirestoreUserByEmail(email, {
+        ambiente: portalResolverAmbienteDadosV2_(),
         uid: uid,
         sessao: dados.sessao || null,
         dryRun: false
@@ -171,6 +173,7 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       typeof GEAPA_CORE.corePortalSyncFirestoreUserByEmail === 'function'
     ) {
       resultado = GEAPA_CORE.corePortalSyncFirestoreUserByEmail(email, {
+        ambiente: portalResolverAmbienteDadosV2_(),
         uid: uid,
         sessao: dados.sessao || null,
         dryRun: false
@@ -182,6 +185,7 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       typeof GEAPA_CORE.portal.access.syncFirestoreUserByEmail === 'function'
     ) {
       resultado = GEAPA_CORE.portal.access.syncFirestoreUserByEmail(email, {
+        ambiente: portalResolverAmbienteDadosV2_(),
         uid: uid,
         sessao: dados.sessao || null,
         dryRun: false
@@ -737,16 +741,30 @@ function corePortalRequirePermission_(session, permission) {
 
 function portalGetFirebaseWebApiKey_() {
   var propriedades = PropertiesService.getScriptProperties();
-  return propriedades.getProperty(PORTAL_CONFIG.propriedades.firebaseWebApiKey) || '';
+  var environment = portalResolverAmbienteDadosV2_();
+  var propertyName = PORTAL_CONFIG.propriedades.firebaseWebApiKeyByEnvironment[environment];
+  var apiKey = String(propriedades.getProperty(propertyName) || '').trim();
+  if (!apiKey) throw new Error(propertyName + '_NAO_CONFIGURADA');
+  return apiKey;
 }
 
 function portalGetFirebaseProjectId_() {
   var propriedades = PropertiesService.getScriptProperties();
-  return String(
-    propriedades.getProperty('GEAPA_FIREBASE_PROJECT_ID') ||
-    PORTAL_CONFIG.firebaseProjectId ||
-    ''
+  var environment = portalResolverAmbienteDadosV2_();
+  var propertyName = 'GEAPA_FIREBASE_' + environment + '_PROJECT_ID';
+  var configured = String(propriedades.getProperty(propertyName) || '').trim();
+  var declared = String(PORTAL_CONFIG.firebaseProjectIds[environment] || '').trim();
+  var projectId = configured || declared;
+  if (!projectId) throw new Error(propertyName + '_NAO_CONFIGURADO');
+  var otherEnvironment = environment === 'DEV' ? 'PROD' : 'DEV';
+  var otherProjectId = String(
+    propriedades.getProperty('GEAPA_FIREBASE_' + otherEnvironment + '_PROJECT_ID') ||
+    PORTAL_CONFIG.firebaseProjectIds[otherEnvironment] || ''
   ).trim();
+  if (otherProjectId && otherProjectId === projectId) {
+    throw new Error('FIREBASE_DEV_PROD_PROJECT_ID_IGUAIS');
+  }
+  return projectId;
 }
 
 function portalDecodificarFirebaseIdToken_(token) {

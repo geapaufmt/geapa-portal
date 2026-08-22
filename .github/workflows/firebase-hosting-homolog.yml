@@ -1,11 +1,12 @@
 name: Firebase Hosting Homolog
 
 on:
-  push:
-    branches:
-      - develop
-      - homolog
   workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: 'Digite PUBLICAR_HOMOLOG_DEV para liberar o canal'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,6 +17,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ inputs.confirmacao == 'PUBLICAR_HOMOLOG_DEV' }}
     runs-on: ubuntu-latest
     environment:
       name: homolog
@@ -30,12 +32,14 @@ jobs:
           node-version: '20'
 
       - name: Gerar configuracao HOMOLOG
+        env:
+          FIREBASE_DEV_WEB_CONFIG_JSON: ${{ vars.FIREBASE_DEV_WEB_CONFIG_JSON }}
         run: node scripts/generate-portal-config.mjs homolog --channel homolog --version "${GITHUB_SHA}"
 
       - name: Publicar canal homolog
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PORTAL_GEAPA }}
-          projectId: portal-geapa
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GEAPA_DEV }}
+          projectId: ${{ vars.FIREBASE_DEV_PROJECT_ID }}
           channelId: homolog
           expires: 30d

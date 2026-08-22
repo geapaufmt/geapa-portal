@@ -1,5 +1,7 @@
 # Firestore read model de Atividades
 
+> Compatibilidade temporaria: este documento descreve `portalActivities` e `portalActivityCalendarSnapshots` como read models derivados. O piloto novo usa `activities` e `activityPrivate` como fonte canonica apenas para cadastro/agenda no projeto Firebase DEV. Nao ha namespaces.
+
 ## Leitura do Portal
 
 O Portal tenta primeiro ler o documento publico agregado
@@ -79,29 +81,32 @@ calendario publico agregado; dados individuais continuam protegidos.
 atual. Por isso a expiracao nao e comparada com `request.time` nesta versao das
 Rules; a validade continua sendo verificada no cliente e pelo Core.
 
-Publicacao manual das Rules:
+As Rules nao devem ser publicadas nesta tarefa. Depois de autorizacao explicita,
+publique somente no projeto Firebase DEV, sempre com project ID explicito:
 
 ```powershell
-npx.cmd firebase-tools deploy --only firestore:rules --project portal-geapa
+npx.cmd firebase-tools deploy --only firestore:rules,firestore:indexes --project <FIREBASE_DEV_PROJECT_ID>
 ```
 
 Esse comando nao cria ou publica Cloud Functions.
 
 ## Homologacao
 
-1. Executar `atividadesV2_runSyncFirestoreCalendarioCompletoDev()` no
+1. Executar `npm run test:firestore-emulator` e guardar o resultado.
+2. Obter autorizacao explicita para qualquer deploy ou write remoto DEV.
+3. Executar `atividadesV2_runSyncFirestoreCalendarioCompletoDev()` no
    `geapa-atividades`.
-2. Conferir `portalActivityCalendarSnapshots/current` com
+4. Conferir `portalActivityCalendarSnapshots/current` com
    `datasetComplete=true`, `total > 0` e array `atividades` sem dados pessoais.
-3. Publicar as Rules manualmente.
-4. Entrar com usuario sem `portalUsers/{uid}`, abrir Proximas atividades e
+5. Publicar as Rules manualmente no projeto DEV autorizado.
+6. Entrar com usuario sem `portalUsers/{uid}`, abrir Proximas atividades e
    confirmar `FIRESTORE_SNAPSHOT` e `readsEstimados: 1` no console.
-5. Entrar com usuario autenticado, invalidar temporariamente o snapshot em DEV
+7. Entrar com usuario autenticado, invalidar temporariamente o snapshot em DEV
    e confirmar `FIRESTORE_COLLECTION`.
-6. Bloquear a rede do Firestore ou reduzir o TTL e confirmar
+8. Bloquear a rede do Firestore ou reduzir o TTL e confirmar
    `APPS_SCRIPT_FALLBACK`.
-7. Confirmar que detalhes, chamada e justificativas continuam chegando pelo
+9. Confirmar que detalhes, chamada e justificativas continuam chegando pelo
    Apps Script depois da primeira renderizacao.
 
-Firestore permanece cache. Sheets V2 + Apps Script continuam sendo a fonte
-oficial e o ponto de autorizacao para acoes sensiveis.
+Estes caminhos legados permanecem cache. Para o subconjunto novo de
+cadastro/agenda, Firestore DEV e canonico e Sheets recebe exportacao derivada.

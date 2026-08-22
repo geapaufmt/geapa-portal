@@ -1387,7 +1387,8 @@ PORTAL_ENVIO_EMAIL_HABILITADO=true
 PORTAL_MODO_ACESSO=TESTE
 PORTAL_EMAILS_TESTE=email1@exemplo.org,email2@exemplo.org
 PORTAL_CODIGO_SALT=valor-aleatorio-longo
-GEAPA_FIREBASE_WEB_API_KEY=api-key-publica-do-firebase-web
+GEAPA_FIREBASE_DEV_WEB_API_KEY=api-key-publica-do-projeto-dev
+GEAPA_FIREBASE_PROD_WEB_API_KEY=api-key-publica-do-projeto-prod
 PORTAL_MEMBROS_TESTE_JSON=[{"emailCadastrado":"email1@exemplo.org","rga":"RGA-TESTE","nomeExibicao":"Membro de Teste","situacaoGeral":"Em simulacao","vinculo":"Membro em acompanhamento"}]
 PORTAL_DIAGNOSTICO_IDENTIFICADOR=email-ou-rga-para-teste
 ```

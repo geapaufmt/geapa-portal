@@ -18,6 +18,13 @@
     "test:vinculo-v2": "node scripts/check-vinculo-v2.mjs && node scripts/check-admin-vinculo-manual-validation.mjs",
     "test:vinculo-validacoes-manuais": "node scripts/check-admin-vinculo-manual-validation.mjs",
     "test:egress-feedback": "node scripts/check-egress-feedback.mjs",
-    "test:member-registration": "node scripts/check-member-registration.mjs && node scripts/check-member-ingress-v2.mjs && node scripts/check-admin-members-v2.mjs"
+    "test:member-registration": "node scripts/check-member-registration.mjs && node scripts/check-member-ingress-v2.mjs && node scripts/check-admin-members-v2.mjs",
+    "test:firestore-emulator": "node scripts/run-firestore-emulator-tests.mjs",
+    "test:firestore-architecture": "node scripts/check-firestore-environment-architecture.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.18.0",
+    "firebase-tools": "^15.28.1"
   }
 }

@@ -57,9 +57,10 @@
   }
 
   function firestorePathSegments(collectionName, documentId) {
-    var prefix = String(config.FIRESTORE_PATH_PREFIX || '').trim().replace(/^\/+|\/+$/g, '');
-    var segments = prefix ? prefix.split('/').filter(Boolean) : [];
-    segments.push(String(collectionName || '').trim());
+    if (String(config.FIRESTORE_PATH_PREFIX || '').trim()) {
+      throw new Error('FIRESTORE_PATH_PREFIX nao e suportado; configure um projeto Firebase por ambiente.');
+    }
+    var segments = [String(collectionName || '').trim()];
     if (documentId !== undefined && documentId !== null && String(documentId).trim()) {
       segments.push(String(documentId).trim());
     }

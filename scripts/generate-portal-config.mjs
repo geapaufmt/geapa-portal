@@ -35,10 +35,20 @@ config.PORTAL_VERSION = argumentValue(
   process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : config.PORTAL_VERSION
 );
 
+const firebaseEnvName = environment === 'prod'
+  ? 'FIREBASE_PROD_WEB_CONFIG_JSON'
+  : 'FIREBASE_DEV_WEB_CONFIG_JSON';
+if (process.env[firebaseEnvName]) {
+  config.FIREBASE = JSON.parse(process.env[firebaseEnvName]);
+  config.FIREBASE_CONFIGURATION_REQUIRED = false;
+  config.FIRESTORE_ENABLED = true;
+}
+
 const requiredFlags = [
   'FIRESTORE_ENABLED',
   'FIRESTORE_SNAPSHOT_ENABLED',
   'FIRESTORE_COLLECTION_FALLBACK_ENABLED',
+  'FIRESTORE_CANONICAL_ACTIVITIES_ENABLED',
   'APPS_SCRIPT_FALLBACK_ENABLED',
   'ENABLE_ACTIVITY_MANAGEMENT',
   'ENABLE_JUSTIFICATIVAS',
@@ -46,7 +56,8 @@ const requiredFlags = [
   'ENABLE_VINCULO_REQUESTS',
   'ENABLE_EGRESS_FEEDBACK',
   'ENABLE_MEMBER_REGISTRATION',
-  'READ_ONLY_MODE'
+  'READ_ONLY_MODE',
+  'FIREBASE_CONFIGURATION_REQUIRED'
 ];
 requiredFlags.forEach((key) => {
   if (typeof config[key] !== 'boolean') throw new Error(`${key} deve ser booleano.`);
@@ -62,8 +73,23 @@ if (!/^https:\/\/script\.google\.com\/macros\//.test(config.GEAPA_API_BASE_URL |
   throw new Error('GEAPA_API_BASE_URL deve ser um endpoint publico HTTPS do Apps Script.');
 }
 if (!config.FIREBASE || !config.FIREBASE.projectId) throw new Error('FIREBASE.projectId ausente.');
-if (environment === 'prod' && String(config.FIRESTORE_PATH_PREFIX || '')) {
-  throw new Error('PROD deve preservar os caminhos Firestore atuais nesta fase.');
+if (String(config.FIRESTORE_PATH_PREFIX || '')) {
+  throw new Error('Namespaces Firestore nao sao permitidos; use projetos Firebase separados.');
+}
+if (environment !== 'prod' && String(config.FIREBASE.projectId) === 'portal-geapa') {
+  throw new Error('DEV/HOMOLOG nao podem apontar para o projeto Firebase PROD.');
+}
+if (config.FIREBASE_CONFIGURATION_REQUIRED === true && config.FIRESTORE_ENABLED === true) {
+  throw new Error('Firestore deve ficar desabilitado enquanto a configuracao Firebase DEV estiver ausente.');
+}
+if (config.FIRESTORE_ENABLED === true && config.FIREBASE_CONFIGURATION_REQUIRED === false) {
+  ['apiKey', 'authDomain', 'projectId', 'appId'].forEach((key) => {
+    if (!String(config.FIREBASE[key] || '').trim()) throw new Error(`FIREBASE.${key} ausente.`);
+  });
+}
+const expectedFirebaseRole = environment === 'prod' ? 'PROD' : 'DEV';
+if (String(config.FIREBASE_PROJECT_ROLE || '') !== expectedFirebaseRole) {
+  throw new Error(`FIREBASE_PROJECT_ROLE deve ser ${expectedFirebaseRole}.`);
 }
 
 const serialized = JSON.stringify(config, null, 2);

@@ -22,7 +22,8 @@ O fluxo antigo por codigo continua disponivel como fallback durante a migracao.
 Configurar em **Apps Script > Project Settings > Script properties**:
 
 ```text
-GEAPA_FIREBASE_WEB_API_KEY=api-key-publica-do-firebase-web
+GEAPA_FIREBASE_DEV_WEB_API_KEY=api-key-publica-do-projeto-dev
+GEAPA_FIREBASE_PROD_WEB_API_KEY=api-key-publica-do-projeto-prod
 ```
 
 Essa chave e a mesma `apiKey` do `firebaseConfig`. Ela nao e uma chave privada,
@@ -73,7 +74,7 @@ O ID Token completo nao deve ser salvo em `localStorage`, planilha ou logs.
 
 ## Pendencias antes de producao ampla
 
-- Confirmar `GEAPA_FIREBASE_WEB_API_KEY` no Apps Script publicado.
+- Confirmar a API key especifica do ambiente no Apps Script candidato; nao reutilizar a chave PROD em DEV.
 - Confirmar secret `FIREBASE_SERVICE_ACCOUNT_PORTAL_GEAPA` no GitHub.
 - Confirmar dominios autorizados no Firebase Authentication.
 - Validar usuario autorizado, usuario nao cadastrado e usuario desativado.

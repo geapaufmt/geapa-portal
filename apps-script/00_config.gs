@@ -11,7 +11,10 @@ var PORTAL_CONFIG = {
   ambiente: 'producao',
   ambientePerfilCadastral: 'PROD',
   ambienteDadosV2: 'PROD',
-  firebaseProjectId: 'portal-geapa',
+  firebaseProjectIds: Object.freeze({
+    DEV: '',
+    PROD: 'portal-geapa'
+  }),
 
   /**
    * URL futura do frontend publicado.
@@ -88,7 +91,10 @@ var PORTAL_CONFIG = {
     membrosTeste: 'PORTAL_MEMBROS_TESTE_JSON',
     codigoSalt: 'PORTAL_CODIGO_SALT',
     diagnosticoIdentificador: 'PORTAL_DIAGNOSTICO_IDENTIFICADOR',
-    firebaseWebApiKey: 'GEAPA_FIREBASE_WEB_API_KEY'
+    firebaseWebApiKeyByEnvironment: Object.freeze({
+      DEV: 'GEAPA_FIREBASE_DEV_WEB_API_KEY',
+      PROD: 'GEAPA_FIREBASE_PROD_WEB_API_KEY'
+    })
   }
 };
 

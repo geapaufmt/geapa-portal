@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "activities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "dataAtividade", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "activities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statusPublicacaoPortal", "order": "ASCENDING" },
+        { "fieldPath": "visibilidadePortal", "order": "ASCENDING" },
+        { "fieldPath": "dataAtividade", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

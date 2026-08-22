@@ -19,9 +19,13 @@ Google Apps Script
   Funciona como API/backend do portal. Valida identidade, sessao e permissoes
   antes de retornar qualquer dado.
 
+Firestore
+  No projeto DEV, e a fonte canonica apenas do piloto de cadastro/agenda de
+  Atividades. O navegador le somente o contrato publico autorizado.
+
 Google Sheets
-  Armazena dados oficiais do GEAPA. O navegador nunca acessa essas planilhas
-  diretamente.
+  Continua oficial para os dominios ainda nao migrados e recebe espelho
+  derivado do cadastro/agenda. O navegador nunca acessa planilhas diretamente.
 
 Google Drive
   Armazena documentos, arquivos e recursos institucionais.
@@ -30,9 +34,9 @@ Gmail / Apps Script
   Envia códigos de acesso, avisos e e-mails automáticos.
 ```
 
-Regra central: **o front-end chama somente endpoints do Apps Script**. Toda
-consulta real a planilhas, documentos e regras de autorizacao deve acontecer no
-backend.
+Regra central: o front-end usa Apps Script para operacoes autorizadas e pode ler
+somente os contratos Firestore explicitamente liberados pelas Rules. Escritas
+Firestore permanecem exclusivamente no backend.
 
 ## Objetivo desta etapa
 
@@ -172,33 +176,38 @@ O Firebase Hosting publica somente o conteudo publico da pasta `web/`.
 Deploy manual:
 
 ```text
-firebase deploy --only hosting
+firebase deploy --only hosting --project <FIREBASE_PROJECT_ID_EXPLICITO>
 ```
 
-## Firestore no plano Spark
+## Firestore por ambiente
 
 O cache operacional `portalUsers/{uid}` e gravado pelo GEAPA-CORE via Apps
-Script/Firestore REST, usando `ScriptApp.getOAuthToken()`. Nao usamos Cloud
-Functions, Secret Manager, service account nem chave privada.
+Script/Firestore REST, usando `ScriptApp.getOAuthToken()`. DEV/HOMOLOG e PROD
+devem usar projetos Firebase diferentes e caminhos na raiz, sem namespaces.
+Nao usamos Cloud Functions, Secret Manager, service account nem chave privada.
 
 O Apps Script atualiza esse cache automaticamente em `portalLoginFirebase` apos
 o Firebase Auth autenticar o Google e o GEAPA-CORE autorizar a pessoa pela
 PESSOAS v2.
 
-Deploy manual das rules:
+Nesta migracao, nao publique Rules sem autorizacao explicita. Quando o projeto
+DEV estiver confirmado, o comando deve informar esse project ID explicitamente:
 
 ```text
-npx firebase-tools deploy --only firestore:rules --project portal-geapa
+npx firebase-tools deploy --only firestore:rules,firestore:indexes --project <FIREBASE_DEV_PROJECT_ID>
 ```
 
 Depois, configure no Apps Script do GEAPA-CORE:
 
 ```text
-GEAPA_CORE_FIRESTORE_PROJECT_ID=portal-geapa
-GEAPA_CORE_FIRESTORE_DATABASE_ID=(default)
+GEAPA_CORE_FIRESTORE_DEV_PROJECT_ID=<FIREBASE_DEV_PROJECT_ID>
+GEAPA_CORE_FIRESTORE_DEV_DATABASE_ID=(default)
+GEAPA_CORE_FIRESTORE_PROD_PROJECT_ID=portal-geapa
+GEAPA_CORE_FIRESTORE_PROD_DATABASE_ID=(default)
 ```
 
-Detalhes do contrato e autorizacao OAuth: [Cache de Login via Firestore](docs/FIRESTORE_LOGIN_CACHE.md).
+As propriedades antigas sem ambiente nao sao fallback das APIs novas. Detalhes
+de ambiente e teste local: [Ambientes e deploy](docs/AMBIENTES_E_DEPLOY.md).
 
 O deploy automatico em `main` usa
 `.github/workflows/firebase-hosting-merge.yml`. Pull requests recebem preview
