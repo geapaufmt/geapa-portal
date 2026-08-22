@@ -6,9 +6,10 @@ DEV/HOMOLOG usam um projeto Firebase DEV e PROD usa outro projeto Firebase. A se
 
 | Item | DEV | HOMOLOG | PROD |
 | --- | --- | --- | --- |
-| Firebase project | projeto DEV, a confirmar | o mesmo projeto DEV | `portal-geapa` |
+| Firebase project | `geapa-dev` | `geapa-dev` | `portal-geapa` |
 | Firestore path | raiz do projeto DEV | raiz do projeto DEV | raiz do projeto PROD |
 | Config fonte | `config.dev.js` | `config.homolog.js` | `config.prod.js` |
+| Apps Script API | obrigatoria via `GEAPA_DEV_API_BASE_URL` | deployment HOMOLOG/DEV | deployment PROD |
 | Escrita remota nesta fase | somente apos autorizacao | bloqueada/read-only | bloqueada para a migracao |
 | Hosting | local/canal temporario | preview/canal homolog | live |
 
@@ -19,11 +20,87 @@ Os arquivos DEV/HOMOLOG versionados deixam Firestore desabilitado e usam `geapa-
 Depois que o projeto Firebase DEV for criado e autorizado, informe a configuracao web apenas no processo de geracao:
 
 ```powershell
+$env:GEAPA_DEV_API_BASE_URL = '<url-exec-do-apps-script-dev>'
 $env:FIREBASE_DEV_WEB_CONFIG_JSON = '<json-publico-do-projeto-dev>'
 npm run config:dev
 ```
 
-Para HOMOLOG use a mesma variavel e `npm run config:homolog`. O gerador habilita Firestore somente quando recebe essa configuracao, rejeita `portal-geapa` em DEV/HOMOLOG e rejeita qualquer namespace.
+`config.dev.js` nao contem endpoint Apps Script. O gerador exige
+`GEAPA_DEV_API_BASE_URL`, rejeita a URL do deployment PROD e valida o formato
+`https://script.google.com/macros/s/<deployment-id>/exec`. Para HOMOLOG use a
+mesma configuracao Firebase e `npm run config:homolog`; o endpoint HOMOLOG ja e
+uma fonte versionada separada. O gerador habilita Firestore somente quando
+recebe a configuracao Firebase, rejeita `portal-geapa` em DEV/HOMOLOG e rejeita
+qualquer namespace.
+
+## Backend Apps Script DEV/HOMOLOG existente
+
+A consulta somente leitura com `clasp deployments` em 2026-08-22 confirmou que
+o projeto Apps Script local possui deployments imutaveis separados:
+
+- PROD: versao `100`, deployment ID iniciado por `AKfycbxf-...`;
+- HOMOLOG/DEV: versao `109`, com Core 29, Atividades 21 e Membros 12;
+- URL HOMOLOG/DEV reutilizavel:
+  `https://script.google.com/macros/s/AKfycbxyUPuu4tb9mkAys5jwDiBxtgE-g4YYOdaid0qNMrVw5i2oWh_Uyv2BHFAQGJPYdnA2/exec`.
+
+Os dois deployments pertencem ao mesmo projeto Apps Script, mas apontam para
+versoes diferentes. Assim, eles compartilham o conjunto de Script Properties;
+a separacao depende obrigatoriamente do ambiente fixado na versao publicada e
+dos nomes `*_DEV_*`. A versao 109 e o endpoint DEV atual sem
+alterar o deployment PROD 100. Isso e isolamento por deployment, nao por projeto
+Apps Script fisicamente separado.
+
+### Reproduzir o pacote Apps Script DEV 109
+
+O backend versionado permanece com `producao/PROD` como perfil default. O perfil
+declarativo [`profiles/apps-script.dev.json`](../profiles/apps-script.dev.json)
+fixa separadamente `homologacao/DEV`, Core 29, Atividades 21 e Membros 12. Para
+validar ou gerar o pacote sem alterar a fonte PROD, execute:
+
+```powershell
+npm run check:apps-script-dev
+npm run apps-script:dev
+```
+
+O segundo comando gera `build/apps-script/dev`, que e ignorado pelo Git. O
+gerador valida que as Libraries usam versoes imutaveis com
+`developmentMode:false`, que somente as propriedades Firebase/Core DEV sao
+lidas e que configuracao ausente, ambiente invalido ou project IDs divergentes
+falham de forma fechada. O comando nao executa `clasp`, deploy ou operacao
+remota.
+
+Antes de qualquer teste remoto, um GET de smoke somente leitura deve confirmar
+`PORTAL_API_OK` e `meta.ambiente: DEV`. Se essa confirmacao falhar, nao execute
+login, escrita, sincronizacao ou acao operacional.
+
+Com `GEAPA_DEV_API_BASE_URL` definida, execute o preflight somente leitura:
+
+```powershell
+npm run check:apps-script-dev-endpoint
+```
+
+O script rejeita o endpoint PROD, faz apenas um GET sem parametros e exige
+`ok: true`, `code: PORTAL_API_OK` e ambiente efetivo `DEV`.
+
+No Apps Script DEV, somente estas propriedades participam do fluxo migrado:
+
+```text
+GEAPA_FIREBASE_DEV_WEB_API_KEY=<api-key-publica-do-projeto-geapa-dev>
+GEAPA_FIREBASE_DEV_PROJECT_ID=geapa-dev
+GEAPA_CORE_FIRESTORE_DEV_PROJECT_ID=geapa-dev
+GEAPA_CORE_FIRESTORE_DEV_DATABASE_ID=(default)
+```
+
+Propriedades sem sufixo de ambiente nao sao fallback. A API nova do Core rejeita
+ambiente ausente, projeto ausente, DEV e PROD iguais e qualquer escrita PROD.
+
+Se no futuro for exigido isolamento fisico por projeto Apps Script, crie um novo
+projeto `Portal GEAPA DEV`, configure um `.clasp.json` local e ignorado apenas no
+diretorio de trabalho DEV, fixe o backend em `DEV`, use somente as Libraries e
+Script Properties DEV, publique uma nova implantacao Web App e informe sua URL
+somente por `GEAPA_DEV_API_BASE_URL`. Nao reutilize Script ID, propriedades,
+deployment ID ou credenciais de PROD. Essa criacao/publicacao exige autorizacao
+explicita e nao e executada pelos scripts locais deste repositorio.
 
 No Core Apps Script, as propriedades independentes sao:
 

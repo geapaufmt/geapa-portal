@@ -11,10 +11,6 @@ var PORTAL_CONFIG = {
   ambiente: 'producao',
   ambientePerfilCadastral: 'PROD',
   ambienteDadosV2: 'PROD',
-  firebaseProjectIds: Object.freeze({
-    DEV: '',
-    PROD: 'portal-geapa'
-  }),
 
   /**
    * URL futura do frontend publicado.
@@ -94,6 +90,14 @@ var PORTAL_CONFIG = {
     firebaseWebApiKeyByEnvironment: Object.freeze({
       DEV: 'GEAPA_FIREBASE_DEV_WEB_API_KEY',
       PROD: 'GEAPA_FIREBASE_PROD_WEB_API_KEY'
+    }),
+    firebaseProjectIdByEnvironment: Object.freeze({
+      DEV: 'GEAPA_FIREBASE_DEV_PROJECT_ID',
+      PROD: 'GEAPA_FIREBASE_PROD_PROJECT_ID'
+    }),
+    coreFirestoreProjectIdByEnvironment: Object.freeze({
+      DEV: 'GEAPA_CORE_FIRESTORE_DEV_PROJECT_ID',
+      PROD: 'GEAPA_CORE_FIRESTORE_PROD_PROJECT_ID'
     })
   }
 };

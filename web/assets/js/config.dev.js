@@ -5,7 +5,8 @@ window.PortalGeapaConfig = {
   DATA_ENVIRONMENT: 'DEV',
   BUILD_CHANNEL: 'local-dev',
   PORTAL_VERSION: 'local',
-  GEAPA_API_BASE_URL: 'https://script.google.com/macros/s/AKfycbxf-vC0VFALa45AlT1ycKJcL44EB6LiCFBwVy3LIPvrWGxyd5_1U2XKRM03_7rsh-k/exec',
+  // Obrigatorio na geracao via GEAPA_DEV_API_BASE_URL. Nao hardcodar endpoint.
+  GEAPA_API_BASE_URL: '',
   FIRESTORE_ENABLED: false,
   FIRESTORE_SNAPSHOT_ENABLED: false,
   FIRESTORE_COLLECTION_FALLBACK_ENABLED: false,

@@ -22,6 +22,8 @@ const previewWorkflow = fs.readFileSync('.github/workflows/firebase-hosting-pull
 for (const config of [dev, homolog, prod]) {
   assert.equal(config.FIRESTORE_PATH_PREFIX, '');
 }
+assert.equal(dev.GEAPA_API_BASE_URL, '');
+assert.notEqual(homolog.GEAPA_API_BASE_URL, prod.GEAPA_API_BASE_URL);
 assert.notEqual(dev.FIREBASE.projectId, prod.FIREBASE.projectId);
 assert.notEqual(homolog.FIREBASE.projectId, prod.FIREBASE.projectId);
 assert.equal(dev.FIREBASE_CONFIGURATION_REQUIRED, true);
@@ -37,9 +39,13 @@ assert.match(rules, /match \/activities\/\{idAtividade\}/);
 assert.match(rules, /match \/activityPrivate\/\{idAtividade\}[\s\S]*allow read:\s*if false;/);
 assert.match(activitiesClient, /CANONICAL_COLLECTION = 'activities'/);
 assert.doesNotMatch(activitiesClient, /activityPrivate/);
-assert.match(backendConfig, /firebaseProjectIds:[\s\S]*DEV:[\s\S]*PROD:/);
-assert.match(backendAuth, /GEAPA_FIREBASE_' \+ environment \+ '_PROJECT_ID/);
+assert.match(backendConfig, /firebaseWebApiKeyByEnvironment:[\s\S]*GEAPA_FIREBASE_DEV_WEB_API_KEY[\s\S]*GEAPA_FIREBASE_PROD_WEB_API_KEY/);
+assert.match(backendConfig, /firebaseProjectIdByEnvironment:[\s\S]*GEAPA_FIREBASE_DEV_PROJECT_ID[\s\S]*GEAPA_FIREBASE_PROD_PROJECT_ID/);
+assert.match(backendConfig, /coreFirestoreProjectIdByEnvironment:[\s\S]*GEAPA_CORE_FIRESTORE_DEV_PROJECT_ID[\s\S]*GEAPA_CORE_FIRESTORE_PROD_PROJECT_ID/);
+assert.match(backendAuth, /firebaseProjectIdByEnvironment\[environment\]/);
+assert.match(backendAuth, /coreFirestoreProjectIdByEnvironment\[environment\]/);
 assert.doesNotMatch(backendAuth, /GEAPA_FIREBASE_PROJECT_ID/);
+assert.doesNotMatch(backendAuth, /otherEnvironment|configured\s*\|\|\s*declared/);
 for (const workflow of [homologWorkflow, previewWorkflow]) {
   assert.doesNotMatch(workflow, /projectId:\s*portal-geapa/);
   assert.match(workflow, /FIREBASE_DEV_PROJECT_ID/);

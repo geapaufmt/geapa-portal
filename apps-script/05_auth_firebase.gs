@@ -740,31 +740,31 @@ function corePortalRequirePermission_(session, permission) {
 }
 
 function portalGetFirebaseWebApiKey_() {
-  var propriedades = PropertiesService.getScriptProperties();
   var environment = portalResolverAmbienteDadosV2_();
   var propertyName = PORTAL_CONFIG.propriedades.firebaseWebApiKeyByEnvironment[environment];
+  if (!propertyName) throw new Error('PORTAL_FIREBASE_WEB_API_KEY_PROPERTY_INVALIDA');
+  var propriedades = PropertiesService.getScriptProperties();
   var apiKey = String(propriedades.getProperty(propertyName) || '').trim();
   if (!apiKey) throw new Error(propertyName + '_NAO_CONFIGURADA');
   return apiKey;
 }
 
 function portalGetFirebaseProjectId_() {
-  var propriedades = PropertiesService.getScriptProperties();
   var environment = portalResolverAmbienteDadosV2_();
-  var propertyName = 'GEAPA_FIREBASE_' + environment + '_PROJECT_ID';
-  var configured = String(propriedades.getProperty(propertyName) || '').trim();
-  var declared = String(PORTAL_CONFIG.firebaseProjectIds[environment] || '').trim();
-  var projectId = configured || declared;
-  if (!projectId) throw new Error(propertyName + '_NAO_CONFIGURADO');
-  var otherEnvironment = environment === 'DEV' ? 'PROD' : 'DEV';
-  var otherProjectId = String(
-    propriedades.getProperty('GEAPA_FIREBASE_' + otherEnvironment + '_PROJECT_ID') ||
-    PORTAL_CONFIG.firebaseProjectIds[otherEnvironment] || ''
-  ).trim();
-  if (otherProjectId && otherProjectId === projectId) {
-    throw new Error('FIREBASE_DEV_PROD_PROJECT_ID_IGUAIS');
+  var firebasePropertyName = PORTAL_CONFIG.propriedades.firebaseProjectIdByEnvironment[environment];
+  var corePropertyName = PORTAL_CONFIG.propriedades.coreFirestoreProjectIdByEnvironment[environment];
+  if (!firebasePropertyName || !corePropertyName) {
+    throw new Error('PORTAL_FIREBASE_PROJECT_ID_PROPERTIES_INVALIDAS');
   }
-  return projectId;
+  var propriedades = PropertiesService.getScriptProperties();
+  var firebaseProjectId = String(propriedades.getProperty(firebasePropertyName) || '').trim();
+  var coreFirestoreProjectId = String(propriedades.getProperty(corePropertyName) || '').trim();
+  if (!firebaseProjectId) throw new Error(firebasePropertyName + '_NAO_CONFIGURADO');
+  if (!coreFirestoreProjectId) throw new Error(corePropertyName + '_NAO_CONFIGURADO');
+  if (firebaseProjectId !== coreFirestoreProjectId) {
+    throw new Error('PORTAL_FIREBASE_CORE_PROJECT_ID_DIVERGENTE_' + environment);
+  }
+  return firebaseProjectId;
 }
 
 function portalDecodificarFirebaseIdToken_(token) {

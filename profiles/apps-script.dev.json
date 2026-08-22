@@ -1,0 +1,11 @@
+{
+  "profile": "DEV",
+  "portalEnvironment": "homologacao",
+  "profileEnvironment": "DEV",
+  "dataEnvironment": "DEV",
+  "libraries": {
+    "GEAPA_CORE": "29",
+    "GEAPA_ATIVIDADES": "21",
+    "GEAPA_MEMBROS": "12"
+  }
+}

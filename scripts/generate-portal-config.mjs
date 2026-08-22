@@ -24,6 +24,13 @@ const sandbox = { window: {} };
 vm.runInNewContext(source, sandbox, { filename: sourcePath });
 const config = sandbox.window.PortalGeapaConfig;
 
+const prodSourcePath = path.join(root, 'web', 'assets', 'js', 'config.prod.js');
+const prodSandbox = { window: {} };
+vm.runInNewContext(fs.readFileSync(prodSourcePath, 'utf8'), prodSandbox, {
+  filename: prodSourcePath
+});
+const prodConfig = prodSandbox.window.PortalGeapaConfig;
+
 const expectedEnvironment = environment === 'homolog' ? 'HOMOLOG' : environment.toUpperCase();
 if (!config || config.ENVIRONMENT !== expectedEnvironment) {
   throw new Error(`ENVIRONMENT deve ser ${expectedEnvironment} em ${path.basename(sourcePath)}.`);
@@ -34,6 +41,17 @@ config.PORTAL_VERSION = argumentValue(
   '--version',
   process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : config.PORTAL_VERSION
 );
+
+if (environment === 'dev') {
+  if (String(config.GEAPA_API_BASE_URL || '').trim()) {
+    throw new Error('config.dev.js nao pode hardcodar GEAPA_API_BASE_URL. Use GEAPA_DEV_API_BASE_URL.');
+  }
+  const devApiBaseUrl = String(process.env.GEAPA_DEV_API_BASE_URL || '').trim();
+  if (!devApiBaseUrl) {
+    throw new Error('GEAPA_DEV_API_BASE_URL obrigatoria para gerar ou validar DEV.');
+  }
+  config.GEAPA_API_BASE_URL = devApiBaseUrl;
+}
 
 const firebaseEnvName = environment === 'prod'
   ? 'FIREBASE_PROD_WEB_CONFIG_JSON'
@@ -69,8 +87,15 @@ requiredFlags.forEach((key) => {
   }
 });
 
-if (!/^https:\/\/script\.google\.com\/macros\//.test(config.GEAPA_API_BASE_URL || '')) {
-  throw new Error('GEAPA_API_BASE_URL deve ser um endpoint publico HTTPS do Apps Script.');
+const appsScriptEndpointPattern = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
+if (!appsScriptEndpointPattern.test(config.GEAPA_API_BASE_URL || '')) {
+  throw new Error('GEAPA_API_BASE_URL deve ser uma URL /macros/s/<deployment-id>/exec do Apps Script.');
+}
+if (
+  environment !== 'prod' &&
+  String(config.GEAPA_API_BASE_URL || '').trim() === String(prodConfig.GEAPA_API_BASE_URL || '').trim()
+) {
+  throw new Error('APPS_SCRIPT_ENDPOINT_DEV_PROD_IGUAIS');
 }
 if (!config.FIREBASE || !config.FIREBASE.projectId) throw new Error('FIREBASE.projectId ausente.');
 if (String(config.FIRESTORE_PATH_PREFIX || '')) {
