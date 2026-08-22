@@ -39,14 +39,14 @@ A consulta somente leitura com `clasp deployments` em 2026-08-22 confirmou que
 o projeto Apps Script local possui deployments imutaveis separados:
 
 - PROD: versao `100`, deployment ID iniciado por `AKfycbxf-...`;
-- HOMOLOG/DEV: versao `110`, com Core 30, Atividades 21 e Membros 12;
+- HOMOLOG/DEV: versao `111`, com Core 30, Atividades 22 e Membros 12;
 - URL HOMOLOG/DEV reutilizavel:
   `https://script.google.com/macros/s/AKfycbxyUPuu4tb9mkAys5jwDiBxtgE-g4YYOdaid0qNMrVw5i2oWh_Uyv2BHFAQGJPYdnA2/exec`.
 
 Os dois deployments pertencem ao mesmo projeto Apps Script, mas apontam para
 versoes diferentes. Assim, eles compartilham o conjunto de Script Properties;
 a separacao depende obrigatoriamente do ambiente fixado na versao publicada e
-dos nomes `*_DEV_*`. A versao 110 e o endpoint DEV atual sem
+dos nomes `*_DEV_*`. A versao 111 e o endpoint DEV atual sem
 alterar o deployment PROD 100. Isso e isolamento por deployment, nao por projeto
 Apps Script fisicamente separado.
 
@@ -54,7 +54,7 @@ Apps Script fisicamente separado.
 
 O backend versionado permanece com `producao/PROD` como perfil default. O perfil
 declarativo [`profiles/apps-script.dev.json`](../profiles/apps-script.dev.json)
-fixa separadamente `homologacao/DEV`, Core 30, Atividades 21 e Membros 12. Para
+fixa separadamente `homologacao/DEV`, Core 30, Atividades 22 e Membros 12. Para
 validar ou gerar o pacote sem alterar a fonte PROD, execute:
 
 ```powershell
