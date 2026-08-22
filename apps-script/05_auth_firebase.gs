@@ -100,6 +100,7 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
   var dados = autorizacao || {};
   var email = String(dados.email || '').trim();
   var uid = String(dados.uid || '').trim();
+  var environment = portalResolverAmbienteDadosV2_();
   var resultado;
 
   if (!uid) {
@@ -140,7 +141,7 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       providerId: dados.providerId || ''
     };
     var provisionOptions = {
-      ambiente: portalResolverAmbienteDadosV2_(),
+      ambiente: environment,
       uid: uid,
       sessao: dados.sessao || null,
       identityVerified: true,
@@ -163,9 +164,10 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       resultado = GEAPA_CORE.portal.access.provisionarFirestoreUserAutenticado(identity, provisionOptions);
     } else if (typeof corePortalSyncFirestoreUserByEmail === 'function') {
       resultado = corePortalSyncFirestoreUserByEmail(email, {
-        ambiente: portalResolverAmbienteDadosV2_(),
+        ambiente: environment,
         uid: uid,
         sessao: dados.sessao || null,
+        authenticatedEmail: email,
         dryRun: false
       });
     } else if (
@@ -173,9 +175,10 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       typeof GEAPA_CORE.corePortalSyncFirestoreUserByEmail === 'function'
     ) {
       resultado = GEAPA_CORE.corePortalSyncFirestoreUserByEmail(email, {
-        ambiente: portalResolverAmbienteDadosV2_(),
+        ambiente: environment,
         uid: uid,
         sessao: dados.sessao || null,
+        authenticatedEmail: email,
         dryRun: false
       });
     } else if (
@@ -185,17 +188,22 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       typeof GEAPA_CORE.portal.access.syncFirestoreUserByEmail === 'function'
     ) {
       resultado = GEAPA_CORE.portal.access.syncFirestoreUserByEmail(email, {
-        ambiente: portalResolverAmbienteDadosV2_(),
+        ambiente: environment,
         uid: uid,
         sessao: dados.sessao || null,
+        authenticatedEmail: email,
         dryRun: false
       });
     }
   } catch (erro) {
+    var exceptionCode = portalNormalizarCodigoDiagnostico_(
+      erro && (erro.code || erro.name),
+      'FIRESTORE_LOGIN_SYNC_EXCEPTION'
+    );
     Logger.log('GEAPA-PORTAL-FIRESTORE-LOGIN-SYNC ' + JSON.stringify({
       ok: false,
       code: 'FIRESTORE_LOGIN_SYNC_EXCEPTION',
-      erro: erro && erro.message ? erro.message : String(erro)
+      backendCode: exceptionCode
     }));
     portalRegistrarLogProvisionamentoFirestore_({
       acao: 'PORTAL_FIRESTORE_USER_PROVISION_ERROR',
@@ -204,13 +212,14 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       email: email,
       idPessoa: dados.sessao && dados.sessao.idPessoa || '',
       perfilPortal: dados.perfilPortal || '',
-      motivo: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
+      motivo: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED:' + exceptionCode,
       duracaoMs: portalAgoraMs_() - inicio
     });
     return {
       ok: false,
       synced: false,
-      code: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED'
+      code: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
+      backendCode: exceptionCode
     };
   }
 
@@ -222,17 +231,23 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
       email: email,
       idPessoa: dados.sessao && dados.sessao.idPessoa || '',
       perfilPortal: dados.perfilPortal || '',
-      motivo: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
+      motivo: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED:CORE_PROVISIONER_INDISPONIVEL',
       duracaoMs: portalAgoraMs_() - inicio
     });
     return {
       ok: false,
       synced: false,
-      code: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED'
+      code: 'PROVISION_ERROR_FIRESTORE_WRITE_FAILED',
+      backendCode: 'CORE_PROVISIONER_INDISPONIVEL'
     };
   }
 
   var provisionCode = portalNormalizarCodigoProvisionamento_(resultado);
+  var backendCode = portalNormalizarCodigoDiagnostico_(resultado.code, 'CORE_SEM_CODIGO');
+  var firestoreStatus = portalNormalizarCodigoDiagnostico_(
+    resultado.firestoreError && (resultado.firestoreError.status || resultado.firestoreError.code),
+    ''
+  );
   var provisionOk = [
     'PROVISION_OK',
     'PROVISION_ALREADY_VALID',
@@ -249,7 +264,7 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
     email: email,
     idPessoa: dados.sessao && dados.sessao.idPessoa || '',
     perfilPortal: dados.perfilPortal || '',
-    motivo: provisionCode,
+    motivo: [provisionCode, backendCode, firestoreStatus].filter(function(value) { return Boolean(value); }).join(':'),
     duracaoMs: portalAgoraMs_() - inicio
   });
 
@@ -259,7 +274,9 @@ function portalSincronizarCacheFirestoreLogin_(autorizacao) {
     confirmed: provisionOk,
     writer: resultado.writer || '',
     code: provisionCode,
-    httpStatus: resultado.httpStatus || ''
+    httpStatus: resultado.httpStatus || '',
+    backendCode: backendCode,
+    firestoreStatus: firestoreStatus
   };
 }
 
@@ -299,6 +316,12 @@ function portalAnotarSessaoFirebaseCore_(sessao, firebaseEmail, identityConsiste
     identidadeFirebaseCoreConfirmada: consistency.ok === true,
     identidadeFirebaseCoreCodigo: String(consistency.code || '')
   });
+}
+
+function portalNormalizarCodigoDiagnostico_(value, fallback) {
+  var normalized = String(value || '').trim().toUpperCase().replace(/[^A-Z0-9_-]+/g, '_');
+  if (!normalized) return String(fallback || '').trim().toUpperCase().slice(0, 80);
+  return normalized.slice(0, 80);
 }
 
 function portalNormalizarCodigoProvisionamento_(resultado) {
@@ -867,12 +890,13 @@ function portalRegistrarLogProvisionamentoFirestore_(evento) {
   }));
 
   try {
+    var logOptions = { ambiente: portalResolverAmbienteDadosV2_() };
     if (typeof corePortalLogAccess === 'function') {
-      corePortalLogAccess(payload);
+      corePortalLogAccess(payload, logOptions);
     } else if (typeof GEAPA_CORE !== 'undefined' && typeof GEAPA_CORE.corePortalLogAccess === 'function') {
-      GEAPA_CORE.corePortalLogAccess(payload);
+      GEAPA_CORE.corePortalLogAccess(payload, logOptions);
     } else if (typeof GEAPA_CORE !== 'undefined' && GEAPA_CORE.portal && GEAPA_CORE.portal.access && typeof GEAPA_CORE.portal.access.logAccess === 'function') {
-      GEAPA_CORE.portal.access.logAccess(payload);
+      GEAPA_CORE.portal.access.logAccess(payload, logOptions);
     }
   } catch (erro) {
     Logger.log('PORTAL_FIRESTORE_USER_PROVISION_LOG_FALHOU ' + JSON.stringify({ acao: action }));

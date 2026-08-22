@@ -175,5 +175,5 @@ if (!checkOnly) {
   process.stdout.write(`Pacote Apps Script ${profile.profile} gerado em ${path.relative(root, resolvedOutput)}.\n`);
 } else {
   fs.rmSync(outputRoot, { recursive: true, force: true });
-  process.stdout.write('Perfil Apps Script DEV reproduz Portal 109: OK.\n');
+  process.stdout.write('Perfil Apps Script DEV reproduz o pacote declarado: OK.\n');
 }

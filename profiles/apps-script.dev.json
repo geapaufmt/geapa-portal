@@ -4,7 +4,7 @@
   "profileEnvironment": "DEV",
   "dataEnvironment": "DEV",
   "libraries": {
-    "GEAPA_CORE": "29",
+    "GEAPA_CORE": "30",
     "GEAPA_ATIVIDADES": "21",
     "GEAPA_MEMBROS": "12"
   }

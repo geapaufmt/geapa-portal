@@ -39,22 +39,22 @@ A consulta somente leitura com `clasp deployments` em 2026-08-22 confirmou que
 o projeto Apps Script local possui deployments imutaveis separados:
 
 - PROD: versao `100`, deployment ID iniciado por `AKfycbxf-...`;
-- HOMOLOG/DEV: versao `109`, com Core 29, Atividades 21 e Membros 12;
+- HOMOLOG/DEV: versao `110`, com Core 30, Atividades 21 e Membros 12;
 - URL HOMOLOG/DEV reutilizavel:
   `https://script.google.com/macros/s/AKfycbxyUPuu4tb9mkAys5jwDiBxtgE-g4YYOdaid0qNMrVw5i2oWh_Uyv2BHFAQGJPYdnA2/exec`.
 
 Os dois deployments pertencem ao mesmo projeto Apps Script, mas apontam para
 versoes diferentes. Assim, eles compartilham o conjunto de Script Properties;
 a separacao depende obrigatoriamente do ambiente fixado na versao publicada e
-dos nomes `*_DEV_*`. A versao 109 e o endpoint DEV atual sem
+dos nomes `*_DEV_*`. A versao 110 e o endpoint DEV atual sem
 alterar o deployment PROD 100. Isso e isolamento por deployment, nao por projeto
 Apps Script fisicamente separado.
 
-### Reproduzir o pacote Apps Script DEV 109
+### Reproduzir o pacote Apps Script DEV
 
 O backend versionado permanece com `producao/PROD` como perfil default. O perfil
 declarativo [`profiles/apps-script.dev.json`](../profiles/apps-script.dev.json)
-fixa separadamente `homologacao/DEV`, Core 29, Atividades 21 e Membros 12. Para
+fixa separadamente `homologacao/DEV`, Core 30, Atividades 21 e Membros 12. Para
 validar ou gerar o pacote sem alterar a fonte PROD, execute:
 
 ```powershell
@@ -122,6 +122,19 @@ npm run test:firestore-emulator
 ```
 
 O wrapper isola a configuracao do CLI no workspace, usa Firestore em `127.0.0.1:8080` e encerra o emulador ao final. Nenhum login ou project ID remoto e necessario.
+
+## Provisionamento de `portalUsers/{uid}`
+
+Depois que o backend valida o ID token, o Portal envia ao Core a identidade
+Firebase e a sessao oficial. Um e-mail Firebase que seja alias do e-mail
+canonico pode ser aceito somente quando o proprio Core o resolve novamente para
+a mesma `idPessoa`. O snapshot usa o e-mail autenticado, mantendo o UID e a
+validacao do cache privado consistentes.
+
+A resposta `cacheFirestore` preserva codigos diagnosticos seguros em
+`backendCode` e `firestoreStatus`; mensagens internas do Firestore nao sao
+expostas ao navegador. Logs de provisionamento recebem `ambiente` explicitamente
+e nunca devem cair em `PORTAL_LOG_ACESSOS` PROD durante uma execucao DEV.
 
 ## Rules e indexes
 
