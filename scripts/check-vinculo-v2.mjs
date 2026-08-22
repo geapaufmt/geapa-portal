@@ -29,7 +29,7 @@ required(!/\b(idPessoa|idVinculo|rga|email)\s*:/.test(member), 'frontend do memb
 required(member.includes('parametroSuspensao') && member.includes('minimum.valor'), 'frontend nao usa parametro normativo retornado pelo backend');
 required(member.includes('Date.UTC') && !member.includes('new Date(start)'), 'calculo civil inseguro');
 required(admin.includes('ataReferencia') && admin.includes('confirmacaoReforcada'), 'decisao final sem controles de ata/confirmacao');
-required(serviceWorker.includes('portal-geapa-pwa-v122'), 'cache do service worker nao incrementado');
+required(serviceWorker.includes('portal-geapa-pwa-v123'), 'cache do service worker nao incrementado');
 required(serviceWorker.includes('/assets/js/vinculo-solicitacoes.js') && serviceWorker.includes('/assets/js/admin-solicitacoes-vinculo.js'), 'scripts fora do cache PWA');
 required(member.includes('var form = event.target;'), 'submit do vinculo deve usar o formulario originador do evento');
 required(!member.includes('var form = event.currentTarget;'), 'submit delegado nao pode tratar document como formulario');

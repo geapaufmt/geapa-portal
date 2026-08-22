@@ -471,7 +471,10 @@
           throw new Error(resposta && resposta.message || 'Metadados operacionais indisponiveis.');
         }
 
-        dados.calendario = resposta.data.slice();
+        var firestoreClient = global.PortalGeapaFirestoreActivities;
+        dados.calendario = firestoreClient && typeof firestoreClient.mesclarEnriquecimentoOperacional === 'function'
+          ? firestoreClient.mesclarEnriquecimentoOperacional(dados.calendario, resposta.data)
+          : dados.calendario.slice();
         dados.calendarioCarregado = true;
         dados.operacionalCarregado = true;
         dados.ultimaAtualizacao = new Date().toISOString();
@@ -912,11 +915,12 @@
         throw new Error(resposta.message || 'Nao foi possivel carregar detalhes.');
       }
 
-      detalhesCache[id] = resposta.data;
-      atualizarDetalheNoBundleCache(id, resposta.data);
+      var detalheCanonico = mesclarDetalheComResumoCanonico_(id, resposta.data);
+      detalhesCache[id] = detalheCanonico;
+      atualizarDetalheNoBundleCache(id, detalheCanonico);
       return {
         resposta: resposta,
-        detalhe: resposta.data,
+        detalhe: detalheCanonico,
         reutilizada: false
       };
     }).finally(function limparInflight() {
@@ -932,8 +936,9 @@
     var detalhes = normalizarDetalhesPorId(detalhesPorId);
 
     Object.keys(detalhes).forEach(function guardarDetalhe(idAtividade) {
-      detalhesCache[idAtividade] = detalhes[idAtividade];
-      bundle.detalhesPorId[idAtividade] = detalhes[idAtividade];
+      var detalheCanonico = mesclarDetalheComResumoCanonico_(idAtividade, detalhes[idAtividade]);
+      detalhesCache[idAtividade] = detalheCanonico;
+      bundle.detalhesPorId[idAtividade] = detalheCanonico;
     });
 
     if (ultimaAtualizacao) {
@@ -941,6 +946,11 @@
     }
 
     salvarBundleAtividadesCache(bundle);
+  }
+
+  function mesclarDetalheComResumoCanonico_(idAtividade, detalhe) {
+    var resumo = atividadesResumoCache[String(idAtividade || '').trim()] || null;
+    return resumo ? Object.assign({}, detalhe || {}, resumo) : Object.assign({}, detalhe || {});
   }
 
   function configEmModoMock() {

@@ -24,7 +24,8 @@
     "test:member-registration": "node scripts/check-member-registration.mjs && node scripts/check-member-ingress-v2.mjs && node scripts/check-admin-members-v2.mjs",
     "test:firestore-emulator": "node scripts/run-firestore-emulator-tests.mjs",
     "test:firestore-architecture": "node scripts/check-firestore-environment-architecture.mjs",
-    "test:firestore-login-provisioning": "node scripts/check-firestore-login-provisioning.mjs"
+    "test:firestore-login-provisioning": "node scripts/check-firestore-login-provisioning.mjs",
+    "test:firestore-canonical-authority": "node scripts/check-firestore-canonical-authority.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

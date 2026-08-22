@@ -11,6 +11,6 @@ assert.match(admin, /Nome, ID, RGA, e-mail, vinculo ou perfil/, 'A busca deve ex
 assert.match(admin, /Categoria do membro/, 'O filtro deve distinguir as categorias de membro.');
 assert.match(admin, /detail\('ID da pessoa', item\.idPessoa\)/, 'O detalhe administrativo deve exibir o ID tecnico.');
 assert.match(index, /admin-membros\.js\?v=3/, 'O HTML deve invalidar a versao anterior do modulo administrativo.');
-assert.match(worker, /portal-geapa-pwa-v122/, 'O service worker deve invalidar o cache anterior.');
+assert.match(worker, /portal-geapa-pwa-v123/, 'O service worker deve invalidar o cache anterior.');
 
 console.log('OK: busca, filtros, detalhe e atualizacao da administracao de membros validados.');

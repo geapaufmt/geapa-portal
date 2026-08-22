@@ -9,9 +9,8 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 /**
- * Read model do calendario de atividades.
- * Firestore e somente cache; qualquer indisponibilidade retorna controle ao
- * fluxo Apps Script existente.
+ * Calendario de atividades. No perfil canonico, `activities` e authoritative;
+ * os caminhos antigos permanecem apenas como fallback temporario.
  */
 (function configurarFirestoreActivities(global) {
   var COLLECTION = 'portalActivities';
@@ -301,6 +300,32 @@ import {
     };
   }
 
+  function mesclarEnriquecimentoOperacional(canonicalRows, legacyRows) {
+    var legacyById = {};
+    var operationalFields = [
+      'temApresentacao', 'possuiApresentacoes', 'qtdApresentacoes',
+      'resumoApresentacoesPublico', 'badges', 'flags', 'contaPresenca',
+      'contaFalta', 'geraCertificado', 'podeVerDetalhes',
+      'podeJustificarFalta', 'podeRegistrarChamada', 'podeEditar'
+    ];
+    (legacyRows || []).forEach(function(row) {
+      var id = String(row && row.idAtividade || '').trim();
+      if (id && !legacyById[id]) legacyById[id] = row;
+    });
+    return (canonicalRows || []).map(function(canonical) {
+      var merged = Object.assign({}, canonical || {});
+      var legacy = legacyById[String(merged.idAtividade || '').trim()] || {};
+      operationalFields.forEach(function(field) {
+        if (Object.prototype.hasOwnProperty.call(legacy, field)) merged[field] = legacy[field];
+      });
+      merged.source = String(canonical && canonical.source || '');
+      merged.sourceSystem = String(canonical && canonical.sourceSystem || '');
+      merged.sourceHash = String(canonical && canonical.sourceHash || '');
+      merged.schemaVersion = String(canonical && canonical.schemaVersion || '');
+      return merged;
+    });
+  }
+
   async function buscarCalendario(options) {
     var inicio = obterTempoAtual();
     var config = global.PortalGeapaConfig || {};
@@ -397,6 +422,7 @@ import {
   }
 
   global.PortalGeapaFirestoreActivities = {
-    buscarCalendario: buscarCalendario
+    buscarCalendario: buscarCalendario,
+    mesclarEnriquecimentoOperacional: mesclarEnriquecimentoOperacional
   };
 })(window);

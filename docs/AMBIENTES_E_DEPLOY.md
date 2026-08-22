@@ -157,4 +157,20 @@ Os workflows de preview e HOMOLOG exigem disparo manual e confirmacao textual. E
 
 O Portal ainda le `portalUsers`, `portalActivities` e `portalActivityCalendarSnapshots` na raiz do projeto correto. Esses caminhos sao caches/read models derivados. As collections canonicas novas do piloto sao `activities` e `activityPrivate`; a segunda nunca e acessivel pelo navegador.
 
+Com `FIRESTORE_CANONICAL_ACTIVITIES_ENABLED=true`, calendario e lista consultam
+`activities where ativo == true`. O enriquecimento vindo do backend possui uma
+whitelist limitada aos campos dos dominios ainda legados (presenca,
+apresentacoes e permissoes operacionais). Ele nao pode substituir titulo, data,
+horario, local, status, visibilidade ou hashes canonicos. O detalhe carregado
+pelo backend recebe por cima o resumo canonico ja presente no cache do Portal.
+
+Valide essa precedencia antes de empacotar o frontend:
+
+```powershell
+npm run test:firestore-canonical-authority
+```
+
+O navegador nunca consulta `activityPrivate`; dados internos continuam sendo
+lidos somente pelo backend Apps Script autorizado.
+
 Detalhes do contrato de cadastro/agenda, importacao e exportacao estao em `geapa-atividades/docs/firestore-canonical-cadastro-agenda.md`.

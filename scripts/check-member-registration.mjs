@@ -35,6 +35,6 @@ required(/\.member-registration-scroll\s*\{[^}]*overflow:\s*auto/s.test(styles),
 required(/\.member-registration-card \.portal-modal-actions\s*\{[^}]*position:\s*static/s.test(styles), 'Acoes nao permanecem fora da regiao rolavel.');
 required(source.includes('origemCadastro') && source.includes('CADASTRO_INTERESSE') && source.includes('SELETIVO_FECHADO'), 'Origem administrativa nao e enviada no contrato.');
 required(!source.includes('CONVITE_DIRETORIA') && !source.includes('TRANSFERENCIA_INTERNA'), 'Formulario oferece forma de ingresso incompatível com membro ingressante.');
-required(index.includes('style.css?v=58') && index.includes('admin-cadastro-membros.js?v=3') && serviceWorker.includes('portal-geapa-pwa-v122'), 'Cache-busters do cadastro de ingressante nao foram incrementados.');
+required(index.includes('style.css?v=58') && index.includes('admin-cadastro-membros.js?v=3') && serviceWorker.includes('portal-geapa-pwa-v123'), 'Cache-busters do cadastro de ingressante nao foram incrementados.');
 required(serviceWorker.includes("'/assets/js/admin-cadastro-membros.js'"), 'Service worker nao inclui o cadastro de membros.');
 process.stdout.write('Cadastro administrativo de membros aprovado: 23 verificacoes passaram.\n');
