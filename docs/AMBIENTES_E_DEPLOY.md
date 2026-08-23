@@ -15,6 +15,22 @@ DEV/HOMOLOG usam um projeto Firebase DEV e PROD usa outro projeto Firebase. A se
 
 Os arquivos DEV/HOMOLOG versionados deixam Firestore desabilitado e usam `geapa-dev-unconfigured` como marcador inerte. Isso impede fallback acidental para PROD antes de existir configuracao autorizada.
 
+## Checkpoint canonico de Atividades em DEV
+
+O cadastro e a agenda de Atividades encerraram o piloto DEV com o seguinte fluxo:
+
+```text
+Portal DEV
+  -> Firestore canonico (activities + activityPrivate)
+  -> EXPORT_ATIVIDADES_FIRESTORE
+```
+
+Firestore e a fonte da verdade. `EXPORT_ATIVIDADES_FIRESTORE` e uma exportacao regeneravel para Sheets e nunca uma segunda fonte canonica; nao existe reverse sync. `activityPrivate` contem dados internos e e backend-only. O navegador consome somente os campos permitidos de `activities`, e toda autorizacao de mutacao continua no Apps Script.
+
+Atividades normais nao possuem exclusao fisica no contrato operacional. A politica e cancelar e ocultar, preservando historico e auditoria. Exclusoes permanecem restritas a rotinas tecnicas de importacao/rollback ou cleanup, com gates e validacoes proprias.
+
+Continuam no legado, fora desse primeiro corte: presencas, justificativas, apresentacoes, envolvidos, convites, arquivos/materiais, notificacoes e logs. A migracao futura desses dominios nao pode reintroduzir dual-write, transformar Sheets em autoridade ou permitir que um dominio sobrescreva silenciosamente outro agregado canonico.
+
 ## Preparacao da configuracao DEV
 
 Depois que o projeto Firebase DEV for criado e autorizado, informe a configuracao web apenas no processo de geracao:
@@ -39,14 +55,14 @@ A consulta somente leitura com `clasp deployments` em 2026-08-22 confirmou que
 o projeto Apps Script local possui deployments imutaveis separados:
 
 - PROD: versao `100`, deployment ID iniciado por `AKfycbxf-...`;
-- HOMOLOG/DEV: versao `111`, com Core 30, Atividades 22 e Membros 12;
+- HOMOLOG/DEV: versao `116`, com Core 30, Atividades 27 e Membros 12;
 - URL HOMOLOG/DEV reutilizavel:
   `https://script.google.com/macros/s/AKfycbxyUPuu4tb9mkAys5jwDiBxtgE-g4YYOdaid0qNMrVw5i2oWh_Uyv2BHFAQGJPYdnA2/exec`.
 
 Os dois deployments pertencem ao mesmo projeto Apps Script, mas apontam para
 versoes diferentes. Assim, eles compartilham o conjunto de Script Properties;
 a separacao depende obrigatoriamente do ambiente fixado na versao publicada e
-dos nomes `*_DEV_*`. A versao 111 e o endpoint DEV atual sem
+dos nomes `*_DEV_*`. A versao 116 e o endpoint DEV atual sem
 alterar o deployment PROD 100. Isso e isolamento por deployment, nao por projeto
 Apps Script fisicamente separado.
 
