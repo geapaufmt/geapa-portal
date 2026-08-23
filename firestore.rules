@@ -10,6 +10,19 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.stale == false;
     }
 
+    function portalUserEhGestao() {
+      return portalUserAtivo()
+        && (
+          get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.get("perfilOperacional", "") in ["SECRETARIO", "DIRETORIA", "ADMIN_TECNICO"]
+          || get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.get("roles", []).hasAny(["SECRETARIO", "DIRETORIA", "ADMIN"])
+        );
+    }
+
+    function apresentacaoPertenceAoUsuario() {
+      return portalUserAtivo()
+        && resource.data.get("idPessoaApresentador", "") == get(/databases/$(database)/documents/portalUsers/$(request.auth.uid)).data.get("idPessoa", "");
+    }
+
     match /portalUsers/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
@@ -31,6 +44,22 @@ service cloud.firestore {
     }
 
     match /activityPrivate/{idAtividade} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    match /presentations/{idApresentacao} {
+      allow read: if portalUserAtivo()
+        && resource.data.ativo == true
+        && (
+          resource.data.publicarNoPortal == true
+          || apresentacaoPertenceAoUsuario()
+          || portalUserEhGestao()
+        );
+      allow write: if false;
+    }
+
+    match /presentationPrivate/{idApresentacao} {
       allow read: if false;
       allow write: if false;
     }

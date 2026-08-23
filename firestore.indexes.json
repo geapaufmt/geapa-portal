@@ -16,6 +16,32 @@
         { "fieldPath": "visibilidadePortal", "order": "ASCENDING" },
         { "fieldPath": "dataAtividade", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "presentations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "idPessoaApresentador", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "presentations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statusTituloEixo", "order": "ASCENDING" },
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "presentations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "cicloSnapshot", "order": "ASCENDING" },
+        { "fieldPath": "semestreSnapshot", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

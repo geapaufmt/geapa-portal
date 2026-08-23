@@ -24,7 +24,19 @@ before(async () => {
       ativo: true,
       podeAcessarPortal: true,
       podeLerDadosPrivados: true,
-      stale: false
+      stale: false,
+      idPessoa: 'PES-000001',
+      perfilOperacional: 'MEMBRO',
+      roles: ['MEMBRO']
+    });
+    await setDoc(doc(db, 'portalUsers', 'manager-user'), {
+      ativo: true,
+      podeAcessarPortal: true,
+      podeLerDadosPrivados: true,
+      stale: false,
+      idPessoa: 'PES-000099',
+      perfilOperacional: 'DIRETORIA',
+      roles: ['DIRETORIA']
     });
     await setDoc(doc(db, 'portalUsers', 'inactive-user'), {
       ativo: false,
@@ -51,6 +63,38 @@ before(async () => {
     await setDoc(doc(db, 'portalActivities', 'ATV-2026-1-0001'), {
       idAtividade: 'ATV-2026-1-0001',
       ativoNoReadModel: true
+    });
+    await setDoc(doc(db, 'presentations', 'APR-2026-1-0001'), {
+      idApresentacao: 'APR-2026-1-0001',
+      idAtividade: 'ATV-2026-1-0001',
+      idPessoaApresentador: 'PES-000001',
+      ativo: true,
+      publicarNoPortal: false,
+      statusApresentacao: 'AGENDADA',
+      schemaVersion: 'presentation-canonical-v1'
+    });
+    await setDoc(doc(db, 'presentations', 'APR-2026-1-0002'), {
+      idApresentacao: 'APR-2026-1-0002',
+      idAtividade: 'ATV-2026-1-0001',
+      idPessoaApresentador: 'PES-000002',
+      ativo: true,
+      publicarNoPortal: true,
+      statusApresentacao: 'APROVADA',
+      schemaVersion: 'presentation-canonical-v1'
+    });
+    await setDoc(doc(db, 'presentations', 'APR-2026-1-0003'), {
+      idApresentacao: 'APR-2026-1-0003',
+      idAtividade: 'ATV-2026-1-0001',
+      idPessoaApresentador: 'PES-000002',
+      ativo: true,
+      publicarNoPortal: false,
+      statusApresentacao: 'AGENDADA',
+      schemaVersion: 'presentation-canonical-v1'
+    });
+    await setDoc(doc(db, 'presentationPrivate', 'APR-2026-1-0001'), {
+      idApresentacao: 'APR-2026-1-0001',
+      emailApresentador: 'privado@example.invalid',
+      schemaVersion: 'presentation-private-v1'
     });
   });
 });
@@ -89,6 +133,28 @@ test('cliente nao escreve nas collections canonicas', async () => {
   }));
   await assertFails(setDoc(doc(db, 'activityPrivate', 'ATV-2026-1-0002'), {
     idAtividade: 'ATV-2026-1-0002'
+  }));
+});
+
+test('apresentacoes respeitam publicacao, ownership e perfil de gestao', async () => {
+  const member = environment.authenticatedContext('active-user').firestore();
+  const manager = environment.authenticatedContext('manager-user').firestore();
+  await assertSucceeds(getDoc(doc(member, 'presentations', 'APR-2026-1-0001')));
+  await assertSucceeds(getDoc(doc(member, 'presentations', 'APR-2026-1-0002')));
+  await assertFails(getDoc(doc(member, 'presentations', 'APR-2026-1-0003')));
+  await assertSucceeds(getDoc(doc(manager, 'presentations', 'APR-2026-1-0003')));
+});
+
+test('presentationPrivate e inacessivel e browser nao escreve apresentacoes', async () => {
+  const db = environment.authenticatedContext('active-user').firestore();
+  await assertFails(getDoc(doc(db, 'presentationPrivate', 'APR-2026-1-0001')));
+  await assertFails(setDoc(doc(db, 'presentations', 'APR-2026-1-0099'), {
+    idApresentacao: 'APR-2026-1-0099',
+    ativo: true,
+    publicarNoPortal: true
+  }));
+  await assertFails(setDoc(doc(db, 'presentationPrivate', 'APR-2026-1-0099'), {
+    idApresentacao: 'APR-2026-1-0099'
   }));
 });
 
