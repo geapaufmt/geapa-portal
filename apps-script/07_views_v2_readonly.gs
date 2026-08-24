@@ -148,6 +148,7 @@ function portalMontarContextoAtividadesReadonlyV2_(contexto) {
   var perfil = portalResolverPerfilAtividadesReadonlyV2_(origem);
 
   return {
+    ambienteBackend: portalResolverAmbienteDadosV2_(),
     perfil: perfil,
     idPessoa: String(origem.idPessoa || '').trim(),
     rga: String(origem.rga || '').trim(),

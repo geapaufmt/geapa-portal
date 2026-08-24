@@ -13,9 +13,14 @@ assert.match(config, /ambienteDadosV2:\s*'PROD'/, 'o backend deve fixar o ambien
 assert.match(config, /function portalResolverAmbienteDadosV2_\(\)/, 'o backend deve validar DEV ou PROD');
 assert.match(activities, /ambienteBackend:\s*portalResolverAmbienteDadosV2_\(\)/, 'Atividades deve receber ambiente do backend');
 assert.match(activities, /contexto\.contextoAtividades\.ambienteBackend/, 'cache de Atividades deve separar ambientes');
+assert.match(
+  views,
+  /function portalMontarContextoAtividadesReadonlyV2_[\s\S]*ambienteBackend:\s*portalResolverAmbienteDadosV2_\(\)/,
+  'Minhas Apresentacoes deve propagar o ambiente efetivo explicitamente'
+);
 assert.match(views, /domainLogicalSheet:\s*'PORTAL_/, 'views devem declarar aba logica, nao key especifica');
 assert.match(views, /coreReadDomainRecords/, 'fallback de views deve usar o resolvedor de dominio do Core');
 assert.doesNotMatch(views, /ATIVIDADES_V2_PORTAL_/, 'views nao devem depender operacionalmente de keys especificas');
 assert.doesNotMatch(frontend, /ambienteDadosV2\s*[:=]|PESSOAS_V2_DB|VIGENCIAS_V2_DB|ATIVIDADES_V2_DB/, 'frontend nao pode escolher ambiente ou base V2');
 
-console.log(JSON.stringify({ ok: true, checks: 8 }));
+console.log(JSON.stringify({ ok: true, checks: 9 }));
