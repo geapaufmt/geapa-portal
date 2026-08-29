@@ -932,8 +932,10 @@ function portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, config)
   var contexto = portalMontarContextoViewsV2_(token, config);
 
   if (!contexto.ok) {
+    portalTraceMark_('B1', 'SESSAO_OU_PERMISSAO_REJEITADA');
     return contexto.resposta;
   }
+  portalTraceMark_('B1', 'SESSAO_E_PERMISSAO_VALIDADAS');
 
   var payload = portalLerPayloadJson_(payloadJson);
 
@@ -949,7 +951,11 @@ function portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, config)
   }
 
   var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  portalTraceMark_('B2', 'ADAPTER_APRESENTACOES_INICIADO');
   var resposta = portalChamarAtividadesPacoteApresentacoesV2_(config.funcao, dadosPayload, contextoAtividades);
+  var dadosTiming = resposta && (resposta.data || resposta.dados || resposta) || {};
+  portalTraceImportMarks_(dadosTiming.operationalTiming);
+  portalTraceMark_('B9', 'ADAPTER_APRESENTACOES_RETORNOU');
 
   if (resposta && resposta.ok !== false) {
     portalInvalidarCachesApresentacoesV2_(contexto, resposta.data || resposta.dados || {});

@@ -139,14 +139,17 @@ function portalMontarOpcoesCore_(origem, extras) {
 
 var __portal_trace_context = null;
 
-function portalIniciarTrace_(acao, requestId) {
+function portalIniciarTrace_(acao, requestId, receivedAtMs) {
+  var inicioMs = Number(receivedAtMs || new Date().getTime());
   __portal_trace_context = {
     traceId: String(requestId || ('PORTAL-' + Utilities.getUuid())).slice(0, 80),
     acao: String(acao || '').slice(0, 80),
     ambiente: portalResolverAmbienteDadosV2_(),
-    inicioMs: new Date().getTime(),
-    etapas: []
+    inicioMs: inicioMs,
+    etapas: [],
+    marcos: []
   };
+  portalTraceMark_('B0', 'REQUEST_RECEBIDO', inicioMs);
   return __portal_trace_context;
 }
 
@@ -164,6 +167,27 @@ function portalTraceEtapa_(etapa, inicioMs, code, origem) {
   });
 }
 
+function portalTraceMark_(code, label, atMs) {
+  if (!__portal_trace_context || __portal_trace_context.ambiente !== 'DEV') return;
+  var now = Number(atMs || new Date().getTime());
+  __portal_trace_context.marcos.push({
+    code: String(code || '').slice(0, 8),
+    label: String(label || '').slice(0, 80),
+    at: new Date(now).toISOString(),
+    elapsedMs: Math.max(now - __portal_trace_context.inicioMs, 0)
+  });
+}
+
+function portalTraceImportMarks_(timing) {
+  if (!__portal_trace_context || __portal_trace_context.ambiente !== 'DEV') return;
+  var source = timing && Array.isArray(timing.marks) ? timing.marks : [];
+  source.forEach(function(mark) {
+    if (!/^B[3-8]$/.test(String(mark && mark.code || ''))) return;
+    var parsed = new Date(String(mark.at || '')).getTime();
+    portalTraceMark_(mark.code, mark.label, isNaN(parsed) ? null : parsed);
+  });
+}
+
 function portalTraceMeta_() {
   if (!__portal_trace_context) {
     return { ambiente: portalResolverAmbienteDadosV2_() };
@@ -173,6 +197,9 @@ function portalTraceMeta_() {
     ambiente: __portal_trace_context.ambiente,
     acao: __portal_trace_context.acao,
     tempoTotalMs: Math.max(new Date().getTime() - __portal_trace_context.inicioMs, 0),
-    etapas: __portal_trace_context.etapas.slice()
+    etapas: __portal_trace_context.etapas.slice(),
+    marcos: __portal_trace_context.ambiente === 'DEV'
+      ? __portal_trace_context.marcos.slice()
+      : []
   };
 }

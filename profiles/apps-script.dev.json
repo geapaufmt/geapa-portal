@@ -5,7 +5,7 @@
   "dataEnvironment": "DEV",
   "libraries": {
     "GEAPA_CORE": "33",
-    "GEAPA_ATIVIDADES": "48",
+    "GEAPA_ATIVIDADES": "49",
     "GEAPA_MEMBROS": "12"
   }
 }

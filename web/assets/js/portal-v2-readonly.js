@@ -8,6 +8,7 @@
   var api = global.PortalGeapaApi;
   var ui = global.PortalGeapaUi;
   var navigation = global.PortalGeapaNavigation;
+  var portalConfig = global.PortalGeapaConfig || {};
   var ROTAS = {
     frequencia: {
       titulo: 'Minha frequencia',
@@ -161,12 +162,12 @@
     }
   }
 
-  function carregarTela(idRota) {
+  function carregarTela(idRota, timingHooks) {
     var definicao = ROTAS[idRota];
     var container = document.getElementById('placeholder-content');
 
     if (!definicao || !container) {
-      return;
+      return Promise.resolve(false);
     }
 
     estado.rotaAtual = idRota;
@@ -178,18 +179,19 @@
 
     if (cache) {
       renderizarBase(container, definicao, montarConteudo(definicao, cache.data || {}, true));
-      buscarTela(definicao, container, cacheKey, true);
-      return;
+      return buscarTela(definicao, container, cacheKey, true, timingHooks);
     }
 
     renderizarBase(container, definicao, montarLoadingLocalReadonly('Carregando dados da view V2...'));
     ui.mostrarLoading('Carregando view V2...');
-    buscarTela(definicao, container, cacheKey, false);
+    return buscarTela(definicao, container, cacheKey, false, timingHooks);
   }
 
-  function buscarTela(definicao, container, cacheKey, emSegundoPlano) {
-    api.apiGet(definicao.endpoint, {})
+  function buscarTela(definicao, container, cacheKey, emSegundoPlano, timingHooks) {
+    var hooks = timingHooks || {};
+    return api.apiGet(definicao.endpoint, {})
       .then(function tratarResposta(resposta) {
+        if (typeof hooks.onResponse === 'function') hooks.onResponse();
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Nao foi possivel carregar a view V2.');
         }
@@ -199,6 +201,8 @@
           return;
         }
         renderizarBase(container, definicao, montarConteudo(definicao, resposta.data || {}));
+        if (typeof hooks.onRendered === 'function') hooks.onRendered();
+        return true;
       })
       .catch(function tratarErro(erro) {
         if (emSegundoPlano) {
@@ -210,6 +214,8 @@
           definicao,
           '<p class="empty-state readonly-error">' + ui.escaparHtml(erro.message || 'Erro controlado ao carregar a view V2.') + '</p>'
         );
+        if (typeof hooks.onError === 'function') hooks.onError(erro);
+        return false;
       })
       .then(function finalizar() {
         if (!emSegundoPlano) {
@@ -2511,9 +2517,71 @@
     }, { form: form, acao: acao });
   }
 
+  function criarRequestIdApresentacaoDev_() {
+    return 'GEAPA-REQ-' + Date.now() + '-' +
+      Math.random().toString(36).slice(2, 10).toUpperCase();
+  }
+
+  function criarTimingApresentacaoDev_(acao, requestId) {
+    if (String(portalConfig.ENVIRONMENT || '').trim().toUpperCase() !== 'DEV') {
+      return null;
+    }
+    return {
+      requestId: String(requestId || '').slice(0, 120),
+      action: String(acao || '').slice(0, 80),
+      marks: []
+    };
+  }
+
+  function marcarTimingApresentacaoDev_(timing, code, label) {
+    if (!timing) return;
+    timing.marks.push({
+      code: String(code || '').slice(0, 8),
+      label: String(label || '').slice(0, 80),
+      at: new Date().toISOString()
+    });
+  }
+
+  function importarTimingTransporteApresentacaoDev_(timing, resposta) {
+    if (!timing) return;
+    var transport = resposta && resposta.meta &&
+      resposta.meta.devClientTransportTiming;
+    (transport && transport.marks || []).forEach(function(mark) {
+      if (['F1', 'F2', 'F3', 'FT'].indexOf(String(mark.code || '')) < 0) return;
+      timing.marks.push({
+        code: String(mark.code || '').slice(0, 8),
+        label: String(mark.label || '').slice(0, 80),
+        at: String(mark.at || '')
+      });
+    });
+  }
+
+  function publicarTimingApresentacaoDev_(timing) {
+    if (!timing || !global.console || typeof global.console.info !== 'function') return;
+    var snapshot = {
+      requestId: timing.requestId,
+      action: timing.action,
+      marks: timing.marks.slice(),
+      backend: timing.backend || null
+    };
+    global.__PortalGeapaDevPresentationTimings =
+      global.__PortalGeapaDevPresentationTimings || [];
+    global.__PortalGeapaDevPresentationTimings.push(snapshot);
+    if (global.__PortalGeapaDevPresentationTimings.length > 20) {
+      global.__PortalGeapaDevPresentationTimings.shift();
+    }
+    global.console.info(
+      'GEAPA-PRESENTATIONS-DEV-TIMING ' + JSON.stringify(snapshot)
+    );
+  }
+
   function executarPostApresentacao(route, payload, opcoes) {
     var config = opcoes || {};
     var toastId;
+    payload = Object.assign({}, payload || {});
+    payload.requestId = payload.requestId || criarRequestIdApresentacaoDev_();
+    var timing = criarTimingApresentacaoDev_(config.acao, payload.requestId);
+    marcarTimingApresentacaoDev_(timing, 'F0', 'CLIQUE_RECEBIDO');
 
     if (config.form) {
       definirFormularioEnviando(config.form, true);
@@ -2537,6 +2605,8 @@
       payload: JSON.stringify(payload)
     })
       .then(function tratar(resposta) {
+        importarTimingTransporteApresentacaoDev_(timing, resposta);
+        if (timing) timing.backend = resposta && resposta.meta && resposta.meta.trace || null;
         var feedback = ui.normalizarFeedbackResposta(resposta);
 
         if (!resposta.ok) {
@@ -2552,6 +2622,7 @@
           throw erro;
         }
 
+        marcarTimingApresentacaoDev_(timing, 'F4', 'MUTATION_CONCLUIDA');
         var sucesso = montarFeedbackSucessoApresentacao(config.acao, payload, feedback);
         estado.feedbackPersistente = Object.assign({
           idRota: estado.rotaAtual || 'minhas-apresentacoes'
@@ -2559,7 +2630,16 @@
         fecharModal();
         invalidarCacheApresentacoes();
         notificarApresentacoesAtualizadas(payload, feedback.data);
-        carregarTela(estado.rotaAtual || 'minhas-apresentacoes');
+        marcarTimingApresentacaoDev_(timing, 'F5', 'REFRESH_INICIADO');
+        carregarTela(estado.rotaAtual || 'minhas-apresentacoes', {
+          onResponse: function() {
+            marcarTimingApresentacaoDev_(timing, 'F6', 'REFRESH_CONCLUIDO');
+          },
+          onRendered: function() {
+            marcarTimingApresentacaoDev_(timing, 'F7', 'RENDER_ADMIN_RECOMPOSTO');
+            publicarTimingApresentacaoDev_(timing);
+          }
+        });
         ui.atualizarToast(toastId, {
           type: sucesso.type,
           title: sucesso.title,
@@ -2585,6 +2665,8 @@
       .finally(function finalizar() {
         definirFormularioEnviando(config.form, false);
         ui.ocultarLoading();
+        marcarTimingApresentacaoDev_(timing, 'F8', 'INDICADOR_PROCESSANDO_REMOVIDO');
+        publicarTimingApresentacaoDev_(timing);
       });
   }
 

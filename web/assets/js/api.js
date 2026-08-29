@@ -110,7 +110,7 @@
     try {
       payload = JSON.parse(String(output.payload || '{}')) || {};
     } catch (error) {
-      return { params: output, key: '' };
+      return { params: output, key: '', requestId: '' };
     }
     var key = assinaturaSubmissao(acao, output.payload);
     var pending = requisicoesPendentes[key];
@@ -125,7 +125,32 @@
     payload.requestId = payload.requestId || pending.requestId;
     payload.clientSubmittedAt = payload.clientSubmittedAt || pending.clientSubmittedAt;
     output.payload = JSON.stringify(payload);
-    return { params: output, key: key };
+    return { params: output, key: key, requestId: String(payload.requestId || '') };
+  }
+
+  function criarTimingTransporteDev_(acao, requestId) {
+    if (String(config.ENVIRONMENT || '').trim().toUpperCase() !== 'DEV') return null;
+    return {
+      action: String(acao || '').slice(0, 80),
+      requestId: String(requestId || '').slice(0, 120),
+      marks: []
+    };
+  }
+
+  function marcarTimingTransporteDev_(timing, code, label) {
+    if (!timing) return;
+    timing.marks.push({
+      code: String(code || '').slice(0, 8),
+      label: String(label || '').slice(0, 80),
+      at: new Date().toISOString()
+    });
+  }
+
+  function anexarTimingTransporteDev_(result, timing) {
+    if (!result || !timing) return result;
+    result.meta = result.meta && typeof result.meta === 'object' ? result.meta : {};
+    result.meta.devClientTransportTiming = timing;
+    return result;
   }
 
   function finalizarSubmissao(key, result) {
@@ -508,7 +533,7 @@
     var acaoNormalizada = String(acao || '').trim();
     var corpo = new URLSearchParams();
     var escrita = ACOES_MUTAVEIS[acaoNormalizada] === true;
-    var submission = { params: params || {}, key: '' };
+    var submission = { params: params || {}, key: '', requestId: '' };
 
     if (!acaoNormalizada) {
       return Promise.resolve({
@@ -535,6 +560,10 @@
       (acaoNormalizada !== 'justificativaEnviar' || payloadPossuiUpload(params));
     submission = escrita ? prepararSubmissao(acaoNormalizada, params) : submission;
     params = submission.params;
+    var transportTiming = criarTimingTransporteDev_(
+      acaoNormalizada,
+      submission.requestId
+    );
     var timeoutMs = Math.max(5000, Number(
       escrita
         ? (upload ? config.API_UPLOAD_WRITE_TIMEOUT_MS || 90000 : config.API_WRITE_TIMEOUT_MS || 30000)
@@ -554,6 +583,7 @@
       corpo.set('token', token);
     }
 
+    marcarTimingTransporteDev_(transportTiming, 'F1', 'REQUEST_INICIADO');
     var request = fetch(config.GEAPA_API_BASE_URL, {
       method: 'POST',
       body: corpo,
@@ -567,8 +597,10 @@
       onTimeout: function abortar() { if (controller) controller.abort(); }
     })
       .then(function tratarResposta(resposta) {
+        marcarTimingTransporteDev_(transportTiming, 'F2', 'HEADERS_RESPOSTA_RECEBIDOS');
         var httpStatus = resposta.status;
         return resposta.json().then(function respostaJson(resultado) {
+          marcarTimingTransporteDev_(transportTiming, 'F3', 'BODY_PARSEADO');
           var envelope = resultado && typeof resultado === 'object' ? resultado : {};
           envelope.httpStatus = httpStatus;
           if (!resposta.ok) {
@@ -585,7 +617,8 @@
       })
       .catch(function tratarFalha(error) {
         if (error && (error.name === 'AbortError' || error.name === 'PortalRequestTimeoutError')) {
-          return {
+          marcarTimingTransporteDev_(transportTiming, 'FT', 'TIMEOUT_TRANSPORTE');
+          return anexarTimingTransporteDev_({
             ok: false,
             code: escrita ? 'API_WRITE_TIMEOUT' : 'API_READ_TIMEOUT',
             errorCode: escrita ? 'API_WRITE_TIMEOUT' : 'API_READ_TIMEOUT',
@@ -593,11 +626,14 @@
             userMessage: error.userMessage || error.message,
             warnings: [],
             retrySafe: false
-          };
+          }, transportTiming);
         }
-        return handleApiError(error);
+        return Promise.resolve(handleApiError(error)).then(function anexarFalha(result) {
+          return anexarTimingTransporteDev_(result, transportTiming);
+        });
       })
       .then(function finalizarResposta(result) {
+        anexarTimingTransporteDev_(result, transportTiming);
         if (result && result.userMessage) result.message = result.userMessage;
         if (result && !result.code) result.code = result.errorCode || (result.ok ? 'OK' : 'ERRO_API');
         finalizarSubmissao(submission.key, result);

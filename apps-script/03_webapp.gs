@@ -103,18 +103,34 @@ function doGet(e) {
  * @return {TextOutput} JSON de status.
  */
 function doPost(e) {
+  var requestReceivedAtMs = new Date().getTime();
   try {
     var requisicao = portalLerRequisicao_(e);
-    var resposta = portalExecutarAcao_(requisicao);
+    var resposta = portalExecutarAcao_(requisicao, {
+      requestReceivedAtMs: requestReceivedAtMs
+    });
+    portalTraceMark_('B11', 'RESPOSTA_FINAL_PRONTA');
+    if (resposta && resposta.meta) {
+      resposta.meta.trace = portalTraceMeta_();
+      resposta.meta.traceId = resposta.meta.trace.traceId || '';
+      resposta.traceId = resposta.meta.traceId;
+    }
     return portalJsonOutput_(resposta);
   } catch (erro) {
-    return portalJsonOutput_(portalRespostaErro_(
+    var respostaErro = portalRespostaErro_(
       'ERRO_INTERNO_PORTAL',
       'Erro ao processar requisicao do Portal GEAPA.',
       {
         detalhe: erro && erro.message ? erro.message : String(erro)
       }
-    ));
+    );
+    portalTraceMark_('B11', 'RESPOSTA_FINAL_PRONTA_COM_ERRO');
+    if (respostaErro && respostaErro.meta) {
+      respostaErro.meta.trace = portalTraceMeta_();
+      respostaErro.meta.traceId = respostaErro.meta.trace.traceId || '';
+      respostaErro.traceId = respostaErro.meta.traceId;
+    }
+    return portalJsonOutput_(respostaErro);
   }
 }
 
@@ -150,7 +166,7 @@ function portalLerRequisicao_(e) {
  * @param {Object} requisicao Parametros recebidos do front-end.
  * @return {Object} Resposta da acao.
  */
-function portalExecutarAcao_(requisicao) {
+function portalExecutarAcao_(requisicao, runtimeOptions) {
   var acao = requisicao.acao || '';
   var requestId = String(requisicao.requestId || '').trim();
   if (!requestId && requisicao.payload) {
@@ -161,7 +177,11 @@ function portalExecutarAcao_(requisicao) {
       requestId = String(payloadTrace && payloadTrace.requestId || '').trim();
     } catch (tracePayloadError) {}
   }
-  portalIniciarTrace_(acao, requestId);
+  portalIniciarTrace_(
+    acao,
+    requestId,
+    runtimeOptions && runtimeOptions.requestReceivedAtMs
+  );
 
   if (!acao) {
     return portalRespostaErro_(
@@ -537,6 +557,7 @@ function portalResposta_(ok, code, message, data, metaExtra) {
       meta[chave] = metaExtra[chave];
     });
   }
+  portalTraceMark_('B10', 'PORTAL_MONTOU_RESPOSTA');
   meta.trace = portalTraceMeta_();
   meta.traceId = meta.trace.traceId || '';
   meta.ambiente = meta.trace.ambiente || portalResolverAmbienteDadosV2_();
