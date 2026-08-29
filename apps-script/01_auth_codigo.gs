@@ -236,7 +236,7 @@ function portalValidarCodigo(emailOuRga, codigo) {
   cache.remove(chaveTentativas);
   cache.remove(portalCacheKey_('codigoReferencia', identificador));
 
-  var sessionToken = portalCriarSessaoTemporaria_(identificadorSessao);
+  var sessionToken = portalCriarSessaoTemporaria_(identificadorSessao, sessaoResolvida);
 
   return portalRespostaOk_(
     'CODIGO_VALIDADO_TESTE',
@@ -431,15 +431,72 @@ function portalEnviarCodigoEmail_(email, codigo) {
  * Cria uma sessao temporaria simulada apos validacao do codigo.
  *
  * @param {string} identificador Identificador normalizado.
+ * @param {Object=} sessaoCore Sessao canonica ja validada pelo GEAPA-CORE.
  * @return {string} Token temporario.
  */
-function portalCriarSessaoTemporaria_(identificador) {
+function portalCriarSessaoTemporaria_(identificador, sessaoCore) {
   var token = 'sessao-' + Utilities.getUuid();
   var chave = portalCacheKey_('sessao', token);
   var validadeSegundos = PORTAL_CONFIG.validadeSessaoMinutos * 60;
 
   CacheService.getScriptCache().put(chave, identificador, validadeSegundos);
+  portalSalvarSessaoCorePorToken_(token, sessaoCore);
   return token;
+}
+
+/**
+ * Vincula ao token a sessao canonica que acabou de ser validada no login.
+ *
+ * O cache e apenas uma aceleracao curta: expiracao ou falha de cache preserva
+ * a revalidacao normal pelo GEAPA-CORE.
+ *
+ * @param {string} token Token temporario.
+ * @param {Object=} sessaoCore Sessao canonica ja validada.
+ */
+function portalSalvarSessaoCorePorToken_(token, sessaoCore) {
+  var tokenNormalizado = String(token || '').trim();
+  var sessaoNormalizada = portalNormalizarSessaoPortalCore_(sessaoCore);
+  var validadeSessaoSegundos = Number(PORTAL_CONFIG.validadeSessaoMinutos || 0) * 60;
+  var validadeCacheSegundos = Number(PORTAL_CONFIG.cacheSessaoCoreSegundos || 0);
+  var validadeSegundos = Math.min(validadeSessaoSegundos, validadeCacheSegundos);
+
+  if (!tokenNormalizado || !sessaoNormalizada || sessaoNormalizada.ok === false ||
+      sessaoNormalizada.autenticado === false || validadeSegundos <= 0) {
+    return;
+  }
+
+  try {
+    CacheService.getScriptCache().put(
+      portalCacheKey_('sessaoCoreTokenV1', tokenNormalizado),
+      JSON.stringify(sessaoNormalizada),
+      validadeSegundos
+    );
+  } catch (erro) {
+    // Cache e melhoria de desempenho, nao requisito funcional.
+  }
+}
+
+/**
+ * Le a sessao canonica curta vinculada a um token ja validado.
+ *
+ * @param {string} token Token temporario.
+ * @return {Object|null} Sessao canonica normalizada ou nulo.
+ */
+function portalLerSessaoCorePorToken_(token) {
+  var tokenNormalizado = String(token || '').trim();
+
+  if (!tokenNormalizado) {
+    return null;
+  }
+
+  try {
+    var bruto = CacheService.getScriptCache().get(
+      portalCacheKey_('sessaoCoreTokenV1', tokenNormalizado)
+    );
+    return bruto ? portalNormalizarSessaoPortalCore_(JSON.parse(bruto)) : null;
+  } catch (erro) {
+    return null;
+  }
 }
 
 /**

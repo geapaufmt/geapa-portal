@@ -276,6 +276,12 @@
     if (global.__PortalGeapaDevPresentationManagementTimings.length > 10) {
       global.__PortalGeapaDevPresentationManagementTimings.shift();
     }
+    if (global.document && global.document.documentElement) {
+      global.document.documentElement.setAttribute(
+        'data-geapa-presentation-management-timing',
+        JSON.stringify(snapshot)
+      );
+    }
     global.console.info('GEAPA-PRESENTATIONS-MANAGEMENT-DEV-TIMING ' + JSON.stringify(snapshot));
   }
 

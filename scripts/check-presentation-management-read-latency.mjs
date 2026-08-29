@@ -17,6 +17,7 @@ assert.match(api, /apresentacoesPendenciasDiretoria'\s*\?\s*'G14'/);
 assert.match(view, /'G0',\s*'FRONTEND_INICIOU_CHAMADA'/);
 assert.match(view, /'G15',\s*'RENDER_CONCLUIDO'/);
 assert.match(view, /__PortalGeapaDevPresentationManagementTimings/);
+assert.match(view, /data-geapa-presentation-management-timing/);
 assert.match(config, /portalTraceMark_\('G1',\s*'PORTAL_RECEBEU_REQUEST'/);
 assert.match(config, /\^G\(\?:\[4-9\]\|10\|11\)\$/);
 assert.match(webapp, /portalTraceMark_\('G12',\s*'RESPOSTA_PORTAL_PRONTA'/);

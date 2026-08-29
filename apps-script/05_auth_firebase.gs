@@ -58,7 +58,7 @@ function portalLoginFirebase(idToken, firebaseUser, clientSubmittedAt) {
     )
   });
 
-  var sessionToken = portalCriarSessaoTemporaria_(autorizacao.email);
+  var sessionToken = portalCriarSessaoTemporaria_(autorizacao.email, autorizacao.sessao);
   firestoreSync = portalSincronizarCacheFirestoreLogin_(autorizacao);
 
   portalRegistrarLogAuthFirebase_({

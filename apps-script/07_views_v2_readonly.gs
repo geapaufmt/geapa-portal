@@ -1911,9 +1911,16 @@ function portalMontarContextoViewsV2_(token, config) {
   }
 
   var identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
-  var sessao = portalResolverSessaoAtualViaGeapaCore_(identificadorSessao, {
-    origem: 'views-v2:' + config.id
-  });
+  var sessaoCacheInicio = portalAgoraViewsV2Ms_();
+  var sessao = portalLerSessaoCorePorToken_(tokenNormalizado);
+
+  if (sessao) {
+    portalTraceEtapa_('sessaoCore.tokenCache', sessaoCacheInicio, 'HIT', 'CacheService');
+  } else {
+    sessao = portalResolverSessaoAtualViaGeapaCore_(identificadorSessao, {
+      origem: 'views-v2:' + config.id
+    });
+  }
   var membro = portalMontarMembroDeSessaoPortal_(sessao, 'GEAPA_CORE.session') ||
     portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) ||
     {};
