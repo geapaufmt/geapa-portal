@@ -110,6 +110,9 @@ function doPost(e) {
       requestReceivedAtMs: requestReceivedAtMs
     });
     portalTraceMark_('B11', 'RESPOSTA_FINAL_PRONTA');
+    if (String(requisicao && requisicao.acao || '') === 'apresentacoesPendenciasDiretoria') {
+      portalTraceMark_('G12', 'RESPOSTA_PORTAL_PRONTA');
+    }
     if (resposta && resposta.meta) {
       resposta.meta.trace = portalTraceMeta_();
       resposta.meta.traceId = resposta.meta.trace.traceId || '';

@@ -170,6 +170,9 @@
       return Promise.resolve(false);
     }
 
+    var managementTiming = idRota === 'admin-apresentacoes'
+      ? criarTimingLeituraGestaoApresentacoesDev_()
+      : null;
     estado.rotaAtual = idRota;
     definicao.idRota = idRota;
     estado.itensPorId = {};
@@ -179,18 +182,20 @@
 
     if (cache) {
       renderizarBase(container, definicao, montarConteudo(definicao, cache.data || {}, true));
-      return buscarTela(definicao, container, cacheKey, true, timingHooks);
+      return buscarTela(definicao, container, cacheKey, true, timingHooks, managementTiming);
     }
 
     renderizarBase(container, definicao, montarLoadingLocalReadonly('Carregando dados da view V2...'));
     ui.mostrarLoading('Carregando view V2...');
-    return buscarTela(definicao, container, cacheKey, false, timingHooks);
+    return buscarTela(definicao, container, cacheKey, false, timingHooks, managementTiming);
   }
 
-  function buscarTela(definicao, container, cacheKey, emSegundoPlano, timingHooks) {
+  function buscarTela(definicao, container, cacheKey, emSegundoPlano, timingHooks, managementTiming) {
     var hooks = timingHooks || {};
-    return api.apiGet(definicao.endpoint, {})
+    var params = managementTiming ? { correlationId: managementTiming.correlationId } : {};
+    return api.apiGet(definicao.endpoint, params)
       .then(function tratarResposta(resposta) {
+        importarTimingLeituraGestaoApresentacoesDev_(managementTiming, resposta);
         if (typeof hooks.onResponse === 'function') hooks.onResponse();
         if (!resposta.ok) {
           throw new Error(resposta.message || 'Nao foi possivel carregar a view V2.');
@@ -201,10 +206,13 @@
           return;
         }
         renderizarBase(container, definicao, montarConteudo(definicao, resposta.data || {}));
+        marcarTimingLeituraGestaoApresentacoesDev_(managementTiming, 'G15', 'RENDER_CONCLUIDO');
+        publicarTimingLeituraGestaoApresentacoesDev_(managementTiming);
         if (typeof hooks.onRendered === 'function') hooks.onRendered();
         return true;
       })
       .catch(function tratarErro(erro) {
+        publicarTimingLeituraGestaoApresentacoesDev_(managementTiming);
         if (emSegundoPlano) {
           return;
         }
@@ -222,6 +230,53 @@
           ui.ocultarLoading();
         }
       });
+  }
+
+  function criarTimingLeituraGestaoApresentacoesDev_() {
+    if (String(portalConfig.ENVIRONMENT || '').trim().toUpperCase() !== 'DEV') return null;
+    var timing = {
+      correlationId: 'GESTAO-READ-' + Date.now() + '-' +
+        Math.random().toString(36).slice(2, 10).toUpperCase(),
+      marks: [],
+      backend: null,
+      sources: null
+    };
+    marcarTimingLeituraGestaoApresentacoesDev_(timing, 'G0', 'FRONTEND_INICIOU_CHAMADA');
+    return timing;
+  }
+
+  function marcarTimingLeituraGestaoApresentacoesDev_(timing, code, label) {
+    if (!timing) return;
+    timing.marks.push({ code: code, label: label, at: new Date().toISOString() });
+  }
+
+  function importarTimingLeituraGestaoApresentacoesDev_(timing, resposta) {
+    if (!timing) return;
+    var transport = resposta && resposta.meta && resposta.meta.devClientTransportTiming;
+    (transport && transport.marks || []).forEach(function(mark) {
+      if (['G13', 'G14', 'FT'].indexOf(String(mark.code || '')) < 0) return;
+      timing.marks.push({ code: mark.code, label: mark.label, at: mark.at });
+    });
+    timing.backend = resposta && resposta.meta && resposta.meta.trace || null;
+    timing.sources = resposta && resposta.data && resposta.data.managementReadTiming || null;
+  }
+
+  function publicarTimingLeituraGestaoApresentacoesDev_(timing) {
+    if (!timing || timing.published || !global.console || typeof global.console.info !== 'function') return;
+    timing.published = true;
+    var snapshot = {
+      correlationId: timing.correlationId,
+      marks: timing.marks.slice(),
+      backend: timing.backend,
+      sources: timing.sources
+    };
+    global.__PortalGeapaDevPresentationManagementTimings =
+      global.__PortalGeapaDevPresentationManagementTimings || [];
+    global.__PortalGeapaDevPresentationManagementTimings.push(snapshot);
+    if (global.__PortalGeapaDevPresentationManagementTimings.length > 10) {
+      global.__PortalGeapaDevPresentationManagementTimings.shift();
+    }
+    global.console.info('GEAPA-PRESENTATIONS-MANAGEMENT-DEV-TIMING ' + JSON.stringify(snapshot));
   }
 
   function obterCacheKey(endpoint) {

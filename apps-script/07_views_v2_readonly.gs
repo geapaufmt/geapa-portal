@@ -156,6 +156,8 @@ function portalMontarContextoAtividadesReadonlyV2_(contexto) {
     perfilPortalEfetivo: String(origem.perfilPortalEfetivo || '').trim(),
     perfisPortal: origem.perfisPortal || ['MEMBRO'],
     permissoes: origem.permissoes || [],
+    correlationId: portalTraceIdAtual_(),
+    traceId: portalTraceIdAtual_(),
     somenteProprios: origem.somenteProprios !== false,
     somenteVisiveis: perfil === 'MEMBRO'
   };
@@ -921,8 +923,19 @@ function portalExecutarConsultaApresentacaoAtividadesV2_(token, config) {
     return contexto.resposta;
   }
 
+  if (config.id === 'apresentacoesPendenciasDiretoria') {
+    portalTraceMark_('G2', 'SESSAO_E_PERMISSAO_CONCLUIDAS');
+  }
+
   var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
+  if (config.id === 'apresentacoesPendenciasDiretoria') {
+    portalTraceMark_('G3', 'BUILDER_GESTAO_INICIADO');
+  }
   var resposta = portalChamarAtividadesPacoteApresentacoesV2_(config.funcao, null, contextoAtividades);
+  if (config.id === 'apresentacoesPendenciasDiretoria') {
+    var dadosTiming = resposta && (resposta.data || resposta.dados || resposta) || {};
+    portalTraceImportManagementMarks_(dadosTiming.managementReadTiming);
+  }
 
   return portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio);
 }

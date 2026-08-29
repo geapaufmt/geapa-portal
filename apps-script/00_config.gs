@@ -150,6 +150,9 @@ function portalIniciarTrace_(acao, requestId, receivedAtMs) {
     marcos: []
   };
   portalTraceMark_('B0', 'REQUEST_RECEBIDO', inicioMs);
+  if (String(acao || '') === 'apresentacoesPendenciasDiretoria') {
+    portalTraceMark_('G1', 'PORTAL_RECEBEU_REQUEST', inicioMs);
+  }
   return __portal_trace_context;
 }
 
@@ -183,6 +186,16 @@ function portalTraceImportMarks_(timing) {
   var source = timing && Array.isArray(timing.marks) ? timing.marks : [];
   source.forEach(function(mark) {
     if (!/^B[3-8]$/.test(String(mark && mark.code || ''))) return;
+    var parsed = new Date(String(mark.at || '')).getTime();
+    portalTraceMark_(mark.code, mark.label, isNaN(parsed) ? null : parsed);
+  });
+}
+
+function portalTraceImportManagementMarks_(timing) {
+  if (!__portal_trace_context || __portal_trace_context.ambiente !== 'DEV') return;
+  var source = timing && Array.isArray(timing.marks) ? timing.marks : [];
+  source.forEach(function(mark) {
+    if (!/^G(?:[4-9]|10|11)$/.test(String(mark && mark.code || ''))) return;
     var parsed = new Date(String(mark.at || '')).getTime();
     portalTraceMark_(mark.code, mark.label, isNaN(parsed) ? null : parsed);
   });

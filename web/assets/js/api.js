@@ -533,7 +533,11 @@
     var acaoNormalizada = String(acao || '').trim();
     var corpo = new URLSearchParams();
     var escrita = ACOES_MUTAVEIS[acaoNormalizada] === true;
-    var submission = { params: params || {}, key: '', requestId: '' };
+    var submission = {
+      params: params || {},
+      key: '',
+      requestId: String(params && (params.correlationId || params.requestId) || '')
+    };
 
     if (!acaoNormalizada) {
       return Promise.resolve({
@@ -597,10 +601,18 @@
       onTimeout: function abortar() { if (controller) controller.abort(); }
     })
       .then(function tratarResposta(resposta) {
-        marcarTimingTransporteDev_(transportTiming, 'F2', 'HEADERS_RESPOSTA_RECEBIDOS');
+        marcarTimingTransporteDev_(
+          transportTiming,
+          acaoNormalizada === 'apresentacoesPendenciasDiretoria' ? 'G13' : 'F2',
+          'HEADERS_RESPOSTA_RECEBIDOS'
+        );
         var httpStatus = resposta.status;
         return resposta.json().then(function respostaJson(resultado) {
-          marcarTimingTransporteDev_(transportTiming, 'F3', 'BODY_PARSEADO');
+          marcarTimingTransporteDev_(
+            transportTiming,
+            acaoNormalizada === 'apresentacoesPendenciasDiretoria' ? 'G14' : 'F3',
+            'BODY_PARSEADO'
+          );
           var envelope = resultado && typeof resultado === 'object' ? resultado : {};
           envelope.httpStatus = httpStatus;
           if (!resposta.ok) {
