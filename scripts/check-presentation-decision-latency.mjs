@@ -95,6 +95,23 @@ for (const mark of ['B0', 'B1', 'B2', 'B9', 'B10', 'B11']) {
     new RegExp(`'${mark}'`)
   );
 }
+for (const mark of ['P0', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6']) {
+  assert.match(
+    [configSource, webappSource, adapterSource].join('\n'),
+    new RegExp(`'${mark}'`)
+  );
+}
+assert.match(configSource, /GEAPA_PRESENTATIONS_DEV_LATENCY_V1/);
+assert.match(configSource, /console\.log\(JSON\.stringify\(entry\)\)/);
+assert.doesNotMatch(
+  configSource.slice(
+    configSource.indexOf('function portalLatencyDevSafeMetadata_'),
+    configSource.indexOf('function portalIniciarTrace_')
+  ),
+  /email|rga|titulo|eixo|justificativa|payload/i
+);
+assert.match(adapterSource, /cache: sessionCacheResult/);
+assert.match(adapterSource, /durationMs: portalAgoraViewsV2Ms_\(\) - sessaoCacheInicio/);
 assert.match(configSource, /ambiente !== 'DEV'/);
 assert.match(apiSource, /API_WRITE_TIMEOUT_MS \|\| 30000/);
 assert.doesNotMatch(actionSource, /API_WRITE_TIMEOUT_MS/);

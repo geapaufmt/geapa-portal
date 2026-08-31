@@ -965,7 +965,15 @@ function portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, config)
 
   var contextoAtividades = portalMontarContextoAtividadesReadonlyV2_(contexto);
   portalTraceMark_('B2', 'ADAPTER_APRESENTACOES_INICIADO');
+  portalLatencyDevLog_('P5', 'PORTAL_ADAPTER_INICIADO');
+  var atividadesInicio = portalAgoraViewsV2Ms_();
+  portalLatencyDevLog_('P6', 'PORTAL_ATIVIDADES_CALL_INICIADA');
   var resposta = portalChamarAtividadesPacoteApresentacoesV2_(config.funcao, dadosPayload, contextoAtividades);
+  portalLatencyDevLog_('T_PORTAL_ATIVIDADES', 'PORTAL_ATIVIDADES_CALL_RETORNOU', null, {
+    durationMs: portalAgoraViewsV2Ms_() - atividadesInicio,
+    callCount: 1,
+    operation: config.id
+  });
   var dadosTiming = resposta && (resposta.data || resposta.dados || resposta) || {};
   portalTraceImportMarks_(dadosTiming.operationalTiming);
   portalTraceMark_('B9', 'ADAPTER_APRESENTACOES_RETORNOU');
@@ -1909,10 +1917,12 @@ function portalMontarContextoViewsV2_(token, config) {
       )
     };
   }
+  portalLatencyDevLog_('P2', 'PORTAL_TOKEN_LOCALIZADO');
 
   var identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
   var sessaoCacheInicio = portalAgoraViewsV2Ms_();
   var sessao = portalLerSessaoCorePorToken_(tokenNormalizado);
+  var sessionCacheResult = sessao ? 'HIT' : 'MISS';
 
   if (sessao) {
     portalTraceEtapa_('sessaoCore.tokenCache', sessaoCacheInicio, 'HIT', 'CacheService');
@@ -1921,6 +1931,11 @@ function portalMontarContextoViewsV2_(token, config) {
       origem: 'views-v2:' + config.id
     });
   }
+  portalLatencyDevLog_('P3', 'PORTAL_SESSAO_CACHE_CONSULTADO', null, {
+    cache: sessionCacheResult,
+    durationMs: portalAgoraViewsV2Ms_() - sessaoCacheInicio,
+    libraryCallCount: sessionCacheResult === 'MISS' ? 1 : 0
+  });
   var membro = portalMontarMembroDeSessaoPortal_(sessao, 'GEAPA_CORE.session') ||
     portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) ||
     {};
@@ -1948,6 +1963,7 @@ function portalMontarContextoViewsV2_(token, config) {
       )
     };
   }
+  portalLatencyDevLog_('P4', 'PORTAL_SESSAO_PERMISSAO_VALIDADA');
 
   return {
     ok: true,

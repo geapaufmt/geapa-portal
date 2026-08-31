@@ -106,8 +106,10 @@ function doPost(e) {
   var requestReceivedAtMs = new Date().getTime();
   try {
     var requisicao = portalLerRequisicao_(e);
+    var requestParsedAtMs = new Date().getTime();
     var resposta = portalExecutarAcao_(requisicao, {
-      requestReceivedAtMs: requestReceivedAtMs
+      requestReceivedAtMs: requestReceivedAtMs,
+      requestParsedAtMs: requestParsedAtMs
     });
     portalTraceMark_('B11', 'RESPOSTA_FINAL_PRONTA');
     if (String(requisicao && requisicao.acao || '') === 'apresentacoesPendenciasDiretoria') {
@@ -183,7 +185,8 @@ function portalExecutarAcao_(requisicao, runtimeOptions) {
   portalIniciarTrace_(
     acao,
     requestId,
-    runtimeOptions && runtimeOptions.requestReceivedAtMs
+    runtimeOptions && runtimeOptions.requestReceivedAtMs,
+    runtimeOptions && runtimeOptions.requestParsedAtMs
   );
 
   if (!acao) {

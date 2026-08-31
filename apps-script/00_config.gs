@@ -139,17 +139,84 @@ function portalMontarOpcoesCore_(origem, extras) {
 
 var __portal_trace_context = null;
 
-function portalIniciarTrace_(acao, requestId, receivedAtMs) {
+function portalLatencyDevActionEligible_(acao) {
+  return [
+    'apresentacaoEnviarTituloEixo',
+    'apresentacaoRevisarTituloEixo',
+    'apresentacaoReprovarTituloEixo'
+  ].indexOf(String(acao || '').trim()) >= 0;
+}
+
+function portalLatencyDevSafeMetadata_(metadata) {
+  var source = metadata || {};
+  var safe = {};
+  [
+    'cache', 'durationMs', 'callCount', 'operation', 'httpStatus',
+    'readCount', 'libraryCallCount', 'result'
+  ].forEach(function(key) {
+    if (!Object.prototype.hasOwnProperty.call(source, key)) return;
+    var value = source[key];
+    if (typeof value === 'number') {
+      safe[key] = Math.max(0, Math.round(value));
+      return;
+    }
+    if (typeof value === 'boolean') {
+      safe[key] = value;
+      return;
+    }
+    safe[key] = String(value || '').slice(0, 80);
+  });
+  return safe;
+}
+
+function portalLatencyDevLog_(code, label, atMs, metadata) {
+  if (!__portal_trace_context ||
+      __portal_trace_context.ambiente !== 'DEV' ||
+      !__portal_trace_context.latencyDurable) return;
+  var now = Number(atMs || new Date().getTime());
+  var previous = Number(__portal_trace_context.latencyLastAtMs ||
+    __portal_trace_context.inicioMs || now);
+  var entry = Object.assign({
+    event: 'GEAPA_PRESENTATIONS_DEV_LATENCY_V1',
+    layer: 'PORTAL',
+    requestId: __portal_trace_context.traceId,
+    code: String(code || '').slice(0, 24),
+    label: String(label || '').slice(0, 80),
+    at: new Date(now).toISOString(),
+    elapsedMs: Math.max(now - __portal_trace_context.inicioMs, 0),
+    deltaMs: Math.max(now - previous, 0)
+  }, portalLatencyDevSafeMetadata_(metadata));
+  __portal_trace_context.latencyLastAtMs = now;
+  try {
+    console.log(JSON.stringify(entry));
+  } catch (ignored) {}
+}
+
+function portalIniciarTrace_(acao, requestId, receivedAtMs, parsedAtMs) {
   var inicioMs = Number(receivedAtMs || new Date().getTime());
+  var requestedTraceId = String(requestId || '').trim();
+  var safeTraceId = /^[A-Za-z0-9][A-Za-z0-9._:-]{11,119}$/.test(
+    requestedTraceId
+  )
+    ? requestedTraceId
+    : 'PORTAL-' + Utilities.getUuid();
   __portal_trace_context = {
-    traceId: String(requestId || ('PORTAL-' + Utilities.getUuid())).slice(0, 80),
+    traceId: safeTraceId.slice(0, 120),
     acao: String(acao || '').slice(0, 80),
     ambiente: portalResolverAmbienteDadosV2_(),
     inicioMs: inicioMs,
+    latencyLastAtMs: inicioMs,
+    latencyDurable: portalLatencyDevActionEligible_(acao),
     etapas: [],
     marcos: []
   };
   portalTraceMark_('B0', 'REQUEST_RECEBIDO', inicioMs);
+  portalLatencyDevLog_('P0', 'PORTAL_REQUEST_RECEBIDO', inicioMs);
+  portalLatencyDevLog_(
+    'P1',
+    'PORTAL_PARSING_CONCLUIDO',
+    Number(parsedAtMs || new Date().getTime())
+  );
   if (String(acao || '') === 'apresentacoesPendenciasDiretoria') {
     portalTraceMark_('G1', 'PORTAL_RECEBEU_REQUEST', inicioMs);
   }
@@ -179,6 +246,9 @@ function portalTraceMark_(code, label, atMs) {
     at: new Date(now).toISOString(),
     elapsedMs: Math.max(now - __portal_trace_context.inicioMs, 0)
   });
+  if (/^B(?:0|1|2|9|10|11)$/.test(String(code || ''))) {
+    portalLatencyDevLog_(code, label, now);
+  }
 }
 
 function portalTraceImportMarks_(timing) {
