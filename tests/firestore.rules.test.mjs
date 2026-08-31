@@ -96,6 +96,11 @@ before(async () => {
       emailApresentador: 'privado@example.invalid',
       schemaVersion: 'presentation-private-v1'
     });
+    await setDoc(doc(db, 'presentationDecisionTraces', 'trace-hash-test'), {
+      environment: 'DEV',
+      schemaVersion: 'presentation-decision-trace-v1',
+      stages: []
+    });
   });
 });
 
@@ -155,6 +160,29 @@ test('presentationPrivate e inacessivel e browser nao escreve apresentacoes', as
   }));
   await assertFails(setDoc(doc(db, 'presentationPrivate', 'APR-2026-1-0099'), {
     idApresentacao: 'APR-2026-1-0099'
+  }));
+});
+
+test('trace tecnico de decisoes e inacessivel pelo browser', async () => {
+  const member = environment.authenticatedContext('active-user').firestore();
+  const manager = environment.authenticatedContext('manager-user').firestore();
+  await assertFails(getDoc(doc(
+    member,
+    'presentationDecisionTraces',
+    'trace-hash-test'
+  )));
+  await assertFails(getDoc(doc(
+    manager,
+    'presentationDecisionTraces',
+    'trace-hash-test'
+  )));
+  await assertFails(setDoc(doc(
+    manager,
+    'presentationDecisionTraces',
+    'trace-hash-new'
+  ), {
+    environment: 'DEV',
+    schemaVersion: 'presentation-decision-trace-v1'
   }));
 });
 

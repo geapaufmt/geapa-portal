@@ -81,6 +81,17 @@ Os registros contem somente codigo da etapa, timestamp, duracao, action e
 `requestId`. Titulo, eixo, e-mail, RGA, justificativas e observacoes privadas
 nao sao registrados.
 
+Para decisoes canonicas DEV, P0 a P6 tambem sao transportados ao modulo
+Atividades como uma seed estritamente sanitizada. Atividades agrega P7 a P15,
+incorpora P16 a P20 devolvidos pelo Core e persiste snapshots na collection
+tecnica `presentationDecisionTraces`. A collection e indexada pelo hash do
+requestId, nao e fonte de verdade e nao existe no fluxo PROD.
+
+Esse transporte torna o trace recuperavel mesmo quando o Web App usa projeto
+GCP padrao, o Cloud Logging da execucao nao esta disponivel ou o navegador
+abandona a resposta por timeout. A falha do trace nao altera o resultado da
+decisao.
+
 No navegador, as amostras ficam temporariamente em
 `window.__PortalGeapaDevPresentationTimings` e tambem aparecem no console com
 o prefixo `GEAPA-PRESENTATIONS-DEV-TIMING`.

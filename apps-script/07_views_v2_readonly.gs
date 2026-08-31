@@ -968,6 +968,11 @@ function portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, config)
   portalLatencyDevLog_('P5', 'PORTAL_ADAPTER_INICIADO');
   var atividadesInicio = portalAgoraViewsV2Ms_();
   portalLatencyDevLog_('P6', 'PORTAL_ATIVIDADES_CALL_INICIADA');
+  try {
+    contextoAtividades.presentationDecisionTraceSeed = portalLatencyDevSnapshot_();
+  } catch (ignoredTraceSeedError) {
+    contextoAtividades.presentationDecisionTraceSeed = null;
+  }
   var resposta = portalChamarAtividadesPacoteApresentacoesV2_(config.funcao, dadosPayload, contextoAtividades);
   portalLatencyDevLog_('T_PORTAL_ATIVIDADES', 'PORTAL_ATIVIDADES_CALL_RETORNOU', null, {
     durationMs: portalAgoraViewsV2Ms_() - atividadesInicio,

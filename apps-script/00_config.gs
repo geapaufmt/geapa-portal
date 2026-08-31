@@ -187,9 +187,31 @@ function portalLatencyDevLog_(code, label, atMs, metadata) {
     deltaMs: Math.max(now - previous, 0)
   }, portalLatencyDevSafeMetadata_(metadata));
   __portal_trace_context.latencyLastAtMs = now;
+  __portal_trace_context.latencyStages.push(Object.freeze(entry));
+  if (String(code || '') === 'P3') {
+    __portal_trace_context.latencyCounters.cacheSessionReads++;
+  }
+  if (String(code || '') === 'P6') {
+    __portal_trace_context.latencyCounters.portalToActivitiesCalls++;
+  }
   try {
     console.log(JSON.stringify(entry));
   } catch (ignored) {}
+}
+
+function portalLatencyDevSnapshot_() {
+  if (!__portal_trace_context ||
+      __portal_trace_context.ambiente !== 'DEV' ||
+      !__portal_trace_context.latencyDurable) return null;
+  return Object.freeze({
+    environment: 'DEV',
+    requestId: __portal_trace_context.traceId,
+    startedAtMs: Number(__portal_trace_context.inicioMs || 0),
+    stages: Object.freeze(__portal_trace_context.latencyStages.map(function(entry) {
+      return Object.freeze(Object.assign({}, entry));
+    })),
+    counters: Object.freeze(Object.assign({}, __portal_trace_context.latencyCounters))
+  });
 }
 
 function portalIniciarTrace_(acao, requestId, receivedAtMs, parsedAtMs) {
@@ -207,6 +229,11 @@ function portalIniciarTrace_(acao, requestId, receivedAtMs, parsedAtMs) {
     inicioMs: inicioMs,
     latencyLastAtMs: inicioMs,
     latencyDurable: portalLatencyDevActionEligible_(acao),
+    latencyStages: [],
+    latencyCounters: {
+      portalToActivitiesCalls: 0,
+      cacheSessionReads: 0
+    },
     etapas: [],
     marcos: []
   };

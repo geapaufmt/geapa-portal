@@ -103,6 +103,9 @@ for (const mark of ['P0', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6']) {
 }
 assert.match(configSource, /GEAPA_PRESENTATIONS_DEV_LATENCY_V1/);
 assert.match(configSource, /console\.log\(JSON\.stringify\(entry\)\)/);
+assert.match(configSource, /function portalLatencyDevSnapshot_/);
+assert.match(configSource, /latencyStages/);
+assert.match(adapterSource, /presentationDecisionTraceSeed = portalLatencyDevSnapshot_\(\)/);
 assert.doesNotMatch(
   configSource.slice(
     configSource.indexOf('function portalLatencyDevSafeMetadata_'),
