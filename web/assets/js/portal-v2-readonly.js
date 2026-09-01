@@ -109,6 +109,7 @@
   };
   var TTL_CACHE_PRIVADO_MS = 60000;
   var TTL_CACHE_EIXOS_MS = 20 * 60 * 1000;
+  var ID_APRESENTACAO_TECNICO_PATTERN = /^APR-(?:\d{4}|\d{4}-[12]-\d{4}(?:-\d{2})?)$/;
   var MOTIVOS_JUSTIFICATIVA_PADRAO = [
     { valor: 'SAUDE', rotulo: 'Saude' },
     { valor: 'COMPROMISSO_ACADEMICO', rotulo: 'Compromisso academico' },
@@ -1900,7 +1901,14 @@
   }
 
   function abrirModalEditarAprovarTituloEixo(id) {
-    var item = estado.itensPorId[id];
+    var idApresentacao = validarIdApresentacaoFrontend(id);
+    var item;
+
+    if (!idApresentacao) {
+      return;
+    }
+
+    item = estado.itensPorId[idApresentacao];
 
     if (!item) {
       return;
@@ -1911,7 +1919,7 @@
       .then(function renderizar(eixos) {
         atualizarModalConteudo([
           '<form class="readonly-form" data-portal-v2-form="editar-aprovar-titulo-eixo">',
-          '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(id) + '">',
+          '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(idApresentacao) + '">',
           '<label>Titulo',
           '<input name="tituloApresentacao" required value="' + ui.escaparHtml(obterTituloApresentacao(item)) + '">',
           '</label>',
@@ -1989,9 +1997,15 @@
   }
 
   function abrirModalRevisao(id, tipo, decisao, observacaoObrigatoria) {
+    var idApresentacao = validarIdApresentacaoFrontend(id);
+
+    if (!idApresentacao) {
+      return;
+    }
+
     abrirModalBase(obterTituloModalRevisao(tipo), [
       '<form class="readonly-form" data-portal-v2-form="revisao" data-tipo-revisao="' + ui.escaparHtml(tipo) + '" data-decisao="' + ui.escaparHtml(decisao) + '" data-observacao-obrigatoria="' + (observacaoObrigatoria ? 'true' : 'false') + '">',
-      '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(id) + '">',
+      '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(idApresentacao) + '">',
       observacaoObrigatoria ? '<p class="simulation-warning">' + ui.escaparHtml(obterAvisoRevisao(tipo, decisao)) + '</p>' : '',
       '<label>Observacao publica',
       '<textarea name="observacaoPublica" rows="4" ' + (observacaoObrigatoria ? 'required' : '') + '></textarea>',
@@ -2330,9 +2344,14 @@
 
   function salvarEditarAprovarTituloEixo(form) {
     var dados = new FormData(form);
+    var idApresentacao = validarIdApresentacaoFrontend(dados.get('idApresentacao'), form);
+
+    if (!idApresentacao) {
+      return;
+    }
 
     executarPostApresentacao('/v2/apresentacoes/titulo-eixo/revisar', {
-      idApresentacao: dados.get('idApresentacao'),
+      idApresentacao: idApresentacao,
       decisao: 'EDITAR_E_APROVAR',
       tituloApresentacao: dados.get('tituloApresentacao'),
       eixoTematicoPrincipal: dados.get('eixoTematicoPrincipal'),
@@ -2420,11 +2439,16 @@
 
   function salvarRevisao(form) {
     var dados = new FormData(form);
+    var idApresentacao = validarIdApresentacaoFrontend(dados.get('idApresentacao'), form);
     var tipo = form.getAttribute('data-tipo-revisao');
     var decisao = form.getAttribute('data-decisao');
     var observacaoObrigatoria = form.getAttribute('data-observacao-obrigatoria') === 'true';
     var observacaoPublica = String(dados.get('observacaoPublica') || '').trim();
     var observacaoInterna = String(dados.get('observacaoInterna') || '').trim();
+
+    if (!idApresentacao) {
+      return;
+    }
 
     if (observacaoObrigatoria && !observacaoPublica && !observacaoInterna) {
       mostrarErroModal('Informe uma observacao para concluir esta acao.', form, {
@@ -2435,7 +2459,7 @@
 
     if (tipo === 'titulo') {
       enviarRevisaoTitulo(
-        dados.get('idApresentacao'),
+        idApresentacao,
         decisao,
         observacaoPublica,
         observacaoInterna,
@@ -2446,7 +2470,7 @@
 
     if (tipo === 'foto') {
       enviarRevisaoFotoReuniao(
-        dados.get('idApresentacao'),
+        idApresentacao,
         decisao,
         observacaoPublica,
         observacaoInterna,
@@ -2456,7 +2480,7 @@
     }
 
     enviarRevisaoMaterial(
-      dados.get('idApresentacao'),
+      idApresentacao,
       decisao,
       observacaoPublica,
       observacaoInterna,
@@ -2540,12 +2564,17 @@
   }
 
   function enviarRevisaoTitulo(id, decisao, observacaoPublica, observacaoInterna, form) {
+    var idApresentacao = validarIdApresentacaoFrontend(id, form);
     var route = decisao === 'REPROVAR'
       ? '/v2/apresentacoes/titulo-eixo/reprovar'
       : '/v2/apresentacoes/titulo-eixo/revisar';
 
+    if (!idApresentacao) {
+      return;
+    }
+
     executarPostApresentacao(route, {
-      idApresentacao: id,
+      idApresentacao: idApresentacao,
       decisao: decisao,
       observacaoPublica: observacaoPublica || '',
       observacaoInterna: observacaoInterna || ''
@@ -2601,6 +2630,31 @@
       label: String(label || '').slice(0, 80),
       at: new Date().toISOString()
     });
+  }
+
+  function validarIdApresentacaoFrontend(valor, form) {
+    var idApresentacao = String(valor || '').trim();
+    var mensagem;
+
+    if (ID_APRESENTACAO_TECNICO_PATTERN.test(idApresentacao)) {
+      return idApresentacao;
+    }
+
+    mensagem = 'Nao foi possivel identificar a apresentacao. Feche esta janela e tente novamente pela acao exibida no card.';
+
+    if (form) {
+      mostrarErroModal(mensagem, form, {
+        idApresentacao: 'Identificador tecnico da apresentacao ausente ou invalido.'
+      });
+    } else {
+      ui.mostrarToast({
+        type: 'error',
+        title: 'Apresentacao nao identificada',
+        message: mensagem
+      });
+    }
+
+    return '';
   }
 
   function importarTimingTransporteApresentacaoDev_(timing, resposta) {
