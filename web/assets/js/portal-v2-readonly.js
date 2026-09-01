@@ -1920,7 +1920,7 @@
       .then(function renderizar(eixos) {
         atualizarModalConteudo([
           '<form class="readonly-form" data-portal-v2-form="editar-aprovar-titulo-eixo">',
-          '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(idApresentacao) + '">',
+          '<input type="hidden" name="idApresentacao" value="">',
           '<label>Titulo',
           '<input name="tituloApresentacao" required value="' + ui.escaparHtml(obterTituloApresentacao(item)) + '">',
           '</label>',
@@ -1934,7 +1934,10 @@
           '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Cancelar</button>',
           '</div>',
           '</form>'
-        ].join(''));
+        ].join(''), {
+          formName: 'editar-aprovar-titulo-eixo',
+          idApresentacao: idApresentacao
+        });
       })
       .catch(function falhar(erro) {
         atualizarModalConteudo('<p class="empty-state readonly-error">' + ui.escaparHtml(erro.message || 'Nao foi possivel carregar os eixos.') + '</p>');
@@ -3196,13 +3199,50 @@
     ].join(''));
   }
 
-  function atualizarModalConteudo(corpo) {
+  function atualizarModalConteudo(corpo, opcoes) {
     var alvo = document.querySelector('[data-readonly-modal-content]');
 
     if (alvo) {
       alvo.innerHTML = corpo;
+      if (opcoes && opcoes.formName && opcoes.idApresentacao !== undefined) {
+        popularIdApresentacaoModal_(alvo, opcoes.formName, opcoes.idApresentacao);
+      }
       Array.prototype.forEach.call(alvo.querySelectorAll('[data-eixo-select]'), atualizarAjudaEixo);
     }
+  }
+
+  function popularIdApresentacaoModal_(conteudo, formName, valor) {
+    var form = conteudo && conteudo.querySelector(
+      'form[data-portal-v2-form="' + String(formName || '') + '"]'
+    );
+    var hidden = form && form.querySelector('input[name="idApresentacao"]');
+    var idApresentacao;
+
+    if (!hidden) {
+      return false;
+    }
+
+    idApresentacao = validarIdApresentacaoFrontend(valor, form);
+    if (!idApresentacao) {
+      return false;
+    }
+
+    hidden.value = idApresentacao;
+    hidden.defaultValue = idApresentacao;
+    hidden.setAttribute('value', idApresentacao);
+    return true;
+  }
+
+  function limparIdApresentacaoModal_(modal) {
+    var hidden = modal && modal.querySelector('input[name="idApresentacao"]');
+
+    if (!hidden) {
+      return;
+    }
+
+    hidden.value = '';
+    hidden.defaultValue = '';
+    hidden.setAttribute('value', '');
   }
 
   function mostrarErroModal(mensagem, form, fieldErrors) {
@@ -3237,6 +3277,7 @@
     var modal = document.querySelector('.readonly-modal');
 
     if (modal) {
+      limparIdApresentacaoModal_(modal);
       modal.remove();
     }
 

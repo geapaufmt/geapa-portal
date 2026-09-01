@@ -10,28 +10,81 @@ const source = fs.readFileSync(sourcePath, 'utf8');
 const apiCalls = [];
 const toasts = [];
 const listeners = {};
-const modal = { html: '', contentHtml: '', errors: [] };
+const modal = {
+  active: false,
+  html: '',
+  contentHtml: '',
+  errors: [],
+  form: null,
+  hiddenInput: null
+};
+
+function parseModalContent(html) {
+  const sourceHtml = String(html || '');
+  const formMatch = sourceHtml.match(/data-portal-v2-form="([^"]+)"/);
+  const hiddenMatch = sourceHtml.match(/name="idApresentacao" value="([^"]*)"/);
+
+  modal.form = null;
+  modal.hiddenInput = null;
+  if (!formMatch || !hiddenMatch) return;
+
+  modal.hiddenInput = {
+    value: hiddenMatch[1],
+    defaultValue: hiddenMatch[1],
+    attributeValue: hiddenMatch[1],
+    setAttribute(name, value) {
+      if (name === 'value') this.attributeValue = String(value || '');
+    }
+  };
+  modal.form = {
+    formName: formMatch[1],
+    querySelector(selector) {
+      if (selector === 'input[name="idApresentacao"]') return modal.hiddenInput;
+      return null;
+    }
+  };
+}
 
 const modalContent = {
   firstChild: null,
-  querySelector() { return null; },
+  querySelector(selector) {
+    const formMatch = String(selector || '').match(/^form\[data-portal-v2-form="([^"]+)"\]$/);
+    if (formMatch && modal.form && modal.form.formName === formMatch[1]) return modal.form;
+    return null;
+  },
   querySelectorAll() { return []; },
   insertBefore() {},
-  set innerHTML(value) { modal.contentHtml = String(value || ''); },
+  set innerHTML(value) {
+    modal.contentHtml = String(value || '');
+    parseModalContent(modal.contentHtml);
+  },
   get innerHTML() { return modal.contentHtml; }
+};
+
+const modalElement = {
+  querySelector(selector) {
+    if (selector === 'input[name="idApresentacao"]') return modal.hiddenInput;
+    return null;
+  },
+  remove() { modal.active = false; }
 };
 
 const document = {
   readyState: 'complete',
   body: {
     classList: { add() {}, remove() {} },
-    insertAdjacentHTML(_position, html) { modal.html = String(html || ''); }
+    insertAdjacentHTML(_position, html) {
+      modal.active = true;
+      modal.html = String(html || '');
+      parseModalContent(modal.html);
+    }
   },
   addEventListener(type, handler) { listeners[type] = handler; },
   dispatchEvent() {},
   getElementById() { return null; },
   querySelector(selector) {
     if (selector === '[data-readonly-modal-content]') return modalContent;
+    if (selector === '.readonly-modal') return modal.active ? modalElement : null;
     return null;
   },
   createElement() {
@@ -86,6 +139,13 @@ const window = {
   console: { info() {} }
 };
 
+let requestIdRandomCalls = 0;
+const MathMock = Object.create(Math);
+MathMock.random = function random() {
+  requestIdRandomCalls += 1;
+  return 0.123456789;
+};
+
 const instrumented = source.replace(
   /\}\)\(window\);\s*$/,
   [
@@ -108,7 +168,7 @@ const context = {
   FormData: FormDataMock,
   Promise,
   Date,
-  Math,
+  Math: MathMock,
   JSON,
   Object,
   Array,
@@ -177,32 +237,41 @@ function reviewForm(id, decision = 'SOLICITAR_AJUSTE') {
   };
 }
 
-// 1-2. Clique direto no botao preserva o ID no modal.
+function editApproveForm(id) {
+  return {
+    values: {
+      idApresentacao: id,
+      tituloApresentacao: 'Titulo de homologacao',
+      eixoTematicoPrincipal: 'EIXO-1',
+      eixoTematicoSecundario: '',
+      observacaoInterna: ''
+    },
+    querySelectorAll() { return []; }
+  };
+}
+
+// Fluxos legados de revisao continuam preservando o ID.
 const requestButton = actionButton('revisar-titulo-ajuste', firstId);
 listeners.click({ target: requestButton });
 assert.equal(hiddenId(modal.html), firstId);
 
-// 3. Clique em elemento filho usa closest() e preserva o ID do botao legitimo.
+// O clique em elemento filho continua usando closest().
 modal.html = '';
 listeners.click({ target: childOf(requestButton) });
 assert.equal(hiddenId(modal.html), firstId);
 
-// 4. O value tambem e defaultValue, portanto reset nao apaga o ID.
-const hidden = { value: hiddenId(modal.html), defaultValue: hiddenId(modal.html) };
-hidden.value = 'ALTERADO-LOCALMENTE';
-hidden.value = hidden.defaultValue;
-assert.equal(hidden.value, firstId);
-
-// 5. Reabrir para outro card substitui o ID anterior.
+// Reabrir um modal legado para outro card substitui o ID anterior.
 listeners.click({ target: actionButton('revisar-titulo-ajuste', secondId) });
 assert.equal(hiddenId(modal.html), secondId);
 assert.notEqual(hiddenId(modal.html), firstId);
 
-// 6-8 e 10. Ausente, vazio e formato invalido bloqueiam submit e API.
+// Ausente, vazio e formato invalido bloqueiam submit antes de requestId e API.
 for (const invalidId of [undefined, '', 'ATV-2026-1-0010']) {
   const callsBefore = apiCalls.length;
+  const requestIdsBefore = requestIdRandomCalls;
   testApi.salvarRevisao(reviewForm(invalidId));
   assert.equal(apiCalls.length, callsBefore);
+  assert.equal(requestIdRandomCalls, requestIdsBefore);
 }
 
 // 9. O payload futuro usa exatamente o ID vindo do botao/card.
@@ -226,7 +295,46 @@ assert.equal(hiddenId(modal.html), firstId);
 
 listeners.click({ target: actionButton('revisar-titulo-editar-aprovar', firstId) });
 await new Promise((resolve) => setTimeout(resolve, 0));
-assert.equal(hiddenId(modal.contentHtml), firstId);
+assert.equal(modal.hiddenInput.value, firstId);
+assert.equal(modal.hiddenInput.defaultValue, firstId);
+assert.equal(modal.hiddenInput.attributeValue, firstId);
+
+// Clique em elemento filho do botao EDIT_APPROVE preserva o mesmo ID.
+listeners.click({ target: childOf(actionButton('revisar-titulo-editar-aprovar', firstId)) });
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(modal.hiddenInput.value, firstId);
+
+// Fechamento limpa o hidden antes de remover o modal.
+const firstHidden = modal.hiddenInput;
+listeners.click({ target: actionButton('fechar-modal', '') });
+assert.equal(firstHidden.value, '');
+assert.equal(firstHidden.defaultValue, '');
+assert.equal(firstHidden.attributeValue, '');
+assert.equal(modal.active, false);
+
+// Reabertura com outro candidato substitui integralmente o ID anterior.
+listeners.click({ target: actionButton('revisar-titulo-editar-aprovar', secondId) });
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(modal.hiddenInput.value, secondId);
+assert.equal(modal.hiddenInput.defaultValue, secondId);
+assert.equal(modal.hiddenInput.attributeValue, secondId);
+assert.notEqual(modal.hiddenInput.value, firstId);
+
+// ID invalido no EDIT_APPROVE bloqueia antes de requestId e API.
+const callsBeforeInvalidEditApprove = apiCalls.length;
+const requestIdsBeforeInvalidEditApprove = requestIdRandomCalls;
+listeners.click({ target: actionButton('revisar-titulo-editar-aprovar', 'ATV-2026-1-0010') });
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(apiCalls.length, callsBeforeInvalidEditApprove);
+assert.equal(requestIdRandomCalls, requestIdsBeforeInvalidEditApprove);
+
+for (const invalidId of [undefined, '', 'ATV-2026-1-0010']) {
+  const callsBefore = apiCalls.length;
+  const requestIdsBefore = requestIdRandomCalls;
+  testApi.salvarEditarAprovarTituloEixo(editApproveForm(invalidId));
+  assert.equal(apiCalls.length, callsBefore);
+  assert.equal(requestIdRandomCalls, requestIdsBefore);
+}
 
 const callsBeforeInvalidDirect = apiCalls.length;
 testApi.enviarRevisaoTitulo('', 'APROVAR', '', '');
