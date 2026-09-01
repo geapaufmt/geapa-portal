@@ -95,3 +95,33 @@ decisao.
 No navegador, as amostras ficam temporariamente em
 `window.__PortalGeapaDevPresentationTimings` e tambem aparecem no console com
 o prefixo `GEAPA-PRESENTATIONS-DEV-TIMING`.
+
+## Fast path DEV antes de P7
+
+A medicao correlacionada de 31/08/2026 mostrou 28.659 ms entre F1 e P7. No
+codigo do Portal existe apenas uma dependencia remota nesse intervalo: a
+revalidacao da sessao no Core quando o snapshot curto associado ao token nao
+esta mais no `CacheService`. O snapshot tinha TTL de 180 segundos e nao era
+renovado quando a Gestao de Apresentacoes o utilizava; uma decisao iniciada
+depois desse intervalo voltava ao resolvedor completo do Core.
+
+Classificacao do caminho:
+
+| etapa | classe | decisao |
+| --- | --- | --- |
+| parse do POST, requestId e trace P0/P1 | A | preservar antes da action |
+| existencia do token temporario | A | preservar |
+| snapshot Core por token | A | usar primeiro |
+| revalidacao autoritativa no Core em cache miss | A | preservar fail-closed |
+| identidade, portal ativo e permissao | A | preservar |
+| parse e campos minimos do payload | A | preservar |
+| contexto minimo, correlationId e seed P0-P6 | A | preservar |
+| normalizacao da resposta e invalidacao de cache funcional | B | continuam depois de Atividades |
+| renovacao do snapshot Core usado pela Gestao | B | executada depois da chamada a Atividades |
+| segunda leitura da mesma chave de sessao | C | removida somente no fast path DEV |
+| lookup de membro legado depois de uma sessao Core valida | C | removido somente no fast path DEV |
+
+`apresentacoesPendenciasDiretoria` renova o mesmo snapshot curto depois de
+concluir sua leitura. As actions de decisao consomem esse snapshot, validam as
+mesmas permissoes e entram imediatamente em Atividades. O TTL, o resolvedor
+autoritativo, as regras, os writers e PROD nao foram alterados.

@@ -22,7 +22,7 @@
     "test:vinculo-validacoes-manuais": "node scripts/check-admin-vinculo-manual-validation.mjs",
     "test:egress-feedback": "node scripts/check-egress-feedback.mjs",
     "test:member-registration": "node scripts/check-member-registration.mjs && node scripts/check-member-ingress-v2.mjs && node scripts/check-admin-members-v2.mjs",
-    "test:presentation-decision-latency": "node scripts/check-presentation-decision-latency.mjs",
+    "test:presentation-decision-latency": "node scripts/check-presentation-decision-latency.mjs && node scripts/check-presentation-decision-fast-path.mjs",
     "test:presentation-modal-id": "node scripts/check-presentation-modal-id.mjs",
     "test:presentation-management-read-latency": "node scripts/check-presentation-management-read-latency.mjs",
     "test:session-token-core-cache": "node scripts/check-session-token-core-cache.mjs",

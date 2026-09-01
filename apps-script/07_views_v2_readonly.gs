@@ -832,7 +832,8 @@ function portalApresentacoesPendenciasDiretoriaV2(token) {
       'diretoria:pendencias',
       'atividades:gerir',
       'sistema:admin'
-    ]
+    ],
+    renovarSessaoDecisoesDev: true
   });
 }
 
@@ -849,6 +850,8 @@ function portalApresentacaoRevisarTituloEixoV2(token, payloadJson) {
       'atividades:gerir',
       'sistema:admin'
     ],
+    fastPathDecisaoCanonicaDev: true,
+    renovarSessaoDecisoesDev: true,
     camposObrigatorios: ['idApresentacao', 'decisao']
   });
 }
@@ -866,6 +869,8 @@ function portalApresentacaoReprovarTituloEixoV2(token, payloadJson) {
       'atividades:gerir',
       'sistema:admin'
     ],
+    fastPathDecisaoCanonicaDev: true,
+    renovarSessaoDecisoesDev: true,
     camposObrigatorios: ['idApresentacao', 'decisao', 'observacaoPublica']
   });
 }
@@ -932,6 +937,7 @@ function portalExecutarConsultaApresentacaoAtividadesV2_(token, config) {
     portalTraceMark_('G3', 'BUILDER_GESTAO_INICIADO');
   }
   var resposta = portalChamarAtividadesPacoteApresentacoesV2_(config.funcao, null, contextoAtividades);
+  portalRenovarSessaoDecisoesDev_(token, contexto, config);
   if (config.id === 'apresentacoesPendenciasDiretoria') {
     var dadosTiming = resposta && (resposta.data || resposta.dados || resposta) || {};
     portalTraceImportManagementMarks_(dadosTiming.managementReadTiming);
@@ -982,6 +988,7 @@ function portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, config)
   var dadosTiming = resposta && (resposta.data || resposta.dados || resposta) || {};
   portalTraceImportMarks_(dadosTiming.operationalTiming);
   portalTraceMark_('B9', 'ADAPTER_APRESENTACOES_RETORNOU');
+  portalRenovarSessaoDecisoesDev_(token, contexto, config);
 
   if (resposta && resposta.ok !== false) {
     portalInvalidarCachesApresentacoesV2_(contexto, resposta.data || resposta.dados || {});
@@ -1900,6 +1907,8 @@ function portalExecutarLeituraAtividadesV2_(token, config) {
 
 function portalMontarContextoViewsV2_(token, config) {
   var tokenNormalizado = String(token || '').trim();
+  var fastPathDecisaoDev = portalFastPathDecisaoCanonicaDev_(config);
+  var identificadorSessao = '';
 
   if (!tokenNormalizado) {
     return {
@@ -1912,7 +1921,13 @@ function portalMontarContextoViewsV2_(token, config) {
     };
   }
 
-  if (!portalSessaoTemporariaValida_(tokenNormalizado)) {
+  if (fastPathDecisaoDev) {
+    identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
+  } else if (portalSessaoTemporariaValida_(tokenNormalizado)) {
+    identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
+  }
+
+  if (!identificadorSessao) {
     return {
       ok: false,
       resposta: portalRespostaErro_(
@@ -1924,7 +1939,6 @@ function portalMontarContextoViewsV2_(token, config) {
   }
   portalLatencyDevLog_('P2', 'PORTAL_TOKEN_LOCALIZADO');
 
-  var identificadorSessao = portalGetIdentificadorSessao_(tokenNormalizado);
   var sessaoCacheInicio = portalAgoraViewsV2Ms_();
   var sessao = portalLerSessaoCorePorToken_(tokenNormalizado);
   var sessionCacheResult = sessao ? 'HIT' : 'MISS';
@@ -1941,9 +1955,15 @@ function portalMontarContextoViewsV2_(token, config) {
     durationMs: portalAgoraViewsV2Ms_() - sessaoCacheInicio,
     libraryCallCount: sessionCacheResult === 'MISS' ? 1 : 0
   });
-  var membro = portalMontarMembroDeSessaoPortal_(sessao, 'GEAPA_CORE.session') ||
-    portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) ||
-    {};
+  var membroSessao = portalMontarMembroDeSessaoPortal_(
+    sessao,
+    'GEAPA_CORE.session'
+  );
+  var membro = fastPathDecisaoDev
+    ? membroSessao || {}
+    : membroSessao ||
+      portalBuscarMembroPorIdentificadorSessao_(identificadorSessao) ||
+      {};
   var usuario = portalMontarUsuarioDeSessao_(sessao, membro) ||
     portalMontarUsuarioBasico_(membro);
 
@@ -1986,6 +2006,43 @@ function portalMontarContextoViewsV2_(token, config) {
       somenteProprios: config.requerDiretoria !== true
     }
   };
+}
+
+/**
+ * Seleciona o atalho de autorizacao apenas para decisoes canonicas DEV.
+ * PROD e todas as demais rotas preservam o caminho anterior integralmente.
+ *
+ * @param {Object} config Configuracao da action do Portal.
+ * @return {boolean} Verdadeiro somente no fast path DEV.
+ */
+function portalFastPathDecisaoCanonicaDev_(config) {
+  return !!(config && config.fastPathDecisaoCanonicaDev === true) &&
+    portalResolverAmbienteDadosV2_() === 'DEV';
+}
+
+/**
+ * Renova o snapshot curto de sessao somente depois da chamada a Atividades.
+ * Assim a tela de Gestao aquece a autorizacao da decisao seguinte sem colocar
+ * uma escrita de cache no trecho critico entre a validacao e P7.
+ *
+ * @param {string} token Token temporario ja validado.
+ * @param {Object} contexto Contexto autorizado.
+ * @param {Object} config Configuracao da rota.
+ * @return {boolean} Indica se a renovacao DEV foi solicitada.
+ */
+function portalRenovarSessaoDecisoesDev_(token, contexto, config) {
+  if (portalResolverAmbienteDadosV2_() !== 'DEV' ||
+      !config || config.renovarSessaoDecisoesDev !== true ||
+      !contexto || contexto.ok !== true || !contexto.sessao) {
+    return false;
+  }
+  if (contexto.sessao.ok === false ||
+      contexto.sessao.autenticado === false ||
+      contexto.sessao.portalAtivo === false) {
+    return false;
+  }
+  portalSalvarSessaoCorePorToken_(token, contexto.sessao);
+  return true;
 }
 
 function portalContextoViewsV2TemPermissao_(sessao, usuario, permissoesNecessarias) {
