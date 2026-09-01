@@ -85,6 +85,7 @@ function doGet(e) {
         'apresentacaoEnviarTituloEixo',
         'apresentacaoRevisarTituloEixo',
         'apresentacaoReprovarTituloEixo',
+        'apresentacaoConsultarDecisao',
         'apresentacaoRegistrarMaterial',
         'apresentacaoRevisarMaterial',
         'apresentacaoRegistrarFotoReuniao',
@@ -471,6 +472,13 @@ function portalExecutarAcao_(requisicao, runtimeOptions) {
 
   if (acao === 'apresentacaoReprovarTituloEixo') {
     return portalApresentacaoReprovarTituloEixoV2(
+      requisicao.token || '',
+      requisicao.payload || requisicao
+    );
+  }
+
+  if (acao === 'apresentacaoConsultarDecisao') {
+    return portalApresentacaoConsultarDecisaoV2(
       requisicao.token || '',
       requisicao.payload || requisicao
     );

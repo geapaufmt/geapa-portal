@@ -109,6 +109,7 @@
   };
   var TTL_CACHE_PRIVADO_MS = 60000;
   var TTL_CACHE_EIXOS_MS = 20 * 60 * 1000;
+  var requestIdsDecisoesPendentes = Object.create(null);
   var ID_APRESENTACAO_TECNICO_PATTERN = /^APR-(?:\d{4}|\d{4}-[12]-\d{4}(?:-\d{2})?)$/;
   var MOTIVOS_JUSTIFICATIVA_PADRAO = [
     { valor: 'SAUDE', rotulo: 'Saude' },
@@ -2690,11 +2691,123 @@
     );
   }
 
+  function obterDecisionTypeApresentacao_(payload) {
+    var decision = String(payload && payload.decisao || '').trim().toUpperCase();
+    var map = {
+      APROVAR: 'APPROVE',
+      REPROVAR: 'REJECT',
+      SOLICITAR_AJUSTE: 'REQUEST_ADJUSTMENT',
+      EDITAR_E_APROVAR: 'EDIT_APPROVE'
+    };
+    return map[decision] || '';
+  }
+
+  function hashAssinaturaDecisaoApresentacao_(value) {
+    var source = String(value || '');
+    var hash = 0;
+    for (var i = 0; i < source.length; i++) {
+      hash = ((hash << 5) - hash + source.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  function chaveDecisaoApresentacao_(route, payload, decisionType) {
+    if (!decisionType) return '';
+    var source = payload || {};
+    return [
+      route,
+      String(source.idApresentacao || '').trim(),
+      decisionType,
+      hashAssinaturaDecisaoApresentacao_(JSON.stringify({
+        titulo: source.tituloApresentacao || '',
+        eixoPrincipal: source.eixoTematicoPrincipal || '',
+        eixoSecundario: source.eixoTematicoSecundario || '',
+        observacaoPublica: source.observacaoPublica || '',
+        observacaoInterna: source.observacaoInterna || ''
+      }))
+    ].join('|');
+  }
+
+  function requestIdDecisaoApresentacao_(key) {
+    if (!key) return criarRequestIdApresentacaoDev_();
+    if (!requestIdsDecisoesPendentes[key]) {
+      requestIdsDecisoesPendentes[key] = criarRequestIdApresentacaoDev_();
+    }
+    return requestIdsDecisoesPendentes[key];
+  }
+
+  function limparRequestIdDecisaoApresentacao_(key) {
+    if (key) delete requestIdsDecisoesPendentes[key];
+  }
+
+  function respostaEhFalhaTransporteApresentacao_(resposta) {
+    var code = String(
+      resposta && (resposta.code || resposta.errorCode) || ''
+    ).trim().toUpperCase();
+    return ['API_WRITE_TIMEOUT', 'ERRO_API', 'API_RESPOSTA_INVALIDA'].indexOf(code) >= 0;
+  }
+
+  function reconciliarRespostaDecisaoApresentacaoDev_(
+    resposta,
+    payload,
+    decisionType
+  ) {
+    if (!decisionType || !respostaEhFalhaTransporteApresentacao_(resposta) ||
+        !api || typeof api.reconcilePresentationDecision !== 'function') {
+      return Promise.resolve(resposta);
+    }
+    return api.reconcilePresentationDecision({
+      requestId: payload.requestId,
+      idApresentacao: payload.idApresentacao,
+      decisionType: decisionType
+    }, { maxAttempts: 3 }).then(function(reconciliationResponse) {
+      var data = reconciliationResponse && reconciliationResponse.data || {};
+      if (reconciliationResponse && reconciliationResponse.ok === true &&
+          data.state === 'COMPLETED' && data.commitConfirmed === true) {
+        return {
+          ok: true,
+          code: 'APRESENTACAO_DECISAO_RECONCILIADA',
+          message: 'A operacao foi concluida e confirmada pelo requestId.',
+          data: {
+            idApresentacao: data.presentationId,
+            statusTituloEixo: data.statusTituloEixo,
+            reconciliation: data
+          },
+          meta: { reconciliation: data }
+        };
+      }
+      if (reconciliationResponse && reconciliationResponse.ok === false) {
+        return reconciliationResponse;
+      }
+      if (data.state === 'PROCESSING') {
+        return {
+          ok: false,
+          code: 'APRESENTACAO_DECISAO_EM_PROCESSAMENTO',
+          errorCode: 'APRESENTACAO_DECISAO_EM_PROCESSAMENTO',
+          message: 'A decisao continua em processamento. Nao envie uma nova decisao.',
+          data: { reconciliation: data },
+          retrySafe: false
+        };
+      }
+      return {
+        ok: false,
+        code: 'APRESENTACAO_DECISAO_INDETERMINADA',
+        errorCode: 'APRESENTACAO_DECISAO_INDETERMINADA',
+        message: 'O resultado ainda nao foi confirmado. Tente novamente com o mesmo botao; o requestId sera preservado.',
+        data: { reconciliation: data },
+        retrySafe: true,
+        sameRequestIdRequired: true
+      };
+    });
+  }
+
   function executarPostApresentacao(route, payload, opcoes) {
     var config = opcoes || {};
     var toastId;
     payload = Object.assign({}, payload || {});
-    payload.requestId = payload.requestId || criarRequestIdApresentacaoDev_();
+    var decisionType = obterDecisionTypeApresentacao_(payload);
+    var decisionKey = chaveDecisaoApresentacao_(route, payload, decisionType);
+    payload.requestId = payload.requestId || requestIdDecisaoApresentacao_(decisionKey);
     var timing = criarTimingApresentacaoDev_(config.acao, payload.requestId);
     marcarTimingApresentacaoDev_(timing, 'F0', 'CLIQUE_RECEBIDO');
 
@@ -2719,6 +2832,13 @@
     return api.apiPost(route, {
       payload: JSON.stringify(payload)
     })
+      .then(function reconciliarSeNecessario(resposta) {
+        return reconciliarRespostaDecisaoApresentacaoDev_(
+          resposta,
+          payload,
+          decisionType
+        );
+      })
       .then(function tratar(resposta) {
         importarTimingTransporteApresentacaoDev_(timing, resposta);
         if (timing) timing.backend = resposta && resposta.meta && resposta.meta.trace || null;
@@ -2731,6 +2851,8 @@
           ));
           erro.fieldErrors = feedback.fieldErrors;
           erro.code = feedback.code;
+          erro.reconciliationState = resposta && resposta.data &&
+            resposta.data.reconciliation && resposta.data.reconciliation.state || '';
           if (!Object.keys(erro.fieldErrors).length) {
             erro.fieldErrors = mapearErrosCamposApresentacao(config.acao, feedback.code);
           }
@@ -2738,6 +2860,7 @@
         }
 
         marcarTimingApresentacaoDev_(timing, 'F4', 'MUTATION_CONCLUIDA');
+        limparRequestIdDecisaoApresentacao_(decisionKey);
         var sucesso = montarFeedbackSucessoApresentacao(config.acao, payload, feedback);
         estado.feedbackPersistente = Object.assign({
           idRota: estado.rotaAtual || 'minhas-apresentacoes'
@@ -2766,6 +2889,18 @@
           message: erro.message,
           fieldErrors: erro.fieldErrors || {}
         }, 'Nao foi possivel concluir a acao. Tente novamente.');
+        if (['PROCESSING', 'INDETERMINATE'].indexOf(
+          String(erro.reconciliationState || '').toUpperCase()
+        ) >= 0) {
+          ui.atualizarToast(toastId, {
+            type: 'warning',
+            title: erro.reconciliationState === 'PROCESSING'
+              ? 'Operacao em processamento' : 'Resultado ainda nao confirmado',
+            message: mensagemErro
+          });
+          return;
+        }
+        limparRequestIdDecisaoApresentacao_(decisionKey);
         mostrarErroModal(
           mensagemErro,
           config.form,

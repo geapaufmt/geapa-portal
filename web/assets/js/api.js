@@ -511,6 +511,51 @@
     return chamarAppsScript(route, payload || {});
   }
 
+  function consultarDecisaoApresentacaoPorRequestId(payload) {
+    if (String(config.ENVIRONMENT || '').trim().toUpperCase() !== 'DEV') {
+      return Promise.resolve({
+        ok: false,
+        code: 'APRESENTACAO_RECONCILIACAO_SOMENTE_DEV',
+        errorCode: 'APRESENTACAO_RECONCILIACAO_SOMENTE_DEV',
+        message: 'A reconciliacao de decisoes esta isolada no ambiente DEV.'
+      });
+    }
+    return chamarAppsScriptAction('apresentacaoConsultarDecisao', {
+      payload: JSON.stringify(payload || {})
+    });
+  }
+
+  function aguardarReconciliacaoApresentacao_(delayMs) {
+    return new Promise(function(resolve) {
+      setTimeout(resolve, Math.max(250, Number(delayMs || 2000)));
+    });
+  }
+
+  function reconciliarDecisaoApresentacao(payload, options) {
+    var opts = options || {};
+    var maxAttempts = Math.max(1, Math.min(3, Number(opts.maxAttempts || 3)));
+    var wait = typeof opts.wait === 'function'
+      ? opts.wait : aguardarReconciliacaoApresentacao_;
+
+    function consultar(attempt) {
+      return consultarDecisaoApresentacaoPorRequestId(payload).then(function(result) {
+        var data = result && result.data || {};
+        if (result && result.ok === true && data.state === 'PROCESSING' &&
+            attempt < maxAttempts) {
+          return Promise.resolve(wait(data.nextPollAfterMs || 2000)).then(function() {
+            return consultar(attempt + 1);
+          });
+        }
+        if (result && typeof result === 'object') {
+          result.reconciliationAttempts = attempt;
+        }
+        return result;
+      });
+    }
+
+    return consultar(1);
+  }
+
   function callAction(acao, params) {
     return chamarAppsScriptAction(acao, params || {});
   }
@@ -776,6 +821,7 @@
       '/v2/apresentacoes/titulo-eixo/enviar': 'apresentacaoEnviarTituloEixo',
       '/v2/apresentacoes/titulo-eixo/revisar': 'apresentacaoRevisarTituloEixo',
       '/v2/apresentacoes/titulo-eixo/reprovar': 'apresentacaoReprovarTituloEixo',
+      '/v2/apresentacoes/decisoes/status': 'apresentacaoConsultarDecisao',
       '/v2/apresentacoes/material/registrar': 'apresentacaoRegistrarMaterial',
       '/v2/apresentacoes/material/revisar': 'apresentacaoRevisarMaterial',
       '/v2/apresentacoes/foto/registrar': 'apresentacaoRegistrarFotoReuniao',
@@ -1990,6 +2036,8 @@
   global.PortalGeapaApi = {
     apiGet: apiGet,
     apiPost: apiPost,
+    queryPresentationDecision: consultarDecisaoApresentacaoPorRequestId,
+    reconcilePresentationDecision: reconciliarDecisaoApresentacao,
     callAction: callAction,
     handleApiError: handleApiError,
     buildQueryString: buildQueryString

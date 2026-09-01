@@ -875,6 +875,47 @@ function portalApresentacaoReprovarTituloEixoV2(token, payloadJson) {
   });
 }
 
+function portalApresentacaoConsultarDecisaoV2(token, payloadJson) {
+  var inicio = portalAgoraViewsV2Ms_();
+  var config = {
+    id: 'apresentacaoConsultarDecisao',
+    code: 'APRESENTACAO_DECISAO_RECONCILIADA',
+    message: 'Estado da decisao consultado por requestId.',
+    funcao: 'atividadesV2_portalConsultarDecisaoApresentacaoPorRequestId',
+    requerDiretoria: true,
+    permissoes: [
+      'apresentacoes:gerir',
+      'diretoria:pendencias',
+      'atividades:gerir',
+      'sistema:admin'
+    ]
+  };
+  var contexto = portalMontarContextoViewsV2_(token, config);
+  if (!contexto.ok) return contexto.resposta;
+  if (portalResolverAmbienteDadosV2_() !== 'DEV') {
+    return portalRespostaErro_(
+      'APRESENTACAO_RECONCILIACAO_SOMENTE_DEV',
+      'A reconciliacao de decisoes canonicas esta disponivel somente em DEV.',
+      {}
+    );
+  }
+  var payload = portalLerPayloadJson_(payloadJson);
+  if (!payload.ok) return payload.resposta;
+  var dadosPayload = portalNormalizarPayloadApresentacaoV2_(payload.data);
+  var validacao = portalValidarPayloadApresentacaoV2_(dadosPayload, [
+    'requestId',
+    'idApresentacao',
+    'decisionType'
+  ]);
+  if (!validacao.ok) return validacao.resposta;
+  var resposta = portalChamarAtividadesPacoteApresentacoesV2_(
+    config.funcao,
+    dadosPayload,
+    portalMontarContextoAtividadesReadonlyV2_(contexto)
+  );
+  return portalNormalizarRespostaAcaoApresentacaoV2_(resposta, config, inicio);
+}
+
 function portalApresentacaoRevisarMaterialV2(token, payloadJson) {
   return portalExecutarAcaoApresentacaoAtividadesV2_(token, payloadJson, {
     id: 'apresentacaoRevisarMaterial',
@@ -1087,6 +1128,11 @@ function portalFuncoesGlobaisApresentacoesV2_() {
 
   if (typeof atividadesV2_portalReprovarTituloEixoApresentacao === 'function') {
     funcoes.atividadesV2_portalReprovarTituloEixoApresentacao = atividadesV2_portalReprovarTituloEixoApresentacao;
+  }
+
+  if (typeof atividadesV2_portalConsultarDecisaoApresentacaoPorRequestId === 'function') {
+    funcoes.atividadesV2_portalConsultarDecisaoApresentacaoPorRequestId =
+      atividadesV2_portalConsultarDecisaoApresentacaoPorRequestId;
   }
 
   if (typeof atividadesV2_portalRegistrarMaterialApresentacao === 'function') {
