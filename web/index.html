@@ -2,6 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://apis.google.com https://portal-geapa.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://script.google.com https://script.googleusercontent.com https://southamerica-east1-portal-geapa.cloudfunctions.net/geapaCommand https://content-firebaseappcheck.googleapis.com https://www.google.com/recaptcha/; script-src 'self' https://apis.google.com https://www.gstatic.com https://www.google.com/recaptcha/; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-src https://portal-geapa.firebaseapp.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; base-uri 'self'; form-action 'self'; worker-src 'self'">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Portal GEAPA</title>
     <meta
@@ -9,10 +10,14 @@
       content="Portal institucional do GEAPA com acesso público, vínculos, atividades, apresentações e gestão."
     >
     <meta name="theme-color" content="#1f6b45">
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css?v=57">
+    <link rel="stylesheet" href="assets/act-ui/member-flows.css">
+    <link rel="manifest" href="manifest.json?v=cc90cbd58c35">
+    <link rel="stylesheet" href="style.9ae9da92320b5588.css">
+    <link rel="stylesheet" href="assets/css/public-v2.41010cbf44a8da05.css">
+    <link rel="stylesheet" href="assets/css/public-admin-v2.640e3b814ce59781.css">
   </head>
   <body>
+    <a href="/membros.html" style="display:block;text-align:center;padding:.6rem">Diretório de Membros</a>
     <div class="portal-frame">
       <header class="portal-header">
         <button
@@ -60,6 +65,7 @@
         </aside>
 
         <main class="portal-shell view-inicio" id="portal-app">
+<p id="estado-acesso" class="status-message" role="status" aria-live="polite"></p><button id="atualizar-acesso" class="secondary-button compact-button" type="button">Atualizar acesso</button>
           <section class="public-home-panel" id="tela-inicio" aria-labelledby="portal-title">
             <p class="eyebrow">GEAPA</p>
             <h1 id="portal-title">Portal GEAPA</h1>
@@ -97,71 +103,9 @@
             </div>
           </section>
 
-          <section class="access-panel" id="tela-acesso" aria-labelledby="login-title" hidden>
-            <p class="eyebrow">Entrada</p>
-            <h1 id="login-title">Entrar no Portal GEAPA</h1>
-            <p class="intro">
-              Use sua conta Google cadastrada no GEAPA para acessar o Portal.
-            </p>
+          <section class="access-panel" id="tela-acesso" aria-labelledby="login-title" hidden><p class="eyebrow">Acesso</p><h1 id="login-title">Entrar no Portal GEAPA</h1><form id="acesso-form" class="access-form"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required><button id="entrar-email" type="submit">Entrar</button></form><p id="mensagem-status" class="status-message" role="status" aria-live="polite">Use sua conta Google autorizada.</p></section>
 
-            <div class="login-primary-action">
-              <button id="entrar-google" class="login-google-button" type="button">
-                Entrar com Google
-              </button>
-              <p class="login-google-help">Use o e-mail cadastrado no GEAPA.</p>
-            </div>
-
-            <p class="login-alt-text">
-              <span>Precisa de outro método?</span>
-              <button
-                id="alternar-login-codigo"
-                class="login-code-toggle"
-                type="button"
-                aria-expanded="false"
-                aria-controls="login-codigo-panel"
-              >Entrar por código</button>
-            </p>
-
-            <div id="login-codigo-panel" class="login-code-panel" hidden>
-              <p class="login-code-notice" id="login-codigo-aviso">
-                Entrada alternativa. Algumas otimizações do Portal, como sessão
-                rápida via Firestore, exigem login com Google.
-              </p>
-
-              <form id="acesso-form" class="access-form" aria-describedby="login-codigo-aviso">
-                <label for="email-ou-rga">E-mail</label>
-                <div class="field-row">
-                  <input
-                    id="email-ou-rga"
-                    name="emailOuRga"
-                    type="text"
-                    autocomplete="username"
-                    placeholder="Digite seu e-mail cadastrado"
-                    required
-                  >
-                  <button id="solicitar-codigo" type="button">Enviar código</button>
-                </div>
-
-                <label for="codigo-acesso">Código de acesso</label>
-                <div class="field-row">
-                  <input
-                    id="codigo-acesso"
-                    name="codigo"
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="one-time-code"
-                    placeholder="Digite o código recebido"
-                  >
-                  <button id="entrar" type="submit">Validar código</button>
-                </div>
-              </form>
-            </div>
-
-            <p id="mensagem-status" class="status-message" role="status" aria-live="polite">
-              O acesso será validado pela base oficial do GEAPA.
-            </p>
-          </section>
-
+          <section class="situation-panel" id="tela-ingresso" aria-label="Ingresso no GEAPA" hidden><div id="enrollment-content"></div></section>
           <section class="situation-panel" id="tela-situacao" aria-labelledby="situacao-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
@@ -203,8 +147,8 @@
             </div>
 
             <p class="simulation-warning">
-              Esta tela e somente leitura. Se algum dado estiver incorreto ou vazio,
-              solicite atualizacao a Diretoria ou Secretaria.
+              Confira seus dados cadastrais. Use Editar perfil para atualizar os campos
+              disponíveis; correções de identificação dependem de conferência administrativa.
             </p>
 
             <div id="meu-perfil" class="situation-card">
@@ -214,7 +158,9 @@
             </div>
           </section>
 
-          <section class="situation-panel" id="tela-atividades" aria-labelledby="atividades-title" hidden>
+          <section class="situation-panel" id="tela-ciclos-semestres" hidden><div class="section-heading"><h2>Ciclos e semestres</h2></div><div id="functional-governance-content"></div></section>
+          <section class="situation-panel" id="tela-minha-atuacao" hidden><div class="situation-topbar"><div class="section-heading"><p class="eyebrow">Meu vínculo</p><h2>Minha atuação</h2></div></div><div id="minha-atuacao" class="situation-card"></div></section>
+<section class="situation-panel" id="tela-atividades" aria-labelledby="atividades-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
                 <p class="eyebrow">Atividades</p>
@@ -253,6 +199,14 @@
             <div id="admin-membros-content">
               <p class="empty-state">Abra a area para carregar os membros.</p>
             </div>
+          </section>
+
+          <section id="tela-public-admin" aria-label="Gestão de conteúdo público" hidden>
+            <div id="public-admin-content"></div>
+          </section>
+
+          <section class="situation-panel egress-feedback-panel" id="tela-avaliacao-egresso" aria-labelledby="egress-feedback-title" hidden>
+            <div id="avaliacao-egresso-content"><p class="empty-state">Validando convite...</p></div>
           </section>
 
           <section class="situation-panel admin-corrections-panel" id="tela-admin-correcoes-cadastrais" aria-labelledby="admin-correcoes-title" hidden>
@@ -375,7 +329,7 @@
     >
       <div class="global-loading-panel">
         <div class="global-loading-brain" data-loader-svg aria-hidden="true">
-          <img src="assets/img/geapa-loader-brain.svg" alt="" loading="eager">
+          <img src="assets/img/geapa-loader-brain.svg?v=efb08ccabf00" alt="" loading="eager">
         </div>
         <p id="portal-global-loading-message">Carregando...</p>
       </div>
@@ -388,27 +342,15 @@
       aria-relevant="additions text"
     ></div>
 
-    <script src="assets/js/config.js?v=8"></script>
-    <script src="assets/js/environment.js?v=4"></script>
-    <script src="assets/js/api.js?v=49"></script>
-    <script src="assets/js/public-content.js?v=2"></script>
-    <script src="assets/js/portal-model.js?v=1"></script>
-    <script src="assets/js/auth.js?v=2"></script>
-    <script src="assets/js/auth-adapter.js?v=13"></script>
-    <script src="assets/js/navigation.js?v=35"></script>
-    <script src="assets/js/ui.js?v=5"></script>
-    <script src="assets/js/atividades.js?v=55"></script>
-    <script src="assets/js/admin-atividades.js?v=7"></script>
-    <script src="assets/js/admin-membros.js?v=2"></script>
-    <script src="assets/js/admin-correcoes-cadastrais.js?v=5"></script>
-    <script src="assets/js/vinculo-solicitacoes.js?v=2"></script>
-    <script src="assets/js/admin-solicitacoes-vinculo.js?v=5"></script>
-    <script src="assets/js/portal-v2-readonly.js?v=30"></script>
-    <script src="assets/js/painel-diretoria-v2.js?v=1"></script>
-    <script type="module" src="assets/js/firebase-auth.js?v=3"></script>
-    <script type="module" src="assets/js/firestore-session-cache.js?v=9"></script>
-    <script type="module" src="assets/js/firestore-activities.js?v=7"></script>
-    <script src="assets/js/pwa.js"></script>
-    <script type="module" src="app.js?v=35"></script>
-  </body>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  <script type="module" src="assets/physical-560120e5c1fbb33e/entry.mjs"></script>
+</body>
 </html>
