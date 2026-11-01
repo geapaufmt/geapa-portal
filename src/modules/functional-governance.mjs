@@ -1,4 +1,4 @@
-import {cycleDashboard,cycleDetail,semesterCard,interval,statusLabel} from './admin-panels.mjs';
+import {cycleDashboard,cycleDetail,semesterCard,interval,statusLabel,cycleEditable} from './admin-panels.mjs';
 // Existing Portal facade and command journal. UI visibility grants no authority.
 const esc=v=>window.PortalGeapaUi.escaparHtml(String(v??''));
 const api=()=>window.PortalGeapaApi;
@@ -22,12 +22,13 @@ function editor(title,body){
  governanceModal.removeAttribute('data-geapa-dirty');governanceModal.querySelector('[data-discard-prompt]')?.remove();governanceModal.setAttribute('data-geapa-protect-draft','');governanceModal.querySelector('h2').textContent=title;const content=governanceModal.querySelector('#governance-editor');content.innerHTML=body;window.PortalDesign.openDetailDialog(governanceModal,()=>{content.replaceChildren();});return content;
 }
 function detailsCycle(id){const c=shown?.cycles.find(x=>x.id===id);if(c)editor(c.label,cycleDetail(c,shown));}
-function detailsSemester(id){const s=shown?.semesters.find(x=>x.id===id);if(!s)return;const c=shown.cycles.find(x=>x.id===s.cycleId);editor('Semestre '+s.label,window.PortalDesign.detailFacts([['Identificação',s.label],['Período',interval(s)],['Status',statusLabel(s.status)],['Revisão',s.revision],['Ciclo',c?.label||(s.cycleId?'Vínculo informado; ciclo não disponível':'Sem associação')],['ID',s.id]])+(c&&shown.canCreateCycle?'<button type="button" data-cycle-associate="'+esc(c.id)+'">Editar associação no ciclo</button>':''));}
-function associationPicker(){if(!shown?.canCreateCycle)return;editor('Associar semestres a ciclo','<p>Selecione o ciclo para revisar seus semestres vinculados.</p><div class="geapa-choice-list">'+shown.cycles.map(c=>'<button type="button" data-cycle-associate="'+esc(c.id)+'">'+esc(c.label)+' · '+dates(c)+'</button>').join('')+'</div>');}
+function detailsSemester(id){const s=shown?.semesters.find(x=>x.id===id);if(!s)return;const c=shown.cycles.find(x=>x.id===s.cycleId);editor('Semestre '+s.label,window.PortalDesign.detailFacts([['Identificação',s.label],['Período',interval(s)],['Status',statusLabel(s.status)],['Revisão',s.revision],['Ciclo',c?.label||(s.cycleId?'Vínculo informado; ciclo não disponível':'Sem associação')],['ID',s.id]])+(c&&cycleEditable(c,shown)?'<button type="button" data-cycle-associate="'+esc(c.id)+'">Editar associação no ciclo</button>':''));}
+function associationPicker(){if(!shown)return;editor('Associar semestres a ciclo','<p>Selecione o ciclo para revisar seus semestres vinculados.</p><div class="geapa-choice-list">'+shown.cycles.filter(c=>cycleEditable(c,shown)).map(c=>'<button type="button" data-cycle-associate="'+esc(c.id)+'">'+esc(c.label)+' · '+dates(c)+'</button>').join('')+'</div>');}
 
 function editCycle(id,association=false){
- if(!shown?.canCreateCycle)return;
+ if(!shown||(!id&&!shown.canCreateCycle))return;
  const c=shown.cycles.find(x=>x.id===id)||{id:'',revision:0,label:'',civilStart:'',civilEnd:'',status:'DRAFT'};
+ if(id&&!cycleEditable(c,shown))return;
  const form=editor(association?'Associar semestres':id?'Editar ciclo':'Novo ciclo de atividades','');
  form.innerHTML=`<form data-cycle-form class="readonly-form"><input name="id" type="hidden" value="${esc(c.id)}"><input name="revision" type="hidden" value="${c.revision}">${field('label','Identificação / nome','text',c.label)}${field('civilStart','Data inicial','date',c.civilStart)}${field('civilEnd','Data final','date',c.civilEnd)}${!id?'<label>Configuração institucional de referência<select name="policyId" required><option value="">Selecione</option>'+shown.policies.map(p=>`<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('')+'</select></label>':''}<fieldset><legend>Semestres associados</legend><p class="geapa-detail-note">Marque para associar; desmarque para desassociar. O Core revalida as datas e os vínculos ao salvar.</p><div data-semester-choices></div></fieldset>${!id?'<p>A criação mantém o ciclo em rascunho. Obrigações e regras de apresentações não são ativadas por este cadastro.</p>':''}${reason()}<button type="submit">${association?'Salvar associação':'Salvar ciclo'}</button><p data-feedback role="status"></p></form>`;
  const f=form.querySelector('form');if(association)f.elements.label.readOnly=true;if(association||(id&&c.status!=='DRAFT')){f.elements.civilStart.readOnly=true;f.elements.civilEnd.readOnly=true;}

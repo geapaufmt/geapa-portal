@@ -1711,79 +1711,13 @@
   }
 
   function obterValorFiltroCicloSemestreAtividade(atividade) {
-    var rotulo = obterCampoTextoAtividade(atividade, ['rotuloSemestre']);
-    var ano = obterCampoTextoAtividade(atividade, [
-      'ano',
-      'anoAtividade',
-      'anoLetivo'
-    ]);
-    var semestre = obterCampoTextoAtividade(atividade, [
-      'semestre',
-      'semestreAtividade',
-      'semestreLetivo'
-    ]);
-    var rotuloNormalizado = normalizarRotuloCicloSemestre(rotulo);
-    var rotuloPorAnoSemestre = montarRotuloCicloSemestre(ano, semestre);
-    var rotuloPorData = montarRotuloCicloSemestrePorData(atividade);
-
-    if (rotuloNormalizado) {
-      return rotuloNormalizado;
-    }
-
-    if (rotuloPorAnoSemestre) {
-      return rotuloPorAnoSemestre;
-    }
-
-    return rotuloPorData || 'Sem semestre definido';
-  }
-
-  function normalizarRotuloCicloSemestre(valor) {
-    var texto = String(valor || '').trim();
-
-    return /^\d{4}\/[12]$/.test(texto) ? texto : '';
-  }
-
-  function montarRotuloCicloSemestre(ano, semestre) {
-    var anoNormalizado = String(ano || '').trim();
-    var semestreNormalizado = String(semestre || '').trim();
-    var rotulo;
-
-    if (!/^\d{4}$/.test(anoNormalizado) || !/^[12]$/.test(semestreNormalizado)) {
-      return '';
-    }
-
-    rotulo = anoNormalizado + '/' + semestreNormalizado;
-    return normalizarRotuloCicloSemestre(rotulo);
-  }
-
-  function montarRotuloCicloSemestrePorData(atividade) {
-    var data = String((atividade && (atividade.dataAtividade || atividade.data)) || '').trim();
-    var matchIso = data.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    var matchBr = data.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-    var dataHora;
-    var ano;
-    var semestre;
-
-    if (matchIso) {
-      ano = matchIso[1];
-      semestre = Number(matchIso[2]) <= 6 ? '1' : '2';
-      return montarRotuloCicloSemestre(ano, semestre);
-    }
-
-    if (matchBr) {
-      ano = matchBr[3];
-      semestre = Number(matchBr[2]) <= 6 ? '1' : '2';
-      return montarRotuloCicloSemestre(ano, semestre);
-    }
-
-    dataHora = new Date(data);
-    if (Number.isNaN(dataHora.getTime())) {
-      return '';
-    }
-
-    ano = String(dataHora.getFullYear());
-    semestre = dataHora.getMonth() <= 5 ? '1' : '2';
-    return montarRotuloCicloSemestre(ano, semestre);
+    if (!atividade) return 'Semestre não definido';
+    // A reference without its resolved label must not silently fall back.
+    if (atividade.academicSemesterId) return String(atividade.academicSemesterLabel || '').trim() || 'Semestre não definido';
+    if (atividade.semesterResolution === 'HISTORICAL_DECLARED') return String(atividade.historicalSemesterLabel || '').trim() || 'Semestre não definido';
+    // Compatibility with a literal semester supplied by an older authorized reader.
+    var rotulo = String(atividade.rotuloSemestre || '').trim();
+    return /^\d{4}\/[12]$/.test(rotulo) ? rotulo : 'Semestre não definido';
   }
 
   function ehAtividadeRealizadaOuCancelada(atividade) {
