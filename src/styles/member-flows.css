@@ -1,0 +1,71 @@
+/* Gestão V2 de solicitações voluntárias de vínculo. */
+.vinculo-solicitacoes-host { margin-top: 1rem; }
+.vinculo-card { border: 1px solid var(--border-color, #d9e1db); border-radius: 18px; background: #fff; padding: clamp(1rem, 2vw, 1.5rem); box-shadow: 0 8px 24px rgba(26, 54, 38, .06); }
+.vinculo-heading, .vinculo-actions, .vinculo-request-item > div, .vinculo-admin-person { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.vinculo-heading h3, .vinculo-requests h4 { margin: .15rem 0; }
+.vinculo-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; margin: 1rem 0; }
+.vinculo-summary > div { padding: .8rem; border-radius: 12px; background: #f5f8f6; }
+.vinculo-summary dt { color: #577064; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+.vinculo-summary dd { margin: .25rem 0 0; font-weight: 650; }
+.vinculo-actions { justify-content: flex-start; flex-wrap: wrap; margin: 1rem 0; }
+.vinculo-alerta { padding: .85rem 1rem; border-left: 4px solid #a67c00; background: #fff8df; border-radius: 8px; }
+.vinculo-request-list { display: grid; gap: .75rem; }
+.vinculo-request-item { border: 1px solid #dde5df; border-radius: 12px; padding: .85rem; }
+.vinculo-request-item > div { align-items: flex-start; }
+.vinculo-request-item span { display: block; color: #52675b; font-size: .9rem; }
+.status-chip { display: inline-block !important; padding: .2rem .55rem; border-radius: 999px; background: #e9f3ec; color: #245b35 !important; font-weight: 650; }
+.vinculo-form, [data-admin-vinculo-action] { display: grid; gap: .9rem; }
+.vinculo-form label, [data-admin-vinculo-action] label, .vinculo-filter-grid label { display: grid; gap: .35rem; font-weight: 600; }
+.vinculo-form input, .vinculo-form select, .vinculo-form textarea, [data-admin-vinculo-action] input, [data-admin-vinculo-action] select, [data-admin-vinculo-action] textarea, .vinculo-filter-grid input, .vinculo-filter-grid select { width: 100%; box-sizing: border-box; }
+.vinculo-date-grid, .vinculo-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; }
+.vinculo-filter-grid { margin: 1rem 0; align-items: end; }
+.vinculo-admin-person { justify-content: flex-start; flex-wrap: wrap; padding: .8rem; background: #f5f8f6; border-radius: 12px; }
+.vinculo-admin-person strong { flex-basis: 100%; }
+.vinculo-admin-modal-panel { width: min(900px, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; }
+.vinculo-admin-modal-panel section { padding: .8rem 0; border-bottom: 1px solid #e4e9e5; }
+.vinculo-admin-modal-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .78rem; }
+.admin-vinculo-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.admin-vinculo-table { min-width: 760px; }
+.admin-vinculo-cards { display: none; }
+.admin-vinculo-card { display: grid; gap: .85rem; padding: 1rem; border: 1px solid #dde5df; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(26, 54, 38, .05); }
+.admin-vinculo-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.admin-vinculo-card-header strong { min-width: 0; overflow-wrap: anywhere; }
+.admin-vinculo-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin: 0; }
+.admin-vinculo-card dl > div { min-width: 0; }
+.admin-vinculo-card dt { color: #577064; font-size: .76rem; letter-spacing: .04em; text-transform: uppercase; }
+.admin-vinculo-card dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .vinculo-heading, .vinculo-request-item > div { align-items: stretch; flex-direction: column; }
+  .vinculo-actions > button { width: 100%; }
+  .admin-vinculo-table-wrap { display: none; }
+  .admin-vinculo-cards { display: grid; gap: .85rem; }
+  .admin-vinculo-card dl { grid-template-columns: 1fr; }
+  .admin-vinculo-card > button, .vinculo-filter-grid > button { width: 100%; }
+  .vinculo-admin-modal-panel { width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); }
+}
+
+.member-registration-card {
+  display: flex;
+  flex-direction: column;
+  width: min(900px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+.member-registration-card .portal-modal-header { flex: 0 0 auto; }
+.member-registration-card [data-member-registration-content],
+.member-registration-card [data-member-registration-form] { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.member-registration-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding-right: 4px; }
+.member-registration-card .portal-modal-actions { position: static; flex: 0 0 auto; margin: 14px 0 0; padding: 14px 0 0; }
+.member-registration-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.member-registration-grid label, .member-registration-mode label, .member-registration-card fieldset label { margin: 0; }
+.member-registration-wide { grid-column: 1 / -1; }
+.member-registration-mode { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: var(--green-050); }
+.member-registration-card [data-member-registration-complete] { margin-top: 22px; border-top: 1px solid var(--border); padding-top: 18px; }
+.member-registration-feedback { min-height: 24px; margin-top: 14px; }
+.member-registration-feedback.is-error, .member-registration-error { color: #7a2525; }
+.member-registration-state, .member-registration-success { padding: 28px 4px 8px; text-align: center; }
+.member-registration-success dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 18px auto; width: min(100%, 520px); text-align: left; }
+.member-registration-success dd { margin: 0; overflow-wrap: anywhere; font-weight: 700; }
+@media(max-width:640px){.member-registration-grid{grid-template-columns:1fr}.member-registration-wide{grid-column:auto}}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "activity-executor-client-v1",
+  "enabled": true,
+  "projectId": "geapa-convergencia-dev",
+  "endpoint": "https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app",
+  "siteKey": "6LcgEfQtAAAAAPSPgGQs14Jj-iqbhwqgCh5nKxVO",
+  "routes": {
+    "CREATE": {
+      "executor": "CF_GEN2_DEV_EDIT_V1",
+      "resolve": true
+    },
+    "EDIT": {
+      "executor": "CF_GEN2_DEV_EDIT_V1",
+      "resolve": true
+    },
+    "PUBLISH": {
+      "executor": "CF_GEN2_DEV_EDIT_V1",
+      "resolve": true
+    },
+    "HIDE": {
+      "executor": "CF_GEN2_DEV_EDIT_V1",
+      "resolve": true
+    },
+    "CANCEL": {
+      "executor": "CF_GEN2_DEV_EDIT_V1",
+      "resolve": true
+    },
+    "REOPEN": {
+      "executor": "CF_GEN2_DEV_EDIT_V1",
+      "resolve": true
+    },
+    "REALIZE": {
+      "executor": "CF_GEN2_DEV_EDIT_V1",
+      "resolve": true
+    }
+  }
+}

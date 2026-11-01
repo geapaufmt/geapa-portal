@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "keys": [
+    "P_04f618eb50cecab1",
+    "P_07739e1599f751c0",
+    "P_0bf0678b6f135d94",
+    "P_0c2e5b9da9a4d6e7",
+    "P_0cd39d5420a6240c",
+    "P_181b18f966aeaa28",
+    "P_3eb48696470958e6",
+    "P_429e1b293d78bf0e",
+    "P_46a466e5e1a63903",
+    "P_4ce44ab5a3ef0e11",
+    "P_52ec5dda8e161878",
+    "P_5f4b02bbc8da6a37",
+    "P_64a9228778405f48",
+    "P_652d9081c4961fd0",
+    "P_6823c894ef3edf00",
+    "P_699d943e64fa7af2",
+    "P_6b545a436897ec64",
+    "P_879b85777662af3c",
+    "P_adadbc3ed92e16d9",
+    "P_b16e496760f76595",
+    "P_bd5b4594a8a5afad",
+    "P_c6ab858ea5575044",
+    "P_c86be084de6a9f40",
+    "P_c8c31fd7ecc62d32",
+    "P_e2a746e132d0cb63",
+    "P_ebea35b51b48dad2",
+    "P_fd4c49751437d386"
+  ],
+  "description": "Nominal runtime values are intentionally excluded. Empty preview substitutions cannot authorize an actor."
+}

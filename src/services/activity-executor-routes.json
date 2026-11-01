@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "activity-executor-client-v1",
+  "enabled": true,
+  "projectId": "portal-geapa",
+  "endpoint": "https://southamerica-east1-portal-geapa.cloudfunctions.net/geapaCommand",
+  "siteKey": "6LcbQgAuAAAAAJ_IO0Q8SCuNv66E_gvZb5Qx3aT5",
+  "routes": {
+    "CREATE": {
+      "executor": "CF_GEN2_PROD_V1",
+      "resolve": true
+    },
+    "EDIT": {
+      "executor": "CF_GEN2_PROD_V1",
+      "resolve": true
+    },
+    "PUBLISH": {
+      "executor": "CF_GEN2_PROD_V1",
+      "resolve": true
+    },
+    "HIDE": {
+      "executor": "CF_GEN2_PROD_V1",
+      "resolve": true
+    },
+    "CANCEL": {
+      "executor": "CF_GEN2_PROD_V1",
+      "resolve": true
+    },
+    "REOPEN": {
+      "executor": "CF_GEN2_PROD_V1",
+      "resolve": true
+    },
+    "REALIZE": {
+      "executor": "CF_GEN2_PROD_V1",
+      "resolve": true
+    }
+  }
+}

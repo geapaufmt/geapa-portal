@@ -1,21 +1,20 @@
 {
-  "name": "geapa-portal-deploy",
+  "name": "geapa-portal",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
-    "config:dev": "node scripts/generate-portal-config.mjs dev",
-    "config:homolog": "node scripts/generate-portal-config.mjs homolog",
-    "config:prod": "node scripts/generate-portal-config.mjs prod",
-    "check:configs": "node scripts/generate-portal-config.mjs dev --check && node scripts/generate-portal-config.mjs homolog --check && node scripts/generate-portal-config.mjs prod --check",
-    "check:auth-fast-path": "node scripts/check-auth-fast-path.mjs",
-    "test:minha-situacao-route": "node scripts/check-minha-situacao-route.mjs",
-    "test:profile-modal": "node scripts/check-profile-correction-modal.mjs",
-    "test:profile-correction-submit": "node scripts/check-profile-correction-submit.mjs",
-    "test:profile-correction-ack": "node scripts/check-profile-correction-ack.mjs",
-    "test:profile-homolog": "node scripts/check-profile-homolog.mjs",
-    "test:profile-prod": "node scripts/check-profile-prod.mjs",
-    "test:v2-environment": "node scripts/check-v2-domain-environment.mjs",
-    "test:vinculo-v2": "node scripts/check-vinculo-v2.mjs && node scripts/check-admin-vinculo-manual-validation.mjs",
-    "test:vinculo-validacoes-manuais": "node scripts/check-admin-vinculo-manual-validation.mjs"
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "verify": "npm run typecheck && npm run build && npm test",
+    "verify:published": "node scripts/verify-published.cjs",
+    "deploy": "node -e \"throw Error('EXPLICIT_RELEASE_AUTHORIZATION_REQUIRED')\""
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
   }
 }

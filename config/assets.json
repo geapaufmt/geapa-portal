@@ -1,0 +1,1013 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "url": "/assets/act-command/act-browser-client.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/act-browser-client.mjs",
+      "devSource": "config/variants/dev/src/services/act-browser-client.mjs"
+    },
+    {
+      "url": "/assets/act-command/act-flow-contracts.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/act-flow-contracts.mjs",
+      "devSource": "config/variants/dev/src/services/act-flow-contracts.mjs"
+    },
+    {
+      "url": "/assets/act-command/act-flow-executor-routes.json",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/act-flow-executor-routes.json",
+      "devSource": "config/variants/dev/src/services/act-flow-executor-routes.json"
+    },
+    {
+      "url": "/assets/act-command/activity-executor-routes.json",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/activity-executor-routes.json",
+      "devSource": "config/variants/dev/src/services/activity-executor-routes.json"
+    },
+    {
+      "url": "/assets/act-command/activity-reader.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/activity-reader.mjs",
+      "devSource": "src/services/activity-reader.mjs"
+    },
+    {
+      "url": "/assets/act-command/admission-transport.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/admission-transport.mjs",
+      "devSource": "config/variants/dev/src/services/admission-transport.mjs"
+    },
+    {
+      "url": "/assets/act-command/app.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/app.mjs",
+      "devSource": "src/services/app.mjs"
+    },
+    {
+      "url": "/assets/act-command/auth-service.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/auth-service.mjs",
+      "devSource": "src/services/auth-service.mjs"
+    },
+    {
+      "url": "/assets/act-command/browser-services.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/browser-services.mjs",
+      "devSource": "src/services/browser-services.mjs"
+    },
+    {
+      "url": "/assets/act-command/cache-policy.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/cache-policy.mjs",
+      "devSource": "src/services/cache-policy.mjs"
+    },
+    {
+      "url": "/assets/act-command/command-contract.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/command-contract.mjs",
+      "devSource": "src/services/command-contract.mjs"
+    },
+    {
+      "url": "/assets/act-command/command-service.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/command-service.mjs",
+      "devSource": "src/services/command-service.mjs"
+    },
+    {
+      "url": "/assets/act-command/config.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/config.mjs",
+      "devSource": "src/services/config.mjs"
+    },
+    {
+      "url": "/assets/act-command/controlled-save.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/controlled-save.mjs",
+      "devSource": "config/variants/dev/src/services/controlled-save.mjs"
+    },
+    {
+      "url": "/assets/act-command/destination.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/destination.mjs",
+      "devSource": "src/services/destination.mjs"
+    },
+    {
+      "url": "/assets/act-command/dev-app-check.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/dev-app-check.mjs",
+      "devSource": "src/services/dev-app-check.mjs"
+    },
+    {
+      "url": "/assets/act-command/dev-scope.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/dev-scope.mjs.template",
+      "devSource": "config/variants/dev/src/services/dev-scope.mjs.template"
+    },
+    {
+      "url": "/assets/act-command/direct-readers.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/direct-readers.mjs",
+      "devSource": "src/services/direct-readers.mjs"
+    },
+    {
+      "url": "/assets/act-command/directory-page.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/directory-page.mjs",
+      "devSource": "src/services/directory-page.mjs"
+    },
+    {
+      "url": "/assets/act-command/dtos.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/dtos.mjs",
+      "devSource": "src/services/dtos.mjs"
+    },
+    {
+      "url": "/assets/act-command/entry.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/entry.mjs",
+      "devSource": "src/services/entry.mjs"
+    },
+    {
+      "url": "/assets/act-command/errors.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/errors.mjs",
+      "devSource": "src/services/errors.mjs"
+    },
+    {
+      "url": "/assets/act-command/executor-route.json",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/executor-route.json",
+      "devSource": "config/variants/dev/src/services/executor-route.json"
+    },
+    {
+      "url": "/assets/act-command/guard.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/guard.mjs",
+      "devSource": "src/services/guard.mjs"
+    },
+    {
+      "url": "/assets/act-command/historical-files.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/historical-files.mjs",
+      "devSource": "src/services/historical-files.mjs"
+    },
+    {
+      "url": "/assets/act-command/m12-dtos.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/m12-dtos.mjs",
+      "devSource": "src/services/m12-dtos.mjs"
+    },
+    {
+      "url": "/assets/act-command/material-review-node.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/material-review-node.mjs",
+      "devSource": "config/variants/dev/src/services/material-review-node.mjs"
+    },
+    {
+      "url": "/assets/act-command/member-bootstrap.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/member-bootstrap.mjs",
+      "devSource": "src/services/member-bootstrap.mjs"
+    },
+    {
+      "url": "/assets/act-command/member-node-config.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/member-node-config.mjs.template",
+      "devSource": "config/variants/dev/src/services/member-node-config.mjs.template"
+    },
+    {
+      "url": "/assets/act-command/member-node.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/member-node.mjs",
+      "devSource": "config/variants/dev/src/services/member-node.mjs"
+    },
+    {
+      "url": "/assets/act-command/member-operations.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/member-operations.mjs",
+      "devSource": "src/services/member-operations.mjs"
+    },
+    {
+      "url": "/assets/act-command/members-service.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/members-service.mjs",
+      "devSource": "src/services/members-service.mjs"
+    },
+    {
+      "url": "/assets/act-command/navigation.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/navigation.mjs",
+      "devSource": "src/services/navigation.mjs"
+    },
+    {
+      "url": "/assets/act-command/own-reader.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/own-reader.mjs",
+      "devSource": "src/services/own-reader.mjs"
+    },
+    {
+      "url": "/assets/act-command/own-recovery.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/own-recovery.mjs",
+      "devSource": "src/services/own-recovery.mjs"
+    },
+    {
+      "url": "/assets/act-command/private-dtos.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/private-dtos.mjs",
+      "devSource": "src/services/private-dtos.mjs"
+    },
+    {
+      "url": "/assets/act-command/profile-fields.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/profile-fields.mjs",
+      "devSource": "config/variants/dev/src/services/profile-fields.mjs"
+    },
+    {
+      "url": "/assets/act-command/projection-recovery-config.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/projection-recovery-config.mjs",
+      "devSource": "config/variants/dev/src/services/projection-recovery-config.mjs"
+    },
+    {
+      "url": "/assets/act-command/projection-recovery.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/projection-recovery.mjs",
+      "devSource": "config/variants/dev/src/services/projection-recovery.mjs"
+    },
+    {
+      "url": "/assets/act-command/projection-validator.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/projection-validator.mjs",
+      "devSource": "src/services/projection-validator.mjs"
+    },
+    {
+      "url": "/assets/act-command/public-directory.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/public-directory.mjs",
+      "devSource": "config/variants/dev/src/services/public-directory.mjs"
+    },
+    {
+      "url": "/assets/act-command/repositories.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/repositories.mjs",
+      "devSource": "src/services/repositories.mjs"
+    },
+    {
+      "url": "/assets/act-command/request-use-port.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/request-use-port.mjs",
+      "devSource": "src/services/request-use-port.mjs"
+    },
+    {
+      "url": "/assets/act-command/result-dtos.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/result-dtos.mjs",
+      "devSource": "src/services/result-dtos.mjs"
+    },
+    {
+      "url": "/assets/act-command/specialized-readers-config.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/specialized-readers-config.mjs",
+      "devSource": "config/variants/dev/src/services/specialized-readers-config.mjs"
+    },
+    {
+      "url": "/assets/act-command/specialized-readers.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/specialized-readers.mjs",
+      "devSource": "config/variants/dev/src/services/specialized-readers.mjs"
+    },
+    {
+      "url": "/assets/act-command/storage-client.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/storage-client.mjs",
+      "devSource": "config/variants/dev/src/services/storage-client.mjs"
+    },
+    {
+      "url": "/assets/act-command/storage-config.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/storage-config.mjs.template",
+      "devSource": "config/variants/dev/src/services/storage-config.mjs.template"
+    },
+    {
+      "url": "/assets/act-command/storage-flow.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/storage-flow.mjs",
+      "devSource": "src/services/storage-flow.mjs"
+    },
+    {
+      "url": "/assets/act-command/transport.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/transport.mjs",
+      "devSource": "src/services/transport.mjs"
+    },
+    {
+      "url": "/assets/act-command/workspace-readers-config.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/services/workspace-readers-config.mjs",
+      "devSource": "src/services/workspace-readers-config.mjs"
+    },
+    {
+      "url": "/assets/act-ui/activity-model-template.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/activity-model-template.mjs"
+    },
+    {
+      "url": "/assets/act-ui/admin-atividades.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/admin-atividades.js",
+      "devSource": "src/modules/admin-atividades.js"
+    },
+    {
+      "url": "/assets/act-ui/admin-cadastro-membros.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/admin-cadastro-membros.js",
+      "devSource": "src/modules/admin-cadastro-membros.js"
+    },
+    {
+      "url": "/assets/act-ui/admin-correcoes-cadastrais.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/admin-correcoes-cadastrais.js",
+      "devSource": "src/modules/admin-correcoes-cadastrais.js"
+    },
+    {
+      "url": "/assets/act-ui/admin-membros.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/admin-membros.js",
+      "devSource": "src/modules/admin-membros.js"
+    },
+    {
+      "url": "/assets/act-ui/admin-solicitacoes-vinculo.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/admin-solicitacoes-vinculo.js",
+      "devSource": "src/modules/admin-solicitacoes-vinculo.js"
+    },
+    {
+      "url": "/assets/act-ui/atividades.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/atividades.js",
+      "devSource": "src/modules/atividades.js"
+    },
+    {
+      "url": "/assets/act-ui/design-system.css",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/styles/design-system.css",
+      "devSource": "src/styles/design-system.css"
+    },
+    {
+      "url": "/assets/act-ui/design-system.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/design-system.mjs"
+    },
+    {
+      "url": "/assets/act-ui/functional-governance.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/functional-governance.mjs",
+      "devSource": "src/modules/functional-governance.mjs"
+    },
+    {
+      "url": "/assets/act-ui/member-flows.css",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/styles/member-flows.css",
+      "devSource": "src/styles/member-flows.css"
+    },
+    {
+      "url": "/assets/act-ui/portal-v2-readonly.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/portal-v2-readonly.js",
+      "devSource": "config/variants/dev/src/modules/portal-v2-readonly.js"
+    },
+    {
+      "url": "/assets/act-ui/record-actions.css",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/styles/record-actions.css",
+      "devSource": "src/styles/record-actions.css"
+    },
+    {
+      "url": "/assets/act-ui/record-actions.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/record-actions.mjs"
+    },
+    {
+      "url": "/assets/act-ui/ui.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/ui.js",
+      "devSource": "src/modules/ui.js"
+    },
+    {
+      "url": "/assets/act-ui/vinculo-solicitacoes.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/modules/vinculo-solicitacoes.js",
+      "devSource": "src/modules/vinculo-solicitacoes.js"
+    },
+    {
+      "url": "/assets/css/public-admin-v2.640e3b814ce59781.css",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/styles/public-admin-v2.640e3b814ce59781.css",
+      "devSource": "src/styles/public-admin-v2.640e3b814ce59781.css"
+    },
+    {
+      "url": "/assets/css/public-v2.41010cbf44a8da05.css",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/styles/public-v2.41010cbf44a8da05.css",
+      "devSource": "src/styles/public-v2.41010cbf44a8da05.css"
+    },
+    {
+      "url": "/assets/deployment-profile.mjs",
+      "environments": [
+        "prod"
+      ],
+      "source": "public/assets/deployment-profile.mjs"
+    },
+    {
+      "url": "/assets/icons/icon-192.png",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/assets/icons/icon-192.png",
+      "devSource": "public/assets/icons/icon-192.png"
+    },
+    {
+      "url": "/assets/icons/icon-512.png",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/assets/icons/icon-512.png",
+      "devSource": "public/assets/icons/icon-512.png"
+    },
+    {
+      "url": "/assets/icons/icon-maskable-192.png",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/assets/icons/icon-maskable-192.png",
+      "devSource": "public/assets/icons/icon-maskable-192.png"
+    },
+    {
+      "url": "/assets/icons/icon-maskable-512.png",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/assets/icons/icon-maskable-512.png",
+      "devSource": "public/assets/icons/icon-maskable-512.png"
+    },
+    {
+      "url": "/assets/img/geapa-loader-brain.svg",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/assets/img/geapa-loader-brain.svg",
+      "devSource": "public/assets/img/geapa-loader-brain.svg"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/act-environment.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/act-environment.mjs.template",
+      "devSource": "config/variants/dev/src/session/act-environment.mjs.template"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/act-session.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/act-session.mjs",
+      "devSource": "src/session/act-session.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/app.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/app.mjs",
+      "devSource": "src/session/app.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/auth-persistence.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/auth-persistence.mjs",
+      "devSource": "src/session/auth-persistence.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/auth-service.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/auth-service.mjs",
+      "devSource": "src/session/auth-service.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/bootstrap-state.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/bootstrap-state.mjs",
+      "devSource": "src/session/bootstrap-state.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/browser-services.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/browser-services.mjs",
+      "devSource": "src/session/browser-services.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/cache-policy.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/cache-policy.mjs",
+      "devSource": "src/session/cache-policy.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/config.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/config.mjs",
+      "devSource": "config/variants/dev/src/session/config.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/context-refresh.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/context-refresh.mjs",
+      "devSource": "src/session/context-refresh.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/destination.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/destination.mjs",
+      "devSource": "src/session/destination.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/dtos.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/dtos.mjs",
+      "devSource": "src/session/dtos.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/enrollment.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/enrollment.mjs",
+      "devSource": "src/session/enrollment.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/entry.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/entry.mjs",
+      "devSource": "src/session/entry.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/errors.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/errors.mjs",
+      "devSource": "src/session/errors.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/guard.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/guard.mjs",
+      "devSource": "src/session/guard.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/journal-storage.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/journal-storage.mjs",
+      "devSource": "src/session/journal-storage.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/login.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/login.mjs",
+      "devSource": "src/session/login.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/m12-dtos.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/m12-dtos.mjs",
+      "devSource": "src/session/m12-dtos.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/member-tracking.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/member-tracking.mjs",
+      "devSource": "src/session/member-tracking.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/members-service.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/members-service.mjs",
+      "devSource": "src/session/members-service.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/my-activity.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/my-activity.mjs",
+      "devSource": "src/session/my-activity.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/navigation.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/navigation.mjs",
+      "devSource": "src/session/navigation.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/profile-corrections.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/profile-corrections.mjs",
+      "devSource": "src/session/profile-corrections.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/profile.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/profile.mjs",
+      "devSource": "config/variants/dev/src/session/profile.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/projection-validator.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/projection-validator.mjs",
+      "devSource": "src/session/projection-validator.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/repositories.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/repositories.mjs",
+      "devSource": "src/session/repositories.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/self-projection-recovery.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/self-projection-recovery.mjs",
+      "devSource": "src/session/self-projection-recovery.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/transport.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/transport.mjs",
+      "devSource": "config/variants/dev/src/session/transport.mjs"
+    },
+    {
+      "url": "/assets/physical-560120e5c1fbb33e/visible-recovery.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/session/visible-recovery.mjs",
+      "devSource": "src/session/visible-recovery.mjs"
+    },
+    {
+      "url": "/assets/promotion-physical.mjs",
+      "environments": [
+        "dev"
+      ],
+      "devSource": "config/variants/dev/public/assets/promotion-physical.mjs.template"
+    },
+    {
+      "url": "/firebase-config.json",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/firebase-config.json",
+      "devSource": "config/variants/dev/public/firebase-config.json"
+    },
+    {
+      "url": "/index.html",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/index.html",
+      "devSource": "config/variants/dev/public/index.html"
+    },
+    {
+      "url": "/manifest.json",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/manifest.json",
+      "devSource": "public/manifest.json"
+    },
+    {
+      "url": "/membros.html",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/membros.html",
+      "devSource": "public/membros.html"
+    },
+    {
+      "url": "/promotion-physical.html",
+      "environments": [
+        "dev"
+      ],
+      "devSource": "config/variants/dev/public/promotion-physical.html"
+    },
+    {
+      "url": "/service-worker.js",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "public/service-worker.js",
+      "devSource": "public/service-worker.js"
+    },
+    {
+      "url": "/style.9ae9da92320b5588.css",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/styles/portal.css",
+      "devSource": "src/styles/portal.css"
+    }
+  ]
+}

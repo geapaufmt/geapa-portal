@@ -1,22 +1,9 @@
-# Arquivos locais do clasp podem conter scriptId real do projeto.
-.clasp.json
-
-# Dependencias e saidas comuns, caso o frontend evolua no futuro.
 node_modules/
 dist/
 build/
+private/
+evidence/
+*.private.json
+.env*
 .firebase/
-
-# Segredos e credenciais locais.
-.env
-.env.*
-!.env.example
-*service-account*.json
-*serviceAccount*.json
-*firebase-adminsdk*.json
-*private-key*.json
-
-# Arquivos temporarios de sistema e editor.
-.DS_Store
-Thumbs.db
 *.log

@@ -1,0 +1,1 @@
+export const projectionRecoveryConfig=Object.freeze({"enabled":true,"frequencyEnabled":true,"projectId":"geapa-convergencia-dev","endpoint":"https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app","siteKey":"6LcgEfQtAAAAAPSPgGQs14Jj-iqbhwqgCh5nKxVO"});

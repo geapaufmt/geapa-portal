@@ -1,0 +1,6 @@
+* text=auto eol=lf
+src/** -text
+public/** -text
+config/variants/** -text
+*.png binary
+*.jpg binary

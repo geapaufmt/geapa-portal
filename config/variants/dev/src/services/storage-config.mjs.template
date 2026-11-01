@@ -1,0 +1,2 @@
+import {specializedReadersConfig} from './specialized-readers-config.mjs';
+export const storageConfig=Object.freeze({...specializedReadersConfig,...{"enabled":true,"actorUids":["@@PRIVATE:P_6b545a436897ec64@@","@@PRIVATE:P_c8c31fd7ecc62d32@@"],"presentationIds":["@@PRIVATE:P_ebea35b51b48dad2@@"],"activityIds":["@@PRIVATE:P_3eb48696470958e6@@"],"justificationIds":[]}});
