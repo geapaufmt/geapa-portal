@@ -81,10 +81,12 @@
     var semestre = estado.opcoes && estado.opcoes.semestre;
     el.querySelector('[data-vinculo-semestre]').textContent = semestre ? 'Semestre ' + semestre.idSemestre + ' — término oficial em ' + data(semestre.dataFim) + '.' : 'Semestre letivo não resolvido.';
     el.hidden = false;
+    el.removeAttribute('data-geapa-dirty');el.setAttribute('data-geapa-protect-draft','');
+    if(global.PortalDesign)global.PortalDesign.openDetailDialog(el);
     form.querySelector('select:not([hidden]), input:not([type="hidden"])').focus();
   }
 
-  function fechar() { var el = modal(); if (el) el.hidden = true; }
+  function fechar(force) { var el = modal(); if(!el)return; if(global.PortalDesign)global.PortalDesign.closeDetailDialog(el,force===true);else el.hidden=true; }
   function atualizarDuracao(form) {
     var slot = form.querySelector('[data-vinculo-duration]');
     var start = form.elements.dataInicioPretendida.value;
@@ -125,14 +127,16 @@
       payload.observacoes = form.elements.observacoes.value.trim();
     }
     button.disabled = true; button.textContent = 'Enviando...';
+    var epoch=estado.epoch;modal().setAttribute('aria-busy','true');
     try {
       var response = await global.PortalGeapaApi.apiPost(route, { payload: JSON.stringify(payload) });
+      if(epoch!==estado.epoch)return;
       if (!response.ok) throw response;
-      fechar(); form.reset(); delete form.dataset.idempotencia;
+      fechar(true); form.reset(); delete form.dataset.idempotencia;
       mostrarSucesso('Solicitação ' + response.data.idSolicitacao + ' registrada com status ' + response.data.status + '.');
       estado.opcoes = null; await carregarForcado();
-    } catch (error) { mostrarErro(error.message || 'Não foi possível registrar a solicitação.'); }
-    finally { button.disabled = false; button.textContent = 'Enviar solicitação'; }
+    } catch (error) { if(epoch===estado.epoch)mostrarErro(error.message || 'Não foi possível registrar a solicitação.'); }
+    finally { modal().removeAttribute('aria-busy');button.disabled = false; button.textContent = 'Enviar solicitação'; }
   }
 
   async function cancelar(id) {
@@ -147,7 +151,7 @@
   function mostrarErro(message) { if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'error', title: 'Não foi possível concluir', message: message, persistent: true }); }
 
   document.addEventListener('portal:members-session-ready', function(){ if(global.PortalGeapaNavigation?.getRotaAtual()==='minha-situacao')carregarForcado(); });
-  document.addEventListener('portal:act-session-cleared', function(){ estado.epoch++;estado.carregando=false;estado.opcoes=null;estado.itens=[];if(raiz()){raiz().hidden=true;raiz().textContent='';}fechar(); });
+  document.addEventListener('portal:act-session-cleared', function(){ estado.epoch++;estado.carregando=false;estado.opcoes=null;estado.itens=[];if(raiz()){raiz().hidden=true;raiz().textContent='';}fechar(true); });
   document.addEventListener('portal:navigationchange', function(event) { if (event.detail && event.detail.rota && event.detail.rota.id === 'minha-situacao') carregarForcado(); });
   document.addEventListener('click', function(event) {
     var button = event.target.closest('[data-vinculo-new],[data-vinculo-refresh],[data-vinculo-cancel],[data-vinculo-close]');
