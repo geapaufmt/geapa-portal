@@ -86,6 +86,7 @@
 [data-geapa-card]:focus-visible{outline:3px solid var(--geapa-green);outline-offset:3px}
 .geapa-admin button,.geapa-detail-modal button,.geapa-act-workspace button{transition:background-color 200ms ease,box-shadow 200ms ease,color 200ms ease}
 @media(hover:hover) and (pointer:fine){[data-geapa-card]:hover{box-shadow:0 5px 16px #0303020c;transform:translateY(-2px)}[data-geapa-card]:has([data-geapa-card]:hover){transform:none}.geapa-admin button:hover,.geapa-detail-modal button:hover{box-shadow:0 2px 7px #03030212}}
+#tela-ciclos-semestres:has(.geapa-page-header)>.section-heading{display:none}
 .geapa-governance-section{margin:24px 0}.geapa-governance-section>h3{font-size:18px;color:var(--geapa-brown);margin:0 0 12px}.geapa-governance-section>h3 small{font-size:12px;font-weight:500}
 .geapa-cycle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
 .geapa-cycle{gap:10px;border-top-width:2px}.geapa-cycle-period{font-size:13px;color:var(--geapa-muted);margin:6px 0 0}.geapa-cycle .geapa-record-status{margin:0;align-items:center}.geapa-cycle .geapa-record-status small{font-size:11px;color:var(--geapa-muted)}

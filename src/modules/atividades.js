@@ -1531,7 +1531,7 @@
     return [
       '<div class="activity-history-filters" aria-label="Filtros do historico de atividades">',
       '<label>',
-      '<span>Ciclo/semestre</span>',
+      '<span>Semestre letivo</span>',
       '<select data-history-filter="cicloSemestre">',
       '<option value="">Todos</option>',
       ciclosSemestres.map(function montarOpcao(valor) {
