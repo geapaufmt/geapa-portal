@@ -4,7 +4,7 @@
     "label": "Conteúdo Público",
     "path": "admin/conteudo-publico",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -12,7 +12,7 @@
     "label": "Início",
     "path": "inicio",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
+    "before": "Visual legado",
     "after": "Padronizado nesta campanha"
   },
   {
@@ -20,7 +20,7 @@
     "label": "Sobre o GEAPA",
     "path": "sobre",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -28,7 +28,7 @@
     "label": "História",
     "path": "historia",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -36,7 +36,7 @@
     "label": "Diretoria",
     "path": "diretoria",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -44,7 +44,7 @@
     "label": "Orientadores",
     "path": "orientadores",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -52,7 +52,7 @@
     "label": "Membros",
     "path": "membros",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -60,7 +60,7 @@
     "label": "Documentos e normas",
     "path": "documentos",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -68,7 +68,7 @@
     "label": "Parceiros",
     "path": "parceiros",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -76,7 +76,7 @@
     "label": "Processo seletivo",
     "path": "processo-seletivo",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -84,7 +84,7 @@
     "label": "Contato",
     "path": "contato",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -92,7 +92,7 @@
     "label": "Avaliação de egresso",
     "path": "avaliacao-egresso",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -100,15 +100,15 @@
     "label": "Meu ingresso",
     "path": "ingresso",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
-    "after": "Padronizado nesta campanha"
+    "before": "Visual legado",
+    "after": "Formulário padronizado; sem convite ativo nesta prova"
   },
   {
     "id": "login",
     "label": "Entrar",
     "path": "login",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
+    "before": "Visual legado",
     "after": "Padronizado nesta campanha"
   },
   {
@@ -116,7 +116,7 @@
     "label": "Tenho interesse",
     "path": "interesse",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -124,15 +124,15 @@
     "label": "Meu perfil",
     "path": "app/meu-perfil",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
-    "after": "Padronizado nesta campanha"
+    "before": "Visual legado",
+    "after": "Padronizado; leitura PROD comprovada, consulta DEV indisponível"
   },
   {
     "id": "minha-situacao",
     "label": "Minha situação",
     "path": "app/minha-situacao",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
+    "before": "Visual legado",
     "after": "Padronizado nesta campanha"
   },
   {
@@ -156,7 +156,7 @@
     "label": "Meus certificados",
     "path": "app/certificados",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -164,7 +164,7 @@
     "label": "Minhas inscrições",
     "path": "app/inscricoes",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -172,7 +172,7 @@
     "label": "Minhas participações",
     "path": "app/participacoes",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -180,7 +180,7 @@
     "label": "Preferências de comunicação",
     "path": "app/preferencias",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -188,7 +188,7 @@
     "label": "Próximas atividades",
     "path": "atividades",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
+    "before": "Parcialmente adaptada",
     "after": "Padronizado nesta campanha"
   },
   {
@@ -196,7 +196,7 @@
     "label": "Histórico de atividades",
     "path": "agenda/historico-atividades",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
+    "before": "Parcialmente adaptada",
     "after": "Padronizado nesta campanha"
   },
   {
@@ -204,7 +204,7 @@
     "label": "Calendário",
     "path": "agenda/calendario",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -212,7 +212,7 @@
     "label": "Painel administrativo",
     "path": "admin",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -252,7 +252,7 @@
     "label": "Chamadas",
     "path": "admin/chamadas",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -276,7 +276,7 @@
     "label": "Comunicação",
     "path": "admin/comunicacao",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -284,7 +284,7 @@
     "label": "Processo seletivo",
     "path": "admin/processo-seletivo",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -292,7 +292,7 @@
     "label": "Painel da Diretoria",
     "path": "admin/painel-diretoria-v2",
     "declared": "implementado",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -300,23 +300,23 @@
     "label": "Pendências da Diretoria",
     "path": "admin/pendencias-diretoria",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
-    "after": "Padronizado nesta campanha"
+    "before": "Visual legado",
+    "after": "Leitor padronizado; acesso permanece fechado"
   },
   {
     "id": "status-v2",
     "label": "Status do Sistema V2",
     "path": "admin/status-v2",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
-    "after": "Padronizado nesta campanha"
+    "before": "Visual legado",
+    "after": "Leitor padronizado; acesso permanece fechado"
   },
   {
     "id": "admin-normas-parametros",
     "label": "Normas e parâmetros",
     "path": "admin/normas-parametros",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -324,7 +324,7 @@
     "label": "Configurações",
     "path": "admin/configuracoes",
     "declared": "placeholder",
-    "before": "Não implementada ou renderer não conectado",
+    "before": "Funcionalidade ainda não implementada/conectada no bundle publicado",
     "after": "Preservada; sem implementação nova"
   },
   {
@@ -340,7 +340,7 @@
     "label": "Minha atuação",
     "path": "app/minha-atuacao",
     "declared": "implementado",
-    "before": "Visual legado/parcial",
+    "before": "Visual legado",
     "after": "Padronizado nesta campanha"
   }
 ]

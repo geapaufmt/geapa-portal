@@ -1,0 +1,68 @@
+{
+  "sourceCommit": "42cf77a618643702bc7c16f593312df735451d96",
+  "devHosting": "3b2122a4b6b4dfce",
+  "prodHosting": "10d2116835bcfe0d",
+  "rollbackProd": "312fc053e5ec5084",
+  "scope": "Firebase Hosting frontend assets only",
+  "tests": {
+    "passed": 103,
+    "failed": 0
+  },
+  "files": [
+    {
+      "path": "/assets/act-ui/admin-panels.mjs",
+      "bytes": 7280,
+      "sha256": "11083a56ebe2018944d03afed7c006fac59a772c8ca50158e13dde0f1787678e"
+    },
+    {
+      "path": "/assets/act-ui/atividades.js",
+      "bytes": 179956,
+      "sha256": "f74bc6aa02bf39e97fd95a0bbb6bf5d0905c0007a02196fcb3f41bab2782cbd8"
+    },
+    {
+      "path": "/assets/act-ui/card-interactions.mjs",
+      "bytes": 2028,
+      "sha256": "051b7ca5c25050fed8ec6499c1c01682abcb530d1415b48ddeac9fcc2f9bc69f"
+    },
+    {
+      "path": "/assets/act-ui/design-system.mjs",
+      "bytes": 15960,
+      "sha256": "add99f71cf3aa1d3f603ac3089aa5a3a2f12d92b87044094c807a43ae71d03a5"
+    },
+    {
+      "path": "/assets/act-ui/portal-design.css",
+      "bytes": 12734,
+      "sha256": "5e4e21e55bce9967745ebdcbf590a3c0f0f3167f6c0f95a5e37585ff48110879"
+    },
+    {
+      "path": "/assets/act-ui/portal-design.mjs",
+      "bytes": 316,
+      "sha256": "b9a12f5ca6ca1d17096180fd88b3170ccfb2bc8c9346c12c163a1b6a12427e28"
+    },
+    {
+      "path": "/assets/act-ui/portal-v2-readonly.js",
+      "bytes": 234914,
+      "sha256": "c3c81c497e06804cca7045b4b0b84edf5b507c5a371d625544abf691ef3c03b3"
+    },
+    {
+      "path": "/assets/act-ui/vinculo-solicitacoes.js",
+      "bytes": 12609,
+      "sha256": "034df06de06cccdfbf2c9a77946ee2c1792a9f734bb1874479366a83cbda4a69"
+    },
+    {
+      "path": "/assets/physical-560120e5c1fbb33e/profile-corrections.mjs",
+      "bytes": 6932,
+      "sha256": "ce96d7f268e4600fe02d015827bae7b97eff94ab33ce62ffd6132bba31bb33d2"
+    },
+    {
+      "path": "/index.html",
+      "bytes": 20265,
+      "sha256": "f7554007e76b09346d82f08b781f39d28c7f60ddf87143fe31a2d01647552636"
+    },
+    {
+      "path": "/membros.html",
+      "bytes": 825,
+      "sha256": "6a8931858c80a880df411e889a68f7f2f5b80aa68342b5f37417c9f8a2fc2a71"
+    }
+  ]
+}
