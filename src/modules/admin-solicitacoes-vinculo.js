@@ -1,7 +1,7 @@
 /** Area administrativa protegida para solicitacoes voluntarias de vinculo. */
 (function configurarAdminSolicitacoesVinculo(global) {
   'use strict';
-  var state = { items: [], detail: null, cursor: null, nextCursor: null, previous: [], filters: {}, loading: false, serial: 0, detailRead: 0 };
+  var state = { items: [], detail: null, cursor: null, nextCursor: null, previous: [], filters: {}, loading: false, saving: false, serial: 0, detailRead: 0 };
   var root = function() { return document.getElementById('admin-solicitacoes-vinculo-content'); };
   var modal = function() { return document.getElementById('admin-vinculo-modal'); };
   var esc = function(v) { return global.PortalGeapaUi ? global.PortalGeapaUi.escaparHtml(String(v == null ? '' : v)) : String(v == null ? '' : v); };
@@ -78,16 +78,13 @@
 
   function renderList() {
     var container = root();
-    var rows = state.items.length ? state.items.map(function(item) {
-      return '<tr><td><strong>' + esc(item.idSolicitacao) + '</strong></td><td>' + esc(label(item.tipo)) + '</td><td>' + esc(label(item.modalidade)) + '</td><td>' + esc(item.idSemestre || '—') + '</td><td><span class="status-chip">' + esc(label(item.status)) + '</span></td><td><button type="button" class="secondary-button compact-button" data-admin-vinculo-detail="' + esc(item.idSolicitacao) + '">Analisar</button></td></tr>';
-    }).join('') : '<tr><td colspan="6">Nenhuma solicitação encontrada.</td></tr>';
-    var cards = state.items.length ? state.items.map(function(item) {
-      return '<article class="admin-vinculo-card"><div class="admin-vinculo-card-header"><strong>' + esc(item.idSolicitacao) + '</strong><span class="status-chip">' + esc(label(item.status)) + '</span></div><dl><div><dt>Tipo</dt><dd>' + esc(label(item.tipo)) + '</dd></div><div><dt>Modalidade</dt><dd>' + esc(label(item.modalidade)) + '</dd></div><div><dt>Semestre</dt><dd>' + esc(item.idSemestre || '—') + '</dd></div></dl><button type="button" class="secondary-button compact-button" data-admin-vinculo-detail="' + esc(item.idSolicitacao) + '">Analisar</button></article>';
-    }).join('') : '<p class="empty-state">Nenhuma solicitação encontrada.</p>';
-    container.innerHTML = '<div class="situation-topbar"><div><p class="eyebrow">Gestão do GEAPA · Membros</p><h2>Solicitações de vínculo</h2></div><button class="secondary-button compact-button" type="button" data-admin-vinculo-refresh>Atualizar</button></div>' +
-      '<form class="vinculo-filter-grid" data-admin-vinculo-filters><label>Tipo<select name="tipo"><option value="">Todos</option><option>SUSPENSAO_VOLUNTARIA</option><option>DESLIGAMENTO_VOLUNTARIO</option></select></label><label>Modalidade<select name="modalidade"><option value="">Todas</option><option>SUSPENSAO_TEMPORARIA</option><option>DESLIGAMENTO_APOS_HOMOLOGACAO</option><option>DESLIGAMENTO_FIM_SEMESTRE</option></select></label><label>Status<input name="status"></label><label>Semestre<input name="idSemestre"></label><label>Data inicial<input type="date" name="dataInicio"></label><label>Data final<input type="date" name="dataFim"></label><label>ID do membro<input name="membro"></label><label>Responsável<input name="responsavel" disabled title="Filtro por responsável ainda indisponível"></label><button class="secondary-button" type="submit">Filtrar</button></form>' +
-      '<div class="table-scroll admin-vinculo-table-wrap"><table class="portal-table admin-vinculo-table"><thead><tr><th>Protocolo</th><th>Tipo</th><th>Modalidade</th><th>Semestre</th><th>Status</th><th>Ação</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-      '<div class="admin-vinculo-cards">' + cards + '</div>' + (state.previous.length ? '<button class="secondary-button" type="button" data-admin-vinculo-previous>Página anterior</button>' : '') + (state.nextCursor ? '<button class="secondary-button" type="button" data-admin-vinculo-next>Próxima página</button>' : '');
+    var ds=global.PortalDesign,count=Object.values(state.filters).filter(Boolean).length;
+    var fields='<label>Tipo<select name="tipo"><option value="">Todos</option><option value="SUSPENSAO_VOLUNTARIA">Suspensão voluntária</option><option value="DESLIGAMENTO_VOLUNTARIO">Desligamento voluntário</option></select></label><label>Modalidade<select name="modalidade"><option value="">Todas</option><option value="SUSPENSAO_TEMPORARIA">Suspensão temporária</option><option value="DESLIGAMENTO_APOS_HOMOLOGACAO">Após homologação</option><option value="DESLIGAMENTO_FIM_SEMESTRE">Fim do semestre</option></select></label><label>Status<input name="status"></label><label>Semestre<input name="idSemestre"></label><label>Data inicial<input type="date" name="dataInicio"></label><label>Data final<input type="date" name="dataFim"></label>';
+    container.classList.add('geapa-admin');
+    container.innerHTML=ds.header('Solicitações de vínculo','Consulte pedidos e registre as decisões institucionais autorizadas.','<button type="button" data-admin-vinculo-refresh>Atualizar solicitações</button>','admin-solicitacoes-vinculo-title')+
+      '<form data-admin-vinculo-filters>'+ds.filters('<label>Buscar por ID do membro<input type="search" name="membro" placeholder="Identificador canônico"></label>','',fields,count,count>0,'<button type="button" data-admin-vinculo-clear>Limpar filtros</button>')+'<button class="primary-button" type="submit">Aplicar busca e filtros</button></form><div class="geapa-results" role="status"><span><strong>'+state.items.length+'</strong> solicitações nesta página</span><span>Página '+(state.previous.length+1)+'</span></div>'+
+      (state.items.length?'<div class="geapa-record-grid">'+state.items.map(global.PortalMemberDesign.linkRequestCard).join('')+'</div>':'<p class="empty-state">Nenhuma solicitação encontrada.</p>')+
+      '<div class="portal-pagination">'+(state.previous.length?'<button class="secondary-button" type="button" data-admin-vinculo-previous>Página anterior</button>':'')+(state.nextCursor?'<button class="secondary-button" type="button" data-admin-vinculo-next>Próxima página</button>':'')+'</div>';
     restoreFilters();
   }
 
@@ -97,8 +94,8 @@
   async function openDetail(id) {
     var el = modal(); var content = document.getElementById('admin-vinculo-modal-content');
     if (!el || !content) return;
-    var read=++state.detailRead;state.detail=null;
-    el.hidden = false; content.innerHTML = '<p class="empty-state">Carregando detalhe protegido...</p>';
+    if(state.saving)return;var read=++state.detailRead;state.detail=null;
+    el.setAttribute('data-geapa-protect-draft','');el.removeAttribute('data-geapa-dirty');global.PortalDesign.openDetailDialog(el,function(){state.detailRead++;state.detail=null;content.replaceChildren();}); content.innerHTML = '<p class="empty-state">Carregando detalhe protegido...</p>';
     try {
       var response = await global.PortalGeapaApi.apiGet('/admin/solicitacoes-vinculo/detalhe', { payload: JSON.stringify({ idSolicitacao: id }) });
       if(read!==state.detailRead||el.hidden)return;
@@ -213,7 +210,7 @@
   }
 
   async function submitAction(event) {
-    event.preventDefault(); var form = event.target;
+    event.preventDefault(); if(state.saving)return;var form = event.target;
     if (!form || !form.elements || !form.matches('[data-admin-vinculo-action]')) {
       throw new Error('O formulário da decisão administrativa não foi identificado. Atualize a página e tente novamente.');
     }
@@ -224,16 +221,17 @@
     var request = state.detail && state.detail.solicitacao || {};
     validateManualReview(form, values, request);
     var route = '/admin/solicitacoes-vinculo/' + values.acao; var payload = buildActionPayload(form, values);
-    var button = form.querySelector('[type="submit"]'); button.disabled = true; button.textContent = 'Registrando...';
-    try { var response = await global.PortalGeapaApi.apiPost(route, { payload: JSON.stringify(payload) }); if (!response.ok) throw response; if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Gestão de vínculo', message: response.message }); await openDetail(values.idSolicitacao); resetPage(); await load(); }
+    var serial=state.serial;state.saving=true;modal().setAttribute('aria-busy','true');var button = form.querySelector('[type="submit"]'); button.disabled = true; button.textContent = 'Registrando...';
+    try { var response = await global.PortalGeapaApi.apiPost(route, { payload: JSON.stringify(payload) }); if(serial!==state.serial)return;if (!response.ok) throw response;state.saving=false;modal().removeAttribute('aria-busy');modal().removeAttribute('data-geapa-dirty'); if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'success', title: 'Gestão de vínculo', message: response.message }); await openDetail(values.idSolicitacao); resetPage(); await load(); }
     catch (error) {
+      if(serial!==state.serial)return;
       if(['STALE_AUTHORIZATION','COMMAND_RECONCILIATION_REQUIRED','COMMAND_PENDING','REQUEST_TIMEOUT'].includes(error.errorCode||error.code)){
         state.detailRead++;state.detail=null;if(modal())modal().hidden=true;
         if(global.PortalGeapaUi)global.PortalGeapaUi.mostrarToast({type:'warning',title:'Conferindo o resultado',message:'A resposta do envio foi interrompida. Consulte o estado atualizado do pedido antes de reenviar.',persistent:true});
         resetPage();await load();
       }else if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'error', title: 'Não foi possível registrar', message: error.message || 'Falha na ação administrativa.', persistent: true });
     }
-    finally { button.disabled = false; button.textContent = 'Registrar ação'; }
+    finally { if(serial===state.serial){state.saving=false;modal()?.removeAttribute('aria-busy');} button.disabled = false; button.textContent = 'Registrar ação'; }
   }
 
   if (global.__PORTAL_VINCULO_TEST__ === true) {
@@ -252,8 +250,8 @@
 
   document.addEventListener('click', function(event) { if(state.loading)return;if(event.target.closest('[data-admin-vinculo-next]')&&state.nextCursor) { state.previous.push(state.cursor);state.cursor=state.nextCursor;void load(); } if(event.target.closest('[data-admin-vinculo-previous]')&&state.previous.length){state.cursor=state.previous.pop();void load();} if(event.target.closest('[data-admin-vinculo-refresh]'))resetPage(); });
   document.addEventListener('submit', function(event) { if(event.target.matches('[data-admin-vinculo-filters]')){state.filters=readFilters();resetPage();} }, true);
-  document.addEventListener('portal:act-session-cleared',function(){state.serial++;state.detailRead++;state.loading=false;state.items=[];state.detail=null;state.filters={};resetPage();if(root())root().replaceChildren();if(modal())modal().hidden=true;});
-  document.addEventListener('portal:navigationchange', function(event) { if (event.detail && event.detail.rota && event.detail.rota.id === 'admin-solicitacoes-vinculo') load(); });
+  document.addEventListener('portal:act-session-cleared',function(){state.serial++;state.detailRead++;state.loading=false;state.saving=false;state.items=[];state.detail=null;state.filters={};resetPage();if(root())root().replaceChildren();global.PortalDesign.closeDetailDialog(modal(),true);});
+  document.addEventListener('portal:navigationchange', function(event) { if (event.detail && event.detail.rota && event.detail.rota.id === 'admin-solicitacoes-vinculo') load();else global.PortalDesign.closeDetailDialog(modal(),true); });
   document.addEventListener('submit', function(event) {
     if (event.target.matches('[data-admin-vinculo-filters]')) { event.preventDefault(); load(); return; }
     if (!event.target.matches('[data-admin-vinculo-action]')) return;
@@ -264,7 +262,10 @@
       if (global.PortalGeapaUi) global.PortalGeapaUi.mostrarToast({ type: 'error', title: 'Não foi possível registrar', message: error && error.message || 'Falha inesperada na ação administrativa.', persistent: true });
     });
   });
+  document.addEventListener('click',function(event){if(event.target.closest('[data-admin-vinculo-clear]')&&!state.loading){state.filters={};resetPage();load();}});
+  document.addEventListener('portal:members-session-ready',function(){if(global.PortalGeapaNavigation?.getRotaAtual()==='admin-solicitacoes-vinculo')load();});
+  if(global.PortalGeapaNavigation?.getRotaAtual()==='admin-solicitacoes-vinculo')load();
   document.addEventListener('change', function(event) { if (event.target.matches('[data-admin-vinculo-action] [name="acao"],[data-admin-vinculo-action] [name="tratamentoTransicao"]')) syncFinalDecisionRequirements(event.target.form); });
-  document.addEventListener('click', function(event) { var target = event.target.closest('[data-admin-vinculo-detail],[data-admin-vinculo-refresh],[data-admin-vinculo-close]'); if (!target) return; if (target.dataset.adminVinculoDetail) openDetail(target.dataset.adminVinculoDetail); else if (target.hasAttribute('data-admin-vinculo-refresh')) load(); else {state.detailRead++;state.detail=null;modal().hidden = true;} });
+  document.addEventListener('click', function(event) { var target = event.target.closest('[data-admin-vinculo-detail],[data-admin-vinculo-refresh],[data-admin-vinculo-close]'); if (!target) return; if (target.dataset.adminVinculoDetail) openDetail(target.dataset.adminVinculoDetail); else if (target.hasAttribute('data-admin-vinculo-refresh')) load(); else global.PortalDesign.closeDetailDialog(modal()); });
 })(window);
 

@@ -36,3 +36,19 @@ export function installCardInteractions(root:Document|HTMLElement=document):()=>
  root.addEventListener('click',click);root.addEventListener('keydown',key);return()=>{root.removeEventListener('click',click);root.removeEventListener('keydown',key);};
 }
 if(typeof window!=='undefined'&&typeof document!=='undefined')installCardInteractions();
+
+/** Presentation only: fields and action flags come from existing authorized readers. */
+export interface LinkRequest {idSolicitacao:string;tipo:string;modalidade:string;idSemestre?:string;status:string}
+const memberLabels:Record<string,string>={DESLIGAMENTO_VOLUNTARIO:'Desligamento voluntário',SUSPENSAO_VOLUNTARIA:'Suspensão voluntária',SUSPENSAO_TEMPORARIA:'Suspensão temporária',DESLIGAMENTO_FIM_SEMESTRE:'Desligamento no fim do semestre',DESLIGAMENTO_APOS_HOMOLOGACAO:'Desligamento após homologação',EM_ANALISE:'Em análise'};
+const memberLabel=(v:string)=>memberLabels[v]??v.toLocaleLowerCase('pt-BR').replaceAll('_',' ').replace(/^./,c=>c.toLocaleUpperCase('pt-BR'));
+export function linkRequestCard(v:LinkRequest):string {
+ return `<article class="geapa-record" data-geapa-card tabindex="0" aria-label="Solicitação ${esc(v.idSolicitacao)}"><div class="geapa-record-head"><div><small class="geapa-record-id">${esc(v.idSolicitacao)}</small><button type="button" class="geapa-record-title" data-geapa-primary data-admin-vinculo-detail="${esc(v.idSolicitacao)}">${esc(memberLabel(v.tipo||''))}</button></div>${badge(memberLabel(v.status||''))}</div>${detailFacts([['Modalidade',memberLabel(v.modalidade||'')],['Semestre de referência',v.idSemestre||'Não informado']])}<p class="geapa-detail-note">Consultar pedido e ações autorizadas</p></article>`;
+}
+export interface Invitation {enrollmentId:string;name:string;emailMasked?:string;status:string;expired?:boolean;canSend?:boolean;canResend?:boolean;canCancel?:boolean}
+export const invitationLabels:Record<string,string>={PRE_REGISTERED:'Aguardando envio',INVITED:'Convite enviado para processamento',ACCEPTED:'Aguardando conclusão cadastral',DECLINED:'Recusado',CANCELLED:'Cancelado',COMPLETED:'Ingresso concluído'};
+export function invitationCard(v:Invitation):string {
+ const actions=(v.canSend?'<button type="button" data-invitation-action="SEND">Enviar convite</button>':'')+(v.canResend?'<button type="button" data-invitation-action="RESEND">Reenviar convite</button>':'')+(v.canCancel?'<button type="button" data-invitation-action="CANCEL">Cancelar convite</button>':'');
+ return `<article class="geapa-record geapa-invitation" data-geapa-filterable data-geapa-status="${esc(v.status)}" data-enrollment-id="${esc(v.enrollmentId)}"><div class="geapa-record-head"><div><small class="geapa-record-id">${esc(v.enrollmentId)}</small><h3>${esc(v.name)}</h3></div>${actions?actionDisclosure(actions):''}</div><p>${esc(v.emailMasked||'Contato não disponível nesta consulta')}</p><div class="geapa-record-status">${badge(invitationLabels[v.status]||v.status)}${v.expired&&v.canResend?badge('Prazo expirado',true):''}</div></article>`;
+}
+declare global {interface Window {PortalMemberDesign:{linkRequestCard:typeof linkRequestCard;invitationCard:typeof invitationCard;invitationLabels:typeof invitationLabels}}}
+if(typeof window!=='undefined')window.PortalMemberDesign=Object.freeze({linkRequestCard,invitationCard,invitationLabels});

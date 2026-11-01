@@ -17,15 +17,15 @@
 
   function ensureModal() {
     if (modal()) return modal();
-    var node = document.createElement('div'); node.id = 'member-registration-modal'; node.className = 'portal-modal member-registration-modal'; node.hidden = true;
-    node.innerHTML = '<div class="portal-modal-backdrop" data-member-registration-close></div><section class="portal-modal-card member-registration-card" role="dialog" aria-modal="true" aria-labelledby="member-registration-title"><header class="portal-modal-header"><div><p class="eyebrow">Processo seletivo ja aprovado</p><h2 id="member-registration-title">Cadastrar membro aprovado</h2></div><button type="button" class="icon-button" data-member-registration-close aria-label="Fechar">&times;</button></header><div data-member-registration-content></div></section>';
-    document.body.appendChild(node); return node;
+    var node = document.createElement('div'); node.id = 'member-registration-modal'; node.className = 'modal-backdrop member-registration-modal'; node.hidden = true;
+    node.innerHTML = '<section class="modal-panel member-registration-card" role="dialog" aria-modal="true" aria-labelledby="member-registration-title"><header class="modal-topbar"><div><p class="eyebrow">Processo seletivo ja aprovado</p><h2 id="member-registration-title">Cadastrar membro aprovado</h2></div><button type="button" class="icon-button" data-member-registration-close aria-label="Fechar">&times;</button></header><div data-member-registration-content></div></section>';
+    node.setAttribute('data-geapa-protect-draft','');document.body.appendChild(node); return node;
   }
 
   function open() {
     if (busy) return;
     if (!enabled()) return toast('error', 'O cadastro de membros nao esta disponivel para esta sessao.');
-    mode='registration';var epoch=++viewEpoch;var node = ensureModal();node.querySelector('#member-registration-title').textContent='Cadastrar membro aprovado'; node.hidden = false; document.body.classList.add('modal-open');
+    mode='registration';var epoch=++viewEpoch;var node = ensureModal();node.querySelector('#member-registration-title').textContent='Cadastrar membro aprovado'; show(node);
     renderLoading();
     api.apiGet('/admin/ingressos-membros/catalogos', {}).then(function(response) {
       if(epoch!==viewEpoch||!enabled())return;
@@ -35,22 +35,22 @@
     }).catch(function(error) { if(epoch===viewEpoch&&enabled())renderError(error); });
   }
 
-  function close() { if (busy) return; viewEpoch++; var node = modal(); if (node) node.hidden = true; document.body.classList.remove('modal-open'); }
+  function show(node){if(mode==='registration')node.setAttribute('data-geapa-protect-draft','');else node.removeAttribute('data-geapa-protect-draft');node.removeAttribute('data-geapa-dirty');global.PortalDesign.openDetailDialog(node,function(){viewEpoch++;invitations=[];invitationCursor=null;node.querySelector('[data-member-registration-content]').replaceChildren();});}
+  function close() { if (busy) return; global.PortalDesign.closeDetailDialog(modal()); }
   function openInvitations(more) {
     if (!enabled() || busy) return;
     mode='invitations';var epoch=++viewEpoch;
-    var node = ensureModal(); node.hidden = false; document.body.classList.add('modal-open');
+    var node = ensureModal(); show(node);
     node.querySelector('#member-registration-title').textContent = 'Convites de ingresso';
     if (!more) { invitations = []; invitationCursor = null; }
     renderLoading();
     api.apiGet('/admin/ingressos-membros', invitationCursor ? {cursor:invitationCursor} : {}).then(function(response) {
       if (!response || response.ok !== true) throw response || new Error('Não foi possível consultar os convites.');
       if(epoch!==viewEpoch||!enabled())return;invitations = invitations.concat(response.data.items || []); invitationCursor = response.data.nextCursor;
-      var labels = {PRE_REGISTERED:'Aguardando envio',INVITED:'Convite enviado para processamento',ACCEPTED:'Aguardando conclusão cadastral',DECLINED:'Recusado',CANCELLED:'Cancelado',COMPLETED:'Ingresso concluído'};
-      content().innerHTML = '<div class="member-registration-scroll"><p class="section-note">No DEV, as notificações são registradas em modo de teste, sem envio real.</p>' + invitations.map(function(v) {
-        var buttons = (v.canSend ? '<button type="button" class="primary-button" data-invitation-action="SEND">Enviar convite</button>' : '') + (v.canResend ? '<button type="button" class="secondary-button" data-invitation-action="RESEND">Reenviar convite</button>' : '') + (v.canCancel ? '<button type="button" class="secondary-button" data-invitation-action="CANCEL">Cancelar convite</button>' : '');
-        return '<section class="situation-card" data-enrollment-id="'+esc(v.enrollmentId)+'"><h3>'+esc(v.name)+'</h3><p>'+esc(v.emailMasked)+'</p><p>'+esc(labels[v.status] || v.status)+(v.expired&&v.canResend?' — prazo expirado':'')+'</p><div class="profile-form-actions">'+buttons+'</div></section>';
-      }).join('') + (!invitations.length?'<p>Nenhum convite cadastrado.</p>':'') + '</div><div class="member-registration-feedback" data-member-registration-feedback role="status"></div><div class="portal-modal-actions">'+(invitationCursor?'<button type="button" class="secondary-button" data-member-invitations-more>Carregar mais</button>':'')+'<button type="button" class="secondary-button" data-member-registration-close>Fechar</button></div>';
+      var ds=global.PortalDesign,labels=global.PortalMemberDesign.invitationLabels;
+      var filters='<label>Status<select data-geapa-collection-filter><option value="">Todos</option>'+Object.entries(labels).map(function(v){return '<option value="'+esc(v[0])+'">'+esc(v[1])+'</option>';}).join('')+'</select></label>';
+      content().innerHTML='<div class="geapa-admin">'+ds.collectionSearch('Buscar nos convites carregados','<div class="geapa-record-grid geapa-invitation-grid">'+invitations.map(global.PortalMemberDesign.invitationCard).join('')+'</div>','Busca e filtros consideram os convites já carregados. Use Carregar mais para consultar a próxima página.',filters)+(!invitations.length?'<p class="empty-state">Nenhum convite cadastrado.</p>':'')+'</div><div class="member-registration-feedback" data-member-registration-feedback role="status"></div><div class="portal-modal-actions">'+(invitationCursor?'<button type="button" class="secondary-button" data-member-invitations-more>Carregar mais</button>':'')+'<button type="button" class="secondary-button" data-member-registration-close>Fechar</button></div>';
+      ds.mountCollectionSearch(content());
     }).catch(function(error) { if(epoch===viewEpoch&&enabled())renderError(error); });
   }
   function invitationAction(button) {
@@ -60,15 +60,15 @@
     var reason='Envio administrativo de convite de ingresso';
     if(action==='CANCEL'){
       var field=card.querySelector('[data-invitation-cancel-reason]');
-      if(!field){var label=document.createElement('label');label.innerHTML='<span>Motivo do cancelamento</span><input type="text" maxlength="500" required data-invitation-cancel-reason>';card.appendChild(label);button.textContent='Confirmar cancelamento';label.querySelector('input').focus();return;}
+      if(!field){modal().setAttribute('data-geapa-protect-draft','');var label=document.createElement('label');label.innerHTML='<span>Motivo do cancelamento</span><input type="text" maxlength="500" required data-invitation-cancel-reason>';card.appendChild(label);button.textContent='Confirmar cancelamento';label.querySelector('input').focus();return;}
       reason=field.value; if(!reason.trim()){field.reportValidity();return;}
     }
     var epoch=viewEpoch;
     if (reason===null || !String(reason).trim()) return;
-    busy=true;var buttons=Array.from(content().querySelectorAll('button'));buttons.forEach(function(b){b.disabled=true;});
+    busy=true;modal().setAttribute('aria-busy','true');var buttons=Array.from(content().querySelectorAll('button'));buttons.forEach(function(b){b.disabled=true;});
     api.apiPost('/admin/ingressos-membros/convite',{payload:JSON.stringify({enrollmentId:v.enrollmentId,revision:v.revision,action:action,reason:String(reason).trim()})}).then(function(response){
-      if(epoch!==viewEpoch)return;if(!enabled()){refreshInvitationsWhenReady=true;return;}if(!response||response.ok!==true)throw response||new Error('Não foi possível confirmar o convite.');busy=false;toast('success',response.message);openInvitations(false);
-    }).catch(function(error){if(epoch!==viewEpoch)return;if(!enabled()){refreshInvitationsWhenReady=true;return;}var feedback=content().querySelector('[data-member-registration-feedback]');if(feedback)feedback.textContent=error.message||'Não foi possível confirmar o envio. Tente novamente para recuperar a mesma operação.';}).finally(function(){busy=false;buttons.forEach(function(b){if(b.isConnected)b.disabled=false;});});
+      if(epoch!==viewEpoch)return;if(!enabled()){refreshInvitationsWhenReady=true;return;}if(!response||response.ok!==true)throw response||new Error('Não foi possível confirmar o convite.');busy=false;modal().removeAttribute('aria-busy');modal().removeAttribute('data-geapa-dirty');toast('success',response.message);openInvitations(false);
+    }).catch(function(error){if(epoch!==viewEpoch)return;if(!enabled()){refreshInvitationsWhenReady=true;return;}var feedback=content().querySelector('[data-member-registration-feedback]');if(feedback)feedback.textContent=error.message||'Não foi possível confirmar o envio. Tente novamente para recuperar a mesma operação.';}).finally(function(){if(epoch===viewEpoch){busy=false;modal()?.removeAttribute('aria-busy');}buttons.forEach(function(b){if(b.isConnected)b.disabled=false;});});
   }
   function content() { return ensureModal().querySelector('[data-member-registration-content]'); }
   function renderLoading() { content().innerHTML = '<div class="member-registration-state">Carregando catalogos oficiais...</div>'; }
@@ -126,17 +126,17 @@
   }
 
   function submit(form) {
-    if (busy) return; if (!form.reportValidity()) return;
-    var epoch=viewEpoch;busy = true; var button = form.querySelector('[data-member-registration-submit]'); button.disabled = true; button.textContent = 'Cadastrando...';
+    if (busy || !enabled()) return; if (!form.reportValidity()) return;
+    var epoch=viewEpoch;busy = true;modal().setAttribute('aria-busy','true'); var button = form.querySelector('[data-member-registration-submit]'); button.disabled = true; button.textContent = 'Cadastrando...';
     api.apiPost('/admin/ingressos-membros/cadastrar', { payload: JSON.stringify(payload(form)) }).then(function(response) {
       if(epoch!==viewEpoch||!enabled())return;if (!response || response.ok !== true) throw response || new Error('Nao foi possivel cadastrar.');
-      content().innerHTML = '<div class="member-registration-success"><strong>Pré-cadastro registrado</strong><p>' + esc(response.message || 'O vínculo será ativado somente após o aceite e a conclusão cadastral.') + '</p><dl><dt>Protocolo do ingresso</dt><dd>' + esc(response.data && response.data.idIngresso || '') + '</dd><dt>Status</dt><dd>Aguardando convite e conclusão</dd></dl><p>O cadastro ainda não gera presenças, faltas ou obrigações.</p><button type="button" class="primary-button" data-member-registration-close>Concluir</button></div>';
+      modal().removeAttribute('data-geapa-dirty');content().innerHTML = '<div class="member-registration-success"><strong>Pré-cadastro registrado</strong><p>' + esc(response.message || 'O vínculo será ativado somente após o aceite e a conclusão cadastral.') + '</p><dl><dt>Protocolo do ingresso</dt><dd>' + esc(response.data && response.data.idIngresso || '') + '</dd><dt>Status</dt><dd>Aguardando convite e conclusão</dd></dl><p>O cadastro ainda não gera presenças, faltas ou obrigações.</p><button type="button" class="primary-button" data-member-registration-close>Concluir</button></div>';
       toast('success', 'Pré-cadastro salvo. Vínculo ainda não ativado.');
       document.dispatchEvent(new CustomEvent('portal:memberregistered'));
     }).catch(function(error) {
       if(epoch!==viewEpoch||!enabled())return;var feedback = form.querySelector('[data-member-registration-feedback]'); feedback.textContent = error && error.message || 'Nao foi possivel cadastrar.'; feedback.className = 'member-registration-feedback is-error';
       toast('error', feedback.textContent);
-    }).then(function() { busy = false; if (button && button.isConnected) { button.disabled = false; button.textContent = 'Salvar pré-cadastro'; } });
+    }).then(function() { if(epoch===viewEpoch){busy=false;modal()?.removeAttribute('aria-busy');} if (button && button.isConnected) { button.disabled = false; button.textContent = 'Salvar pré-cadastro'; } });
   }
 
   function toast(type, message) { if (ui && ui.mostrarToast) ui.mostrarToast({ type: type, title: 'Cadastro de membro', message: message, persistent: type === 'error' }); }
@@ -144,6 +144,7 @@
   document.addEventListener('change', function(event) { var form = event.target.closest('[data-member-registration-form]'); if (!form) return; if (event.target.name === 'modalidadeCadastro') syncMode(form); if (event.target.name === 'cursoId') syncCourse(form); });
   document.addEventListener('submit', function(event) { var form = event.target.closest('[data-member-registration-form]'); if (!form) return; event.preventDefault(); submit(form); });
   document.addEventListener('portal:members-session-ready',function(){if(refreshInvitationsWhenReady&&enabled()&&!busy){refreshInvitationsWhenReady=false;var node=modal();if(node&&!node.hidden&&mode==='invitations')openInvitations(false);}});
-  document.addEventListener('portal:act-session-cleared',function(){viewEpoch++;busy=false;refreshInvitationsWhenReady=false;invitations=[];invitationCursor=null;var node=modal();if(node){node.hidden=true;node.querySelector('[data-member-registration-content]').replaceChildren();}document.body.classList.remove('modal-open');});
+  document.addEventListener('portal:act-session-cleared',function(){viewEpoch++;busy=false;refreshInvitationsWhenReady=false;invitations=[];invitationCursor=null;var node=modal();if(node){global.PortalDesign.closeDetailDialog(node,true);node.removeAttribute('aria-busy');node.querySelector('[data-member-registration-content]').replaceChildren();}document.body.classList.remove('modal-open');});
+  document.addEventListener('portal:navigationchange',function(){if(modal()&&!modal().hidden)global.PortalDesign.closeDetailDialog(modal(),true);});
   global.PortalGeapaMemberRegistration = Object.freeze({ renderAction: renderAction, open: open });
 })(window);

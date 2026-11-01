@@ -90,7 +90,7 @@ export function mountCollectionSearch(root:HTMLElement):void {
     const input=scope.querySelector<HTMLInputElement>('[data-geapa-collection-search]'),status=scope.querySelector<HTMLElement>('[data-geapa-collection-count]');
     if(!input||!status)return;
     const filter=scope.querySelector<HTMLSelectElement>('select[data-geapa-collection-filter]'),active=scope.querySelector<HTMLElement>('[data-geapa-filter-active]');
-    const cards=[...scope.querySelectorAll<HTMLElement>('[data-geapa-collection-items] .presentation-action-card')];
+    const cards=[...scope.querySelectorAll<HTMLElement>('[data-geapa-collection-items] .presentation-action-card,[data-geapa-collection-items] [data-geapa-filterable]')];
     const search=()=>{let visible=0;cards.forEach(card=>{card.hidden=!textMatches(card.textContent??'',input.value)||!!(filter?.value&&card.dataset.geapaStatus!==filter.value);if(!card.hidden)visible++;});if(active)active.textContent=filter?.value?'1 ativo':'';status.textContent=`${visible} de ${cards.length} registros exibidos`+(visible?'':'. Nenhum registro corresponde à busca.');};
     filter?.addEventListener('change',search);input.addEventListener('input',search);scope.querySelector('[data-geapa-collection-clear]')?.addEventListener('click',()=>{input.value='';if(filter)filter.value='';search();input.focus();});search();
   });
@@ -134,7 +134,7 @@ export function openDetailDialog(modal:HTMLElement,onClose:()=>void=()=>{}):void
     if(!first){e.preventDefault();panel.focus();return;}
     if(!panel.contains(document.activeElement)||(e.shiftKey&&document.activeElement===first)||(!e.shiftKey&&document.activeElement===last)){e.preventDefault();(e.shiftKey?last:first)?.focus();}
   };
-  const click=(e:MouseEvent)=>{const target=e.target instanceof Element?e.target:null;if(target?.closest('[data-keep-draft]')){e.preventDefault();modal.querySelector('[data-discard-prompt]')?.remove();modal.querySelector<HTMLElement>('input:not([type=hidden]),textarea,select')?.focus();return;}if(target?.closest('[data-discard-draft]')){e.preventDefault();if(modal.getAttribute('aria-busy')!=='true')closeDetailDialog(modal,true);return;}if(e.target===modal||target?.closest('[data-admin-modal-close],[data-admin-correction-close],[data-admin-member-close],#fechar-atividade-modal,[data-portal-v2-action="fechar-modal"]')){e.preventDefault();e.stopImmediatePropagation();closeDetailDialog(modal);}};
+  const click=(e:MouseEvent)=>{const target=e.target instanceof Element?e.target:null;if(target?.closest('[data-keep-draft]')){e.preventDefault();modal.querySelector('[data-discard-prompt]')?.remove();modal.querySelector<HTMLElement>('input:not([type=hidden]),textarea,select')?.focus();return;}if(target?.closest('[data-discard-draft]')){e.preventDefault();if(modal.getAttribute('aria-busy')!=='true')closeDetailDialog(modal,true);return;}if(e.target===modal||target?.closest('[data-admin-modal-close],[data-admin-vinculo-close],[data-member-registration-close],[data-admin-correction-close],[data-admin-member-close],#fechar-atividade-modal,[data-portal-v2-action="fechar-modal"]')){e.preventDefault();e.stopImmediatePropagation();closeDetailDialog(modal);}};
   const observer=new MutationObserver(()=>{if(modal.hidden)finishDialog(modal);});
   dialogs.set(modal,{origin,onClose,observer,key,click});observer.observe(modal,{attributes:true,attributeFilter:['hidden']});
   document.addEventListener('keydown',key,true);modal.addEventListener('click',click,true);
