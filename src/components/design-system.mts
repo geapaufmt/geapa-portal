@@ -1,3 +1,10 @@
+// Labels from the canonical reader only; never infer a semester from dates or IDs.
+export function academicSemesterLabel(row: Record<string, unknown>): string {
+  const text=(v:unknown)=>typeof v==='string'?v.trim():'';
+  if(text(row.academicSemesterId))return text(row.academicSemesterLabel)||'Semestre não definido';
+  if(row.semesterResolution==='HISTORICAL_DECLARED'&&text(row.historicalSemesterLabel))return text(row.historicalSemesterLabel);
+  const legacy=text(row.rotuloSemestre);return /^\d{4}\/[12]$/.test(legacy)?legacy:'Semestre não definido';
+}
 /** Shared presentation only. All actions and data remain authorized by the Core. */
 export const esc = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 export type Sort = 'date-asc' | 'date-desc' | 'title-asc' | 'title-desc';
@@ -142,5 +149,5 @@ export function install():void {
   document.addEventListener('keydown',event=>{if(event.key!=='Escape')return;document.querySelectorAll<HTMLDetailsElement>('[data-geapa-options][open]').forEach(el=>{el.open=false;el.querySelector<HTMLElement>('summary')?.focus();});});
   document.addEventListener('portal:act-session-cleared',()=>{close();for(const modal of [...dialogs.keys()])closeDetailDialog(modal,true);});
 }
-declare global {interface Window {PortalDesign: {header:typeof header;filters:typeof filters;sortField:typeof sortField;summary:typeof summary;pagination:typeof pagination;ordered:typeof ordered;pageOf:typeof pageOf;badge:typeof badge;fact:typeof fact;card:typeof card;activeFilters:typeof activeFilters;actionDisclosure:typeof actionDisclosure;metrics:typeof metrics;collectionSearch:typeof collectionSearch;mountCollectionSearch:typeof mountCollectionSearch;detailFacts:typeof detailFacts;detailSection:typeof detailSection;detailHeader:typeof detailHeader;openDetailDialog:typeof openDetailDialog;closeDetailDialog:typeof closeDetailDialog};}}
-if(typeof window!=='undefined'&&typeof document!=='undefined'){install();window.PortalDesign=Object.freeze({header,filters,sortField,summary,pagination,ordered,pageOf,badge,fact,card,activeFilters,actionDisclosure,metrics,collectionSearch,mountCollectionSearch,detailFacts,detailSection,detailHeader,openDetailDialog,closeDetailDialog});}
+declare global {interface Window {PortalDesign: {academicSemesterLabel:typeof academicSemesterLabel;header:typeof header;filters:typeof filters;sortField:typeof sortField;summary:typeof summary;pagination:typeof pagination;ordered:typeof ordered;pageOf:typeof pageOf;badge:typeof badge;fact:typeof fact;card:typeof card;activeFilters:typeof activeFilters;actionDisclosure:typeof actionDisclosure;metrics:typeof metrics;collectionSearch:typeof collectionSearch;mountCollectionSearch:typeof mountCollectionSearch;detailFacts:typeof detailFacts;detailSection:typeof detailSection;detailHeader:typeof detailHeader;openDetailDialog:typeof openDetailDialog;closeDetailDialog:typeof closeDetailDialog};}}
+if(typeof window!=='undefined'&&typeof document!=='undefined'){install();window.PortalDesign=Object.freeze({academicSemesterLabel,header,filters,sortField,summary,pagination,ordered,pageOf,badge,fact,card,activeFilters,actionDisclosure,metrics,collectionSearch,mountCollectionSearch,detailFacts,detailSection,detailHeader,openDetailDialog,closeDetailDialog});}

@@ -18,7 +18,7 @@ export function createDirectReaders({auth,db,sdk,clock=Date.now,record=()=>{}}){
     // result; a network timeout never triggers a privileged rebuild by itself.
     const boundedRequest=bounded?new Promise((resolve,reject)=>{cancel=()=>reject(Object.assign(Error('STALE_AUTHORIZATION'),{code:'STALE_AUTHORIZATION'}));auth.listeners?.add(cancel);timer=setTimeout(()=>reject(Object.assign(Error('REQUEST_TIMEOUT'),{code:'REQUEST_TIMEOUT'})),12000);request.then(resolve,reject);}):request;
     let snap;try{snap=await boundedRequest;}finally{clearTimeout(timer);if(cancel)auth.listeners?.delete(cancel);}auth.assert(ticket);need(e===epoch&&snap.exists()&&!snap.metadata.fromCache);
-    const v=snap.data();need(v.schemaVersion==='portal-reader-view-v1'&&v.viewId===id&&v.basis.ownerUid===ticket.uid&&v.basis.expiresAt.toMillis()>clock());return v;};
+    const v=snap.data();need(v.schemaVersion==='portal-reader-view-v1'&&v.viewId===id&&v.basis.ownerUid===ticket.uid&&v.basis.expiresAt.toMillis()>clock());if(id==='frequency')need(v.data?.producer==='frequency-cycle-v1'&&v.data.result?.data?.cycleGrouping==='GEAPA_CYCLE_V1');return v;};
    let v;try{v=await fetchView();}catch(error){
     if(!recover||!['permission-denied','not-found','SCHEMA_UNSUPPORTED'].includes(error.code))throw error;
     auth.assert(ticket);need(e===epoch);coreCalls++;await recover();auth.assert(ticket);need(e===epoch);

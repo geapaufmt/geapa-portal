@@ -139,7 +139,7 @@
     tamanhoMaximoBytes: 50 * 1024 * 1024
   };
 
-  document.addEventListener('portal:act-session-cleared',function(){estado.cache={};estado.itensPorId={};estado.apresentacoesTodas=false;estado.frequenciaDataAtual=null;estado.feedbackPersistente=null;estado.eixos=null;estado.justificativasConfig=null;geracaoModal_++;var el=document.getElementById('placeholder-content');if(el&&ROTAS[estado.rotaAtual])el.textContent='';estado.rotaAtual='';});
+  document.addEventListener('portal:act-session-cleared',function(){estado.cache={};estado.itensPorId={};estado.apresentacoesTodas=false;estado.frequenciaDataAtual=null;estado.frequenciaCicloSelecionado='';estado.frequenciaFiltroSelecionado='TODOS';estado.feedbackPersistente=null;estado.eixos=null;estado.justificativasConfig=null;geracaoModal_++;var el=document.getElementById('placeholder-content');if(el&&ROTAS[estado.rotaAtual])el.textContent='';estado.rotaAtual='';});
   function iniciar() {
     if (!api || !ui || !navigation) {
       return;
@@ -513,10 +513,11 @@
   function montarMinhaFrequencia(data, emCache, definicao) {
     var ciclos = normalizarCiclosFrequencia(data || {});
     var cicloAtual = selecionarCicloFrequencia(ciclos, data || {});
-    var registros = cicloAtual ? cicloAtual.registros : normalizarRegistrosFrequencia((data || {}).registros);
+    var registros = cicloAtual ? cicloAtual.registros : [];
+    var naoResolvidos = normalizarRegistrosFrequencia((data || {}).registrosPendentes);
     var resumo = cicloAtual && Object.keys(cicloAtual.resumo || {}).length
       ? cicloAtual.resumo
-      : ((data || {}).resumoGeral || (data || {}).resumo || {});
+      : {};
     var payloadAntigo = detectarPayloadAntigoFrequencia(data || {}, ciclos, registros);
     var pendencias = payloadAntigo ? [] : registros.filter(ehPendenciaJustificativaFrequencia);
     var registrosFiltrados = payloadAntigo ? [] : filtrarRegistrosFrequencia(registros, estado.frequenciaFiltroSelecionado);
@@ -528,45 +529,22 @@
     return [
       '<section class="frequency-section" aria-labelledby="frequencia-resumo-titulo">',
       '<h2 id="frequencia-resumo-titulo">Resumo do ciclo</h2>',
-      montarResumoFrequencia(resumo, registros.length, (data || {}).ultimaAtualizacao),
+      !payloadAntigo && ciclos.length ? montarFiltroCicloFrequencia(ciclos, cicloAtual) : '',
+      !payloadAntigo && cicloAtual ? montarResumoFrequencia(resumo, registros.length, (data || {}).ultimaAtualizacao) : '',
       emCache ? '<p class="updated-at">Atualizando em segundo plano...</p>' : '',
       payloadAntigo ? montarAvisoFrequenciaDetalhadaIndisponivel(data || {}) : '',
-      !payloadAntigo && ciclos.length > 1 ? montarFiltroCicloFrequencia(ciclos, cicloAtual) : '',
-      !payloadAntigo && ciclos.length === 1 ? '<p class="updated-at">Ciclo: ' + ui.escaparHtml(cicloAtual.rotuloCiclo || cicloAtual.ciclo || 'Sem ciclo definido') + '</p>' : '',
+
+
       '</section>',
       pendencias.length ? montarBlocoPendenciasFrequencia(pendencias) : '',
-      payloadAntigo ? '' : montarHistoricoFrequencia(registros, registrosFiltrados, definicao)
+      payloadAntigo ? '' : montarHistoricoFrequencia(registros, registrosFiltrados, definicao),
+      !payloadAntigo && naoResolvidos.length ? '<section class="frequency-section"><h2>Pendente de reconciliação de ciclo (' + naoResolvidos.length + ')</h2><p>Estes registros estão preservados e não integram os totais de nenhum ciclo.</p>' + naoResolvidos.map(function(r){return '<p>' + ui.escaparHtml(r.tituloAtividade || r.idAtividade) + ' · ' + ui.escaparHtml(r.statusPresencaRotulo || '') + '</p>';}).join('') + '</section>' : ''
     ].join('');
   }
 
   function normalizarCiclosFrequencia(data) {
-    var ciclos = Array.isArray(data.ciclos) ? data.ciclos : [];
-
-    if (!ciclos.length) {
-      var registrosDetalhados = normalizarRegistrosFrequencia(data.registros);
-
-      if (!registrosDetalhados.length) {
-        return [];
-      }
-
-      return [{
-        ciclo: data.cicloAtual || '',
-        rotuloCiclo: data.cicloAtual || 'Todos os registros',
-        resumo: data.resumoGeral || data.resumo || {},
-        registros: registrosDetalhados
-      }];
-    }
-
-    return ciclos.map(function normalizar(ciclo) {
-      return Object.assign({}, ciclo || {}, {
-        ciclo: String((ciclo || {}).ciclo || (ciclo || {}).rotuloCiclo || '').trim(),
-        rotuloCiclo: String((ciclo || {}).rotuloCiclo || (ciclo || {}).rotuloSemestre || (ciclo || {}).ciclo || '').trim(),
-        resumo: (ciclo || {}).resumo || {},
-        registros: normalizarRegistrosFrequencia((ciclo || {}).registros)
-      });
-    }).filter(function manter(ciclo) {
-      return ciclo.registros.length || ciclo.ciclo || ciclo.rotuloCiclo;
-    });
+    if(data.cycleGrouping!=='GEAPA_CYCLE_V1')return [];
+    return (Array.isArray(data.ciclos)?data.ciclos:[]).filter(function(c){return c && typeof c.cycleId==='string' && c.cycleId && c.ciclo===c.cycleId;}).map(function(c){return Object.assign({},c,{registros:normalizarRegistrosFrequencia(c.registros).filter(function(r){return r.cycleId===c.cycleId;})});});
   }
 
   function normalizarRegistrosFrequencia(registros) {
@@ -579,7 +557,6 @@
     return Boolean(
       registro &&
       registro.idAtividade &&
-      registro.dataAtividade &&
       (registro.tituloAtividade || registro.tituloPublico)
     );
   }
@@ -589,14 +566,14 @@
     var semCiclosDetalhados = !Array.isArray((data || {}).ciclos) || !(data || {}).ciclos.length;
     var contrato = String((data || {}).contrato || '').trim();
 
-    return (data || {}).payloadAntigoDetectado === true ||
+    return (data || {}).cycleGrouping !== 'GEAPA_CYCLE_V1' || (data || {}).payloadAntigoDetectado === true ||
       (semCiclosDetalhados && registrosBrutos.length > 0 && !registros.length) ||
       (contrato && contrato !== 'MINHA_FREQUENCIA_DETALHADA_V2' && !ciclos.length);
   }
 
   function montarAvisoFrequenciaDetalhadaIndisponivel(data) {
     var mensagem = data.aviso ||
-      'A frequencia detalhada ainda nao foi carregada pelo backend. Atualize o backend/deploy da API.';
+      'A frequência por ciclo ainda não foi atualizada. Recarregue a consulta para recuperar os dados atuais.';
 
     return '<p class="empty-state readonly-error">' + ui.escaparHtml(mensagem) + '</p>';
   }
@@ -607,7 +584,9 @@
       return String(ciclo.ciclo || ciclo.rotuloCiclo || '') === String(alvo || '');
     })[0];
 
-    return selecionado || ciclos[0] || null;
+    var atual=selecionado || ciclos[0] || null;
+    estado.frequenciaCicloSelecionado=atual ? atual.cycleId : '';
+    return atual;
   }
 
   function montarFiltroCicloFrequencia(ciclos, cicloAtual) {
@@ -633,7 +612,9 @@
   function montarResumoFrequencia(resumo, totalRegistros, ultimaAtualizacao) {
     var dados = resumo || {};
     var partes = [
-      ['Registros', dados.totalAtividades || dados.total || totalRegistros]
+      ['Atividades contabilizadas', dados.totalAtividades ?? dados.total ?? totalRegistros],
+      ['Registros disponíveis', dados.totalRegistros ?? totalRegistros],
+      ['Não aplicáveis', dados.totalNaoAplicaveis]
     ];
 
     [
@@ -848,7 +829,8 @@
           '<article class="presentation-action-card">',
           '<div class="presentation-card-topline">',
           '<span>' + ui.escaparHtml(formatarValor(item.dataAtividade)) + '</span>',
-          item.rotuloSemestre ? '<span>' + ui.escaparHtml(formatarValor(item.rotuloSemestre)) + '</span>' : '',
+          '<span>' + ui.escaparHtml(global.PortalDesign.academicSemesterLabel(item)) + '</span>',
+          item.cycleId || item.historicalCycleId ? '<span>Ciclo: ' + ui.escaparHtml(item.cycleId || item.historicalCycleId) + '</span>' : '',
           item.statusApresentacao ? '<span>' + ui.escaparHtml(formatarValor(item.statusApresentacao)) + '</span>' : '',
           '</div>',
           '<div class="presentation-action-main">',
@@ -1323,17 +1305,7 @@
     return data.toLocaleDateString('pt-BR');
   }
 
-  function formatarPeriodoPendencia(item) {
-    var rotulo = String((item || {}).rotuloSemestre || (item || {}).periodo || '').trim();
-    var ano = String((item || {}).ano || '').trim();
-    var semestre = String((item || {}).semestre || '').trim();
-
-    if (rotulo && !pareceTextoTecnicoData(rotulo)) {
-      return rotulo;
-    }
-
-    return ano && semestre ? ano + '/' + semestre : '';
-  }
+  function formatarPeriodoPendencia(item) { return global.PortalDesign.academicSemesterLabel(item || {}); }
 
   function pareceTextoTecnicoData(valor) {
     return /\bGMT[+-]\d{4}\b/i.test(String(valor || '')) ||
@@ -1934,7 +1906,6 @@
 
     if (alvo.matches('[data-frequencia-ciclo]')) {
       estado.frequenciaCicloSelecionado = alvo.value || '';
-      estado.frequenciaFiltroSelecionado = 'TODOS';
       renderizarMinhaFrequenciaAtual();
     }
   }

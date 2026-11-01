@@ -4528,6 +4528,8 @@
         : '',
       '<dl class="activity-detail-grid">',
       montarFato('Data', ui.formatarData(detalhe.dataAtividade)),
+      montarFato('Semestre letivo', global.PortalDesign.academicSemesterLabel(detalhe)),
+      montarFato('Ciclo de atividades', detalhe.cycleId || detalhe.historicalCycleId || 'Ciclo não definido'),
       montarFato('Horário', detalhe.horarioCompleto),
       montarFato('Local', detalhe.local),
       montarFato('Formato', ui.formatarRotulo(detalhe.formato)),
