@@ -1041,6 +1041,14 @@
       ],
       "source": "src/styles/portal-design.css",
       "devSource": "src/styles/portal-design.css"
+    },
+    {
+      "url": "/assets/act-ui/board-competencies.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/board-competencies.mjs"
     }
   ]
 }

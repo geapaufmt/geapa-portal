@@ -27,7 +27,7 @@ export function createSpecializedReaders({auth,db,config,fetchImpl=fetch,attest,
     record({route:request.route,httpMs:Date.now()-started,...Object.fromEntries(Object.entries(value.metrics||{}).filter(([k,n])=>['reads','writes','sdkCalls','authMs','appCheckMs','firestoreMs','totalMs','controlReads','controlSdkCalls','transactionAttempts'].includes(k)&&Number.isFinite(n)))});
     return value.result;
    }finally{clearTimeout(timer);controllers.delete(controller);auth.pending?.delete(controller);}
-  })().catch(e=>{e.nodeReader=true;throw e;}).finally(()=>{if(pending.get(key)===task)pending.delete(key);});
+  })().catch(e=>{if(e.name==='AbortError'){assert();e=Object.assign(Error('REQUEST_TIMEOUT'),{code:'REQUEST_TIMEOUT'});}e.nodeReader=true;throw e;}).finally(()=>{if(pending.get(key)===task)pending.delete(key);});
   pending.set(key,task);return task;
  }
  return {scope,read,clear,dispose(){clear();auth.listeners?.delete(clear);}};
