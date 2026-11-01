@@ -55,7 +55,7 @@ export interface RecordCard {
 }
 export function card(record:RecordCard):string {
   if(!/^data-[a-z-]+$/.test(record.titleAttribute))throw Error('INVALID_TITLE_ATTRIBUTE');
-  return `<article class="geapa-record"><div class="geapa-record-head"><div class="geapa-record-heading"><small class="geapa-record-id">${esc(record.id)}</small><button class="geapa-record-title" type="button" ${record.titleAttribute}="${esc(record.id)}">${esc(record.title)}</button></div>${record.headHtml??''}</div><dl class="geapa-record-facts">${record.factsHtml}</dl>${record.statusHtml?`<div class="geapa-record-status">${record.statusHtml}</div>`:''}<div class="geapa-record-foot">${record.footerHtml}</div></article>`;
+  return `<article class="geapa-record" data-geapa-card tabindex="0" aria-label="${esc(record.title)}"><div class="geapa-record-head"><div class="geapa-record-heading"><small class="geapa-record-id">${esc(record.id)}</small><button class="geapa-record-title" type="button" data-geapa-primary ${record.titleAttribute}="${esc(record.id)}">${esc(record.title)}</button></div>${record.headHtml??''}</div><dl class="geapa-record-facts">${record.factsHtml}</dl>${record.statusHtml?`<div class="geapa-record-status">${record.statusHtml}</div>`:''}<div class="geapa-record-foot">${record.footerHtml}</div></article>`;
 }
 /** Detail renderers accept only already-authorized scalar values. Unknown objects
  * are never expanded into private fields or coerced to '[object Object]'. */

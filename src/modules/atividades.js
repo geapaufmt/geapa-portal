@@ -1770,11 +1770,12 @@
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
     var possuiApresentacao = atividadePossuiApresentacoes(atividade);
     var statusAtividade = obterStatusAtividadeParaExibicao_(atividade);
+    var detalhe = montarBotaoDetalhes(atividade);
 
     return [
       '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') +
         (possuiApresentacao ? ' activity-card-with-presentation' : '') +
-        '" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '">',
+        '" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '"' + (detalhe ? ' data-geapa-card tabindex="0" aria-label="' + ui.escaparHtml(atividade.tituloPublico) + '"' : '') + '>',
       '<div class="activity-card-main">',
       '<div>',
       '<p class="activity-date">' + ui.escaparHtml(ui.formatarData(atividade.dataAtividade)) + ' · ' + ui.escaparHtml(atividade.diaSemana) + '</p>',
@@ -1800,7 +1801,7 @@
       montarBlocoApresentacoesCard(atividade),
       historico ? '' : montarAvisoChamada(atividade, destaque),
       '<div class="activity-actions">',
-      montarBotaoDetalhes(atividade),
+      detalhe,
       montarAcaoJustificativaPrevia(atividade, modo),
       montarBotaoChamada(atividade, modo),
       '</div>',
@@ -2147,7 +2148,7 @@
     }
 
     return [
-      '<button class="secondary-button compact-button" type="button" data-activity-details="',
+      '<button class="secondary-button compact-button" type="button" data-geapa-primary data-activity-details="',
       ui.escaparHtml(atividade.idAtividade),
       '">Ver detalhes</button>'
     ].join('');

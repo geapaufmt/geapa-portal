@@ -1,0 +1,346 @@
+[
+  {
+    "id": "admin-conteudo-publico",
+    "label": "Conteúdo Público",
+    "path": "admin/conteudo-publico",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "inicio",
+    "label": "Início",
+    "path": "inicio",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "sobre",
+    "label": "Sobre o GEAPA",
+    "path": "sobre",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "historia",
+    "label": "História",
+    "path": "historia",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "diretoria-publica",
+    "label": "Diretoria",
+    "path": "diretoria",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "orientadores",
+    "label": "Orientadores",
+    "path": "orientadores",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "membros-publicos",
+    "label": "Membros",
+    "path": "membros",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "normas",
+    "label": "Documentos e normas",
+    "path": "documentos",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "parceiros",
+    "label": "Parceiros",
+    "path": "parceiros",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "processo-seletivo",
+    "label": "Processo seletivo",
+    "path": "processo-seletivo",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "contato",
+    "label": "Contato",
+    "path": "contato",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "avaliacao-egresso",
+    "label": "Avaliação de egresso",
+    "path": "avaliacao-egresso",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "ingresso",
+    "label": "Meu ingresso",
+    "path": "ingresso",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "login",
+    "label": "Entrar",
+    "path": "login",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "interesse",
+    "label": "Tenho interesse",
+    "path": "interesse",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "meu-perfil",
+    "label": "Meu perfil",
+    "path": "app/meu-perfil",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "minha-situacao",
+    "label": "Minha situação",
+    "path": "app/minha-situacao",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "frequencia",
+    "label": "Minha frequência",
+    "path": "app/frequencia",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "minhas-apresentacoes",
+    "label": "Minhas apresentações",
+    "path": "app/minhas-apresentacoes",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "certificados",
+    "label": "Meus certificados",
+    "path": "app/certificados",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "inscricoes",
+    "label": "Minhas inscrições",
+    "path": "app/inscricoes",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "participacoes",
+    "label": "Minhas participações",
+    "path": "app/participacoes",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "preferencias",
+    "label": "Preferências de comunicação",
+    "path": "app/preferencias",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "atividades",
+    "label": "Próximas atividades",
+    "path": "atividades",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "historico-atividades",
+    "label": "Histórico de atividades",
+    "path": "agenda/historico-atividades",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "calendario",
+    "label": "Calendário",
+    "path": "agenda/calendario",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "admin",
+    "label": "Painel administrativo",
+    "path": "admin",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "admin-membros",
+    "label": "Membros",
+    "path": "admin/membros",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "admin-correcoes-cadastrais",
+    "label": "Correções cadastrais",
+    "path": "admin/correcoes-cadastrais",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "admin-solicitacoes-vinculo",
+    "label": "Solicitações de vínculo",
+    "path": "admin/membros/solicitacoes-vinculo",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "admin-atividades",
+    "label": "Atividades",
+    "path": "admin/atividades",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "admin-chamadas",
+    "label": "Chamadas",
+    "path": "admin/chamadas",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "admin-justificativas",
+    "label": "Justificativas",
+    "path": "admin/justificativas",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "admin-apresentacoes",
+    "label": "Apresentações",
+    "path": "admin/apresentacoes",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "admin-comunicacao",
+    "label": "Comunicação",
+    "path": "admin/comunicacao",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "admin-processo-seletivo",
+    "label": "Processo seletivo",
+    "path": "admin/processo-seletivo",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "painel-diretoria-v2",
+    "label": "Painel da Diretoria",
+    "path": "admin/painel-diretoria-v2",
+    "declared": "implementado",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "pendencias-diretoria",
+    "label": "Pendências da Diretoria",
+    "path": "admin/pendencias-diretoria",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "status-v2",
+    "label": "Status do Sistema V2",
+    "path": "admin/status-v2",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  },
+  {
+    "id": "admin-normas-parametros",
+    "label": "Normas e parâmetros",
+    "path": "admin/normas-parametros",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "admin-configuracoes",
+    "label": "Configurações",
+    "path": "admin/configuracoes",
+    "declared": "placeholder",
+    "before": "Não implementada ou renderer não conectado",
+    "after": "Preservada; sem implementação nova"
+  },
+  {
+    "id": "admin-ciclos-semestres",
+    "label": "Ciclos e semestres",
+    "path": "admin/ciclos-semestres",
+    "declared": "implementado",
+    "before": "Concluído",
+    "after": "Concluído; interação compartilhada"
+  },
+  {
+    "id": "minha-atuacao",
+    "label": "Minha atuação",
+    "path": "app/minha-atuacao",
+    "declared": "implementado",
+    "before": "Visual legado/parcial",
+    "after": "Padronizado nesta campanha"
+  }
+]

@@ -384,7 +384,7 @@
   }
 
   function renderizarBase(container, definicao, corpo) {
-    var designed=['minha-frequencia','minhas-apresentacoes','pendencias-apresentacoes','pendencias-justificativas'].includes(definicao.tipo);
+    var designed=!!global.PortalDesign;
     container.classList.toggle('geapa-act-workspace',designed);
     if(designed)container.classList.add('geapa-admin');
     var actions=definicao.idRota==='admin-apresentacoes'?'<button type="button" data-portal-v2-action="alternar-todas-apresentacoes">'+(estado.apresentacoesTodas?'Ver somente pendências':'Ver todas as apresentações')+'</button><button type="button" data-portal-v2-action="planejamento">Ciclos e sessões</button>':'';
@@ -653,6 +653,8 @@
     var titulo = registro.tituloAtividade || registro.tituloPublico || registro.idAtividade || 'Atividade';
     var status = registro.statusPresencaRotulo || registro.statusPresenca || 'Registro';
     var acao = montarAcaoJustificativaFrequencia(registro, id);
+    var consultavel = acao.includes('data-portal-v2-action="justificativa-ver"');
+    if(consultavel)acao=acao.replace('data-portal-v2-action="justificativa-ver"','data-geapa-primary data-portal-v2-action="justificativa-ver"');
     var permiteExibirPrazo = !ehPresencaFrequencia(registro) && temJustificativaFrequencia(registro);
     var prazo = permiteExibirPrazo
       ? formatarDataCurtaPendencia(registro.dataLimiteJustificativa || registro.prazoJustificativa)
@@ -662,7 +664,7 @@
     estado.itensPorId[id] = registro;
 
     return [
-      '<article class="presentation-action-card', destaquePendencia ? ' frequency-pendency-card' : '', '">',
+      '<article class="presentation-action-card', destaquePendencia ? ' frequency-pendency-card' : '', '"', consultavel ? ' data-geapa-card tabindex="0" aria-label="Justificativa: '+ui.escaparHtml(titulo)+'"' : '', '>',
       '<div class="presentation-card-topline">',
       '<span>' + ui.escaparHtml(formatarDataCurtaPendencia(registro.dataAtividade) || formatarValor(registro.dataAtividade)) + '</span>',
       '<span>' + ui.escaparHtml(formatarValor(status)) + '</span>',

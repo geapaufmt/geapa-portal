@@ -24,17 +24,8 @@ export function cycleDashboard(d:Governance):string {
 export function cycleDetail(c:Cycle,d:Governance):string {
  return detailFacts([['Identificação',c.label],['Período',interval(c)],['Status',statusLabel(c.status)],['Revisão',c.revision],['Configuração institucional',c.configRevision],['ID',c.id]])+`<h3>Semestres vinculados</h3><div class="geapa-semester-grid">${d.semesters.filter(s=>s.cycleId===c.id).map(semesterCard).join('')||'<p>Nenhum semestre vinculado.</p>'}</div>`;
 }
-/** Card surface delegates to its own main button, never to a nested card. */
-export function cardMainAction(target:Element,root:Document|HTMLElement=document):HTMLElement|null {
- const card=target.closest<HTMLElement>('[data-geapa-card]');
- if(!card||!root.contains(card)||target.closest('button,a,input,select,textarea,summary,label,[data-geapa-options]'))return null;
- return [...card.querySelectorAll<HTMLElement>('[data-geapa-primary]')].find(el=>el.closest('[data-geapa-card]')===card)??null;
-}
-export function installCardInteractions(root:Document|HTMLElement=document):()=>void {
- const click=(event:Event)=>{if(!(event.target instanceof Element))return;const e=event as MouseEvent;if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||window.getSelection()?.toString())return;cardMainAction(event.target,root)?.click();};
- const key=(event:Event)=>{const e=event as KeyboardEvent;if(!['Enter',' '].includes(e.key)||!(e.target instanceof HTMLElement)||!e.target.matches('[data-geapa-card]'))return;const action=cardMainAction(e.target,root);if(action){e.preventDefault();action.click();}};
- root.addEventListener('click',click);root.addEventListener('keydown',key);return()=>{root.removeEventListener('click',click);root.removeEventListener('keydown',key);};
-}
+export {cardMainAction,installCardInteractions} from './card-interactions.mjs';
+import {installCardInteractions} from './card-interactions.mjs';
 if(typeof window!=='undefined'&&typeof document!=='undefined')installCardInteractions();
 
 /** Presentation only: fields and action flags come from existing authorized readers. */

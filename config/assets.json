@@ -1016,6 +1016,31 @@
         "dev"
       ],
       "generated": "build/typescript/admin-panels.mjs"
+    },
+    {
+      "url": "/assets/act-ui/card-interactions.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/card-interactions.mjs"
+    },
+    {
+      "url": "/assets/act-ui/portal-design.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/portal-design.mjs"
+    },
+    {
+      "url": "/assets/act-ui/portal-design.css",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/styles/portal-design.css",
+      "devSource": "src/styles/portal-design.css"
     }
   ]
 }

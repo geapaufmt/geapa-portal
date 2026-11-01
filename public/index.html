@@ -9,13 +9,16 @@
       name="description"
       content="Portal institucional do GEAPA com acesso público, vínculos, atividades, apresentações e gestão."
     >
-    <meta name="theme-color" content="#1f6b45">
+    <meta name="theme-color" content="#167D0A">
     <link rel="stylesheet" href="assets/act-ui/member-flows.css">
     <link rel="manifest" href="manifest.json?v=cc90cbd58c35">
     <link rel="stylesheet" href="style.9ae9da92320b5588.css">
     <link rel="stylesheet" href="assets/css/public-v2.41010cbf44a8da05.css">
     <link rel="stylesheet" href="assets/css/public-admin-v2.640e3b814ce59781.css">
-  </head>
+  <link rel="stylesheet" href="/assets/act-ui/design-system.css" data-geapa-design>
+<link rel="stylesheet" href="/assets/act-ui/portal-design.css">
+<script type="module" src="/assets/act-ui/portal-design.mjs"></script>
+</head>
   <body>
     <a href="/membros.html" style="display:block;text-align:center;padding:.6rem">Diretório de Membros</a>
     <div class="portal-frame">
@@ -66,7 +69,7 @@
 
         <main class="portal-shell view-inicio" id="portal-app">
 <p id="estado-acesso" class="status-message" role="status" aria-live="polite"></p><button id="atualizar-acesso" class="secondary-button compact-button" type="button">Atualizar acesso</button>
-          <section class="public-home-panel" id="tela-inicio" aria-labelledby="portal-title">
+          <section class="public-home-panel geapa-page" id="tela-inicio" aria-labelledby="portal-title">
             <p class="eyebrow">GEAPA</p>
             <h1 id="portal-title">Portal GEAPA</h1>
             <p class="intro">
@@ -103,10 +106,10 @@
             </div>
           </section>
 
-          <section class="access-panel" id="tela-acesso" aria-labelledby="login-title" hidden><p class="eyebrow">Acesso</p><h1 id="login-title">Entrar no Portal GEAPA</h1><form id="acesso-form" class="access-form"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required><button id="entrar-email" type="submit">Entrar</button></form><p id="mensagem-status" class="status-message" role="status" aria-live="polite">Use sua conta Google autorizada.</p></section>
+          <section class="access-panel geapa-page" id="tela-acesso" aria-labelledby="login-title" hidden><p class="eyebrow">Acesso</p><h1 id="login-title">Entrar no Portal GEAPA</h1><form id="acesso-form" class="access-form"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required><button id="entrar-email" type="submit">Entrar</button></form><p id="mensagem-status" class="status-message" role="status" aria-live="polite">Use sua conta Google autorizada.</p></section>
 
-          <section class="situation-panel" id="tela-ingresso" aria-label="Ingresso no GEAPA" hidden><div id="enrollment-content"></div></section>
-          <section class="situation-panel" id="tela-situacao" aria-labelledby="situacao-title" hidden>
+          <section class="situation-panel geapa-page" id="tela-ingresso" aria-label="Ingresso no GEAPA" hidden><div id="enrollment-content"></div></section>
+          <section class="situation-panel geapa-page" id="tela-situacao" aria-labelledby="situacao-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
                 <p class="eyebrow">Área do membro</p>
@@ -120,7 +123,7 @@
             </div>
 
             <p class="simulation-warning">
-              Esta tela exibe os dados consolidados pelo backend seguro do Portal GEAPA.
+              Consulte sua situação e as informações oficiais do seu vínculo.
               Frequência, apresentações, certificados e pendências aparecem conforme a
               disponibilidade das informações oficiais.
             </p>
@@ -133,7 +136,7 @@
             <div id="meu-vinculo-solicitacoes" class="vinculo-solicitacoes-host" hidden></div>
           </section>
 
-          <section class="situation-panel" id="tela-meu-perfil" aria-labelledby="meu-perfil-title" hidden>
+          <section class="situation-panel geapa-page" id="tela-meu-perfil" aria-labelledby="meu-perfil-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
                 <p class="eyebrow">Meu vinculo</p>
@@ -159,8 +162,8 @@
           </section>
 
           <section class="situation-panel" id="tela-ciclos-semestres" hidden><div class="section-heading"><h2>Ciclos e semestres</h2></div><div id="functional-governance-content"></div></section>
-          <section class="situation-panel" id="tela-minha-atuacao" hidden><div class="situation-topbar"><div class="section-heading"><p class="eyebrow">Meu vínculo</p><h2>Minha atuação</h2></div></div><div id="minha-atuacao" class="situation-card"></div></section>
-<section class="situation-panel" id="tela-atividades" aria-labelledby="atividades-title" hidden>
+          <section class="situation-panel geapa-page" id="tela-minha-atuacao" hidden><div class="situation-topbar"><div class="section-heading"><p class="eyebrow">Meu vínculo</p><h2>Minha atuação</h2></div></div><div id="minha-atuacao" class="situation-card"></div></section>
+<section class="situation-panel geapa-page" id="tela-atividades" aria-labelledby="atividades-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
                 <p class="eyebrow">Atividades</p>
@@ -172,9 +175,7 @@
             </div>
 
             <p class="simulation-warning" id="atividades-descricao">
-              Esta tela usa a base Atividades v2 DEV e mostra apenas atividades
-              futuras ou em andamento. Apresentações de membros também serão
-              tratadas a partir de geapa-atividades.
+              Consulte as atividades disponíveis para seu vínculo. Detalhes e ações são apresentados conforme sua autorização.
             </p>
 
             <div class="activities-toolbar">
@@ -225,7 +226,7 @@
             <div id="placeholder-content"></div>
           </section>
 
-          <section class="situation-panel access-denied-panel" id="tela-acesso-negado" hidden>
+          <section class="situation-panel access-denied-panel geapa-page" id="tela-acesso-negado" hidden>
             <div id="access-denied-content"></div>
           </section>
 
@@ -256,7 +257,7 @@
             </section>
           </div>
 
-          <div class="modal-backdrop" id="profile-correction-modal" hidden>
+          <div class="modal-backdrop geapa-self-dialog" id="profile-correction-modal" hidden>
             <section class="modal-panel profile-correction-modal-panel" role="dialog" aria-modal="true" aria-labelledby="profile-correction-title">
               <div class="modal-topbar"><h2 id="profile-correction-title">Solicitar correção de <span data-profile-correction-label></span></h2>
                 <button class="secondary-button compact-button" type="button" data-profile-correction-close>Fechar</button></div>
@@ -280,7 +281,7 @@
             </section>
           </div>
 
-          <div class="modal-backdrop" id="vinculo-solicitacao-modal" hidden>
+          <div class="modal-backdrop geapa-self-dialog" id="vinculo-solicitacao-modal" hidden>
             <section class="modal-panel vinculo-modal-panel" role="dialog" aria-modal="true" aria-labelledby="vinculo-solicitacao-title">
               <div class="modal-topbar"><h2 id="vinculo-solicitacao-title" data-vinculo-modal-title>Solicitação de vínculo</h2><button class="secondary-button compact-button" type="button" data-vinculo-close>Fechar</button></div>
               <form class="vinculo-form" data-vinculo-form>
