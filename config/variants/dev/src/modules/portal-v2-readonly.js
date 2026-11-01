@@ -623,7 +623,7 @@
       ['Justificadas', dados.totalJustificadas],
       ['Abonadas', dados.totalAbonadas],
       ['Faltas liquidas', dados.faltasLiquidas],
-      ['Frequencia', dados.percentualFrequencia],
+      ['Frequencia', typeof dados.percentualFrequencia === 'number' ? dados.percentualFrequencia.toLocaleString('pt-BR') + '%' : dados.percentualFrequencia],
       ['Situacao', dados.situacaoDisciplinar]
     ].forEach(function adicionar(item) {
       if (item[1] !== undefined && item[1] !== null && item[1] !== '') {
