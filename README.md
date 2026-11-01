@@ -28,6 +28,8 @@ O build padrão cria `dist/dev` e `dist/prod` como **prévia fechada**, sem sele
 
 TypeScript é o padrão para componentes novos. JavaScript existente permanece quando a conversão não traz benefício imediato. Identidade: verde `#167D0A`, marrom `#5C371A`, preto `#030302`.
 
+`board-competencies.mts` apresenta a Diretoria em ordem institucional fixa, com detalhes no modal compartilhado. Os rótulos (incluindo Diretoria Financeira para `TESOUREIRO`) são apenas visuais; permissões e atribuições vêm do leitor canônico. Registros ausentes ou conflitantes são sinalizados, nunca corrigidos no frontend. A prévia `/board.html` do servidor `npm run preview:admin` usa somente dados sintéticos e não integra o Hosting.
+
 As URLs antigas dos assets são preservadas pelo inventário de build, mesmo quando a fonte foi reorganizada. Não inferir regras de negócio ou permissões no frontend: ações, máscaras e decisões vêm do Core e são revalidadas no envio.
 
 Leia [arquitetura](docs/ARCHITECTURE.md), [releases](docs/RELEASES.md) e [convergência](docs/CONVERGENCE.md). Nunca usar `legacy/web` ou um checkpoint antigo para substituir a versão publicada.
