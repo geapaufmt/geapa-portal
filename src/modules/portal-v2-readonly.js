@@ -384,7 +384,7 @@
   }
 
   function renderizarBase(container, definicao, corpo) {
-    var designed=['minha-frequencia','minhas-apresentacoes','pendencias-apresentacoes'].includes(definicao.tipo);
+    var designed=['minha-frequencia','minhas-apresentacoes','pendencias-apresentacoes','pendencias-justificativas'].includes(definicao.tipo);
     container.classList.toggle('geapa-act-workspace',designed);
     if(designed)container.classList.add('geapa-admin');
     var actions=definicao.idRota==='admin-apresentacoes'?'<button type="button" data-portal-v2-action="alternar-todas-apresentacoes">'+(estado.apresentacoesTodas?'Ver somente pendências':'Ver todas as apresentações')+'</button><button type="button" data-portal-v2-action="planejamento">Ciclos e sessões</button>':'';
@@ -434,7 +434,7 @@
         ? global.PortalDesign.collectionSearch('Buscar apresentações exibidas',montarPendenciasApresentacoes(itens),'A busca filtra o conjunto autorizado exibido nesta consulta.')
         : '',
       itens.length && definicao.tipo === 'pendencias-justificativas'
-        ? montarPendenciasJustificativas(itens)
+        ? global.PortalDesign.collectionSearch('Buscar justificativas nesta página',montarPendenciasJustificativas(itens),'Busca e filtros consideram apenas esta página da fila autorizada.',montarFiltrosJustificativas(itens))
         : '',
       definicao.tipo==='pendencias-justificativas'?montarPaginacaoJustificativas(data.pagination):'',
       definicao.tipo==='minhas-apresentacoes'?montarPaginacaoApresentacoesSelf(data.pagination):'',
@@ -1000,51 +1000,9 @@
     ].join('');
   }
 
-  function montarPendenciasJustificativas(itens) {
-    return [
-      '<div class="presentation-actions-list">',
-      itens.map(function montar(item) {
-        var id = obterIdItem(item);
-        var acoes = obterAcoesGestaoJustificativa(item);
-        var foraPrazo = justificativaForaPrazo(item);
-        var status = obterStatusJustificativa(item);
-        var documento = normalizarUrlPublica(item.linkDocumentoComprobatorio || item.linkDocumento);
-        var motivo = item.motivoCategoria || item.motivoDeclarado;
-        var prazo = item.dataLimiteJustificativa || item.prazoJustificativa;
-        var envio = item.enviadaEm || item.dataEnvio;
-        var botoes = [
-          acoes.podeDeferir ? botaoAcao('justificativa-deferir', id, 'Deferir', 'primary') : '',
-          acoes.podeAbonar ? botaoAcao('justificativa-abonar', id, 'Abonar', 'primary') : '',
-          acoes.podeIndeferir ? botaoAcao('justificativa-indeferir', id, 'Indeferir', 'warning') : '',
-          acoes.podeSolicitarAjuste ? botaoAcao('justificativa-ajuste', id, 'Solicitar ajuste', 'warning') : ''
-        ].join('');
-
-        estado.itensPorId[id] = item;
-
-        return [
-          '<article class="presentation-action-card">',
-          '<div class="presentation-card-topline">',
-          '<span>' + ui.escaparHtml(formatarValor(status || 'ENVIADA')) + '</span>',
-          foraPrazo ? '<span>FORA DO PRAZO</span>' : '',
-          '</div>',
-          '<div class="presentation-action-main"><div>',
-          '<small>' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataAtividade)) + '</small>',
-          '<h3>' + ui.escaparHtml(formatarValor(item.tituloPublico || item.tituloAtividade || 'Atividade')) + '</h3>',
-          '<p>Membro: ' + ui.escaparHtml(formatarValor(item.nomeMembro || item.nomePessoa || item.nomeParticipante || item.nome)) + '</p>',
-          motivo ? '<p>Motivo: ' + ui.escaparHtml(motivo) + '</p>' : '',
-          item.descricaoJustificativa ? '<p>Descricao: ' + ui.escaparHtml(item.descricaoJustificativa) + '</p>' : '',
-          prazo ? '<p>Prazo limite: ' + ui.escaparHtml(formatarDataCurtaPendencia(prazo)) + '</p>' : '',
-          envio ? '<p>Enviada em: ' + ui.escaparHtml(formatarDataCurtaPendencia(envio)) + '</p>' : '',
-          item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
-          item.canonicalProofAvailable ? '<p>'+linkComprovanteCanonico(item)+'</p>' : documento ? '<p><a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(documento) + '" target="_blank" rel="noopener noreferrer">Abrir comprovante</a></p>' : '',
-          '</div></div>',
-          botoes ? '<div class="presentation-card-actions">' + botoes + '</div>' : '',
-          '</article>'
-        ].join('');
-      }).join(''),
-      '</div>'
-    ].join('');
-  }
+  function botoesJustificativa(item,id){var acoes=obterAcoesGestaoJustificativa(item);return [acoes.podeDeferir?botaoAcao('justificativa-deferir',id,'Deferir','primary'):'',acoes.podeAbonar?botaoAcao('justificativa-abonar',id,'Abonar','primary'):'',acoes.podeIndeferir?botaoAcao('justificativa-indeferir',id,'Indeferir','warning'):'',acoes.podeSolicitarAjuste?botaoAcao('justificativa-ajuste',id,'Solicitar ajuste','warning'):''].join('');}
+  function montarFiltrosJustificativas(itens){return '<details class="geapa-filters"><summary>Filtros <span data-geapa-filter-active></span></summary><label>Status<select data-geapa-collection-filter><option value="">Todos</option>'+Array.from(new Set(itens.map(obterStatusJustificativa))).filter(Boolean).map(function(status){return '<option value="'+ui.escaparHtml(status)+'">'+ui.escaparHtml(status)+'</option>';}).join('')+'</select></label></details>';}
+  function montarPendenciasJustificativas(itens){return '<div class="presentation-actions-list">'+itens.map(function(item){var id=obterIdItem(item),status=obterStatusJustificativa(item),title=item.tituloPublico||item.tituloAtividade||'Atividade';estado.itensPorId[id]=item;return '<article class="presentation-action-card geapa-justification-card" data-geapa-card tabindex="0" aria-label="Justificativa de '+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome||'Membro')+'" data-geapa-status="'+ui.escaparHtml(status)+'"><div class="presentation-card-topline"><span>'+ui.escaparHtml(status||'ENVIADA')+'</span>'+(justificativaForaPrazo(item)?'<span>Fora do prazo</span>':'')+'</div><button type="button" class="geapa-record-title" data-geapa-primary data-portal-v2-action="justificativa-ver" data-id-apresentacao="'+ui.escaparHtml(id)+'">'+ui.escaparHtml(title)+'</button><p class="geapa-person-name">'+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome||'Membro')+'</p><dl class="geapa-record-facts">'+global.PortalDesign.fact('Atividade',formatarDataCurtaPendencia(item.dataAtividade))+global.PortalDesign.fact('Motivo',item.motivoCategoria||item.motivoDeclarado)+global.PortalDesign.fact('Enviada em',formatarDataCurtaPendencia(item.enviadaEm||item.dataEnvio))+'</dl>'+global.PortalDesign.actionDisclosure(botoesJustificativa(item,id))+'</article>';}).join('')+'</div>';}
 
   function agruparPendenciasPorApresentacao(itens) {
     var mapa = {};
@@ -2457,16 +2415,22 @@
   function abrirModalVisualizarJustificativa(id) {
     var item = estado.itensPorId[id];
     if (!item) return;
+    var legacyDocument=normalizarUrlPublica(item.linkDocumentoComprobatorio||item.linkDocumento);
 
     abrirModalBase('Justificativa', [
       '<div class="readonly-justification-detail">',
       '<p><strong>Atividade:</strong> ' + ui.escaparHtml(formatarValor(item.tituloAtividade || item.tituloPublico || item.idAtividade || 'Atividade')) + '</p>',
       item.dataAtividade ? '<p><strong>Data:</strong> ' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataAtividade) || formatarValor(item.dataAtividade)) + '</p>' : '',
-      item.statusJustificativa ? '<p><strong>Status:</strong> ' + ui.escaparHtml(formatarValor(item.statusJustificativa)) + '</p>' : '',
-      item.motivoCategoria ? '<p><strong>Motivo:</strong> ' + ui.escaparHtml(formatarValor(item.motivoCategoria)) + '</p>' : '',
+      '<p><strong>Status:</strong> '+ui.escaparHtml(obterStatusJustificativa(item))+'</p>',
+      item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome?'<p><strong>Membro:</strong> '+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome)+'</p>':'',
+      item.descricaoJustificativa?'<p><strong>Descrição:</strong> '+ui.escaparHtml(item.descricaoJustificativa)+'</p>':'',
+      item.motivoCategoria||item.motivoDeclarado ? '<p><strong>Motivo:</strong> ' + ui.escaparHtml(formatarValor(item.motivoCategoria||item.motivoDeclarado)) + '</p>' : '',
       item.observacaoPublica ? '<p><strong>Observação:</strong> ' + ui.escaparHtml(formatarValor(item.observacaoPublica)) + '</p>' : '',
       item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
-      item.canonicalProofAvailable ? '<p>'+linkComprovanteCanonico(item)+'</p>' : '',
+      item.dataLimiteJustificativa||item.prazoJustificativa?'<p><strong>Prazo:</strong> '+ui.escaparHtml(formatarDataCurtaPendencia(item.dataLimiteJustificativa||item.prazoJustificativa))+'</p>':'',
+      item.enviadaEm||item.dataEnvio?'<p><strong>Enviada em:</strong> '+ui.escaparHtml(formatarDataCurtaPendencia(item.enviadaEm||item.dataEnvio))+'</p>':'',
+      item.canonicalProofAvailable ? '<p>'+linkComprovanteCanonico(item)+'</p>' : legacyDocument?'<p><a class="secondary-button" href="'+ui.escaparHtml(legacyDocument)+'" target="_blank" rel="noopener noreferrer">Abrir comprovante</a></p>':'',
+      estado.rotaAtual==='admin-justificativas'?global.PortalDesign.actionDisclosure(botoesJustificativa(item,id)):'',
       '<div class="presentation-card-actions">',
       '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Fechar</button>',
       '</div>',

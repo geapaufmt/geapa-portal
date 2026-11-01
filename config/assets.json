@@ -1008,6 +1008,14 @@
       ],
       "source": "src/styles/portal.css",
       "devSource": "src/styles/portal.css"
+    },
+    {
+      "url": "/assets/act-ui/admin-panels.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/admin-panels.mjs"
     }
   ]
 }

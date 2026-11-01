@@ -31,3 +31,5 @@ TypeScript é o padrão para componentes novos. JavaScript existente permanece q
 As URLs antigas dos assets são preservadas pelo inventário de build, mesmo quando a fonte foi reorganizada. Não inferir regras de negócio ou permissões no frontend: ações, máscaras e decisões vêm do Core e são revalidadas no envio.
 
 Leia [arquitetura](docs/ARCHITECTURE.md), [releases](docs/RELEASES.md) e [convergência](docs/CONVERGENCE.md). Nunca usar `legacy/web` ou um checkpoint antigo para substituir a versão publicada.
+
+A prévia sintética das abas administrativas pode ser aberta com `npm run build` e `npm run preview:admin`. Consulte o [relatório de redesign](docs/GEAPA-ADMIN-PANELS-DESIGN.md) para capturas, contratos preservados e limites da validação local.

@@ -1,0 +1,45 @@
+  function montarPendenciasJustificativas(itens) {
+    return [
+      '<div class="presentation-actions-list">',
+      itens.map(function montar(item) {
+        var id = obterIdItem(item);
+        var acoes = obterAcoesGestaoJustificativa(item);
+        var foraPrazo = justificativaForaPrazo(item);
+        var status = obterStatusJustificativa(item);
+        var documento = normalizarUrlPublica(item.linkDocumentoComprobatorio || item.linkDocumento);
+        var motivo = item.motivoCategoria || item.motivoDeclarado;
+        var prazo = item.dataLimiteJustificativa || item.prazoJustificativa;
+        var envio = item.enviadaEm || item.dataEnvio;
+        var botoes = [
+          acoes.podeDeferir ? botaoAcao('justificativa-deferir', id, 'Deferir', 'primary') : '',
+          acoes.podeAbonar ? botaoAcao('justificativa-abonar', id, 'Abonar', 'primary') : '',
+          acoes.podeIndeferir ? botaoAcao('justificativa-indeferir', id, 'Indeferir', 'warning') : '',
+          acoes.podeSolicitarAjuste ? botaoAcao('justificativa-ajuste', id, 'Solicitar ajuste', 'warning') : ''
+        ].join('');
+
+        estado.itensPorId[id] = item;
+
+        return [
+          '<article class="presentation-action-card">',
+          '<div class="presentation-card-topline">',
+          '<span>' + ui.escaparHtml(formatarValor(status || 'ENVIADA')) + '</span>',
+          foraPrazo ? '<span>FORA DO PRAZO</span>' : '',
+          '</div>',
+          '<div class="presentation-action-main"><div>',
+          '<small>' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataAtividade)) + '</small>',
+          '<h3>' + ui.escaparHtml(formatarValor(item.tituloPublico || item.tituloAtividade || 'Atividade')) + '</h3>',
+          '<p>Membro: ' + ui.escaparHtml(formatarValor(item.nomeMembro || item.nomePessoa || item.nomeParticipante || item.nome)) + '</p>',
+          motivo ? '<p>Motivo: ' + ui.escaparHtml(motivo) + '</p>' : '',
+          item.descricaoJustificativa ? '<p>Descricao: ' + ui.escaparHtml(item.descricaoJustificativa) + '</p>' : '',
+          prazo ? '<p>Prazo limite: ' + ui.escaparHtml(formatarDataCurtaPendencia(prazo)) + '</p>' : '',
+          envio ? '<p>Enviada em: ' + ui.escaparHtml(formatarDataCurtaPendencia(envio)) + '</p>' : '',
+          item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
+          item.canonicalProofAvailable ? '<p>'+linkComprovanteCanonico(item)+'</p>' : documento ? '<p><a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(documento) + '" target="_blank" rel="noopener noreferrer">Abrir comprovante</a></p>' : '',
+          '</div></div>',
+          botoes ? '<div class="presentation-card-actions">' + botoes + '</div>' : '',
+          '</article>'
+        ].join('');
+      }).join(''),
+      '</div>'
+    ].join('');
+  }
