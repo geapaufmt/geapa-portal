@@ -85,7 +85,7 @@
     var actions='<button type="button" data-admin-members-refresh>Atualizar</button>'+
       (global.PortalGeapaMemberRegistration?global.PortalGeapaMemberRegistration.renderAction():'')+
       (global.PortalDevContext?.members?.canReviewCorrections?'<a href="#/admin/correcoes-cadastrais">Correções cadastrais</a>':'')+
-      (global.PortalDevContext?.members?.canReview?'<a href="#/admin/solicitacoes-vinculo">Solicitações de vínculo</a>':'');
+      (global.PortalDevContext?.members?.canReview?'<a href="#/admin/membros/solicitacoes-vinculo">Solicitações de vínculo</a>':'');
     container.innerHTML=global.PortalDesign.header('Membros','Vínculos e informações disponíveis para seu acesso.',actions,'admin-membros-title')+content;
     if (ui.hidratarLoadersLocais) ui.hidratarLoadersLocais(container);
   }
