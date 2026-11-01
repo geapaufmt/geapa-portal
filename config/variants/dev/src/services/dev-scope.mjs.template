@@ -1,0 +1,9 @@
+// DEV fixtures retain their existing isolated namespace. This selects a path,
+// never a capability. Core verifies identity and the protected routing config.
+const fixtureUids=new Set(['@@PRIVATE:P_6823c894ef3edf00@@','@@PRIVATE:P_c8c31fd7ecc62d32@@','@@PRIVATE:P_bd5b4594a8a5afad@@']);
+// This disposable account rehearses the canonical invitation workflow at root.
+// The matching protected Core configuration restricts it to its synthetic person.
+const rootFixtureUids=new Set(['@@PRIVATE:P_bd5b4594a8a5afad@@','@@PRIVATE:P_c8c31fd7ecc62d32@@']);
+export const fixtureUid=uid=>fixtureUids.has(uid);
+export const isolatedFixtureUid=uid=>fixtureUid(uid)&&!rootFixtureUids.has(uid);
+export const dataPrefix=uid=>isolatedFixtureUid(uid)?'coreDevValidation/ACT_FUNCTIONAL_20261008/':'';

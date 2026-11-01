@@ -1,0 +1,1 @@
+export const deploymentProfile=Object.freeze({"environment":"PROD","projectId":"portal-geapa","projectNumber":"913092907585","endpoint":"https://southamerica-east1-portal-geapa.cloudfunctions.net/geapaCommand","executor":"CF_GEN2_PROD_V1","legacyExecutor":null,"legacyEndpoint":null});

@@ -1,0 +1,17 @@
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js';
+import {initializeAuth,browserSessionPersistence} from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
+import {loadConfig} from '/assets/physical-560120e5c1fbb33e/config.mjs';
+import {devAppCheck} from '/assets/act-command/dev-app-check.mjs';
+import {canonical} from '/assets/act-command/command-contract.mjs';
+if(location.origin!=='https://geapa-convergencia-dev.web.app')throw Error('DEV_ONLY');
+const config=await(await fetch('/assets/act-command/activity-executor-routes.json',{cache:'no-store'})).json(),app=initializeApp(await loadConfig(),'M14_DEV'),auth=initializeAuth(app,{persistence:browserSessionPersistence});await auth.authStateReady();
+const uid='@@PRIVATE:P_6b545a436897ec64@@',id='DEV_PROMOTE_PHYSICAL_20261025',$=s=>document.getElementById(s),key='promotion-20261025-'+uid;
+$('session').textContent=auth.currentUser?.uid===uid?'Administrador DEV autenticado':'Conta não autorizada';
+let j=JSON.parse(sessionStorage.getItem(key)||'{}');const output=x=>$('result').textContent=JSON.stringify(x,null,2),persist=()=>sessionStorage.setItem(key,JSON.stringify(j));
+const sha=async v=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)))].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function call(action,request){const u=auth.currentUser;if(u?.uid!==uid)throw Error('ACTOR_DENIED');const at=performance.now(),token=await u.getIdToken(),check=await devAppCheck(app,config.siteKey),r=await fetch(config.endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,'X-Firebase-AppCheck':check},body:JSON.stringify({action,request}),credentials:'omit',cache:'no-store',redirect:'error'}),data=await r.json();if(auth.currentUser!==u)throw Error('SESSION_CHANGED');return {httpStatus:r.status,httpMs:Math.round(performance.now()-at),...data};}
+function action(id,fn){$(id).onclick=async()=>{document.querySelectorAll('button').forEach(b=>b.disabled=true);try{output(await fn());}catch(e){output({error:e.message,journal:j});}finally{document.querySelectorAll('button').forEach(b=>b.disabled=false);}};}
+action('prepare',async()=>{if(j.request)return j;const payload={activityRef:{kind:'activity',id},cycleRef:{kind:'cycle',id:id+'_CYCLE'},typeRef:{kind:'activityType',id:id+'_TYPE'},reason:'Homologação DEV da promoção, preservando a conferência pendente'};j.prepare=await call('flowPrepare',{operationId:crypto.randomUUID().replaceAll('-',''),commandType:'ACT.ACTIVITY_PROMOTE_OPERATIONAL',payload});if(j.prepare.request){j.request=j.prepare.request;j.key={operationId:j.request.operationId,commandType:j.request.commandType,digest:await sha(canonical({projectId:config.projectId,...j.request,ownerUid:uid,expectedRevisions:[]}))};}persist();return j;});
+action('execute',async()=>{if(!j.request||j.sent)throw Error('PREPARE_OR_RECONCILE_REQUIRED');j.sent=true;persist();j.result=await call('execute',j.request);persist();return j;});
+action('recover',async()=>{if(!j.key)throw Error('NOT_PREPARED');j.recovery=await call('recover',j.key);persist();return j;});
+action('negative',async()=>{const p=await call('flowPrepare',{operationId:crypto.randomUUID().replaceAll('-',''),commandType:j.request.commandType,payload:{...j.request.payload}});if(!p.request)return p;j.negative=await call('execute',{...p.request,payload:{...p.request.payload,status:'REALIZED'}});persist();return j.negative;});output(j);

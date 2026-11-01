@@ -1,0 +1,1 @@
+export const projectionRecoveryConfig=Object.freeze({"enabled":true,"frequencyEnabled":true,"projectId":"portal-geapa","endpoint":"https://southamerica-east1-portal-geapa.cloudfunctions.net/geapaCommand","siteKey":"6LcbQgAuAAAAAJ_IO0Q8SCuNv66E_gvZb5Qx3aT5"});

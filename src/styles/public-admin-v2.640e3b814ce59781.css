@@ -1,0 +1,29 @@
+#portal-app.view-public-admin #tela-public-admin { display:block; }
+#tela-public-admin { padding:clamp(16px,3vw,36px); max-width:1100px; margin:auto; width:100%; box-sizing:border-box; }
+#public-admin-content { color:#173629; overflow-wrap:anywhere; }
+#public-admin-content h1 { font-size:clamp(1.6rem,4vw,2.25rem); margin:.2em 0; }
+#public-admin-content p { line-height:1.6; }
+.editor-tabs,.editor-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.editor-tabs { margin:24px 0 16px; border-bottom:1px solid #cbd9ce; padding-bottom:12px; }
+#public-admin-content button { min-height:44px; padding:10px 16px; border:1px solid #799e85; border-radius:8px; background:#fff; color:#214b32; font:inherit; cursor:pointer; }
+#public-admin-content button[aria-current=page],#public-admin-content [data-editor-action=publish] { background:#255c3b; color:white; }
+#public-admin-content button:disabled { opacity:.45; cursor:default; }
+#public-admin-content button:focus-visible,#public-admin-content input:focus-visible,#public-admin-content textarea:focus-visible,#public-admin-content select:focus-visible { outline:3px solid #bd841c; outline-offset:2px; }
+#public-admin-content fieldset { border:0; padding:0; margin:0; min-width:0; }
+#public-admin-content label { display:flex; flex-direction:column; gap:6px; font-weight:600; margin:14px 0; }
+#public-admin-content input:not([type=checkbox]),#public-admin-content textarea,#public-admin-content select { width:100%; min-width:0; box-sizing:border-box; background:#fff; color:#173629; border:1px solid #8fa598; border-radius:7px; padding:12px; font:inherit; font-weight:400; }
+#public-admin-content textarea { resize:vertical; min-height:110px; }
+.editor-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 18px; }
+.editor-section { background:#f7faf6; border:1px solid #ccd9ce; border-radius:12px; margin:20px 0; padding:20px; }
+.editor-section header,.editor-timeline-row { display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:12px; }
+.editor-section h3 { margin:4px 0; }
+#public-admin-content .editor-check { flex-direction:row; align-items:center; gap:10px; }
+.editor-check input { width:20px; height:20px; }
+.editor-toolbar { margin-top:22px; padding:16px 0; border-top:1px solid #cbd9ce; }
+.editor-message:not(:empty),.editor-status { background:#edf3ea; border-left:4px solid #42754a; padding:12px 16px; border-radius:4px; }
+.editor-timeline-row { border-bottom:1px solid #d2dfd5; padding:16px 0; }
+.editor-timeline-row p { margin:4px 0; }
+.editor-preview { margin-top:28px; padding:clamp(12px,3vw,28px); border:2px dashed #8eaa95; border-radius:12px; }
+.editor-preview[hidden] { display:none; }
+.editor-dirty { font-size:.94rem; }
+@media(max-width:640px) { .editor-grid { grid-template-columns:minmax(0,1fr); } .editor-section { padding:14px; } .editor-toolbar button { flex:1 1 45%; } .editor-tabs button { flex:1; } }
