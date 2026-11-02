@@ -138,11 +138,13 @@ import {accessIsPending} from './bootstrap-state.mjs';
     return global.PortalPublicData && global.PortalPublicData.isEnabled(page);
   }
 
+    ROTAS_PORTAL.push(rota('equipe', 'Equipe', 'equipe', 'publico', 40,
+      'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Composição institucional com publicação autorizada.', 'implementado'));
+
   if (publicV2Enabled()) {
     ROTAS_PORTAL.push(rota('producao-cientifica', 'Produção Científica', 'producao-cientifica', 'publico', 30,
       'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Em preparação.', 'placeholder'));
-    ROTAS_PORTAL.push(rota('equipe', 'Equipe', 'equipe', 'publico', 40,
-      'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Composição institucional com publicação autorizada.', 'implementado'));
+
     ROTAS_PORTAL.forEach(function(item) {
       if (item.id === 'parceiros') { item.label = 'Apoio e Parcerias'; item.ordem = 50; }
       if (item.id === 'processo-seletivo') { item.label = 'Processo Seletivo'; item.ordem = 60; }
@@ -151,6 +153,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
   }
 
   function publicV2MenuVisible(item) {
+    if (['diretoria-publica', 'orientadores', 'membros-publicos'].includes(item.id)) return false;
     if (!publicV2Enabled()) return true;
     if (publicV2Enabled('about') && ['historia', 'normas'].indexOf(item.id) >= 0) return false;
     if (['diretoria-publica', 'orientadores', 'membros-publicos', 'interesse'].indexOf(item.id) >= 0) return false;
