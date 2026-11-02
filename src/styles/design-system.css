@@ -171,3 +171,4 @@
 @media(prefers-reduced-motion:reduce){.geapa-axis-card{transition:none}.geapa-axis-card:hover{transform:none}}
 
 body:has([data-axis-public]) #estado-acesso,body:has([data-axis-public]) #session-retry{display:none}
+.geapa-axis-card{min-width:0}.geapa-axis-card h2 button{white-space:normal;overflow-wrap:anywhere;max-width:100%}@media(max-width:650px){.geapa-axis-grid{grid-template-columns:minmax(0,1fr)}}
