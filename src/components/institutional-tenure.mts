@@ -16,9 +16,9 @@ export function institutionalLinks(links:InstitutionalLink[],label:(v:string)=>s
 }
 type Activity={membership:{state:string};board:Tenure[];advisory:Tenure[];council:Tenure[];other:Tenure[];history:Tenure[];upcoming?:Tenure[]};
 export function renderInstitutionalActivity(data:Activity,labels:Record<string,string>):string {
- const label=(v:string)=>labels[v]||({TESOUREIRO:'Diretoria Financeira',DIRETOR_ADMINISTRATIVO:'Diretoria Administrativa',DIRETOR_RECURSOS_HUMANOS:'Diretoria de Recursos Humanos'}[v])||v.replaceAll('_',' ');
+ const label=(v:string)=>labels[v]||({PRESIDENTE:'Presidência',VICE_PRESIDENTE:'Vice-Presidência',DIRETOR_EVENTOS:'Diretoria de Eventos',TESOUREIRO:'Diretoria Financeira',DIRETOR_ADMINISTRATIVO:'Diretoria Administrativa',DIRETOR_RECURSOS_HUMANOS:'Diretoria de Recursos Humanos'}[v])||v.replaceAll('_',' ');
  const sections:[string,Tenure[]][]=[['Diretoria atual',data.board],['Assessorias',data.advisory],['Conselho',data.council],['Outras funções',data.other],['Exercícios previstos ou sem vigência atual',data.upcoming||[]],['Histórico de atuação',data.history]];
- return (data.membership.state?detailSection('Vínculo atual','<p>'+esc(label(data.membership.state))+'</p>'):'')+sections.filter(([,v])=>v.length).map(([title,v])=>detailSection(title,v.map(t=>tenureCard(t,label)).join(''))).join('');
+ return (data.membership.state?detailSection('Vínculo atual','<p>'+esc(label(data.membership.state))+'</p>'):'')+sections.filter(([,v])=>v.length).map(([title,v])=>title==='Histórico de atuação'?'<details class="geapa-personal-history"><summary>'+esc(title)+' ('+v.length+')</summary>'+v.map(t=>tenureCard(t,label)).join('')+'</details>':detailSection(title,v.map(t=>tenureCard(t,label)).join(''))).join('');
 }
 declare global {var PortalInstitutionalTenure:{activity:typeof renderInstitutionalActivity};}
 if(typeof window!=='undefined')globalThis.PortalInstitutionalTenure={activity:renderInstitutionalActivity};
