@@ -810,7 +810,13 @@ import {accessIsPending} from './bootstrap-state.mjs';
     finishAccessValidation: function finishAccessValidation(message) {
       if (!this.isAccessGateVisible()) return;
       var target = document.getElementById('access-denied-content');
-      if (target) target.innerHTML = '<p class="intro" role="alert">' + escaparHtml(message || 'Não foi possível validar o acesso. Use Atualizar acesso para tentar novamente.') + '</p>';
+      if (target) {
+        target.innerHTML = '<p class="intro" role="alert">' + escaparHtml(message || 'Não foi possível validar o acesso. Use Atualizar acesso para tentar novamente.') + '</p><button type="button" class="btn" data-recover-access>Atualizar acesso</button>';
+        target.querySelector('[data-recover-access]').addEventListener('click', function () {
+          this.disabled = true;
+          document.getElementById('atualizar-acesso')?.click();
+        });
+      }
     },
     // Requested route may differ from the last rendered route while access loads.
     // Resolving this identifier is navigation only; irPara still checks access.

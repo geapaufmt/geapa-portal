@@ -6,7 +6,7 @@ const fn=source.slice(source.indexOf('async function performRefresh('),source.in
 function fixture(requested='admin-membros'){
  const calls=[],state={requested,rendered:'inicio',valid:true,allow:true,pending:null,gate:true};
  const elements=new Map(),context={portal:null,uid:'SYNTHETIC',busy:null,epoch:1,enrollmentReadPaused:false,enrollment:null,
-  routeMap:{'minha-situacao':['minha-situacao','status']},current:()=>state.valid,
+  contextReadPaused:false,navigator:{onLine:true},document:{hidden:false},recoverContextRead:({read})=>read(),routeMap:{'minha-situacao':['minha-situacao','status']},current:()=>state.valid,
   $:id=>{if(!elements.has(id))elements.set(id,{dataset:{state:'LOADING'}});return elements.get(id)},
   phase:(el,status)=>el.dataset.state=status,deadline:p=>p,scheduleExpiry(){},loadRoute:async()=>calls.push('load:'+state.rendered),observe:async()=>calls.push('observe'),actUid:()=>true,
   safeCode:e=>e.code,clearViews(){calls.push('clear')},failure:async(error)=>{throw error},messages:{},
@@ -49,3 +49,5 @@ test('Members response preserves disclosure changes made during the request',()=
  const s=fs.readFileSync(p.resolve(root,'../act-ui/admin-membros.js'),'utf8'),start=s.indexOf('  function renderContent()'),end=s.indexOf('  function renderFreshness()',start),panel={open:true},state={filtersOpen:false,pagination:{},items:[]},rendered=[];
  const ctx={state,getContainer:()=>({querySelector:()=>panel}),global:{PortalDesign:{summary:()=>''}},renderShell(){},renderFreshness:()=>'',renderFilters:()=>{rendered.push(state.filtersOpen);return '';},renderEmpty:()=>'',renderPagination:()=>''};vm.createContext(ctx);vm.runInContext(s.slice(start,end)+';renderContent();',ctx);a.deepEqual(rendered,[true]);panel.open=false;vm.runInContext('renderContent()',ctx);a.deepEqual(rendered,[true,false]);
 });
+
+test('App Check outage keeps login but does not restore or misclassify a private route',async()=>{const f=fixture('admin-atividades');f.context.portal.act.refresh=async()=>{throw {code:'APP_CHECK_UNAVAILABLE'};};f.context.portal.act.clear=()=>{f.context.window.PortalDevContext.act=null;};f.context.failure=async e=>f.calls.push('failure:'+e.code);f.context.messages.APP_CHECK_UNAVAILABLE='Atualizar acesso';await f.run();a.equal(f.context.contextReadPaused,true);a(f.calls.includes('gate-error:Atualizar acesso'));a(!f.calls.some(x=>x.startsWith('restore:')));a.equal(f.context.busy,null);const n=f.calls.length;await f.run({background:true});a.equal(f.calls.length,n);f.context.portal.act.refresh=async()=>true;await f.run({initial:false});a.equal(f.context.contextReadPaused,false);a(f.calls.includes('restore:admin-atividades'));});

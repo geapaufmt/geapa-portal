@@ -10,11 +10,11 @@ import {installActFacade} from './guard.mjs';
 export async function attachActivities(portal,db,sdk){
  const {auth}=portal,client=createActBrowserClient({auth,db,sdk,storage:journalStorage(),enabled:ACT_ENABLED});
  const tracking=createMemberTracking({auth,read:()=>client.memberTracking()});
- let context=null,contextPaused=false,refreshing=null,contextEpoch=0,members=null,memberRefresh=null;
+ let context=null,contextPaused=false,refreshing=null,contextEpoch=0,members=null,memberRefresh=null,contextError=null;
  const renewal=createContextRefresh({visibility:document,renew:async()=>{if(await refresh(true))await refreshMembers();},invalidate:()=>{contextPaused=true;window.PortalDevContext.act=null;}});
  const current=()=>!contextPaused&&!!context&&actUid(auth.uid)&&Date.now()<context.validUntil;
  function badge(profile){let el=document.getElementById('dev-admin-profile');if(profile==='DEV_ADMIN'){if(!el){el=document.createElement('span');el.id='dev-admin-profile';el.className='status-pill';document.getElementById('estado-acesso')?.after(el);}el.textContent='Administrador DEV';}else el?.remove();}
- function clear(){tracking.clear();badge(null);contextEpoch++;context=null;contextPaused=false;refreshing=null;memberRefresh=null;renewal.cancel();client.clear();window.PortalDevContext.act=null;members=null;window.PortalDevContext.members=null;document.dispatchEvent(new CustomEvent('portal:act-session-cleared'));window.PortalGeapaNavigation?.atualizarMenu();}
+ function clear(){tracking.clear();badge(null);contextEpoch++;context=null;contextPaused=false;contextError=null;refreshing=null;memberRefresh=null;renewal.cancel();client.clear();window.PortalDevContext.act=null;members=null;window.PortalDevContext.members=null;document.dispatchEvent(new CustomEvent('portal:act-session-cleared'));window.PortalGeapaNavigation?.atualizarMenu();}
  async function refresh(force=false){
   if(!ACT_ENABLED||!actUid(auth.uid)){clear();return false;}
   if(current()&&!force)return true;
@@ -26,11 +26,11 @@ export async function attachActivities(portal,db,sdk){
    if(value?.schemaVersion!=='act-portal-context-v1'||typeof value.board!=='boolean'||!Number.isFinite(value.validUntil)||value.validUntil<=Date.now())throw Error('ACT_CONTEXT_INVALID');
    const changed=!context||['accessProfile','idPessoa','board','materialOnly','canCreateActivity','canRegisterAttendance','canManageActivity','canRealizeActivity','canConfigureActivity'].some(k=>context[k]!==value[k]);
    if(context&&changed)clear();
-   context=value;contextPaused=false;if(document.body)delete document.body.dataset.actContextError;badge(value.accessProfile);window.PortalDevContext.act={available:true,board:value.board,materialOnly:value.materialOnly===true};
+   context=value;contextPaused=false;contextError=null;if(document.body)delete document.body.dataset.actContextError;badge(value.accessProfile);window.PortalDevContext.act={available:true,board:value.board,materialOnly:value.materialOnly===true};
    renewal.schedule(value.validUntil);
    if(changed){const navigation=window.PortalGeapaNavigation;navigation?.atualizarMenu();const route=navigation?.getRotaAtual?.();if(['atividades','historico-atividades','frequencia','minhas-apresentacoes','admin-apresentacoes','admin-justificativas','admin-atividades','admin-ciclos-semestres'].includes(route))navigation.irPara(route,{atualizarHash:false});}
    return true;
-  }catch(error){if(epoch===contextEpoch){clear();if(document.body)document.body.dataset.actContextError=/^[A-Za-z_/-]{1,64}$/.test(error?.code||error?.message||'')?(error.code||error.message):'CONTEXT_UNAVAILABLE';}return false;}
+  }catch(error){if(epoch===contextEpoch){clear();contextError=error;if(document.body)document.body.dataset.actContextError=/^[A-Za-z_/-]{1,64}$/.test(error?.code||error?.message||'')?(error.code||error.message):'CONTEXT_UNAVAILABLE';}return false;}
   finally{if(refreshing===task)refreshing=null;}})();return task.promise;
  }
  async function refreshMembers(){
@@ -60,7 +60,9 @@ export async function attachActivities(portal,db,sdk){
  window.PortalGeapaAuth=Object.freeze({hasPermissao:cap=>current()&&(cap==='membros:cadastrar_novos_membros'?members?.canRegister:cap==='membros:analisar_solicitacoes_vinculo'?members?.canReview:cap==='membros:analisar_correcoes'?members?.canReviewCorrections:false),getUsuarioAtual:()=>current()?{idPessoa:context.idPessoa,nome:context.nome,autenticado:true,portalAtivo:true,perfilPortalEfetivo:context.board?'DIRETORIA':'MEMBRO',perfisPortal:[context.board?'DIRETORIA':'MEMBRO']}:null,canCreateActivity:()=>current()&&context.canCreateActivity,canRegisterAttendance:()=>current()&&context.canRegisterAttendance,canConfigureActivity:()=>current()&&context.canConfigureActivity,canViewActivityDetails:()=>current()});
  await import('../act-ui/ui.js');await import('../act-ui/atividades.js');await import('../act-ui/record-actions.mjs');await import('../act-ui/design-system.mjs');await import('../act-ui/admin-atividades.js');await import('../act-ui/portal-v2-readonly.js');await import('../act-ui/functional-governance.mjs');await import('../act-ui/admin-cadastro-membros.js');await import('../act-ui/admin-membros.js');await import('../act-ui/admin-correcoes-cadastrais.js');await import('../act-ui/vinculo-solicitacoes.js');await import('../act-ui/admin-solicitacoes-vinculo.js');
  const originalClear=auth.clear.bind(auth);auth.clear=code=>{clear();originalClear(code)};
- return {tracking,enrollment:client.enrollment,refreshMembers,refresh:async(...args)=>{const result=await refresh(...args);if(result)void refreshMembers();return result;},clear,memberOwn:client.memberOwn,dispose:()=>{renewal.dispose();clear();tracking.dispose();client.dispose();}};
+ // False means this feature is not enabled for the session. A failed read is
+ // different: propagate it so bootstrap cannot turn an outage into a denial.
+ return {tracking,enrollment:client.enrollment,refreshMembers,refresh:async(...args)=>{const result=await refresh(...args);if(!result&&contextError)throw contextError;if(result)void refreshMembers();return result;},clear,memberOwn:client.memberOwn,dispose:()=>{renewal.dispose();clear();tracking.dispose();client.dispose();}};
 }
 
 
