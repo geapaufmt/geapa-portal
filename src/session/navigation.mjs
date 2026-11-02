@@ -373,7 +373,9 @@ import {accessIsPending} from './bootstrap-state.mjs';
  if(rota?.id==='admin-correcoes-cadastrais')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReviewCorrections,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-membros')return {ok:!!global.PortalDevContext?.members?.available&&!!(global.PortalDevContext.members.canRegister||global.PortalDevContext.members.canReadDirectory),reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-solicitacoes-vinculo')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReview,reason:'FEATURE_DISABLED'};
- if(['institutional-identity','institutional-parameters','institutional-norms','institutional-governance','perfis-permissoes','diretoria-competencias','admin-eixos-tematicos'].includes(rota?.id))return {ok:!!global.PortalDevContext?.act?.available&&global.PortalDevContext.act.board,reason:'FEATURE_DISABLED'};
+ // The shell contains no private data; its independent reader validates its own policy.
+ if(rota?.id?.startsWith('institutional-'))return {ok:!!global.PortalDevContext?.authenticated,reason:'NOT_AUTHENTICATED'};
+ if(['perfis-permissoes','diretoria-competencias','admin-eixos-tematicos'].includes(rota?.id))return {ok:!!global.PortalDevContext?.act?.available&&global.PortalDevContext.act.board,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-ciclos-semestres')return {ok:!!global.PortalDevContext?.act?.available&&!!global.PortalGeapaAuth?.canConfigureActivity(),reason:'FEATURE_DISABLED'};
  if(!rota)return {ok:false,reason:MOTIVOS_ACESSO.ROTA_INEXISTENTE};
  if(['inicio','login'].includes(rota.id))return {ok:true,reason:''};
@@ -452,6 +454,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     return ROTAS_PORTAL.filter(function filtrarRota(rota) {
       var sessaoAtual = sessao || getSessaoAtual();
       return rota.mostrarNoMenu &&
+        (!rota.id.startsWith('institutional-')||!!global.PortalDevContext?.act?.board||!!global.PortalDevContext?.members?.canReadDirectory) &&
         publicV2MenuVisible(rota) &&
         routeFeatureEnabled(rota) &&
         resolveRouteAccess(sessaoAtual, rota).ok;
