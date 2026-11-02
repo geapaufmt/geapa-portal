@@ -847,6 +847,7 @@
           '</div>',
           '</div>',
           item.mensagemTituloEixo ? '<p class="presentation-pendency-text">' + ui.escaparHtml(item.mensagemTituloEixo) + '</p>' : '',
+          item.recordMode === 'HISTORICAL_PARTIAL' ? '<p class="muted-inline">Estados transcritos do histórico. Recebimento não significa aprovação; arquivos continuam sujeitos à autorização de acesso.</p>' : '',
           recursos,
           acoes ? global.PortalDesign.actionDisclosure(acoes) : '',
           '</article>'
