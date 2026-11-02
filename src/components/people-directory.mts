@@ -1,7 +1,8 @@
 import {esc,badge,card,fact,detailHeader,detailSection,detailFacts} from './design-system.mjs';
+import {type TenurePresentation,tenureCard,institutionalLinks} from './institutional-tenure.mjs';
 export type PersonRelation={id:string;type:string;label:string;startDate:string|null;endDate:string|null};
 export type PersonFunction={roleKey:string;group?:string;startDate:string;endDate:string|null};
-export type DirectoryPerson={idPessoa:string;displayLabel:string;state?:string;categories?:string[];functions?:PersonFunction[];relations?:PersonRelation[];history?:{links:{id:string;type:string;startDate:string;endDate:string|null}[];functions:PersonFunction[]};privateFieldsAvailable?:boolean};
+export type DirectoryPerson={idPessoa:string;displayLabel:string;state?:string;categories?:string[];functions?:PersonFunction[];relations?:PersonRelation[];history?:{links:{id:string;type:string;startDate:string;endDate:string|null}[];functions:PersonFunction[]};presentation?:TenurePresentation;privateFieldsAvailable?:boolean};
 const labels:Record<string,string>={MEMBER:'Membros',EGRESS:'Egressos',ACADEMIC:'Colaboradores acadêmicos',EXTERNAL:'Participantes externos',UNCLASSIFIED:'Relação a conferir',MEMBRO_EFETIVO:'Membro efetivo',MEMBRO_INGRESSANTE:'Membro ingressante',MEMBRO_EM_ESPERA:'Membro em espera',SUSPENSO:'Suspenso',DESLIGADO:'Desligado',EGRESSO:'Egresso',SEM_VINCULO:'Sem vínculo de membro vigente',PRESIDENTE:'Presidente',VICE_PRESIDENTE:'Vice-Presidente',DIRETOR_ADMINISTRATIVO:'Diretoria Administrativa',DIRETOR_RECURSOS_HUMANOS:'Diretoria de Recursos Humanos',TESOUREIRO:'Diretoria Financeira',DIRETOR_COMUNICACAO:'Diretoria de Comunicação',DIRETOR_EXTENSAO:'Diretoria de Extensão',COORDINATOR:'Coordenação',ACADEMIC_COLLABORATOR:'Colaboração acadêmica',EXTERNAL_PARTICIPANT:'Participação externa',PROFESSOR:'Professor',ADVISOR:'Orientador',SPEAKER:'Palestrante'};
 export const personLabel=(value:string)=>labels[value]||value.replaceAll('_',' ');
 const date=(v:string|null)=>v&&/^\d{4}-\d{2}-\d{2}$/.test(v)?v.split('-').reverse().join('/'):'Não informado';
@@ -9,6 +10,12 @@ export function peopleCards(items:DirectoryPerson[]):string {
  return '<div class="geapa-record-grid">'+items.map(p=>card({id:p.idPessoa,title:p.displayLabel,titleAttribute:'data-admin-member-detail',headHtml:p.state?badge(personLabel(p.state)):'',factsHtml:fact('Relações',(p.categories||[]).map(personLabel).join(' · ')||'Não classificadas')+(p.functions?.length?fact('Funções',p.functions.map(f=>personLabel(f.roleKey)).join(' · ')):''),footerHtml:'<button type="button" data-admin-member-detail="'+esc(p.idPessoa)+'">Ver pessoa</button>'})).join('')+'</div>';
 }
 export function peopleDetail(p:DirectoryPerson):string {
+ if(p.presentation?.schemaVersion==='member-tenure-presentation-v1'){
+  const view=p.presentation,current=view.tenures.filter(t=>t.status==='CURRENT'),previous=view.tenures.filter(t=>t.status==='ENDED'),other=view.tenures.filter(t=>!['CURRENT','ENDED'].includes(t.status));
+  const section=(title:string,rows:typeof current)=>rows.length?detailSection(title,rows.map(t=>tenureCard(t,personLabel)).join('')):'';
+  const relations=(p.relations||[]).map(r=>detailFacts([['Relação',r.label||personLabel(r.type)],...(r.startDate?[['Início documentado',date(r.startDate)] as [string,string]]:[]),...(r.endDate?[['Término documentado',date(r.endDate)] as [string,string]]:[])])).join('');
+  return detailHeader(p.idPessoa,[...(p.state?[personLabel(p.state)]:[]),...(p.categories||[]).map(personLabel)])+(view.links?.length?detailSection('Vínculo com o GEAPA',institutionalLinks(view.links,personLabel)):'')+section('Atuação atual',current)+section('Exercícios previstos ou sem vigência atual',other)+section('Histórico de atuação',previous)+(relations?detailSection('Relações complementares',relations):'');
+ }
  const relationHtml=(p.relations||[]).map(r=>detailFacts([['Relação',r.label||personLabel(r.type)],['Início documentado',date(r.startDate)],['Término documentado',date(r.endDate)]])).join('');
  const functions=(p.functions||[]).map(f=>detailFacts([['Função',personLabel(f.roleKey)],['Início',date(f.startDate)],['Término documentado',date(f.endDate)]])).join('');
  const history=p.history?detailSection('Histórico institucional',p.history.links.map(v=>detailFacts([['Vínculo',personLabel(v.type)],['Identificador',v.id],['Início',date(v.startDate)],['Término',date(v.endDate)]])).join('')+p.history.functions.map(f=>detailFacts([['Função',personLabel(f.roleKey)],['Início',date(f.startDate)],['Término',date(f.endDate)]])).join('')):'';

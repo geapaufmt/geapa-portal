@@ -129,3 +129,15 @@
 .geapa-board-permission-group h4{font-size:14px;margin:18px 0 4px;color:var(--geapa-ink)}.geapa-board-permission-group ul{list-style:none;padding:0;margin:0}.geapa-board-permission-group li{padding:14px 0;border-bottom:1px solid var(--geapa-border)}.geapa-board-permission-group li:last-child{border:0}.geapa-board-permission-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start}.geapa-board-permission-head strong{font-size:14px}.geapa-board-permission-group p{font-size:12px;line-height:1.55;color:var(--geapa-muted);margin:4px 0}.geapa-board-permission-group .geapa-board-permission-action{color:var(--geapa-brown);font-weight:600}.geapa-board-occupant+.geapa-board-occupant{border-top:2px solid var(--geapa-brown);margin-top:22px}
 @media(max-width:700px){.geapa-board-card .geapa-record-head{flex-wrap:wrap}.geapa-board-card .geapa-record-head h3{font-size:17px}.geapa-board-permission-head{flex-direction:column;gap:6px}}
 @media(prefers-reduced-motion:reduce){.geapa-board-card{transition:none}.geapa-board-card:hover,.geapa-board-card:focus-within{transform:none}}
+
+/* Readable institutional identifiers and compact semester details. */
+.geapa-tenure{padding:12px 0;border-bottom:1px solid #deded8}
+.geapa-tenure:last-child{border-bottom:0}
+.geapa-tenure h4{margin:0;color:#030302}
+.geapa-link-id{margin:6px 0 10px;color:#5C371A;font-size:.875rem;overflow-wrap:anywhere}
+.geapa-link-id span{font-variant-numeric:tabular-nums}
+.geapa-tenure-segments{margin-top:8px}
+.geapa-tenure-segments summary{cursor:pointer;color:#5C371A;padding:6px 0}
+.geapa-tenure-segments summary:focus-visible{outline:2px solid #167D0A;outline-offset:3px}
+.geapa-tenure-segment{padding:8px 0 8px 12px;border-left:2px solid #deded8;margin:6px 0}
+.geapa-tenure-segment small{overflow-wrap:anywhere}

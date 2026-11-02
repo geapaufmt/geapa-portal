@@ -5,7 +5,7 @@ export function createOwnRecovery({auth,repair,read}){
  const clear=()=>{pending=null;};auth.listeners?.add(clear);
  async function recover(view){
   const ticket=auth.capture();
-  if(!['status','profile','functions','directors','functionHistory'].includes(view))return repair(view);
+  if(!['status','profile','functions','directors','functionHistory','tenures'].includes(view))return repair(view);
   if(!pending||pending.uid!==ticket.uid||pending.generation!==ticket.generation){
    const task={uid:ticket.uid,generation:ticket.generation,view,promise:null};pending=task;
    task.promise=Promise.resolve().then(()=>repair(view)).finally(()=>{if(pending===task)pending=null;});

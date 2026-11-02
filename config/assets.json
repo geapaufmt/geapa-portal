@@ -1057,6 +1057,14 @@
         "dev"
       ],
       "generated": "build/typescript/people-directory.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-tenure.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/institutional-tenure.mjs"
     }
   ]
 }
