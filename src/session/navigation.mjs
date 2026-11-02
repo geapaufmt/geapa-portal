@@ -42,7 +42,6 @@ import {accessIsPending} from './bootstrap-state.mjs';
   var GRUPOS_MENU = [
     { id: 'publico', label: 'Área Pública', ordem: 10, abertoPadrao: false },
     { id: 'agenda', label: 'Atividades', ordem: 20, abertoPadrao: false },
-    { id: 'meu-vinculo', label: 'Meu Vínculo', ordem: 30, abertoPadrao: false },
     { id: 'gestao-geapa', label: 'Gestão do GEAPA', ordem: 40, abertoPadrao: false }
   ];
   var MOTIVOS_ACESSO = {
@@ -73,7 +72,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     rota('interesse', 'Tenho interesse', 'interesse', 'publico', 120, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Formulário futuro para cadastro de interesse sem conceder acesso interno automaticamente.', 'placeholder'),
 
     rota('meu-perfil', 'Meu perfil', 'app/meu-perfil', 'meu-vinculo', 10, 'tela-meu-perfil', 'view-meu-perfil', true, LOGADOS, ['portal:acessar'], 'Dados cadastrais proprios em modo somente leitura.', 'implementado'),
-    rota('minha-situacao', 'Minha situação', 'app/minha-situacao', 'meu-vinculo', 20, 'tela-situacao', 'view-situacao', true, [PERFIS.MEMBRO_INGRESSANTE, PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], ['situacao:ver_propria'], 'Painel operacional resumido do usuario logado.', 'implementado'),
+    rota('minha-situacao', 'Meu vínculo', 'app/meu-vinculo', 'meu-vinculo', 20, 'tela-situacao', 'view-situacao', true, [PERFIS.MEMBRO_INGRESSANTE, PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], ['situacao:ver_propria'], 'Painel operacional resumido do usuario logado.', 'implementado'),
     rota('frequencia', 'Minha frequência', 'app/frequencia', 'meu-vinculo', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['situacao:ver_propria', 'presencas:ler'], 'Frequência própria carregada pela view V2 filtrada no backend.', 'implementado'),
     rota('minhas-apresentacoes', 'Minhas apresentações', 'app/minhas-apresentacoes', 'meu-vinculo', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.EGRESSO, PERFIS.ADMIN], ['situacao:ver_propria', 'apresentacoes:ver_propria', 'apresentacoes:ver_ate_saida'], 'Apresentações próprias ou histórico permitido pelo backend.', 'implementado'),
     rota('certificados', 'Meus certificados', 'app/certificados', 'meu-vinculo', 70, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['certificados:ver_proprios'], 'Certificados próprios emitidos ou liberados.', 'placeholder'),
@@ -131,7 +130,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
 
   ROTAS_PORTAL.push(rota('diretoria-competencias','Diretoria e competências','admin/diretoria-competencias','gestao-geapa',25,'tela-placeholder','view-placeholder',true,[],[],'Atribuições e acessos efetivos da gestão.','implementado'));
   ROTAS_PORTAL.push(rota('admin-ciclos-semestres','Ciclos e semestres','admin/ciclos-semestres','gestao-geapa',35,'tela-ciclos-semestres','view-ciclos-semestres',true,[],[],'Cadastro de ciclos e semestres.','implementado'));
-  ROTAS_PORTAL.push(rota('minha-atuacao','Minha atuação','app/minha-atuacao','meu-vinculo',25,'tela-minha-atuacao','view-minha-atuacao',true,[],[],'Vínculo e funções próprias.','implementado'));
+  ROTAS_PORTAL.push(rota('minha-atuacao','Minha atuação','app/minha-atuacao','meu-vinculo',25,'tela-minha-atuacao','view-minha-atuacao',true,[],[],'Vínculo e funções próprias.','implementado',false));
   function publicV2Enabled(page) {
     return global.PortalPublicData && global.PortalPublicData.isEnabled(page);
   }
@@ -514,6 +513,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
       botaoSair.hidden = !sessao.autenticado;
     }
     atualizarAcoesCabecalho(sessao);
+    emitirEvento('portal:menuupdated',{});
     destacarRotaAtual();
   }
 
@@ -666,6 +666,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
 
   function normalizarIdRota(idRota) {
     var id = String(idRota || '').trim();
+    if(['app/meu-vinculo','meu-vinculo','app/minha-situacao','minha-atuacao','app/minha-atuacao','app/minhas-funcoes','minhas-funcoes','app/minha-diretoria','minha-diretoria'].includes(id))return 'minha-situacao';
     if(['admin/membros','admin/pessoas'].includes(id))return 'admin-membros';
     if (['app/minhas-funcoes','minhas-funcoes','app/minha-diretoria','minha-diretoria','app/minha-atuacao'].includes(id)) return 'minha-atuacao';
 

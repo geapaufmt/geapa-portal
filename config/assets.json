@@ -1065,6 +1065,14 @@
         "dev"
       ],
       "generated": "build/typescript/institutional-tenure.mjs"
+    },
+    {
+      "url": "/assets/act-ui/global-shell.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/global-shell.mjs"
     }
   ]
 }
