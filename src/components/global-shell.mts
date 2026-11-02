@@ -19,7 +19,7 @@ export function setupGlobalShell(nav:Navigation,context:()=>Context){
   el('personal-status').textContent=status.textContent;
   el('session-retry').hidden=c.authenticated===true||!['ERROR','BLOCKED'].includes(status.dataset.state||'');
  }
- button.addEventListener('click',()=>{if(panel.hidden){nav.fecharMenu();panel.hidden=false;button.setAttribute('aria-expanded','true');(panel.querySelector('button') as HTMLElement|null)?.focus();}else close();});
+ button.addEventListener('click',()=>{update();if(panel.hidden){nav.fecharMenu();panel.hidden=false;button.setAttribute('aria-expanded','true');(panel.querySelector('button') as HTMLElement|null)?.focus();}else close();});
  el('session-retry').addEventListener('click',()=>el('atualizar-acesso').click());
  panel.addEventListener('click',e=>{if((e.target as HTMLElement).closest('button'))close();});
  document.addEventListener('pointerdown',e=>{if(!host.contains(e.target as Node))close();});
