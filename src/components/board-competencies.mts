@@ -12,6 +12,7 @@ const offices:readonly (readonly [string,string,readonly string[]])[]=[
  ['DIRETOR_FINANCEIRO','Diretoria Financeira',['DIRETOR_FINANCEIRO','TESOUREIRO']],
  ['DIRETOR_COMUNICACAO','Diretoria de Comunicação',['DIRETOR_COMUNICACAO']],['DIRETOR_EXTENSAO','Diretoria de Extensão',['DIRETOR_EXTENSAO']]
 ];
+export function boardRoleOrder(roleKey:string):number{const index=offices.findIndex(([, ,aliases])=>aliases.includes(roleKey));return index<0?99:index;}
 const extraNames:Record<string,string>={SECRETARIO_GERAL:'Secretaria Geral',SECRETARIO_EXECUTIVO:'Secretaria Executiva'};
 export function boardSlots(data:BoardCompetencies):OfficeSlot[]{
  const known=new Set(offices.flatMap(([, ,aliases])=>[...aliases]));

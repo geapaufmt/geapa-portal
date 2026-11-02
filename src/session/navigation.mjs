@@ -366,7 +366,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
   }
 
   function resolveRouteAccess(sessao, rota) {
- if(['ingresso','eixos-tematicos'].includes(rota?.id))return {ok:true,reason:''};
+ if(['ingresso','eixos-tematicos','equipe','diretoria-publica','membros-publicos','orientadores'].includes(rota?.id))return {ok:true,reason:''};
  if(global.PortalDevContext?.members?.restrictedTracking&&!['inicio','login','minha-situacao'].includes(rota?.id)&&!(rota?.id==='minhas-apresentacoes'&&global.PortalDevContext?.act?.materialOnly))return {ok:false,reason:'FEATURE_DISABLED'};
  if(global.PortalDevContext?.enrollment&&!['inicio','login'].includes(rota?.id))return {ok:false,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-correcoes-cadastrais')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReviewCorrections,reason:'FEATURE_DISABLED'};
