@@ -332,7 +332,7 @@
         "dev"
       ],
       "source": "src/services/profile-fields.mjs",
-      "devSource": "config/variants/dev/src/services/profile-fields.mjs"
+      "devSource": "src/services/profile-fields.mjs"
     },
     {
       "url": "/assets/act-command/projection-recovery-config.mjs",
