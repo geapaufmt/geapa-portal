@@ -1049,6 +1049,14 @@
         "dev"
       ],
       "generated": "build/typescript/board-competencies.mjs"
+    },
+    {
+      "url": "/assets/act-ui/people-directory.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/people-directory.mjs"
     }
   ]
 }

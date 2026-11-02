@@ -86,7 +86,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     rota('calendario', 'Calendário', 'agenda/calendario', 'agenda', 30, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Visão futura para agenda mensal, eventos, reuniões, simpósios, confraternizações e apresentações.', 'placeholder'),
 
     rota('admin', 'Painel administrativo', 'admin', 'gestao-geapa', 10, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['gestao:acessar'], 'Painel operacional conforme perfil e permissões.', 'placeholder'),
-    rota('admin-membros', 'Membros', 'admin/membros', 'gestao-geapa', 20, 'tela-admin-membros', 'view-admin-membros', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta operacional de membros autorizada pelo backend.', 'implementado'),
+    rota('admin-membros', 'Pessoas', 'admin/pessoas', 'gestao-geapa', 20, 'tela-admin-membros', 'view-admin-membros', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta operacional de membros autorizada pelo backend.', 'implementado'),
     rota('admin-correcoes-cadastrais', 'Correções cadastrais', 'admin/correcoes-cadastrais', 'gestao-geapa', 25, 'tela-admin-correcoes-cadastrais', 'view-admin-correcoes-cadastrais', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:analisar_correcoes'], 'Análise e aplicação de solicitações cadastrais autorizadas pelo Core.', 'implementado'),
     rota('admin-solicitacoes-vinculo', 'Solicitações de vínculo', 'admin/membros/solicitacoes-vinculo', 'gestao-geapa', 27, 'tela-admin-solicitacoes-vinculo', 'view-admin-solicitacoes-vinculo', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:analisar_solicitacoes_vinculo'], 'Análise humana de suspensões e desligamentos voluntários.', 'implementado'),
     rota('admin-atividades', 'Atividades', 'admin/atividades', 'gestao-geapa', 30, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['atividades:gerir'], 'Criação, edição e operação de atividades.', 'implementado'),
@@ -666,6 +666,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
 
   function normalizarIdRota(idRota) {
     var id = String(idRota || '').trim();
+    if(['admin/membros','admin/pessoas'].includes(id))return 'admin-membros';
     if (['app/minhas-funcoes','minhas-funcoes','app/minha-diretoria','minha-diretoria','app/minha-atuacao'].includes(id)) return 'minha-atuacao';
 
     if (publicV2Enabled('about') && ['historia', 'normas', 'documentos'].indexOf(id) >= 0) return 'sobre';

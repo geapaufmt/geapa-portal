@@ -4,3 +4,5 @@ import {installCardInteractions} from './card-interactions.mjs';
 if(typeof document!=='undefined')installCardInteractions();
 
 import './board-competencies.mjs';
+
+import './people-directory.mjs';

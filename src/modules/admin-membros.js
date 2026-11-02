@@ -10,7 +10,7 @@
     active: false,
     loading: false,
     filters: {},
-    order: "title-asc", filtersOpen: false, generation: 0,
+    people: false, snapshot: null, detailGeneration: 0, order: "title-asc", filtersOpen: false, generation: 0,
     page: 1,
     pageSize: 25,
     items: [],
@@ -44,12 +44,13 @@
   /** Solicita ao backend uma pagina filtrada de membros. */
   function loadMembers() {
     if (!state.active) return;
+    state.people=global.PortalDevContext?.members?.canReadPeople===true;
     state.loading = true;
     var generation=++state.generation;
     var focusName=document.activeElement?.closest('[data-admin-members-filters]')?document.activeElement.name:null;
     if(!getContainer()?.querySelector('[data-admin-members-filters]'))renderLoading();
     getContainer()?.setAttribute('aria-busy','true');
-    api.apiGet('/admin/membros', {
+    api.apiGet(state.people?'/admin/pessoas':'/admin/membros', state.people?Object.assign({query:state.filters.texto||'',category:state.filters.category||'',state:state.filters.state||'',role:state.filters.role||'',order:state.order==='title-desc'?'name-desc':'name-asc',page:state.page,pageSize:state.pageSize},state.page>1&&state.snapshot?{snapshot:state.snapshot}:{}):{
       filtros: JSON.stringify(Object.assign({}, state.filters, {
         ordem: state.order,
         pagina: state.page,
@@ -63,14 +64,16 @@
         throw error;
       }
       var data = response.data || {};
-      state.items = Array.isArray(data.itens) ? data.itens : [];
-      state.pagination = data.paginacao || {};
-      state.options = data.opcoesFiltros || {};
+      state.items = state.people?(data.items||[]):Array.isArray(data.itens) ? data.itens : [];
+      state.snapshot=state.people?data.snapshot:null;
+      state.pagination = state.people?{totalItens:data.total,pagina:data.page,totalPaginas:data.pages}:data.paginacao || {};
+      state.options = state.people?(data.options||{}):data.opcoesFiltros || {};
       state.lastUpdate = data.ultimaAtualizacaoResumo || '';
       renderContent();
       if(focusName){var focus=getContainer()?.querySelector('[name="'+focusName+'"]');focus?.focus();if(focus?.type==='search')focus.setSelectionRange(focus.value.length,focus.value.length);}
     }).catch(function onError(error) {
       if(generation!==state.generation)return;
+      if(error.code==='DIRECTORY_CHANGED'){state.page=1;state.snapshot=null;error.message='O cadastro mudou durante a consulta. Atualize para retornar à primeira página.';}
       renderError(error);
     }).then(function done() {
       if(generation===state.generation){state.loading=false;getContainer()?.setAttribute('aria-busy','false');}
@@ -86,7 +89,7 @@
       (global.PortalGeapaMemberRegistration?global.PortalGeapaMemberRegistration.renderAction():'')+
       (global.PortalDevContext?.members?.canReviewCorrections?'<a href="#/admin/correcoes-cadastrais">Correções cadastrais</a>':'')+
       (global.PortalDevContext?.members?.canReview?'<a href="#/admin/membros/solicitacoes-vinculo">Solicitações de vínculo</a>':'');
-    container.innerHTML=global.PortalDesign.header('Membros','Vínculos e informações disponíveis para seu acesso.',actions,'admin-membros-title')+content;
+    container.innerHTML=global.PortalDesign.header('Pessoas',state.people?'Diretório institucional: relações e dados autorizados.':'Consulta atual de Membros. O diretório completo aguarda autorização específica.',actions,'admin-membros-title')+content;
     if (ui.hidratarLoadersLocais) ui.hidratarLoadersLocais(container);
   }
 
@@ -105,7 +108,7 @@
     renderShell([
       renderFreshness(),
       renderFilters(),
-      global.PortalDesign.summary(total,total===1?'membro encontrado':'membros encontrados',Number(pagination.pagina||1),Number(pagination.totalPaginas||1)),
+      global.PortalDesign.summary(total,total===1?'pessoa encontrada':'pessoas encontradas',Number(pagination.pagina||1),Number(pagination.totalPaginas||1)),
       state.items.length ? renderCards(state.items) : renderEmpty(),
       renderPagination()
     ].join(''));
@@ -113,6 +116,7 @@
 
   /** Exibe aviso quando o cache operacional nao possui atualizacao recente. */
   function renderFreshness() {
+    if(state.people)return '<p class="geapa-detail-note">Consulta validada pelo Core. Nenhum dado privado é incluído na listagem.</p>';
     var update = parseDate(state.lastUpdate);
     var stale = !update || Date.now() - update.getTime() > 48 * 60 * 60 * 1000;
     if (!stale) {
@@ -124,8 +128,8 @@
   /** Monta os controles de busca e filtros enviados ao backend. */
   function renderFilters() {
     var ds=global.PortalDesign;
-    return '<form data-admin-members-filters>'+ds.filters(fieldText('texto','Buscar membros','Nome, ID ou vínculo'),ds.sortField(state.order,false),
-      fieldSelect('tipoVinculo','Categoria',state.options.tiposVinculo)+fieldSelect('statusVinculo','Situação do vínculo',state.options.statusVinculo),
+    return '<form data-admin-members-filters>'+ds.filters(fieldText('texto','Buscar pessoas','Nome ou ID da pessoa'),ds.sortField(state.order,false),
+      state.people?global.PortalPeople.filters(state.filters,state.options):fieldSelect('tipoVinculo','Categoria',state.options.tiposVinculo)+fieldSelect('statusVinculo','Situação do vínculo',state.options.statusVinculo),
       ds.activeFilters(state.filters),state.filtersOpen,'<button type="button" data-admin-members-clear>Limpar filtros</button>')+'</form>';
   }
 
@@ -154,6 +158,7 @@
   }
 
   function renderCards(items) {
+    if(state.people)return global.PortalPeople.cards(items);
     var ds=global.PortalDesign;
     return '<div class="geapa-record-grid">'+items.map(function(item){return ds.card({id:item.idPessoa,title:item.nomeExibicao||'Membro',titleAttribute:'data-admin-member-detail',
       headHtml:ds.badge(item.statusVinculoAtual),factsHtml:ds.fact('Vínculo',formatLabel(item.tipoVinculoAtual))+ds.fact('Função',item.cargoFuncaoAtual)+ds.fact('Perfil',item.perfilPortalCalculado)+
@@ -165,7 +170,7 @@
 
   /** Exibe o estado vazio mantendo os filtros visiveis. */
   function renderEmpty() {
-    return '<div class="admin-members-state portal-empty-state"><strong>Nenhum membro encontrado</strong><p>Ajuste ou limpe os filtros para ampliar a busca.</p></div>';
+    return '<div class="admin-members-state portal-empty-state"><strong>Nenhuma pessoa encontrada</strong><p>Ajuste ou limpe os filtros para ampliar a busca.</p></div>';
   }
 
   /** Exibe erros de autorizacao, publicacao ou indisponibilidade sem detalhes tecnicos sensiveis. */
@@ -177,6 +182,16 @@
     renderShell('<div class="admin-members-state admin-members-error"><strong>Falha ao carregar</strong><p>' + escape(message) + '</p><button class="secondary-button compact-button" type="button" data-admin-members-retry>Tentar novamente</button></div>');
   }
 
+  function openPersonDetail(personId){
+    var modal=document.getElementById('membro-admin-modal'),content=document.getElementById('membro-admin-modal-content'),title=document.getElementById('membro-admin-modal-title'),generation=++state.detailGeneration,session=state.generation;
+    if(!modal||!content)return;if(title)title.textContent='Pessoa';content.innerHTML=montarLoadingLocal('Consultando pessoa...');
+    global.PortalDesign.openDetailDialog(modal,function(){state.detailGeneration++;content.textContent='';});
+    api.apiGet('/admin/pessoas/detalhe',{personId:personId}).then(function(response){
+      if(generation!==state.detailGeneration||session!==state.generation||!state.active)return;
+      if(!response?.ok)throw new Error(response?.message||'Consulta não autorizada.');
+      if(title)title.textContent=response.data.displayLabel;content.innerHTML=global.PortalPeople.detail(response.data);
+    }).catch(function(error){if(generation===state.detailGeneration&&session===state.generation)content.innerHTML='<p role="alert">'+escape(error.message||'Não foi possível consultar a pessoa.')+'</p>';});
+  }
   function montarLoadingLocal(message) {
     if (ui.montarLoadingLocal) {
       return ui.montarLoadingLocal(message);
@@ -187,6 +202,7 @@
 
   /** Abre o detalhe usando exclusivamente o item ja retornado na pagina atual. */
   function openDetail(idPessoa) {
+    if(state.people){openPersonDetail(idPessoa);return;}
     var item = state.items.filter(function(member) { return String(member.idPessoa) === String(idPessoa); })[0];
     if (!item) return;
     var modal = document.getElementById('membro-admin-modal');
@@ -205,6 +221,7 @@
 
   /** Fecha o detalhe e devolve o foco à origem. */
   function closeDetail() {
+    state.detailGeneration++;
     var modal=document.getElementById('membro-admin-modal');
     global.PortalDesign?.closeDetailDialog(modal);
     if(modal)modal.hidden=true;
