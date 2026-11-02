@@ -85,7 +85,7 @@
     var container = getContainer();
     if (!container || !state.active) return;
     container.classList.add('geapa-admin');
-    var actions='<button type="button" data-admin-members-refresh>Atualizar</button>'+
+    var actions=(global.PortalDevContext?.act?.board?'<a href="#/admin/pessoas/perfis-permissoes">Perfis e permissões</a>':'')+'<button type="button" data-admin-members-refresh>Atualizar</button>'+
       (global.PortalGeapaMemberRegistration?global.PortalGeapaMemberRegistration.renderAction():'')+
       (global.PortalDevContext?.members?.canReviewCorrections?'<a href="#/admin/correcoes-cadastrais">Correções cadastrais</a>':'')+
       (global.PortalDevContext?.members?.canReview?'<a href="#/admin/membros/solicitacoes-vinculo">Solicitações de vínculo</a>':'');

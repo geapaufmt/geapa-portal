@@ -130,6 +130,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
 
   ROTAS_PORTAL.push(rota('eixos-tematicos','Eixos temáticos','eixos-tematicos','publico',75,'tela-placeholder','view-placeholder',false,[],[],'Guia orientativo dos oito eixos oficiais.','implementado'));
   ROTAS_PORTAL.push(rota('admin-eixos-tematicos','Eixos temáticos','admin/eixos-tematicos','gestao-geapa',31,'tela-placeholder','view-placeholder',true,[],[],'Consulta dos eixos oficiais.','implementado',false));
+  ROTAS_PORTAL.push(rota('perfis-permissoes','Perfis e permissões','admin/pessoas/perfis-permissoes','gestao-geapa',26,'tela-placeholder','view-placeholder',true,[],[],'Consulta dos perfis e condições de acesso.','implementado',false));
   ROTAS_PORTAL.push(rota('diretoria-competencias','Diretoria e competências','admin/diretoria-competencias','gestao-geapa',25,'tela-placeholder','view-placeholder',true,[],[],'Atribuições e acessos efetivos da gestão.','implementado'));
   ROTAS_PORTAL.push(rota('admin-ciclos-semestres','Ciclos e semestres','admin/ciclos-semestres','gestao-geapa',35,'tela-ciclos-semestres','view-ciclos-semestres',true,[],[],'Cadastro de ciclos e semestres.','implementado'));
   ROTAS_PORTAL.push(rota('minha-atuacao','Minha atuação','app/minha-atuacao','meu-vinculo',25,'tela-minha-atuacao','view-minha-atuacao',true,[],[],'Vínculo e funções próprias.','implementado',false));
@@ -153,7 +154,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     if (!publicV2Enabled()) return true;
     if (publicV2Enabled('about') && ['historia', 'normas'].indexOf(item.id) >= 0) return false;
     if (['diretoria-publica', 'orientadores', 'membros-publicos', 'interesse'].indexOf(item.id) >= 0) return false;
-    var futureFlags = { equipe: 'team', parceiros: 'partners', 'producao-cientifica': 'science',
+    var futureFlags = { parceiros: 'partners', 'producao-cientifica': 'science',
       'processo-seletivo': 'selection', contato: 'contact' };
     return !futureFlags[item.id] || publicV2Enabled(futureFlags[item.id]);
   }
@@ -368,7 +369,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
  if(rota?.id==='admin-correcoes-cadastrais')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReviewCorrections,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-membros')return {ok:!!global.PortalDevContext?.members?.available&&!!(global.PortalDevContext.members.canRegister||global.PortalDevContext.members.canReadDirectory),reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-solicitacoes-vinculo')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReview,reason:'FEATURE_DISABLED'};
- if(['diretoria-competencias','admin-eixos-tematicos'].includes(rota?.id))return {ok:!!global.PortalDevContext?.act?.available&&global.PortalDevContext.act.board,reason:'FEATURE_DISABLED'};
+ if(['perfis-permissoes','diretoria-competencias','admin-eixos-tematicos'].includes(rota?.id))return {ok:!!global.PortalDevContext?.act?.available&&global.PortalDevContext.act.board,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-ciclos-semestres')return {ok:!!global.PortalDevContext?.act?.available&&!!global.PortalGeapaAuth?.canConfigureActivity(),reason:'FEATURE_DISABLED'};
  if(!rota)return {ok:false,reason:MOTIVOS_ACESSO.ROTA_INEXISTENTE};
  if(['inicio','login'].includes(rota.id))return {ok:true,reason:''};
@@ -673,7 +674,8 @@ import {accessIsPending} from './bootstrap-state.mjs';
     if (['app/minhas-funcoes','minhas-funcoes','app/minha-diretoria','minha-diretoria','app/minha-atuacao'].includes(id)) return 'minha-atuacao';
 
     if (publicV2Enabled('about') && ['historia', 'normas', 'documentos'].indexOf(id) >= 0) return 'sobre';
-    if (publicV2Enabled() && ['diretoria', 'diretoria-publica', 'membros', 'membros-publicos'].indexOf(id) >= 0) return 'equipe';
+    if(publicV2Enabled()&&['diretoria','diretoria-publica'].includes(id))return 'diretoria-publica';
+    if(publicV2Enabled()&&['membros','membros-publicos'].includes(id))return 'membros-publicos';
 
     return ALIASES_ROTAS[id] || id;
   }

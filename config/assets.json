@@ -1090,6 +1090,31 @@
       ],
       "source": "src/services/axis-public.mjs",
       "devSource": "src/services/axis-public.mjs"
+    },
+    {
+      "url": "/assets/act-ui/access-catalog.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/access-catalog.mjs"
+    },
+    {
+      "url": "/assets/act-ui/team-directory.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/team-directory.mjs"
+    },
+    {
+      "url": "/assets/act-command/team-public.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "source": "src/services/team-public.mjs",
+      "devSource": "src/services/team-public.mjs"
     }
   ]
 }
