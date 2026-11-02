@@ -1,6 +1,6 @@
 /**
- * Area administrativa somente leitura de membros.
- * O navegador consome apenas o contrato sanitizado do Apps Script/Core.
+ * Diretório administrativo de pessoas; consulta e ações autorizadas separadamente.
+ * O navegador consome apenas o contrato sanitizado do Core canônico.
  */
 (function configurarAdminMembros(global) {
   var api = global.PortalGeapaApi;
@@ -59,7 +59,7 @@
     }).then(function onResponse(response) {
       if(generation!==state.generation)return;
       if (!response || response.ok !== true) {
-        var error = new Error(response && response.message || 'Nao foi possivel carregar os membros.');
+        var error = new Error(response && response.message || 'Não foi possível carregar as pessoas.');
         error.code = response && (response.code || response.errorCode) || '';
         throw error;
       }
@@ -95,7 +95,7 @@
 
   /** Exibe o estado de carregamento sem apagar o contexto da rota. */
   function renderLoading() {
-    renderShell('<div class="admin-members-state">' + montarLoadingLocal('Carregando membros...') + '</div>');
+    renderShell('<div class="admin-members-state">' + montarLoadingLocal('Carregando pessoas...') + '</div>');
   }
 
   /** Renderiza filtros, resumo, tabela, cards e paginacao. */
@@ -176,7 +176,7 @@
   /** Exibe erros de autorizacao, publicacao ou indisponibilidade sem detalhes tecnicos sensiveis. */
   function renderError(error) {
     var code = String(error && (error.code || error.errorCode) || '').toUpperCase();
-    var message = String(error && error.message || 'Nao foi possivel carregar os membros.');
+    var message = String(error && error.message || 'Não foi possível carregar as pessoas.');
     if (code === 'ACAO_NAO_RECONHECIDA') message = 'O backend publicado ainda nao possui a area de membros. Atualize o Web App.';
     if (code === 'ACESSO_NEGADO') message = 'Seu perfil nao possui permissao para consultar membros.';
     renderShell('<div class="admin-members-state admin-members-error"><strong>Falha ao carregar</strong><p>' + escape(message) + '</p><button class="secondary-button compact-button" type="button" data-admin-members-retry>Tentar novamente</button></div>');
