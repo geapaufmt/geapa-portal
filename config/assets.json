@@ -1115,6 +1115,23 @@
       ],
       "source": "src/services/team-public.mjs",
       "devSource": "src/services/team-public.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-directory.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-directory.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-directory.css",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "source": "src/styles/institutional-directory.css",
+      "devSource": "src/styles/institutional-directory.css"
     }
   ]
 }
