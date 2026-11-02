@@ -1528,7 +1528,7 @@
     var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir slide';
     var versaoValor = (item || {}).versaoMaterial ? formatarValor((item || {}).versaoMaterial) : '';
     var versao = versaoValor ? (/^v/i.test(versaoValor) ? ' ' + versaoValor : ' v' + versaoValor) : '';
-    var estado = montarEstadoEntregavel('slide', (item || {}).statusMaterial);
+    var estado = item.recordMode === 'HISTORICAL_PARTIAL' ? 'Registro histórico: ' + formatarValor(item.statusMaterial || 'NAO_RECONSTRUIDO') : montarEstadoEntregavel('slide', (item || {}).statusMaterial);
 
     if (url) {
       return [
@@ -1556,7 +1556,7 @@
       : '';
     var nome = (item || {}).nomeArquivoFotoReuniao || bloco.nomeArquivoFotoReuniao || bloco.nomeArquivo || 'Foto da reuniao';
     var obrigatoria = (item || {}).fotoReuniaoObrigatoria === true || bloco.fotoReuniaoObrigatoria === true || bloco.obrigatoria === true;
-    var estado = montarEstadoEntregavel('foto', status);
+    var estado = item.recordMode === 'HISTORICAL_PARTIAL' ? 'Registro histórico: ' + formatarValor(status || 'NAO_RECONSTRUIDO') : montarEstadoEntregavel('foto', status);
 
     if (status === 'NAO_SE_APLICA' && !obrigatoria) {
       return '';
