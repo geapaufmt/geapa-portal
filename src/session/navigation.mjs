@@ -789,6 +789,16 @@ import {accessIsPending} from './bootstrap-state.mjs';
     iniciar: iniciar,
     irPara: irPara,
     restoreCurrentRoute: restoreCurrentRoute,
+    // A rendered access gate can outlive the initial bootstrap attempt. Recovery
+    // must resolve the requested URL again through irPara's existing checks.
+    isAccessGateVisible: function isAccessGateVisible() {
+      return document.getElementById('portal-app')?.classList.contains('view-access-denied') === true;
+    },
+    finishAccessValidation: function finishAccessValidation(message) {
+      if (!this.isAccessGateVisible()) return;
+      var target = document.getElementById('access-denied-content');
+      if (target) target.innerHTML = '<p class="intro" role="alert">' + escaparHtml(message || 'Não foi possível validar o acesso. Use Atualizar acesso para tentar novamente.') + '</p>';
+    },
     // Requested route may differ from the last rendered route while access loads.
     // Resolving this identifier is navigation only; irPara still checks access.
     getRequestedRoute: function getRequestedRoute() {
