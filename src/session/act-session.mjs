@@ -26,11 +26,11 @@ export async function attachActivities(portal,db,sdk){
    if(value?.schemaVersion!=='act-portal-context-v1'||typeof value.board!=='boolean'||!Number.isFinite(value.validUntil)||value.validUntil<=Date.now())throw Error('ACT_CONTEXT_INVALID');
    const changed=!context||['accessProfile','idPessoa','board','materialOnly','canCreateActivity','canRegisterAttendance','canManageActivity','canRealizeActivity','canConfigureActivity'].some(k=>context[k]!==value[k]);
    if(context&&changed)clear();
-   context=value;contextPaused=false;badge(value.accessProfile);window.PortalDevContext.act={available:true,board:value.board,materialOnly:value.materialOnly===true};
+   context=value;contextPaused=false;if(document.body)delete document.body.dataset.actContextError;badge(value.accessProfile);window.PortalDevContext.act={available:true,board:value.board,materialOnly:value.materialOnly===true};
    renewal.schedule(value.validUntil);
    if(changed){const navigation=window.PortalGeapaNavigation;navigation?.atualizarMenu();const route=navigation?.getRotaAtual?.();if(['atividades','historico-atividades','frequencia','minhas-apresentacoes','admin-apresentacoes','admin-justificativas','admin-atividades','admin-ciclos-semestres'].includes(route))navigation.irPara(route,{atualizarHash:false});}
    return true;
-  }catch{if(epoch===contextEpoch)clear();return false;}
+  }catch(error){if(epoch===contextEpoch){clear();if(document.body)document.body.dataset.actContextError=/^[A-Z_]{1,64}$/.test(error?.code||error?.message||'')?(error.code||error.message):'CONTEXT_UNAVAILABLE';}return false;}
   finally{if(refreshing===task)refreshing=null;}})();return task.promise;
  }
  async function refreshMembers(){
