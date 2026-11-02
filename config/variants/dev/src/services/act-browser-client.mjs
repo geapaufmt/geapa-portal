@@ -1,3 +1,5 @@
+import {createInstitutionalEditor} from '../act-ui/institutional-editor-client.mjs';
+import {devAppCheck as institutionalAppCheck} from './dev-app-check.mjs';
 import {historicalFileRoutes} from './historical-files.mjs';
 import {createMemberNode} from './member-node.mjs';
 import {memberNodeConfig} from './member-node-config.mjs';
@@ -52,6 +54,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
   const ticket=auth.capture(),batch=sdk.writeBatch(db);batch.set(sdk.doc(db,dataPrefix(ticket.uid)+'commandRequests/'+pair.request.operationId),{...pair.request,receivedAt:sdk.serverTimestamp()});batch.set(sdk.doc(db,dataPrefix(ticket.uid)+'memberAdmissionUses/'+pair.use.ticketId),{...pair.use,reservedAt:sdk.serverTimestamp()});auth.assert(ticket);let timer;try{await Promise.race([batch.commit(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(Error('COMMAND_PENDING'),{code:'COMMAND_PENDING'})),20000)})]);}finally{clearTimeout(timer)}auth.assert(ticket);
  }},{environment:'DEV',projectId:PROJECT});
  const commands=new CommandService(auth,transport);
+ const institutionalEditor=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:'https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app',attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl});
  const memberNode=createMemberNode({auth,db,storage,config:memberNodeConfig,fetchImpl});
  const controlledSave=createControlledSave({auth,db,storage,fetchImpl});
  const flowCommands=createControlledSave({auth,db,storage,fetchImpl,flowOperations:actFlowContracts});
@@ -191,6 +194,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
   }finally{active.delete(lockName)}
  }
  async function apiPost(route,params={}){
+  if(route==='/admin/gestao-institucional/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalEditor.run(q.phase,q.payload)};}
   let payload;try{payload=memberWriteRoutes.includes(route)&&params&&Object.getPrototypeOf(params)===Object.prototype&&!Object.hasOwn(params,'payload')?params:JSON.parse(params.payload);}catch{fail('SCHEMA_UNSUPPORTED')}
   if(memberWriteRoutes.includes(route))return memberOperations.post(route,payload);
   if(controlledSave.scope(route,payload)){const answer=await controlledSave.execute(route,payload);if(answer)return legacyResult(answer);}

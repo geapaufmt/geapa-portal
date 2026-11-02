@@ -23,7 +23,7 @@ export function createInstitutionalEditor({auth,storage,config,projectId,endpoin
    if(pending&&(!/^[a-f0-9]{32}$/.test(pending.operationId)||!/^[a-f0-9]{64}$/.test(pending.digest)||Object.keys(pending).sort().join()!=='digest,operationId'))fail('COMMAND_RECONCILIATION_REQUIRED');
    if(pending){const r=await call('institutionalStatus',pending,t);if(['COMPLETED','NOT_ADMITTED'].includes(r.state||'')){auth.assert(t);storage.removeItem(name);}if(phase!=='status')fail(r.state==='COMPLETED'?'PREVIOUS_OPERATION_COMPLETED':'COMMAND_NOT_ADMITTED');return r;}
    if(phase==='status')return {state:'NOT_ADMITTED'};
-   if(phase==='preview')return call('institutionalPreview',{operationId:crypto.randomUUID().replaceAll('-',''),input:payload},t);
+   if(phase==='preview')return await call('institutionalPreview',{operationId:crypto.randomUUID().replaceAll('-',''),input:payload},t);
    const r=payload as Request;if(!r||!/^[a-f0-9]{32}$/.test(r.operationId)||!/^[a-f0-9]{64}$/.test(r.digest)||r.validUntil<=Date.now())fail('STALE_REVISION');
    // Persist only the opaque selector before any admission can be committed.
    storage.setItem(name,JSON.stringify({operationId:r.operationId,digest:r.digest}));auth.assert(t);
