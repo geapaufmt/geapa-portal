@@ -142,7 +142,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     ROTAS_PORTAL.push(rota('producao-cientifica', 'Produção Científica', 'producao-cientifica', 'publico', 30,
       'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Em preparação.', 'placeholder'));
     ROTAS_PORTAL.push(rota('equipe', 'Equipe', 'equipe', 'publico', 40,
-      'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Em preparação.', 'placeholder'));
+      'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Composição institucional com publicação autorizada.', 'implementado'));
     ROTAS_PORTAL.forEach(function(item) {
       if (item.id === 'parceiros') { item.label = 'Apoio e Parcerias'; item.ordem = 50; }
       if (item.id === 'processo-seletivo') { item.label = 'Processo Seletivo'; item.ordem = 60; }
