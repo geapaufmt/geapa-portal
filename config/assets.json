@@ -1073,6 +1073,23 @@
         "dev"
       ],
       "generated": "build/typescript/global-shell.mjs"
+    },
+    {
+      "url": "/assets/act-ui/axis-directory.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/axis-directory.mjs"
+    },
+    {
+      "url": "/assets/act-command/axis-public.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "source": "src/services/axis-public.mjs",
+      "devSource": "src/services/axis-public.mjs"
     }
   ]
 }

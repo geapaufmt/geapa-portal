@@ -128,6 +128,8 @@ import {accessIsPending} from './bootstrap-state.mjs';
   var inicializado = false;
   var ignorarProximoHash = false;
 
+  ROTAS_PORTAL.push(rota('eixos-tematicos','Eixos temáticos','eixos-tematicos','publico',75,'tela-placeholder','view-placeholder',false,[],[],'Guia orientativo dos oito eixos oficiais.','implementado'));
+  ROTAS_PORTAL.push(rota('admin-eixos-tematicos','Eixos temáticos','admin/eixos-tematicos','gestao-geapa',31,'tela-placeholder','view-placeholder',true,[],[],'Consulta dos eixos oficiais.','implementado',false));
   ROTAS_PORTAL.push(rota('diretoria-competencias','Diretoria e competências','admin/diretoria-competencias','gestao-geapa',25,'tela-placeholder','view-placeholder',true,[],[],'Atribuições e acessos efetivos da gestão.','implementado'));
   ROTAS_PORTAL.push(rota('admin-ciclos-semestres','Ciclos e semestres','admin/ciclos-semestres','gestao-geapa',35,'tela-ciclos-semestres','view-ciclos-semestres',true,[],[],'Cadastro de ciclos e semestres.','implementado'));
   ROTAS_PORTAL.push(rota('minha-atuacao','Minha atuação','app/minha-atuacao','meu-vinculo',25,'tela-minha-atuacao','view-minha-atuacao',true,[],[],'Vínculo e funções próprias.','implementado',false));
@@ -366,7 +368,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
  if(rota?.id==='admin-correcoes-cadastrais')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReviewCorrections,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-membros')return {ok:!!global.PortalDevContext?.members?.available&&!!(global.PortalDevContext.members.canRegister||global.PortalDevContext.members.canReadDirectory),reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-solicitacoes-vinculo')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReview,reason:'FEATURE_DISABLED'};
- if(rota?.id==='diretoria-competencias')return {ok:!!global.PortalDevContext?.act?.available&&global.PortalDevContext.act.board,reason:'FEATURE_DISABLED'};
+ if(['diretoria-competencias','admin-eixos-tematicos'].includes(rota?.id))return {ok:!!global.PortalDevContext?.act?.available&&global.PortalDevContext.act.board,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-ciclos-semestres')return {ok:!!global.PortalDevContext?.act?.available&&!!global.PortalGeapaAuth?.canConfigureActivity(),reason:'FEATURE_DISABLED'};
  if(!rota)return {ok:false,reason:MOTIVOS_ACESSO.ROTA_INEXISTENTE};
  if(['inicio','login'].includes(rota.id))return {ok:true,reason:''};
