@@ -1132,6 +1132,14 @@
       ],
       "source": "src/styles/institutional-directory.css",
       "devSource": "src/styles/institutional-directory.css"
+    },
+    {
+      "url": "/assets/act-ui/institutional-editor-client.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-editor-client.mjs"
     }
   ]
 }
