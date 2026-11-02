@@ -23,7 +23,7 @@ export function renderInstitutionalDetail(r:InstitutionalRecord):string{
 type Host=Window&{PortalGeapaApi?:{apiGet:(route:string,params:Record<string,string|number>)=>Promise<{ok:boolean;data:InstitutionalDirectory;code?:string;message?:string}>};PortalGeapaNavigation?:{getRotaAtual:()=>string}};
 let generation=0,current:InstitutionalDirectory|undefined,timer:ReturnType<typeof setTimeout>|undefined,dialog:HTMLElement|undefined,query='',kind='',page=1;
 const section=()=>{const id=(window as Host).PortalGeapaNavigation?.getRotaAtual();return institutionalSections.find(([s])=>id==='institutional-'+s)?.[0];};
-function close(){if(dialog){closeDetailDialog(dialog);dialog.remove();dialog=undefined;}}
+function close(){const opened=dialog;if(opened){dialog=undefined;closeDetailDialog(opened);opened.remove();}}
 function clear(){generation++;current=undefined;clearTimeout(timer);close();}
 function expired(el:HTMLElement){clear();el.innerHTML='<p>Atualize para revalidar a consulta institucional.</p><button data-institutional-refresh>Atualizar</button>';}
 async function load(){const s=section(),el=document.getElementById('placeholder-content');if(!s||!el)return;clear();const epoch=generation;el.classList.add('geapa-admin');el.textContent='Consultando informações institucionais…';
