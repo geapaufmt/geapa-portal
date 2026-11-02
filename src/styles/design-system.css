@@ -163,3 +163,4 @@
 @media(prefers-reduced-motion:reduce){.nav-button,.portal-sidebar{transition:none;transform:none}.portal-sidebar{transform:translateX(-102%)}.portal-frame.sidebar-open .portal-sidebar{transform:none}}
 /* Personal content grows with its data, never with legacy placeholder heights. */
 #tela-situacao .situation-card,#tela-meu-perfil .situation-card{min-height:0;height:auto}#tela-situacao .situation-topbar,#tela-meu-perfil .situation-topbar{margin-bottom:16px}#tela-situacao .member-header{padding-bottom:8px;margin-bottom:8px}.geapa-personal-history{margin-top:20px;border-top:1px solid #e2e5df;padding-top:16px}.geapa-personal-history>summary{cursor:pointer;font-weight:650;color:#5C371A;padding:8px 0}.personal-menu :is(button,a):focus-visible,.portal-sidebar :is(button,a,summary):focus-visible{outline:3px solid #5C371A;outline-offset:3px}
+.portal-header .header-session:not([hidden]){display:flex}.portal-header .header-session button{width:auto;white-space:nowrap}
