@@ -55,7 +55,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
  }},{environment:'DEV',projectId:PROJECT});
  const commands=new CommandService(auth,transport);
  const institutionalEditor=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:'https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app',attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl});
- const institutionalParameter=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:deployment.endpoint,attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'parameter'});
+ const institutionalParameter=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:'https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app',attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'parameter'});
  const institutionalVisibility=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:'https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app',attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'visibility'});
  const memberNode=createMemberNode({auth,db,storage,config:memberNodeConfig,fetchImpl});
  const controlledSave=createControlledSave({auth,db,storage,fetchImpl});
