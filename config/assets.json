@@ -1158,6 +1158,14 @@
         "prod"
       ],
       "generated": "build/typescript/institutional-norms.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-parameters.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-parameters.mjs"
     }
   ]
 }

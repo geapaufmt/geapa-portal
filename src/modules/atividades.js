@@ -1373,12 +1373,21 @@
       };
   }
 
+  var ultimaAgendaRenderizada = null;
+  document.addEventListener('portal:act-session-cleared', function () { ultimaAgendaRenderizada = null; });
+  document.addEventListener('portal:act-context-ready', function () {
+    var atual = ultimaAgendaRenderizada;
+    if (atual && atual.container.isConnected) renderizarAtividades(atual.container, atual.atividades, atual.modo);
+  });
   function renderizarAtividades(container, atividades, modo) {
+    ultimaAgendaRenderizada = { container: container, atividades: atividades, modo: modo };
     var todas = Array.isArray(atividades) ? atividades.slice() : [];
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
     var base = historico ? obterHistoricoAtividades(todas) : obterAgendaOperacionalAtividades(todas);
     var dados = historico ? aplicarFiltrosHistoricoAtividades(base) : aplicarFiltrosProximasAtividades(base);
-    var proxima = historico ? null : obterProximaAtividade(dados);
+    var preferencias = global.PortalDevContext && global.PortalDevContext.act;
+    var destacar = !preferencias || preferencias.validUntil > Date.now() && preferencias.operationalPreferences && preferencias.operationalPreferences.highlightNext === true;
+    var proxima = historico || !destacar ? null : obterProximaAtividade(dados);
     var rotulos = obterRotulosAtividades(modo);
     var avisoHistorico = historico ? montarAvisoEscopoHistoricoAtividades() : '';
     var filtrosHistorico = historico ? montarFiltrosHistoricoAtividades(base) : '';
