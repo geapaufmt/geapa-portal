@@ -3784,7 +3784,7 @@
       '</p>',
       chamada.somenteLeitura?'<p class="section-note">Consulta dos registros preservados. Nenhuma alteração é realizada nesta tela.</p>':'',
       chamada.origemChamada?'<p class="section-note">Origem: '+ui.escaparHtml(chamada.origemChamada==='IMPORTADA'?'Chamada importada':'Registro canônico')+'</p>':'',
-      chamada.finalizacao?'<p class="section-note">'+ui.escaparHtml(chamada.finalizacao.tipo==='REFERENCIA_CONVENCIONAL'?'Referência administrativa convencional: '+formatarDataHoraCurta(chamada.finalizacao.em)+' — 21h de Cuiabá; não corresponde ao instante real de finalização. Reconciliação: '+formatarDataHoraCurta(chamada.finalizacao.reconciliadaEm):chamada.finalizacao.em?'Encerramento registrado: '+formatarDataHoraCurta(chamada.finalizacao.em):'Importação sem metadados completos de encerramento; isso não habilita operações de frequência.')+'</p>':'',
+      chamada.finalizacao?'<p class="section-note">'+ui.escaparHtml(descreverFinalizacaoChamada(chamada.finalizacao))+'</p>':'',
       montarEstadoChamada(chamada),
       montarResumoChamada(chamada.somenteLeitura?chamada.resumo:calcularResumoChamada(chamada.participantes),chamada.somenteLeitura),
       montarFerramentasChamada(chamada),
@@ -3816,6 +3816,17 @@
 
     registrarEventosChamada(conteudo);
     atualizarResumoChamada();
+  }
+
+  function descreverFinalizacaoChamada(finalizacao) {
+    if (!finalizacao.em) return 'Importação sem metadados completos de encerramento; isso não habilita operações de frequência.';
+    var data = formatarDataHoraCurta(finalizacao.em);
+    var reconciliacao = finalizacao.reconciliadaEm ? ' Reconciliação atual: ' + formatarDataHoraCurta(finalizacao.reconciliadaEm) + '.' : '';
+    if (finalizacao.tipo === 'REFERENCIA_CONVENCIONAL') return 'Referência administrativa convencional: ' + data + ' — 21h de Cuiabá; não corresponde ao instante real de finalização.' + reconciliacao;
+    if (finalizacao.tipo === 'RECONCILIACAO_HISTORICA') return 'Reconhecimento histórico de encerramento registrado: ' + data + '. É a data da reconciliação anterior, não necessariamente a finalização original.' + reconciliacao;
+    if (finalizacao.tipo === 'RECUPERACAO_HISTORICA') return 'Encerramento documentado na recuperação administrativa: ' + data + '. É a data da recuperação anterior, não necessariamente a finalização original.' + reconciliacao;
+    if (finalizacao.tipo === 'FINALIZACAO_DOCUMENTADA') return 'Finalização registrada no Portal anterior: ' + data + '.' + reconciliacao;
+    return 'Encerramento registrado: ' + data + '.' + reconciliacao;
   }
 
   function montarEstadoChamada(chamada) {
