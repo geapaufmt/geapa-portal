@@ -1,3 +1,10 @@
+// Labels from the canonical reader only; never infer a semester from dates or IDs.
+export function academicSemesterLabel(row: Record<string, unknown>): string {
+  const text=(v:unknown)=>typeof v==='string'?v.trim():'';
+  if(text(row.academicSemesterId))return text(row.academicSemesterLabel)||'Semestre não definido';
+  if(row.semesterResolution==='HISTORICAL_DECLARED'&&text(row.historicalSemesterLabel))return text(row.historicalSemesterLabel);
+  const legacy=text(row.rotuloSemestre);return /^\d{4}\/[12]$/.test(legacy)?legacy:'Semestre não definido';
+}
 /** Shared presentation only. All actions and data remain authorized by the Core. */
 export const esc = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 export type Sort = 'date-asc' | 'date-desc' | 'title-asc' | 'title-desc';
@@ -48,7 +55,7 @@ export interface RecordCard {
 }
 export function card(record:RecordCard):string {
   if(!/^data-[a-z-]+$/.test(record.titleAttribute))throw Error('INVALID_TITLE_ATTRIBUTE');
-  return `<article class="geapa-record"><div class="geapa-record-head"><div class="geapa-record-heading"><small class="geapa-record-id">${esc(record.id)}</small><button class="geapa-record-title" type="button" ${record.titleAttribute}="${esc(record.id)}">${esc(record.title)}</button></div>${record.headHtml??''}</div><dl class="geapa-record-facts">${record.factsHtml}</dl>${record.statusHtml?`<div class="geapa-record-status">${record.statusHtml}</div>`:''}<div class="geapa-record-foot">${record.footerHtml}</div></article>`;
+  return `<article class="geapa-record" data-geapa-card tabindex="0" aria-label="${esc(record.title)}"><div class="geapa-record-head"><div class="geapa-record-heading"><small class="geapa-record-id">${esc(record.id)}</small><button class="geapa-record-title" type="button" data-geapa-primary ${record.titleAttribute}="${esc(record.id)}">${esc(record.title)}</button></div>${record.headHtml??''}</div><dl class="geapa-record-facts">${record.factsHtml}</dl>${record.statusHtml?`<div class="geapa-record-status">${record.statusHtml}</div>`:''}<div class="geapa-record-foot">${record.footerHtml}</div></article>`;
 }
 /** Detail renderers accept only already-authorized scalar values. Unknown objects
  * are never expanded into private fields or coerced to '[object Object]'. */
@@ -75,16 +82,17 @@ export function textMatches(text:string,query:string):boolean {
   return normalize(query).trim().split(/\s+/).every(word=>normalize(text).includes(word));
 }
 /** Explicitly filters only the currently rendered, already authorized collection. */
-export function collectionSearch(label:string,bodyHtml:string,note:string):string {
-  return `<section class="geapa-collection" data-geapa-collection><div class="geapa-search-row"><label>${esc(label)}<input type="search" data-geapa-collection-search placeholder="Título, data ou informação exibida"></label><button type="button" data-geapa-collection-clear>Limpar busca</button></div><p class="geapa-detail-note">${esc(note)}</p><p class="geapa-results" role="status" data-geapa-collection-count></p><div data-geapa-collection-items>${bodyHtml}</div></section>`;
+export function collectionSearch(label:string,bodyHtml:string,note:string,filtersHtml=''):string {
+  return `<section class="geapa-collection" data-geapa-collection><div class="geapa-search-row"><label>${esc(label)}<input type="search" data-geapa-collection-search placeholder="Título, data ou informação exibida"></label><button type="button" data-geapa-collection-clear>Limpar busca</button></div><p class="geapa-detail-note">${esc(note)}</p>${filtersHtml}<p class="geapa-results" role="status" data-geapa-collection-count></p><div data-geapa-collection-items>${bodyHtml}</div></section>`;
 }
 export function mountCollectionSearch(root:HTMLElement):void {
   root.querySelectorAll<HTMLElement>('[data-geapa-collection]').forEach(scope=>{
     const input=scope.querySelector<HTMLInputElement>('[data-geapa-collection-search]'),status=scope.querySelector<HTMLElement>('[data-geapa-collection-count]');
     if(!input||!status)return;
-    const cards=[...scope.querySelectorAll<HTMLElement>('[data-geapa-collection-items] .presentation-action-card')];
-    const search=()=>{let visible=0;cards.forEach(card=>{card.hidden=!textMatches(card.textContent??'',input.value);if(!card.hidden)visible++;});status.textContent=`${visible} de ${cards.length} registros exibidos`+(visible?'':'. Nenhum registro corresponde à busca.');};
-    input.addEventListener('input',search);scope.querySelector('[data-geapa-collection-clear]')?.addEventListener('click',()=>{input.value='';search();input.focus();});search();
+    const filter=scope.querySelector<HTMLSelectElement>('select[data-geapa-collection-filter]'),active=scope.querySelector<HTMLElement>('[data-geapa-filter-active]');
+    const cards=[...scope.querySelectorAll<HTMLElement>('[data-geapa-collection-items] .presentation-action-card,[data-geapa-collection-items] [data-geapa-filterable]')];
+    const search=()=>{let visible=0;cards.forEach(card=>{card.hidden=!textMatches(card.textContent??'',input.value)||!!(filter?.value&&card.dataset.geapaStatus!==filter.value);if(!card.hidden)visible++;});if(active)active.textContent=filter?.value?'1 ativo':'';status.textContent=`${visible} de ${cards.length} registros exibidos`+(visible?'':'. Nenhum registro corresponde à busca.');};
+    filter?.addEventListener('change',search);input.addEventListener('input',search);scope.querySelector('[data-geapa-collection-clear]')?.addEventListener('click',()=>{input.value='';if(filter)filter.value='';search();input.focus();});search();
   });
 }
 export function detailHeader(id:unknown,statuses:readonly unknown[],description:unknown=''):string {
@@ -99,7 +107,19 @@ function finishDialog(modal:HTMLElement):void {
   if(![...document.querySelectorAll<HTMLElement>('.modal-backdrop')].some(el=>!el.hidden))document.body.classList.remove('modal-open');
   if(entry.origin?.isConnected&&!entry.origin.closest('[hidden]'))entry.origin.focus();
 }
-export function closeDetailDialog(modal:HTMLElement|null):void {if(!modal)return;modal.hidden=true;finishDialog(modal);}
+export function closeDetailDialog(modal:HTMLElement|null,force=false):void {
+  if(!modal||(!force&&modal.getAttribute?.('aria-busy')==='true'))return;
+  if(!force&&modal.getAttribute?.('data-geapa-dirty')==='true'){
+    if(!modal.querySelector('[data-discard-prompt]')){
+      const prompt=document.createElement('div');prompt.className='geapa-discard-prompt';prompt.setAttribute('data-discard-prompt','');prompt.setAttribute('role','alert');
+      prompt.innerHTML='<p>Há alterações não enviadas. Deseja descartá-las?</p><button type="button" data-keep-draft>Continuar editando</button><button type="button" class="secondary-button" data-discard-draft>Descartar e fechar</button>';
+      (modal.querySelector('.modal-topbar')??modal).after(prompt);prompt.querySelector<HTMLElement>('button')?.focus();
+    }
+    return;
+  }
+  modal.removeAttribute?.('data-geapa-dirty');modal.querySelector('[data-discard-prompt]')?.remove();modal.hidden=true;finishDialog(modal);
+}
+
 export function openDetailDialog(modal:HTMLElement,onClose:()=>void=()=>{}):void {
   modal.classList.add('geapa-detail-modal');
   const existing=dialogs.get(modal);if(existing){existing.onClose=onClose;return;}
@@ -114,7 +134,7 @@ export function openDetailDialog(modal:HTMLElement,onClose:()=>void=()=>{}):void
     if(!first){e.preventDefault();panel.focus();return;}
     if(!panel.contains(document.activeElement)||(e.shiftKey&&document.activeElement===first)||(!e.shiftKey&&document.activeElement===last)){e.preventDefault();(e.shiftKey?last:first)?.focus();}
   };
-  const click=(e:MouseEvent)=>{const target=e.target instanceof Element?e.target:null;if(e.target===modal||target?.closest('[data-admin-modal-close],[data-admin-member-close],#fechar-atividade-modal,[data-portal-v2-action="fechar-modal"]')){e.preventDefault();e.stopImmediatePropagation();closeDetailDialog(modal);}};
+  const click=(e:MouseEvent)=>{const target=e.target instanceof Element?e.target:null;if(target?.closest('[data-keep-draft]')){e.preventDefault();modal.querySelector('[data-discard-prompt]')?.remove();modal.querySelector<HTMLElement>('input:not([type=hidden]),textarea,select')?.focus();return;}if(target?.closest('[data-discard-draft]')){e.preventDefault();if(modal.getAttribute('aria-busy')!=='true')closeDetailDialog(modal,true);return;}if(e.target===modal||target?.closest('[data-vinculo-close],[data-profile-correction-close],[data-admin-modal-close],[data-admin-vinculo-close],[data-member-registration-close],[data-admin-correction-close],[data-admin-member-close],#fechar-atividade-modal,[data-portal-v2-action="fechar-modal"]')){e.preventDefault();e.stopImmediatePropagation();closeDetailDialog(modal);}};
   const observer=new MutationObserver(()=>{if(modal.hidden)finishDialog(modal);});
   dialogs.set(modal,{origin,onClose,observer,key,click});observer.observe(modal,{attributes:true,attributeFilter:['hidden']});
   document.addEventListener('keydown',key,true);modal.addEventListener('click',click,true);
@@ -122,11 +142,12 @@ export function openDetailDialog(modal:HTMLElement,onClose:()=>void=()=>{}):void
   (panel.querySelector<HTMLElement>('.modal-topbar button')??panel).focus();
 }
 export function install():void {
+  const dirty=(e:Event)=>{if(!(e.target instanceof Element))return;e.target.closest<HTMLElement>('[data-geapa-protect-draft]')?.setAttribute('data-geapa-dirty','true');};document.addEventListener('input',dirty);document.addEventListener('change',dirty);
   if(!document.querySelector('link[data-geapa-design]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/assets/act-ui/design-system.css';css.dataset.geapaDesign='';document.head.append(css);}
   const close=(except?:Element)=>document.querySelectorAll<HTMLDetailsElement>('[data-geapa-options][open]').forEach(el=>{if(el!==except)el.open=false;});
   document.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;close(target?.closest('[data-geapa-options]')??undefined);if(target?.closest('[data-geapa-options] button,[data-geapa-options] a'))close();});
   document.addEventListener('keydown',event=>{if(event.key!=='Escape')return;document.querySelectorAll<HTMLDetailsElement>('[data-geapa-options][open]').forEach(el=>{el.open=false;el.querySelector<HTMLElement>('summary')?.focus();});});
-  document.addEventListener('portal:act-session-cleared',()=>{close();for(const modal of [...dialogs.keys()])closeDetailDialog(modal);});
+  document.addEventListener('portal:act-session-cleared',()=>{close();for(const modal of [...dialogs.keys()])closeDetailDialog(modal,true);});
 }
-declare global {interface Window {PortalDesign: {header:typeof header;filters:typeof filters;sortField:typeof sortField;summary:typeof summary;pagination:typeof pagination;ordered:typeof ordered;pageOf:typeof pageOf;badge:typeof badge;fact:typeof fact;card:typeof card;activeFilters:typeof activeFilters;actionDisclosure:typeof actionDisclosure;metrics:typeof metrics;collectionSearch:typeof collectionSearch;mountCollectionSearch:typeof mountCollectionSearch;detailFacts:typeof detailFacts;detailSection:typeof detailSection;detailHeader:typeof detailHeader;openDetailDialog:typeof openDetailDialog;closeDetailDialog:typeof closeDetailDialog};}}
-if(typeof window!=='undefined'&&typeof document!=='undefined'){install();window.PortalDesign=Object.freeze({header,filters,sortField,summary,pagination,ordered,pageOf,badge,fact,card,activeFilters,actionDisclosure,metrics,collectionSearch,mountCollectionSearch,detailFacts,detailSection,detailHeader,openDetailDialog,closeDetailDialog});}
+declare global {interface Window {PortalDesign: {academicSemesterLabel:typeof academicSemesterLabel;header:typeof header;filters:typeof filters;sortField:typeof sortField;summary:typeof summary;pagination:typeof pagination;ordered:typeof ordered;pageOf:typeof pageOf;badge:typeof badge;fact:typeof fact;card:typeof card;activeFilters:typeof activeFilters;actionDisclosure:typeof actionDisclosure;metrics:typeof metrics;collectionSearch:typeof collectionSearch;mountCollectionSearch:typeof mountCollectionSearch;detailFacts:typeof detailFacts;detailSection:typeof detailSection;detailHeader:typeof detailHeader;openDetailDialog:typeof openDetailDialog;closeDetailDialog:typeof closeDetailDialog};}}
+if(typeof window!=='undefined'&&typeof document!=='undefined'){install();window.PortalDesign=Object.freeze({academicSemesterLabel,header,filters,sortField,summary,pagination,ordered,pageOf,badge,fact,card,activeFilters,actionDisclosure,metrics,collectionSearch,mountCollectionSearch,detailFacts,detailSection,detailHeader,openDetailDialog,closeDetailDialog});}

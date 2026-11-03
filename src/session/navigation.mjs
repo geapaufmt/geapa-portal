@@ -42,7 +42,6 @@ import {accessIsPending} from './bootstrap-state.mjs';
   var GRUPOS_MENU = [
     { id: 'publico', label: 'Área Pública', ordem: 10, abertoPadrao: false },
     { id: 'agenda', label: 'Atividades', ordem: 20, abertoPadrao: false },
-    { id: 'meu-vinculo', label: 'Meu Vínculo', ordem: 30, abertoPadrao: false },
     { id: 'gestao-geapa', label: 'Gestão do GEAPA', ordem: 40, abertoPadrao: false }
   ];
   var MOTIVOS_ACESSO = {
@@ -73,7 +72,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     rota('interesse', 'Tenho interesse', 'interesse', 'publico', 120, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Formulário futuro para cadastro de interesse sem conceder acesso interno automaticamente.', 'placeholder'),
 
     rota('meu-perfil', 'Meu perfil', 'app/meu-perfil', 'meu-vinculo', 10, 'tela-meu-perfil', 'view-meu-perfil', true, LOGADOS, ['portal:acessar'], 'Dados cadastrais proprios em modo somente leitura.', 'implementado'),
-    rota('minha-situacao', 'Minha situação', 'app/minha-situacao', 'meu-vinculo', 20, 'tela-situacao', 'view-situacao', true, [PERFIS.MEMBRO_INGRESSANTE, PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], ['situacao:ver_propria'], 'Painel operacional resumido do usuario logado.', 'implementado'),
+    rota('minha-situacao', 'Meu vínculo', 'app/meu-vinculo', 'meu-vinculo', 20, 'tela-situacao', 'view-situacao', true, [PERFIS.MEMBRO_INGRESSANTE, PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.ADMIN], ['situacao:ver_propria'], 'Painel operacional resumido do usuario logado.', 'implementado'),
     rota('frequencia', 'Minha frequência', 'app/frequencia', 'meu-vinculo', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['situacao:ver_propria', 'presencas:ler'], 'Frequência própria carregada pela view V2 filtrada no backend.', 'implementado'),
     rota('minhas-apresentacoes', 'Minhas apresentações', 'app/minhas-apresentacoes', 'meu-vinculo', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.MEMBRO, PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.COMUNICACAO, PERFIS.CONSELHO, PERFIS.EGRESSO, PERFIS.ADMIN], ['situacao:ver_propria', 'apresentacoes:ver_propria', 'apresentacoes:ver_ate_saida'], 'Apresentações próprias ou histórico permitido pelo backend.', 'implementado'),
     rota('certificados', 'Meus certificados', 'app/certificados', 'meu-vinculo', 70, 'tela-placeholder', 'view-placeholder', true, LOGADOS, ['certificados:ver_proprios'], 'Certificados próprios emitidos ou liberados.', 'placeholder'),
@@ -86,7 +85,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     rota('calendario', 'Calendário', 'agenda/calendario', 'agenda', 30, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Visão futura para agenda mensal, eventos, reuniões, simpósios, confraternizações e apresentações.', 'placeholder'),
 
     rota('admin', 'Painel administrativo', 'admin', 'gestao-geapa', 10, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['gestao:acessar'], 'Painel operacional conforme perfil e permissões.', 'placeholder'),
-    rota('admin-membros', 'Membros', 'admin/membros', 'gestao-geapa', 20, 'tela-admin-membros', 'view-admin-membros', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta operacional de membros autorizada pelo backend.', 'implementado'),
+    rota('admin-membros', 'Pessoas', 'admin/pessoas', 'gestao-geapa', 20, 'tela-admin-membros', 'view-admin-membros', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:ler'], 'Consulta operacional de membros autorizada pelo backend.', 'implementado'),
     rota('admin-correcoes-cadastrais', 'Correções cadastrais', 'admin/correcoes-cadastrais', 'gestao-geapa', 25, 'tela-admin-correcoes-cadastrais', 'view-admin-correcoes-cadastrais', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:analisar_correcoes'], 'Análise e aplicação de solicitações cadastrais autorizadas pelo Core.', 'implementado'),
     rota('admin-solicitacoes-vinculo', 'Solicitações de vínculo', 'admin/membros/solicitacoes-vinculo', 'gestao-geapa', 27, 'tela-admin-solicitacoes-vinculo', 'view-admin-solicitacoes-vinculo', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:analisar_solicitacoes_vinculo'], 'Análise humana de suspensões e desligamentos voluntários.', 'implementado'),
     rota('admin-atividades', 'Atividades', 'admin/atividades', 'gestao-geapa', 30, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['atividades:gerir'], 'Criação, edição e operação de atividades.', 'implementado'),
@@ -129,17 +128,24 @@ import {accessIsPending} from './bootstrap-state.mjs';
   var inicializado = false;
   var ignorarProximoHash = false;
 
+  ROTAS_PORTAL.push(rota('eixos-tematicos','Eixos temáticos','eixos-tematicos','publico',75,'tela-placeholder','view-placeholder',false,[],[],'Guia orientativo dos oito eixos oficiais.','implementado'));
+  ROTAS_PORTAL.push(rota('admin-eixos-tematicos','Eixos temáticos','admin/eixos-tematicos','gestao-geapa',31,'tela-placeholder','view-placeholder',true,[],[],'Consulta dos eixos oficiais.','implementado',false));
+  [['identity','Gestão Institucional'],['parameters','Parâmetros operacionais'],['norms','Normas e documentos'],['governance','Governança e deliberações']].forEach(([id,label],i)=>ROTAS_PORTAL.push(rota('institutional-'+id,label,'admin/gestao-institucional/'+id,'gestao-geapa',27+i,'tela-placeholder','view-placeholder',true,[],[],'Informações institucionais e proveniência.','implementado',i===0)));
+  ROTAS_PORTAL.push(rota('perfis-permissoes','Perfis e permissões','admin/pessoas/perfis-permissoes','gestao-geapa',26,'tela-placeholder','view-placeholder',true,[],[],'Consulta dos perfis e condições de acesso.','implementado',false));
+  ROTAS_PORTAL.push(rota('diretoria-competencias','Diretoria e competências','admin/diretoria-competencias','gestao-geapa',25,'tela-placeholder','view-placeholder',true,[],[],'Atribuições e acessos efetivos da gestão.','implementado'));
   ROTAS_PORTAL.push(rota('admin-ciclos-semestres','Ciclos e semestres','admin/ciclos-semestres','gestao-geapa',35,'tela-ciclos-semestres','view-ciclos-semestres',true,[],[],'Cadastro de ciclos e semestres.','implementado'));
-  ROTAS_PORTAL.push(rota('minha-atuacao','Minha atuação','app/minha-atuacao','meu-vinculo',25,'tela-minha-atuacao','view-minha-atuacao',true,[],[],'Vínculo e funções próprias.','implementado'));
+  ROTAS_PORTAL.push(rota('minha-atuacao','Minha atuação','app/minha-atuacao','meu-vinculo',25,'tela-minha-atuacao','view-minha-atuacao',true,[],[],'Vínculo e funções próprias.','implementado',false));
   function publicV2Enabled(page) {
     return global.PortalPublicData && global.PortalPublicData.isEnabled(page);
   }
 
+    ROTAS_PORTAL.push(rota('equipe', 'Equipe', 'equipe', 'publico', 40,
+      'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Composição institucional com publicação autorizada.', 'implementado'));
+
   if (publicV2Enabled()) {
     ROTAS_PORTAL.push(rota('producao-cientifica', 'Produção Científica', 'producao-cientifica', 'publico', 30,
       'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Em preparação.', 'placeholder'));
-    ROTAS_PORTAL.push(rota('equipe', 'Equipe', 'equipe', 'publico', 40,
-      'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Em preparação.', 'placeholder'));
+
     ROTAS_PORTAL.forEach(function(item) {
       if (item.id === 'parceiros') { item.label = 'Apoio e Parcerias'; item.ordem = 50; }
       if (item.id === 'processo-seletivo') { item.label = 'Processo Seletivo'; item.ordem = 60; }
@@ -148,10 +154,11 @@ import {accessIsPending} from './bootstrap-state.mjs';
   }
 
   function publicV2MenuVisible(item) {
+    if (['diretoria-publica', 'orientadores', 'membros-publicos'].includes(item.id)) return false;
     if (!publicV2Enabled()) return true;
     if (publicV2Enabled('about') && ['historia', 'normas'].indexOf(item.id) >= 0) return false;
     if (['diretoria-publica', 'orientadores', 'membros-publicos', 'interesse'].indexOf(item.id) >= 0) return false;
-    var futureFlags = { equipe: 'team', parceiros: 'partners', 'producao-cientifica': 'science',
+    var futureFlags = { parceiros: 'partners', 'producao-cientifica': 'science',
       'processo-seletivo': 'selection', contato: 'contact' };
     return !futureFlags[item.id] || publicV2Enabled(futureFlags[item.id]);
   }
@@ -360,12 +367,17 @@ import {accessIsPending} from './bootstrap-state.mjs';
   }
 
   function resolveRouteAccess(sessao, rota) {
- if(rota?.id==='ingresso')return {ok:true,reason:''};
+ const hints=global.PortalDevContext?.act?.navigation;
+ if(rota?.grupoMenu==='gestao-geapa'&&hints?.schemaVersion==='admin-navigation-hints-v1'&&Object.prototype.hasOwnProperty.call(hints.routes||{},rota.id)&&(!(hints.validUntil>Date.now())||hints.routes[rota.id]!==true))return {ok:false,reason:'PERMISSAO_INSUFICIENTE'};
+ if(['ingresso','eixos-tematicos','equipe','diretoria-publica','membros-publicos','orientadores'].includes(rota?.id))return {ok:true,reason:''};
  if(global.PortalDevContext?.members?.restrictedTracking&&!['inicio','login','minha-situacao'].includes(rota?.id)&&!(rota?.id==='minhas-apresentacoes'&&global.PortalDevContext?.act?.materialOnly))return {ok:false,reason:'FEATURE_DISABLED'};
  if(global.PortalDevContext?.enrollment&&!['inicio','login'].includes(rota?.id))return {ok:false,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-correcoes-cadastrais')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReviewCorrections,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-membros')return {ok:!!global.PortalDevContext?.members?.available&&!!(global.PortalDevContext.members.canRegister||global.PortalDevContext.members.canReadDirectory),reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-solicitacoes-vinculo')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReview,reason:'FEATURE_DISABLED'};
+ // The shell contains no private data; its independent reader validates its own policy.
+ if(rota?.id?.startsWith('institutional-'))return {ok:!!global.PortalDevContext?.authenticated,reason:'NOT_AUTHENTICATED'};
+ if(['perfis-permissoes','diretoria-competencias','admin-eixos-tematicos'].includes(rota?.id))return {ok:!!global.PortalDevContext?.act?.available&&global.PortalDevContext.act.board,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-ciclos-semestres')return {ok:!!global.PortalDevContext?.act?.available&&!!global.PortalGeapaAuth?.canConfigureActivity(),reason:'FEATURE_DISABLED'};
  if(!rota)return {ok:false,reason:MOTIVOS_ACESSO.ROTA_INEXISTENTE};
  if(['inicio','login'].includes(rota.id))return {ok:true,reason:''};
@@ -444,6 +456,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     return ROTAS_PORTAL.filter(function filtrarRota(rota) {
       var sessaoAtual = sessao || getSessaoAtual();
       return rota.mostrarNoMenu &&
+        (!rota.id.startsWith('institutional-')||!!global.PortalDevContext?.act?.board||!!global.PortalDevContext?.members?.canReadDirectory) &&
         publicV2MenuVisible(rota) &&
         routeFeatureEnabled(rota) &&
         resolveRouteAccess(sessaoAtual, rota).ok;
@@ -471,6 +484,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
         sessao.portalAtivo !== false && hasAnyProfile(sessao, route.perfisPermitidos) && routeFeatureEnabled(route) &&
         ['UNCHECKED', 'CHECKING', 'UNAVAILABLE', 'SESSION_EXPIRED'].indexOf(editorial.getAccessStatus()) >= 0 &&
         !routes.some(function(item) { return item.id === route.id; })) routes.push(route);
+    if(global.PortalAdminNavigation)routes=global.PortalAdminNavigation.sideRoutes(routes,ROTAS_PORTAL,r=>routeFeatureEnabled(r)&&resolveRouteAccess(sessao,r).ok,global.PortalAdminNavigation.isDirector());
     return routes.sort(ordenarRotas);
   }
 
@@ -512,6 +526,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
       botaoSair.hidden = !sessao.autenticado;
     }
     atualizarAcoesCabecalho(sessao);
+    emitirEvento('portal:menuupdated',{});
     destacarRotaAtual();
   }
 
@@ -526,6 +541,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
   }
 
   function montarBotaoMenu(rota) {
+    if(global.PortalAdminNavigation?.isDirector()&&(!routeFeatureEnabled(rota)||!resolveRouteAccess(getSessaoAtual(),rota).ok))return global.PortalAdminNavigation.restricted(rota.label);
     return [
       '<button class="nav-button" type="button" data-route-target="',
       escaparHtml(rota.id),
@@ -544,7 +560,8 @@ import {accessIsPending} from './bootstrap-state.mjs';
 
   function destacarRotaAtual() {
     Array.prototype.forEach.call(document.querySelectorAll('[data-route-target]'), function destacar(botao) {
-      var ativo = normalizarIdRota(botao.getAttribute('data-route-target')) === rotaAtual;
+      var target=normalizarIdRota(botao.getAttribute('data-route-target'));
+      var ativo=global.PortalAdminNavigation?.isModuleActive(target,rotaAtual)??(target===rotaAtual);
 
       botao.classList.toggle('active', ativo);
       botao.setAttribute('aria-current', ativo ? 'page' : 'false');
@@ -664,10 +681,13 @@ import {accessIsPending} from './bootstrap-state.mjs';
 
   function normalizarIdRota(idRota) {
     var id = String(idRota || '').trim();
+    if(['app/meu-vinculo','meu-vinculo','app/minha-situacao','minha-atuacao','app/minha-atuacao','app/minhas-funcoes','minhas-funcoes','app/minha-diretoria','minha-diretoria'].includes(id))return 'minha-situacao';
+    if(['admin/membros','admin/pessoas'].includes(id))return 'admin-membros';
     if (['app/minhas-funcoes','minhas-funcoes','app/minha-diretoria','minha-diretoria','app/minha-atuacao'].includes(id)) return 'minha-atuacao';
 
     if (publicV2Enabled('about') && ['historia', 'normas', 'documentos'].indexOf(id) >= 0) return 'sobre';
-    if (publicV2Enabled() && ['diretoria', 'diretoria-publica', 'membros', 'membros-publicos'].indexOf(id) >= 0) return 'equipe';
+    if(publicV2Enabled()&&['diretoria','diretoria-publica'].includes(id))return 'diretoria-publica';
+    if(publicV2Enabled()&&['membros','membros-publicos'].includes(id))return 'membros-publicos';
 
     return ALIASES_ROTAS[id] || id;
   }
@@ -787,6 +807,22 @@ import {accessIsPending} from './bootstrap-state.mjs';
     iniciar: iniciar,
     irPara: irPara,
     restoreCurrentRoute: restoreCurrentRoute,
+    // A rendered access gate can outlive the initial bootstrap attempt. Recovery
+    // must resolve the requested URL again through irPara's existing checks.
+    isAccessGateVisible: function isAccessGateVisible() {
+      return document.getElementById('portal-app')?.classList.contains('view-access-denied') === true;
+    },
+    finishAccessValidation: function finishAccessValidation(message) {
+      if (!this.isAccessGateVisible()) return;
+      var target = document.getElementById('access-denied-content');
+      if (target) {
+        target.innerHTML = '<p class="intro" role="alert">' + escaparHtml(message || 'Não foi possível validar o acesso. Use Atualizar acesso para tentar novamente.') + '</p><button type="button" class="btn" data-recover-access>Atualizar acesso</button>';
+        target.querySelector('[data-recover-access]').addEventListener('click', function () {
+          this.disabled = true;
+          document.getElementById('atualizar-acesso')?.click();
+        });
+      }
+    },
     // Requested route may differ from the last rendered route while access loads.
     // Resolving this identifier is navigation only; irPara still checks access.
     getRequestedRoute: function getRequestedRoute() {
@@ -795,7 +831,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     },
     atualizarMenu: atualizarMenu,
     canAccessRoute: function canAccessRoute(sessao, rota) {
-      return resolveRouteAccess(sessao || getSessaoAtual(), rota).ok;
+      return routeFeatureEnabled(rota)&&resolveRouteAccess(sessao || getSessaoAtual(), rota).ok;
     },
     resolveRouteAccess: resolveRouteAccess,
     hasPermission: hasPermission,

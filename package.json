@@ -12,7 +12,8 @@
     "test": "node --test tests/*.test.cjs",
     "verify": "npm run typecheck && npm run build && npm test",
     "verify:published": "node scripts/verify-published.cjs",
-    "deploy": "node -e \"throw Error('EXPLICIT_RELEASE_AUTHORIZATION_REQUIRED')\""
+    "deploy": "node -e \"throw Error('EXPLICIT_RELEASE_AUTHORIZATION_REQUIRED')\"",
+    "preview:admin": "node tests/visual/serve.cjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

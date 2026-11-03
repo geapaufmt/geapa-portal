@@ -1,6 +1,16 @@
 'use strict';
 const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),p=require('node:path'),crypto=require('node:crypto');
 const root=p.resolve(__dirname,'..'),assets=require('../config/assets.json').assets;
+
+test('App Check entry resolves its relative module imports in both deployment artifacts',()=>{
+ for(const env of ['dev','prod']){
+  const entry=p.join(root,'dist',env,'assets/act-command/dev-app-check.mjs');
+  for(const match of fs.readFileSync(entry,'utf8').matchAll(/(?:from\s*|import\s*\(?)['"](\.[^'"]+)['"]/g)){
+   a(fs.existsSync(p.resolve(p.dirname(entry),match[1])),env+': '+match[1]);
+  }
+  a(!fs.readFileSync(entry,'utf8').includes('APP_CHECK_DIAGNOSTIC'),'temporary diagnostics must not ship');
+ }
+});
 test('built files match their current source manifest and resolve private placeholders',()=>{
  for(const env of ['dev','prod']){const published=JSON.parse(fs.readFileSync(root+'/build/'+env+'-manifest.json'));for(const f of published.files){const row=assets.find(r=>r.url===f.path&&r.environments.includes(env));a(row);const src=row.generated||(env==='dev'?row.devSource:row.source);const b=fs.readFileSync(root+'/dist/'+env+f.path);a.equal(crypto.createHash('sha256').update(b).digest('hex'),f.sha256,f.path);if(src.endsWith('.template'))a(!b.toString().includes('@@PRIVATE:'));}}
 });

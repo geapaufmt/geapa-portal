@@ -9,15 +9,22 @@
       name="description"
       content="Portal institucional do GEAPA com acesso público, vínculos, atividades, apresentações e gestão."
     >
-    <meta name="theme-color" content="#1f6b45">
+    <meta name="theme-color" content="#167D0A">
     <link rel="stylesheet" href="assets/act-ui/member-flows.css">
     <link rel="manifest" href="manifest.json?v=cc90cbd58c35">
     <link rel="stylesheet" href="style.9ae9da92320b5588.css">
     <link rel="stylesheet" href="assets/css/public-v2.41010cbf44a8da05.css">
     <link rel="stylesheet" href="assets/css/public-admin-v2.640e3b814ce59781.css">
-  </head>
+  <link rel="stylesheet" href="/assets/act-ui/design-system.css" data-geapa-design>
+<link rel="stylesheet" href="/assets/act-ui/portal-design.css">
+<script type="module" src="/assets/act-ui/portal-design.mjs"></script>
+<script type="module" src="/assets/act-ui/axis-directory.mjs"></script>
+<script type="module" src="/assets/act-ui/access-catalog.mjs"></script>
+<script type="module" src="/assets/act-ui/institutional-directory.mjs"></script>
+<link rel="stylesheet" href="/assets/act-ui/institutional-directory.css">
+<script type="module" src="/assets/act-ui/team-directory.mjs"></script>
+</head>
   <body>
-    <a href="/membros.html" style="display:block;text-align:center;padding:.6rem">Diretório de Membros · demonstração DEV</a>
     <div class="portal-frame">
       <header class="portal-header">
         <button
@@ -32,7 +39,7 @@
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
         </button>
-        <div class="portal-brand">
+        <div class="portal-brand"><img class="portal-logo" src="/assets/icons/icon-192.png" alt="GEAPA" width="44" height="44">
           <div>
             <strong>Portal GEAPA</strong>
             <small>UFMT</small>
@@ -49,24 +56,28 @@
             Instalar app
           </button>
         </div>
+        <div class="personal-menu" id="personal-menu" hidden>
+          <button id="personal-toggle" type="button" aria-expanded="false" aria-controls="personal-panel" aria-label="Abrir menu pessoal"><span class="personal-avatar" aria-hidden="true">•</span><span class="personal-greeting">Minha conta</span><span aria-hidden="true">⌄</span></button>
+          <div id="personal-panel" class="personal-panel" hidden>
+            <div id="usuario-contexto" class="personal-identity" hidden></div>
+            <p id="personal-status" role="status"></p>
+            <nav id="personal-links" aria-label="Área pessoal"></nav>
+            <div class="personal-session-actions"><button id="atualizar-acesso" type="button" class="secondary-button">Atualizar acesso</button><button id="sair" type="button" class="danger-button">Sair</button></div>
+          </div>
+        </div>
       </header>
 
       <div class="portal-body">
         <div class="environment-banner" data-maintenance-banner hidden></div>
         <div class="sidebar-backdrop" data-close-sidebar hidden></div>
         <aside class="portal-sidebar" id="portal-sidebar" aria-label="Navegação principal">
-          <div class="sidebar-user">
-            <div id="usuario-contexto" class="user-context" hidden></div>
-          </div>
           <nav class="portal-nav" data-portal-nav aria-label="Navegação do portal"></nav>
-          <div class="sidebar-footer">
-            <button id="sair" class="danger-button" type="button">Sair</button>
-          </div>
+          <div class="sidebar-footer"><a href="/membros.html">Diretório público de Membros</a></div>
         </aside>
 
         <main class="portal-shell view-inicio" id="portal-app">
-<p id="estado-acesso" class="status-message" role="status" aria-live="polite"></p><button id="atualizar-acesso" class="secondary-button compact-button" type="button">Atualizar acesso</button>
-          <section class="public-home-panel" id="tela-inicio" aria-labelledby="portal-title">
+<p id="estado-acesso" class="status-message" role="status" aria-live="polite"></p><button id="session-retry" class="secondary-button" type="button" hidden>Atualizar acesso</button>
+          <section class="public-home-panel geapa-page" id="tela-inicio" aria-labelledby="portal-title">
             <p class="eyebrow">GEAPA</p>
             <h1 id="portal-title">Portal GEAPA</h1>
             <p class="intro">
@@ -103,14 +114,14 @@
             </div>
           </section>
 
-          <section class="access-panel" id="tela-acesso" aria-labelledby="login-title" hidden><p class="eyebrow">Entrada DEV</p><h1 id="login-title">Entrar no Portal GEAPA</h1><form id="acesso-form" class="access-form"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required><button id="entrar-email" type="submit">Entrar</button></form><p id="mensagem-status" class="status-message" role="status" aria-live="polite">Use a conta autorizada para este ensaio DEV.</p></section>
+          <section class="access-panel geapa-page" id="tela-acesso" aria-labelledby="login-title" hidden><p class="eyebrow">Entrada DEV</p><h1 id="login-title">Entrar no Portal GEAPA</h1><form id="acesso-form" class="access-form"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required><button id="entrar-email" type="submit">Entrar</button></form><p id="mensagem-status" class="status-message" role="status" aria-live="polite">Use a conta autorizada para este ensaio DEV.</p></section>
 
-          <section class="situation-panel" id="tela-ingresso" aria-label="Ingresso no GEAPA" hidden><div id="enrollment-content"></div></section>
-          <section class="situation-panel" id="tela-situacao" aria-labelledby="situacao-title" hidden>
+          <section class="situation-panel geapa-page" id="tela-ingresso" aria-label="Ingresso no GEAPA" hidden><div id="enrollment-content"></div></section>
+          <section class="situation-panel geapa-page" id="tela-situacao" aria-labelledby="situacao-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
-                <p class="eyebrow">Área do membro</p>
-                <h2 id="situacao-title">Minha situação</h2>
+                <p class="eyebrow">Área pessoal</p>
+                <h2 id="situacao-title">Meu vínculo</h2>
               </div>
               <div class="topbar-actions">
                 <button class="secondary-button" type="button" data-open-atividades data-route-target="atividades">
@@ -120,20 +131,22 @@
             </div>
 
             <p class="simulation-warning">
-              Esta tela exibe os dados consolidados pelo backend seguro do Portal GEAPA.
+              Consulte sua situação e as informações oficiais do seu vínculo.
               Frequência, apresentações, certificados e pendências aparecem conforme a
               disponibilidade das informações oficiais.
             </p>
 
+            <p id="personal-person-id" class="geapa-link-id" hidden></p>
             <div id="minha-situacao" class="situation-card">
               <p class="empty-state">
                 A situação do membro será carregada após a autenticação.
               </p>
             </div>
+            <section aria-label="Atuação e histórico institucional"><div id="minha-atuacao" class="situation-card"></div></section>
             <div id="meu-vinculo-solicitacoes" class="vinculo-solicitacoes-host" hidden></div>
           </section>
 
-          <section class="situation-panel" id="tela-meu-perfil" aria-labelledby="meu-perfil-title" hidden>
+          <section class="situation-panel geapa-page" id="tela-meu-perfil" aria-labelledby="meu-perfil-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
                 <p class="eyebrow">Meu vinculo</p>
@@ -141,7 +154,7 @@
               </div>
               <div class="topbar-actions">
                 <button class="secondary-button" type="button" data-route-target="minha-situacao">
-                  Minha situacao
+                  Meu vínculo
                 </button>
               </div>
             </div>
@@ -159,8 +172,7 @@
           </section>
 
           <section class="situation-panel" id="tela-ciclos-semestres" hidden><div class="section-heading"><h2>Ciclos e semestres</h2></div><div id="functional-governance-content"></div></section>
-          <section class="situation-panel" id="tela-minha-atuacao" hidden><div class="situation-topbar"><div class="section-heading"><p class="eyebrow">Meu vínculo</p><h2>Minha atuação</h2></div></div><div id="minha-atuacao" class="situation-card"></div></section>
-<section class="situation-panel" id="tela-atividades" aria-labelledby="atividades-title" hidden>
+<section class="situation-panel geapa-page" id="tela-atividades" aria-labelledby="atividades-title" hidden>
             <div class="situation-topbar">
               <div class="section-heading">
                 <p class="eyebrow">Atividades</p>
@@ -172,9 +184,7 @@
             </div>
 
             <p class="simulation-warning" id="atividades-descricao">
-              Esta tela usa a base Atividades v2 DEV e mostra apenas atividades
-              futuras ou em andamento. Apresentações de membros também serão
-              tratadas a partir de geapa-atividades.
+              Consulte as atividades disponíveis para seu vínculo. Detalhes e ações são apresentados conforme sua autorização.
             </p>
 
             <div class="activities-toolbar">
@@ -225,7 +235,7 @@
             <div id="placeholder-content"></div>
           </section>
 
-          <section class="situation-panel access-denied-panel" id="tela-acesso-negado" hidden>
+          <section class="situation-panel access-denied-panel geapa-page" id="tela-acesso-negado" hidden>
             <div id="access-denied-content"></div>
           </section>
 
@@ -256,7 +266,7 @@
             </section>
           </div>
 
-          <div class="modal-backdrop" id="profile-correction-modal" hidden>
+          <div class="modal-backdrop geapa-self-dialog" id="profile-correction-modal" hidden>
             <section class="modal-panel profile-correction-modal-panel" role="dialog" aria-modal="true" aria-labelledby="profile-correction-title">
               <div class="modal-topbar"><h2 id="profile-correction-title">Solicitar correção de <span data-profile-correction-label></span></h2>
                 <button class="secondary-button compact-button" type="button" data-profile-correction-close>Fechar</button></div>
@@ -280,7 +290,7 @@
             </section>
           </div>
 
-          <div class="modal-backdrop" id="vinculo-solicitacao-modal" hidden>
+          <div class="modal-backdrop geapa-self-dialog" id="vinculo-solicitacao-modal" hidden>
             <section class="modal-panel vinculo-modal-panel" role="dialog" aria-modal="true" aria-labelledby="vinculo-solicitacao-title">
               <div class="modal-topbar"><h2 id="vinculo-solicitacao-title" data-vinculo-modal-title>Solicitação de vínculo</h2><button class="secondary-button compact-button" type="button" data-vinculo-close>Fechar</button></div>
               <form class="vinculo-form" data-vinculo-form>

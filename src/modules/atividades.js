@@ -1,8 +1,8 @@
 /**
  * Tela inicial de Atividades do Portal GEAPA.
  *
- * Esta tela usa o Apps Script em modo real e dados simulados apenas quando
- * MOCK_MODE estiver ativo. Permissoes visuais nao substituem o backend.
+ * Esta tela usa a fachada canônica Auth/App Check e os leitores Node publicados.
+ * Permissoes visuais nao substituem o backend.
  */
 
 (function configurarAtividadesPortal(global) {
@@ -10,9 +10,9 @@
   var auth = global.PortalGeapaAuth;
   var navigation = global.PortalGeapaNavigation;
   var ui = global.PortalGeapaUi;
-  var ATIVIDADES_CACHE_TTL_MS = Math.max(
-    5 * 60 * 1000,
-    Number(global.PortalGeapaConfig && global.PortalGeapaConfig.ATIVIDADES_CACHE_TTL_MS || 30 * 60 * 1000)
+  var ATIVIDADES_CACHE_TTL_MS = Math.min(
+    60000,
+    Number(global.PortalGeapaConfig && global.PortalGeapaConfig.ATIVIDADES_CACHE_TTL_MS || 60000)
   );
   var CHAMADA_ANTECEDENCIA_PADRAO_MINUTOS = 60;
   var CHAMADA_TOLERANCIA_PADRAO_MINUTOS = 240;
@@ -349,7 +349,9 @@
     return buscarAtividadesComFirestoreFallback_()
       .then(function tratarResposta(resposta) {
         if (!resposta.ok) {
-          throw new Error(resposta.message || 'Não foi possível carregar atividades.');
+          var falha = new Error(resposta.message || 'Não foi possível carregar atividades.');
+          falha.code = resposta.errorCode || 'READ_UNAVAILABLE';
+          throw falha;
         }
 
         var origemDados = obterOrigemDadosAtividades_(resposta);
@@ -387,6 +389,8 @@
       })
       .catch(function tratarErro(erro) {
         lista.innerHTML = '<p class="empty-state">' + ui.escaparHtml(erro.message) + '</p>';
+        lista.dataset.readOutcome = 'ERROR';
+        lista.dataset.readError = /^[A-Z_]{1,64}$/.test(erro.code || '') ? erro.code : 'READ_UNAVAILABLE';
         status.textContent = rotulos.falha;
       })
       .finally(function finalizarLoadingAtividades() {
@@ -395,6 +399,11 @@
   }
 
   function buscarAtividadesComFirestoreFallback_() {
+    // The installed canonical facade is the source for every institutional
+    // profile. A legacy Firestore adapter must not choose another scope/cache.
+    if (global.PortalDevContext && global.PortalDevContext.act && global.PortalDevContext.act.available) {
+      return api.apiGet('/atividades/listar', {});
+    }
     var client = global.PortalGeapaFirestoreActivities;
     if (!configEmModoMock() && readerCanonicoNovoSelecionado_()) {
       // The contract decides the order: legacy-first only in shadow and
@@ -1082,6 +1091,7 @@
   }
 
   function lerBundleAtividadesCacheValido() {
+    if (global.PortalDevContext && global.PortalDevContext.act) return null;
     if (cacheAtividadesMemoriaValido()) {
       atividadesBundleCacheOrigem = 'memoria';
       return atividadesBundleCache;
@@ -1122,6 +1132,7 @@
   }
 
   function cacheAtividadesMemoriaValido() {
+    if (global.PortalDevContext && global.PortalDevContext.act) return false;
     return Boolean(
       atividadesBundleCache &&
       atividadesBundleCacheSalvoEm &&
@@ -1349,7 +1360,7 @@
         carregado: 'Histórico de atividades carregado. Detalhes serão preparados em segundo plano.',
         carregadoFallback: 'Histórico de atividades carregado pelo backend do Portal GEAPA.',
         falha: 'Falha ao carregar o histórico de atividades.',
-        vazio: 'Nenhuma atividade realizada disponível no histórico nesta etapa.'
+        vazio: 'Nenhuma atividade histórica publicada para seu acesso. Registros internos da Gestão não aparecem nesta consulta.'
       }
       : {
         carregando: 'Carregando próximas atividades...',
@@ -1358,20 +1369,36 @@
         carregado: 'Próximas atividades carregadas. Detalhes serão preparados em segundo plano.',
         carregadoFallback: 'Próximas atividades carregadas pelo backend do Portal GEAPA.',
         falha: 'Falha ao carregar próximas atividades.',
-        vazio: 'Nenhuma próxima atividade disponível nesta etapa.'
+        vazio: 'Nenhuma próxima atividade publicada para seu acesso. Registros internos da Gestão não aparecem nesta consulta.'
       };
   }
 
+  var ultimaAgendaRenderizada = null;
+  document.addEventListener('portal:act-session-cleared', function () { ultimaAgendaRenderizada = null; });
+  document.addEventListener('portal:act-context-ready', function () {
+    var atual = ultimaAgendaRenderizada;
+    if (atual && atual.container.isConnected) renderizarAtividades(atual.container, atual.atividades, atual.modo);
+  });
   function renderizarAtividades(container, atividades, modo) {
+    ultimaAgendaRenderizada = { container: container, atividades: atividades, modo: modo };
     var todas = Array.isArray(atividades) ? atividades.slice() : [];
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
     var base = historico ? obterHistoricoAtividades(todas) : obterAgendaOperacionalAtividades(todas);
     var dados = historico ? aplicarFiltrosHistoricoAtividades(base) : aplicarFiltrosProximasAtividades(base);
-    var proxima = historico ? null : obterProximaAtividade(dados);
+    var preferencias = global.PortalDevContext && global.PortalDevContext.act;
+    var destacar = !preferencias || preferencias.validUntil > Date.now() && preferencias.operationalPreferences && preferencias.operationalPreferences.highlightNext === true;
+    var proxima = historico || !destacar ? null : obterProximaAtividade(dados);
     var rotulos = obterRotulosAtividades(modo);
     var avisoHistorico = historico ? montarAvisoEscopoHistoricoAtividades() : '';
     var filtrosHistorico = historico ? montarFiltrosHistoricoAtividades(base) : '';
     var filtrosProximas = historico ? '' : montarFiltrosProximasAtividades(base);
+
+    // Counts only: no IDs, names, tokens or private fields in diagnostics.
+    container.dataset.readOutcome = !todas.length ? 'EMPTY_AUTHORIZED_SCOPE' : !base.length ? 'EMPTY_DATE_STATUS' : !dados.length ? 'EMPTY_USER_FILTERS' : 'OK';
+    container.dataset.receivedCount = String(todas.length);
+    container.dataset.eligibleCount = String(base.length);
+    container.dataset.renderedCount = String(dados.length);
+    delete container.dataset.readError;
 
     if (!dados.length) {
       container.innerHTML = avisoHistorico + filtrosHistorico + filtrosProximas + '<p class="empty-state">' +
@@ -1472,10 +1499,6 @@
         var inicio = obterInicioAtividadeMs(atividade) || obterDataAtividadeMs(atividade);
         var fim = obterFimAtividadeMs(atividade);
 
-        if (!inicio) {
-          return false;
-        }
-
         if (ehAtividadeCancelada(atividade)) {
           return false;
         }
@@ -1483,6 +1506,8 @@
         if (ehAtividadeRealizadaOuEncerrada(atividade)) {
           return true;
         }
+
+        if (!inicio) return false;
 
         return fim ? fim < agora : inicio < agora;
       })
@@ -1531,7 +1556,7 @@
     return [
       '<div class="activity-history-filters" aria-label="Filtros do historico de atividades">',
       '<label>',
-      '<span>Ciclo/semestre</span>',
+      '<span>Semestre letivo</span>',
       '<select data-history-filter="cicloSemestre">',
       '<option value="">Todos</option>',
       ciclosSemestres.map(function montarOpcao(valor) {
@@ -1711,79 +1736,13 @@
   }
 
   function obterValorFiltroCicloSemestreAtividade(atividade) {
-    var rotulo = obterCampoTextoAtividade(atividade, ['rotuloSemestre']);
-    var ano = obterCampoTextoAtividade(atividade, [
-      'ano',
-      'anoAtividade',
-      'anoLetivo'
-    ]);
-    var semestre = obterCampoTextoAtividade(atividade, [
-      'semestre',
-      'semestreAtividade',
-      'semestreLetivo'
-    ]);
-    var rotuloNormalizado = normalizarRotuloCicloSemestre(rotulo);
-    var rotuloPorAnoSemestre = montarRotuloCicloSemestre(ano, semestre);
-    var rotuloPorData = montarRotuloCicloSemestrePorData(atividade);
-
-    if (rotuloNormalizado) {
-      return rotuloNormalizado;
-    }
-
-    if (rotuloPorAnoSemestre) {
-      return rotuloPorAnoSemestre;
-    }
-
-    return rotuloPorData || 'Sem semestre definido';
-  }
-
-  function normalizarRotuloCicloSemestre(valor) {
-    var texto = String(valor || '').trim();
-
-    return /^\d{4}\/[12]$/.test(texto) ? texto : '';
-  }
-
-  function montarRotuloCicloSemestre(ano, semestre) {
-    var anoNormalizado = String(ano || '').trim();
-    var semestreNormalizado = String(semestre || '').trim();
-    var rotulo;
-
-    if (!/^\d{4}$/.test(anoNormalizado) || !/^[12]$/.test(semestreNormalizado)) {
-      return '';
-    }
-
-    rotulo = anoNormalizado + '/' + semestreNormalizado;
-    return normalizarRotuloCicloSemestre(rotulo);
-  }
-
-  function montarRotuloCicloSemestrePorData(atividade) {
-    var data = String((atividade && (atividade.dataAtividade || atividade.data)) || '').trim();
-    var matchIso = data.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    var matchBr = data.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-    var dataHora;
-    var ano;
-    var semestre;
-
-    if (matchIso) {
-      ano = matchIso[1];
-      semestre = Number(matchIso[2]) <= 6 ? '1' : '2';
-      return montarRotuloCicloSemestre(ano, semestre);
-    }
-
-    if (matchBr) {
-      ano = matchBr[3];
-      semestre = Number(matchBr[2]) <= 6 ? '1' : '2';
-      return montarRotuloCicloSemestre(ano, semestre);
-    }
-
-    dataHora = new Date(data);
-    if (Number.isNaN(dataHora.getTime())) {
-      return '';
-    }
-
-    ano = String(dataHora.getFullYear());
-    semestre = dataHora.getMonth() <= 5 ? '1' : '2';
-    return montarRotuloCicloSemestre(ano, semestre);
+    if (!atividade) return 'Semestre não definido';
+    // A reference without its resolved label must not silently fall back.
+    if (atividade.academicSemesterId) return String(atividade.academicSemesterLabel || '').trim() || 'Semestre não definido';
+    if (atividade.semesterResolution === 'HISTORICAL_DECLARED') return String(atividade.historicalSemesterLabel || '').trim() || 'Semestre não definido';
+    // Compatibility with a literal semester supplied by an older authorized reader.
+    var rotulo = String(atividade.rotuloSemestre || '').trim();
+    return /^\d{4}\/[12]$/.test(rotulo) ? rotulo : 'Semestre não definido';
   }
 
   function ehAtividadeRealizadaOuCancelada(atividade) {
@@ -1836,11 +1795,12 @@
     var historico = modo === MODO_ATIVIDADES_HISTORICO;
     var possuiApresentacao = atividadePossuiApresentacoes(atividade);
     var statusAtividade = obterStatusAtividadeParaExibicao_(atividade);
+    var detalhe = montarBotaoDetalhes(atividade);
 
     return [
       '<article class="activity-card' + (destaque ? ' activity-card-featured' : '') +
         (possuiApresentacao ? ' activity-card-with-presentation' : '') +
-        '" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '">',
+        '" data-id-atividade="' + ui.escaparHtml(atividade.idAtividade) + '"' + (detalhe ? ' data-geapa-card tabindex="0" aria-label="' + ui.escaparHtml(atividade.tituloPublico) + '"' : '') + '>',
       '<div class="activity-card-main">',
       '<div>',
       '<p class="activity-date">' + ui.escaparHtml(ui.formatarData(atividade.dataAtividade)) + ' · ' + ui.escaparHtml(atividade.diaSemana) + '</p>',
@@ -1866,7 +1826,7 @@
       montarBlocoApresentacoesCard(atividade),
       historico ? '' : montarAvisoChamada(atividade, destaque),
       '<div class="activity-actions">',
-      montarBotaoDetalhes(atividade),
+      detalhe,
       montarAcaoJustificativaPrevia(atividade, modo),
       montarBotaoChamada(atividade, modo),
       '</div>',
@@ -2213,7 +2173,7 @@
     }
 
     return [
-      '<button class="secondary-button compact-button" type="button" data-activity-details="',
+      '<button class="secondary-button compact-button" type="button" data-geapa-primary data-activity-details="',
       ui.escaparHtml(atividade.idAtividade),
       '">Ver detalhes</button>'
     ].join('');
@@ -4594,6 +4554,8 @@
         : '',
       '<dl class="activity-detail-grid">',
       montarFato('Data', ui.formatarData(detalhe.dataAtividade)),
+      montarFato('Semestre letivo', global.PortalDesign.academicSemesterLabel(detalhe)),
+      montarFato('Ciclo de atividades', detalhe.cycleId || detalhe.historicalCycleId || 'Ciclo não definido'),
       montarFato('Horário', detalhe.horarioCompleto),
       montarFato('Local', detalhe.local),
       montarFato('Formato', ui.formatarRotulo(detalhe.formato)),

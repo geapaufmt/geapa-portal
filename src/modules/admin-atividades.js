@@ -75,7 +75,9 @@
     if (!container || !state.active) return;
     container.classList.add('geapa-admin');
     var actions=(global.PortalGeapaAuth?.canCreateActivity?.()?'<button type="button" data-create-activity>Criar atividade</button>':'')+
-      (global.PortalGeapaAuth?.canConfigureActivity?.()?'<button type="button" data-admin-config-open>Modelos e regras</button>':'');
+      (global.PortalGeapaAuth?.canConfigureActivity?.()?'<button type="button" data-admin-config-open>Modelos e regras</button>':'')+
+      (global.PortalAdminNavigation?.isDirector()&&!global.PortalGeapaAuth?.canCreateActivity?.()?global.PortalAdminNavigation.restricted('Criar atividade'):'')+
+      (global.PortalAdminNavigation?.isDirector()&&!global.PortalGeapaAuth?.canConfigureActivity?.()?global.PortalAdminNavigation.restricted('Modelos e regras'):'');
     container.innerHTML = global.PortalDesign.header('Atividades','Calendário, conferência e acompanhamento das atividades.',actions)+
       '<div class="portal-feedback-slot" data-admin-activities-feedback hidden></div>'+content;
   }
@@ -90,7 +92,7 @@
   function renderFilters() {
     var options=state.filterOptions||{},ds=global.PortalDesign;
     var fields=[filterSelect('statusOperacional','Status operacional',options.statusOperacionais),filterSelect('statusPublicacao','Publicação',options.statusPublicacao),
-      filterSelect('visibilidade','Visibilidade',options.visibilidades),filterSelect('ciclo','Ciclo',options.ciclos),filterSelect('modelo','Modelo',options.modelos),
+      filterSelect('visibilidade','Visibilidade',options.visibilidades),filterSelect('ciclo','Semestre letivo',options.ciclos),filterSelect('modelo','Modelo',options.modelos),
       filterSelect('tipo','Tipo',options.tipos),filterSelect('subtipo','Subtipo',options.subtipos),filterSelect('pendencia','Pendência',['TITULO_EIXO','MATERIAL','FOTO_REUNIAO'])].join('');
     return '<form data-admin-activity-filters>'+ds.filters(filterText('texto','Buscar atividades','Título, ID, modelo ou responsável'),ds.sortField(state.order),fields,ds.activeFilters(state.filters),state.filtersOpen,
       '<button type="button" data-admin-clear-filters>Limpar filtros</button>')+'</form>';
@@ -222,7 +224,7 @@
     var editable = Array.isArray(detail.camposEditaveis) ? detail.camposEditaveis : [];
     var content = [
       global.PortalDesign.detailHeader(activity.idAtividade,[formatLabel(activity.statusOperacional),activity.estadoConferencia,formatLabel(activity.statusPublicacaoPortal),formatLabel(activity.visibilidadePortal)],activity.descricaoPublica),
-      global.PortalDesign.detailSection('Informações da atividade',global.PortalDesign.detailFacts([['Data',ui.formatarData(activity.dataAtividade)],['Horário inicial',activity.horarioInicio],['Horário final',activity.horarioFim],['Local',activity.local],['Formato',formatLabel(activity.formato)],['Ciclo',activity.ciclo],['Semestre letivo',activity.semestre],['Responsável',activity.responsavelInterno],['Público-alvo',activity.publicoAlvo]])),
+      global.PortalDesign.detailSection('Informações da atividade',global.PortalDesign.detailFacts([['Data',ui.formatarData(activity.dataAtividade)],['Horário inicial',activity.horarioInicio],['Horário final',activity.horarioFim],['Local',activity.local],['Formato',formatLabel(activity.formato)],['Ciclo canônico',activity.cycleId],['Semestre letivo',activity.academicSemesterId?(activity.academicSemesterLabel||'Semestre não definido'):(activity.historicalSemesterLabel||'Semestre não definido')],['ID do semestre canônico',activity.academicSemesterId],['Ciclo histórico declarado',activity.historicalCycleId],['Semestre histórico declarado',activity.historicalSemesterLabel],['Proveniência do semestre',activity.semesterProvenanceRef?.id],['Responsável',activity.responsavelInterno],['Público-alvo',activity.publicoAlvo]])),
       editable.length?'<section class="geapa-detail-section"><h3>Editar dados permitidos</h3>':'',
       editable.length?'<form class="admin-activity-edit-form" data-admin-activity-edit-form>':'',
       editable.length?'<input type="hidden" name="idAtividade" value="' + escape(activity.idAtividade || '') + '"><input type="hidden" name="revision" value="' + detail.canonicalActivityRevision + '">':'',

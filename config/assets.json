@@ -332,7 +332,7 @@
         "dev"
       ],
       "source": "src/services/profile-fields.mjs",
-      "devSource": "config/variants/dev/src/services/profile-fields.mjs"
+      "devSource": "src/services/profile-fields.mjs"
     },
     {
       "url": "/assets/act-command/projection-recovery-config.mjs",
@@ -1008,6 +1008,164 @@
       ],
       "source": "src/styles/portal.css",
       "devSource": "src/styles/portal.css"
+    },
+    {
+      "url": "/assets/act-ui/admin-panels.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/admin-panels.mjs"
+    },
+    {
+      "url": "/assets/act-ui/card-interactions.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/card-interactions.mjs"
+    },
+    {
+      "url": "/assets/act-ui/portal-design.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/portal-design.mjs"
+    },
+    {
+      "url": "/assets/act-ui/portal-design.css",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "source": "src/styles/portal-design.css",
+      "devSource": "src/styles/portal-design.css"
+    },
+    {
+      "url": "/assets/act-ui/board-competencies.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/board-competencies.mjs"
+    },
+    {
+      "url": "/assets/act-ui/people-directory.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/people-directory.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-tenure.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/institutional-tenure.mjs"
+    },
+    {
+      "url": "/assets/act-ui/global-shell.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/global-shell.mjs"
+    },
+    {
+      "url": "/assets/act-ui/axis-directory.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/axis-directory.mjs"
+    },
+    {
+      "url": "/assets/act-command/axis-public.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "source": "src/services/axis-public.mjs",
+      "devSource": "src/services/axis-public.mjs"
+    },
+    {
+      "url": "/assets/act-ui/access-catalog.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/access-catalog.mjs"
+    },
+    {
+      "url": "/assets/act-ui/team-directory.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/team-directory.mjs"
+    },
+    {
+      "url": "/assets/act-command/team-public.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "source": "src/services/team-public.mjs",
+      "devSource": "src/services/team-public.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-directory.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-directory.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-directory.css",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "source": "src/styles/institutional-directory.css",
+      "devSource": "src/styles/institutional-directory.css"
+    },
+    {
+      "url": "/assets/act-ui/institutional-editor-client.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-editor-client.mjs"
+    },
+    {
+      "url": "/assets/act-ui/admin-navigation.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/admin-navigation.mjs",
+      "source": "src/components/admin-navigation.mts",
+      "devSource": "src/components/admin-navigation.mts"
+    },
+    {
+      "url": "/assets/act-ui/institutional-norms.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-norms.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-parameters.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-parameters.mjs"
     }
   ]
 }

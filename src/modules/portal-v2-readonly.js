@@ -139,7 +139,7 @@
     tamanhoMaximoBytes: 50 * 1024 * 1024
   };
 
-  document.addEventListener('portal:act-session-cleared',function(){estado.cache={};estado.itensPorId={};estado.apresentacoesTodas=false;estado.frequenciaDataAtual=null;estado.feedbackPersistente=null;estado.eixos=null;estado.justificativasConfig=null;geracaoModal_++;var el=document.getElementById('placeholder-content');if(el&&ROTAS[estado.rotaAtual])el.textContent='';estado.rotaAtual='';});
+  document.addEventListener('portal:act-session-cleared',function(){estado.cache={};estado.itensPorId={};estado.apresentacoesTodas=false;estado.frequenciaDataAtual=null;estado.frequenciaCicloSelecionado='';estado.frequenciaFiltroSelecionado='TODOS';estado.feedbackPersistente=null;estado.eixos=null;estado.justificativasConfig=null;geracaoModal_++;var el=document.getElementById('placeholder-content');if(el&&ROTAS[estado.rotaAtual])el.textContent='';estado.rotaAtual='';});
   function iniciar() {
     if (!api || !ui || !navigation) {
       return;
@@ -384,7 +384,7 @@
   }
 
   function renderizarBase(container, definicao, corpo) {
-    var designed=['minha-frequencia','minhas-apresentacoes','pendencias-apresentacoes'].includes(definicao.tipo);
+    var designed=!!global.PortalDesign;
     container.classList.toggle('geapa-act-workspace',designed);
     if(designed)container.classList.add('geapa-admin');
     var actions=definicao.idRota==='admin-apresentacoes'?'<button type="button" data-portal-v2-action="alternar-todas-apresentacoes">'+(estado.apresentacoesTodas?'Ver somente pendências':'Ver todas as apresentações')+'</button><button type="button" data-portal-v2-action="planejamento">Ciclos e sessões</button>':'';
@@ -434,7 +434,7 @@
         ? global.PortalDesign.collectionSearch('Buscar apresentações exibidas',montarPendenciasApresentacoes(itens),'A busca filtra o conjunto autorizado exibido nesta consulta.')
         : '',
       itens.length && definicao.tipo === 'pendencias-justificativas'
-        ? montarPendenciasJustificativas(itens)
+        ? global.PortalDesign.collectionSearch('Buscar justificativas nesta página',montarPendenciasJustificativas(itens),'Busca e filtros consideram apenas esta página da fila autorizada.',montarFiltrosJustificativas(itens))
         : '',
       definicao.tipo==='pendencias-justificativas'?montarPaginacaoJustificativas(data.pagination):'',
       definicao.tipo==='minhas-apresentacoes'?montarPaginacaoApresentacoesSelf(data.pagination):'',
@@ -513,10 +513,11 @@
   function montarMinhaFrequencia(data, emCache, definicao) {
     var ciclos = normalizarCiclosFrequencia(data || {});
     var cicloAtual = selecionarCicloFrequencia(ciclos, data || {});
-    var registros = cicloAtual ? cicloAtual.registros : normalizarRegistrosFrequencia((data || {}).registros);
+    var registros = cicloAtual ? cicloAtual.registros : [];
+    var naoResolvidos = normalizarRegistrosFrequencia((data || {}).registrosPendentes);
     var resumo = cicloAtual && Object.keys(cicloAtual.resumo || {}).length
       ? cicloAtual.resumo
-      : ((data || {}).resumoGeral || (data || {}).resumo || {});
+      : {};
     var payloadAntigo = detectarPayloadAntigoFrequencia(data || {}, ciclos, registros);
     var pendencias = payloadAntigo ? [] : registros.filter(ehPendenciaJustificativaFrequencia);
     var registrosFiltrados = payloadAntigo ? [] : filtrarRegistrosFrequencia(registros, estado.frequenciaFiltroSelecionado);
@@ -528,45 +529,22 @@
     return [
       '<section class="frequency-section" aria-labelledby="frequencia-resumo-titulo">',
       '<h2 id="frequencia-resumo-titulo">Resumo do ciclo</h2>',
-      montarResumoFrequencia(resumo, registros.length, (data || {}).ultimaAtualizacao),
+      !payloadAntigo && ciclos.length ? montarFiltroCicloFrequencia(ciclos, cicloAtual) : '',
+      !payloadAntigo && cicloAtual ? montarResumoFrequencia(resumo, registros.length, (data || {}).ultimaAtualizacao) : '',
       emCache ? '<p class="updated-at">Atualizando em segundo plano...</p>' : '',
       payloadAntigo ? montarAvisoFrequenciaDetalhadaIndisponivel(data || {}) : '',
-      !payloadAntigo && ciclos.length > 1 ? montarFiltroCicloFrequencia(ciclos, cicloAtual) : '',
-      !payloadAntigo && ciclos.length === 1 ? '<p class="updated-at">Ciclo: ' + ui.escaparHtml(cicloAtual.rotuloCiclo || cicloAtual.ciclo || 'Sem ciclo definido') + '</p>' : '',
+
+
       '</section>',
       pendencias.length ? montarBlocoPendenciasFrequencia(pendencias) : '',
-      payloadAntigo ? '' : montarHistoricoFrequencia(registros, registrosFiltrados, definicao)
+      payloadAntigo ? '' : montarHistoricoFrequencia(registros, registrosFiltrados, definicao),
+      !payloadAntigo && naoResolvidos.length ? '<section class="frequency-section"><h2>Pendente de reconciliação de ciclo (' + naoResolvidos.length + ')</h2><p>Estes registros estão preservados e não integram os totais de nenhum ciclo.</p>' + naoResolvidos.map(function(r){return '<p>' + ui.escaparHtml(r.tituloAtividade || r.idAtividade) + ' · ' + ui.escaparHtml(r.statusPresencaRotulo || '') + '</p>';}).join('') + '</section>' : ''
     ].join('');
   }
 
   function normalizarCiclosFrequencia(data) {
-    var ciclos = Array.isArray(data.ciclos) ? data.ciclos : [];
-
-    if (!ciclos.length) {
-      var registrosDetalhados = normalizarRegistrosFrequencia(data.registros);
-
-      if (!registrosDetalhados.length) {
-        return [];
-      }
-
-      return [{
-        ciclo: data.cicloAtual || '',
-        rotuloCiclo: data.cicloAtual || 'Todos os registros',
-        resumo: data.resumoGeral || data.resumo || {},
-        registros: registrosDetalhados
-      }];
-    }
-
-    return ciclos.map(function normalizar(ciclo) {
-      return Object.assign({}, ciclo || {}, {
-        ciclo: String((ciclo || {}).ciclo || (ciclo || {}).rotuloCiclo || '').trim(),
-        rotuloCiclo: String((ciclo || {}).rotuloCiclo || (ciclo || {}).rotuloSemestre || (ciclo || {}).ciclo || '').trim(),
-        resumo: (ciclo || {}).resumo || {},
-        registros: normalizarRegistrosFrequencia((ciclo || {}).registros)
-      });
-    }).filter(function manter(ciclo) {
-      return ciclo.registros.length || ciclo.ciclo || ciclo.rotuloCiclo;
-    });
+    if(data.cycleGrouping!=='GEAPA_CYCLE_V1')return [];
+    return (Array.isArray(data.ciclos)?data.ciclos:[]).filter(function(c){return c && typeof c.cycleId==='string' && c.cycleId && c.ciclo===c.cycleId;}).map(function(c){return Object.assign({},c,{registros:normalizarRegistrosFrequencia(c.registros).filter(function(r){return r.cycleId===c.cycleId;})});});
   }
 
   function normalizarRegistrosFrequencia(registros) {
@@ -579,7 +557,6 @@
     return Boolean(
       registro &&
       registro.idAtividade &&
-      registro.dataAtividade &&
       (registro.tituloAtividade || registro.tituloPublico)
     );
   }
@@ -589,14 +566,14 @@
     var semCiclosDetalhados = !Array.isArray((data || {}).ciclos) || !(data || {}).ciclos.length;
     var contrato = String((data || {}).contrato || '').trim();
 
-    return (data || {}).payloadAntigoDetectado === true ||
+    return (data || {}).cycleGrouping !== 'GEAPA_CYCLE_V1' || (data || {}).payloadAntigoDetectado === true ||
       (semCiclosDetalhados && registrosBrutos.length > 0 && !registros.length) ||
       (contrato && contrato !== 'MINHA_FREQUENCIA_DETALHADA_V2' && !ciclos.length);
   }
 
   function montarAvisoFrequenciaDetalhadaIndisponivel(data) {
     var mensagem = data.aviso ||
-      'A frequencia detalhada ainda nao foi carregada pelo backend. Atualize o backend/deploy da API.';
+      'A frequência por ciclo ainda não foi atualizada. Recarregue a consulta para recuperar os dados atuais.';
 
     return '<p class="empty-state readonly-error">' + ui.escaparHtml(mensagem) + '</p>';
   }
@@ -607,7 +584,9 @@
       return String(ciclo.ciclo || ciclo.rotuloCiclo || '') === String(alvo || '');
     })[0];
 
-    return selecionado || ciclos[0] || null;
+    var atual=selecionado || ciclos[0] || null;
+    estado.frequenciaCicloSelecionado=atual ? atual.cycleId : '';
+    return atual;
   }
 
   function montarFiltroCicloFrequencia(ciclos, cicloAtual) {
@@ -633,7 +612,9 @@
   function montarResumoFrequencia(resumo, totalRegistros, ultimaAtualizacao) {
     var dados = resumo || {};
     var partes = [
-      ['Registros', dados.totalAtividades || dados.total || totalRegistros]
+      ['Atividades contabilizadas', dados.totalAtividades ?? dados.total ?? totalRegistros],
+      ['Registros disponíveis', dados.totalRegistros ?? totalRegistros],
+      ['Não aplicáveis', dados.totalNaoAplicaveis]
     ];
 
     [
@@ -642,7 +623,7 @@
       ['Justificadas', dados.totalJustificadas],
       ['Abonadas', dados.totalAbonadas],
       ['Faltas liquidas', dados.faltasLiquidas],
-      ['Frequencia', dados.percentualFrequencia],
+      ['Frequencia', typeof dados.percentualFrequencia === 'number' ? dados.percentualFrequencia.toLocaleString('pt-BR') + '%' : dados.percentualFrequencia],
       ['Situacao', dados.situacaoDisciplinar]
     ].forEach(function adicionar(item) {
       if (item[1] !== undefined && item[1] !== null && item[1] !== '') {
@@ -672,6 +653,8 @@
     var titulo = registro.tituloAtividade || registro.tituloPublico || registro.idAtividade || 'Atividade';
     var status = registro.statusPresencaRotulo || registro.statusPresenca || 'Registro';
     var acao = montarAcaoJustificativaFrequencia(registro, id);
+    var consultavel = acao.includes('data-portal-v2-action="justificativa-ver"');
+    if(consultavel)acao=acao.replace('data-portal-v2-action="justificativa-ver"','data-geapa-primary data-portal-v2-action="justificativa-ver"');
     var permiteExibirPrazo = !ehPresencaFrequencia(registro) && temJustificativaFrequencia(registro);
     var prazo = permiteExibirPrazo
       ? formatarDataCurtaPendencia(registro.dataLimiteJustificativa || registro.prazoJustificativa)
@@ -681,7 +664,7 @@
     estado.itensPorId[id] = registro;
 
     return [
-      '<article class="presentation-action-card', destaquePendencia ? ' frequency-pendency-card' : '', '">',
+      '<article class="presentation-action-card', destaquePendencia ? ' frequency-pendency-card' : '', '"', consultavel ? ' data-geapa-card tabindex="0" aria-label="Justificativa: '+ui.escaparHtml(titulo)+'"' : '', '>',
       '<div class="presentation-card-topline">',
       '<span>' + ui.escaparHtml(formatarDataCurtaPendencia(registro.dataAtividade) || formatarValor(registro.dataAtividade)) + '</span>',
       '<span>' + ui.escaparHtml(formatarValor(status)) + '</span>',
@@ -848,7 +831,8 @@
           '<article class="presentation-action-card">',
           '<div class="presentation-card-topline">',
           '<span>' + ui.escaparHtml(formatarValor(item.dataAtividade)) + '</span>',
-          item.rotuloSemestre ? '<span>' + ui.escaparHtml(formatarValor(item.rotuloSemestre)) + '</span>' : '',
+          '<span>' + ui.escaparHtml(global.PortalDesign.academicSemesterLabel(item)) + '</span>',
+          item.cycleId || item.historicalCycleId ? '<span>Ciclo: ' + ui.escaparHtml(item.cycleId || item.historicalCycleId) + '</span>' : '',
           item.statusApresentacao ? '<span>' + ui.escaparHtml(formatarValor(item.statusApresentacao)) + '</span>' : '',
           '</div>',
           '<div class="presentation-action-main">',
@@ -863,6 +847,7 @@
           '</div>',
           '</div>',
           item.mensagemTituloEixo ? '<p class="presentation-pendency-text">' + ui.escaparHtml(item.mensagemTituloEixo) + '</p>' : '',
+          item.recordMode === 'HISTORICAL_PARTIAL' ? '<p class="muted-inline">Estados transcritos do histórico. Recebimento não significa aprovação; arquivos continuam sujeitos à autorização de acesso.</p>' : '',
           recursos,
           acoes ? global.PortalDesign.actionDisclosure(acoes) : '',
           '</article>'
@@ -1000,51 +985,9 @@
     ].join('');
   }
 
-  function montarPendenciasJustificativas(itens) {
-    return [
-      '<div class="presentation-actions-list">',
-      itens.map(function montar(item) {
-        var id = obterIdItem(item);
-        var acoes = obterAcoesGestaoJustificativa(item);
-        var foraPrazo = justificativaForaPrazo(item);
-        var status = obterStatusJustificativa(item);
-        var documento = normalizarUrlPublica(item.linkDocumentoComprobatorio || item.linkDocumento);
-        var motivo = item.motivoCategoria || item.motivoDeclarado;
-        var prazo = item.dataLimiteJustificativa || item.prazoJustificativa;
-        var envio = item.enviadaEm || item.dataEnvio;
-        var botoes = [
-          acoes.podeDeferir ? botaoAcao('justificativa-deferir', id, 'Deferir', 'primary') : '',
-          acoes.podeAbonar ? botaoAcao('justificativa-abonar', id, 'Abonar', 'primary') : '',
-          acoes.podeIndeferir ? botaoAcao('justificativa-indeferir', id, 'Indeferir', 'warning') : '',
-          acoes.podeSolicitarAjuste ? botaoAcao('justificativa-ajuste', id, 'Solicitar ajuste', 'warning') : ''
-        ].join('');
-
-        estado.itensPorId[id] = item;
-
-        return [
-          '<article class="presentation-action-card">',
-          '<div class="presentation-card-topline">',
-          '<span>' + ui.escaparHtml(formatarValor(status || 'ENVIADA')) + '</span>',
-          foraPrazo ? '<span>FORA DO PRAZO</span>' : '',
-          '</div>',
-          '<div class="presentation-action-main"><div>',
-          '<small>' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataAtividade)) + '</small>',
-          '<h3>' + ui.escaparHtml(formatarValor(item.tituloPublico || item.tituloAtividade || 'Atividade')) + '</h3>',
-          '<p>Membro: ' + ui.escaparHtml(formatarValor(item.nomeMembro || item.nomePessoa || item.nomeParticipante || item.nome)) + '</p>',
-          motivo ? '<p>Motivo: ' + ui.escaparHtml(motivo) + '</p>' : '',
-          item.descricaoJustificativa ? '<p>Descricao: ' + ui.escaparHtml(item.descricaoJustificativa) + '</p>' : '',
-          prazo ? '<p>Prazo limite: ' + ui.escaparHtml(formatarDataCurtaPendencia(prazo)) + '</p>' : '',
-          envio ? '<p>Enviada em: ' + ui.escaparHtml(formatarDataCurtaPendencia(envio)) + '</p>' : '',
-          item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
-          item.canonicalProofAvailable ? '<p>'+linkComprovanteCanonico(item)+'</p>' : documento ? '<p><a class="secondary-button compact-button presentation-material-link" href="' + ui.escaparHtml(documento) + '" target="_blank" rel="noopener noreferrer">Abrir comprovante</a></p>' : '',
-          '</div></div>',
-          botoes ? '<div class="presentation-card-actions">' + botoes + '</div>' : '',
-          '</article>'
-        ].join('');
-      }).join(''),
-      '</div>'
-    ].join('');
-  }
+  function botoesJustificativa(item,id){var acoes=obterAcoesGestaoJustificativa(item);return [acoes.podeDeferir?botaoAcao('justificativa-deferir',id,'Deferir','primary'):'',acoes.podeAbonar?botaoAcao('justificativa-abonar',id,'Abonar','primary'):'',acoes.podeIndeferir?botaoAcao('justificativa-indeferir',id,'Indeferir','warning'):'',acoes.podeSolicitarAjuste?botaoAcao('justificativa-ajuste',id,'Solicitar ajuste','warning'):''].join('');}
+  function montarFiltrosJustificativas(itens){return '<details class="geapa-filters"><summary>Filtros <span data-geapa-filter-active></span></summary><label>Status<select data-geapa-collection-filter><option value="">Todos</option>'+Array.from(new Set(itens.map(obterStatusJustificativa))).filter(Boolean).map(function(status){return '<option value="'+ui.escaparHtml(status)+'">'+ui.escaparHtml(status)+'</option>';}).join('')+'</select></label></details>';}
+  function montarPendenciasJustificativas(itens){return '<div class="presentation-actions-list">'+itens.map(function(item){var id=obterIdItem(item),status=obterStatusJustificativa(item),title=item.tituloPublico||item.tituloAtividade||'Atividade';estado.itensPorId[id]=item;return '<article class="presentation-action-card geapa-justification-card" data-geapa-card tabindex="0" aria-label="Justificativa de '+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome||'Membro')+'" data-geapa-status="'+ui.escaparHtml(status)+'"><div class="presentation-card-topline"><span>'+ui.escaparHtml(status||'ENVIADA')+'</span>'+(justificativaForaPrazo(item)?'<span>Fora do prazo</span>':'')+'</div><button type="button" class="geapa-record-title" data-geapa-primary data-portal-v2-action="justificativa-ver" data-id-apresentacao="'+ui.escaparHtml(id)+'">'+ui.escaparHtml(title)+'</button><p class="geapa-person-name">'+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome||'Membro')+'</p><dl class="geapa-record-facts">'+global.PortalDesign.fact('Atividade',formatarDataCurtaPendencia(item.dataAtividade))+global.PortalDesign.fact('Motivo',item.motivoCategoria||item.motivoDeclarado)+global.PortalDesign.fact('Enviada em',formatarDataCurtaPendencia(item.enviadaEm||item.dataEnvio))+'</dl>'+global.PortalDesign.actionDisclosure(botoesJustificativa(item,id))+'</article>';}).join('')+'</div>';}
 
   function agruparPendenciasPorApresentacao(itens) {
     var mapa = {};
@@ -1365,17 +1308,7 @@
     return data.toLocaleDateString('pt-BR');
   }
 
-  function formatarPeriodoPendencia(item) {
-    var rotulo = String((item || {}).rotuloSemestre || (item || {}).periodo || '').trim();
-    var ano = String((item || {}).ano || '').trim();
-    var semestre = String((item || {}).semestre || '').trim();
-
-    if (rotulo && !pareceTextoTecnicoData(rotulo)) {
-      return rotulo;
-    }
-
-    return ano && semestre ? ano + '/' + semestre : '';
-  }
+  function formatarPeriodoPendencia(item) { return global.PortalDesign.academicSemesterLabel(item || {}); }
 
   function pareceTextoTecnicoData(valor) {
     return /\bGMT[+-]\d{4}\b/i.test(String(valor || '')) ||
@@ -1595,7 +1528,7 @@
     var rotulo = (item || {}).nomeArquivoMaterial || 'Abrir slide';
     var versaoValor = (item || {}).versaoMaterial ? formatarValor((item || {}).versaoMaterial) : '';
     var versao = versaoValor ? (/^v/i.test(versaoValor) ? ' ' + versaoValor : ' v' + versaoValor) : '';
-    var estado = montarEstadoEntregavel('slide', (item || {}).statusMaterial);
+    var estado = item.recordMode === 'HISTORICAL_PARTIAL' ? 'Registro histórico: ' + formatarValor(item.statusMaterial || 'NAO_RECONSTRUIDO') : montarEstadoEntregavel('slide', (item || {}).statusMaterial);
 
     if (url) {
       return [
@@ -1623,7 +1556,7 @@
       : '';
     var nome = (item || {}).nomeArquivoFotoReuniao || bloco.nomeArquivoFotoReuniao || bloco.nomeArquivo || 'Foto da reuniao';
     var obrigatoria = (item || {}).fotoReuniaoObrigatoria === true || bloco.fotoReuniaoObrigatoria === true || bloco.obrigatoria === true;
-    var estado = montarEstadoEntregavel('foto', status);
+    var estado = item.recordMode === 'HISTORICAL_PARTIAL' ? 'Registro histórico: ' + formatarValor(status || 'NAO_RECONSTRUIDO') : montarEstadoEntregavel('foto', status);
 
     if (status === 'NAO_SE_APLICA' && !obrigatoria) {
       return '';
@@ -1976,7 +1909,6 @@
 
     if (alvo.matches('[data-frequencia-ciclo]')) {
       estado.frequenciaCicloSelecionado = alvo.value || '';
-      estado.frequenciaFiltroSelecionado = 'TODOS';
       renderizarMinhaFrequenciaAtual();
     }
   }
@@ -2457,16 +2389,22 @@
   function abrirModalVisualizarJustificativa(id) {
     var item = estado.itensPorId[id];
     if (!item) return;
+    var legacyDocument=normalizarUrlPublica(item.linkDocumentoComprobatorio||item.linkDocumento);
 
     abrirModalBase('Justificativa', [
       '<div class="readonly-justification-detail">',
       '<p><strong>Atividade:</strong> ' + ui.escaparHtml(formatarValor(item.tituloAtividade || item.tituloPublico || item.idAtividade || 'Atividade')) + '</p>',
       item.dataAtividade ? '<p><strong>Data:</strong> ' + ui.escaparHtml(formatarDataCurtaPendencia(item.dataAtividade) || formatarValor(item.dataAtividade)) + '</p>' : '',
-      item.statusJustificativa ? '<p><strong>Status:</strong> ' + ui.escaparHtml(formatarValor(item.statusJustificativa)) + '</p>' : '',
-      item.motivoCategoria ? '<p><strong>Motivo:</strong> ' + ui.escaparHtml(formatarValor(item.motivoCategoria)) + '</p>' : '',
+      '<p><strong>Status:</strong> '+ui.escaparHtml(obterStatusJustificativa(item))+'</p>',
+      item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome?'<p><strong>Membro:</strong> '+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome)+'</p>':'',
+      item.descricaoJustificativa?'<p><strong>Descrição:</strong> '+ui.escaparHtml(item.descricaoJustificativa)+'</p>':'',
+      item.motivoCategoria||item.motivoDeclarado ? '<p><strong>Motivo:</strong> ' + ui.escaparHtml(formatarValor(item.motivoCategoria||item.motivoDeclarado)) + '</p>' : '',
       item.observacaoPublica ? '<p><strong>Observação:</strong> ' + ui.escaparHtml(formatarValor(item.observacaoPublica)) + '</p>' : '',
       item.mensagemPortal ? '<p>' + ui.escaparHtml(item.mensagemPortal) + '</p>' : '',
-      item.canonicalProofAvailable ? '<p>'+linkComprovanteCanonico(item)+'</p>' : '',
+      item.dataLimiteJustificativa||item.prazoJustificativa?'<p><strong>Prazo:</strong> '+ui.escaparHtml(formatarDataCurtaPendencia(item.dataLimiteJustificativa||item.prazoJustificativa))+'</p>':'',
+      item.enviadaEm||item.dataEnvio?'<p><strong>Enviada em:</strong> '+ui.escaparHtml(formatarDataCurtaPendencia(item.enviadaEm||item.dataEnvio))+'</p>':'',
+      item.canonicalProofAvailable ? '<p>'+linkComprovanteCanonico(item)+'</p>' : legacyDocument?'<p><a class="secondary-button" href="'+ui.escaparHtml(legacyDocument)+'" target="_blank" rel="noopener noreferrer">Abrir comprovante</a></p>':'',
+      estado.rotaAtual==='admin-justificativas'?global.PortalDesign.actionDisclosure(botoesJustificativa(item,id)):'',
       '<div class="presentation-card-actions">',
       '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Fechar</button>',
       '</div>',
