@@ -16,8 +16,9 @@ function diagnose(){
   api.execute=function(...args){const started=Date.now();record('RECAPTCHA_EXECUTE');return execute.apply(this,args).then(value=>{record('RECAPTCHA_EXECUTE_RESOLVED',{ms:Date.now()-started,nonempty:typeof value==='string'&&value.length>0});return value;},error=>{record('RECAPTCHA_EXECUTE_REJECTED',{ms:Date.now()-started,...safeError(error)});throw error;});};
   record('RECAPTCHA_INSTRUMENTED');
  }
- instrument();
- const observer=new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes){if(n.nodeName==='SCRIPT'&&n.src?.startsWith('https://www.google.com/recaptcha/enterprise.js')){record('RECAPTCHA_SCRIPT');n.addEventListener('load',()=>{record('RECAPTCHA_SCRIPT_LOADED');instrument();observer.disconnect();},true);n.addEventListener('error',()=>{record('RECAPTCHA_SCRIPT_ERROR');observer.disconnect();},{once:true});}}});
+ const whenReady=()=>window.grecaptcha?.enterprise?.ready(instrument);
+ whenReady();
+ const observer=new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes){if(n.nodeName==='SCRIPT'&&n.src?.startsWith('https://www.google.com/recaptcha/enterprise.js')){record('RECAPTCHA_SCRIPT');n.addEventListener('load',()=>{record('RECAPTCHA_SCRIPT_LOADED');whenReady();observer.disconnect();},true);n.addEventListener('error',()=>{record('RECAPTCHA_SCRIPT_ERROR');observer.disconnect();},{once:true});}}});
  observer.observe(document.head,{childList:true});setTimeout(()=>observer.disconnect(),30000);
  document.addEventListener('securitypolicyviolation',event=>{if(/recaptcha|firebaseappcheck/.test(event.blockedURI||''))record('CSP_BLOCK',{directive:event.effectiveDirective});});
 }
