@@ -42,6 +42,7 @@
     "/admin/atividades/modelos/aprovar",
     "/admin/atividades/modelos/disponibilidade",
     "/admin/ciclos-semestres/frequencia/salvar",
-    "/admin/ciclos-semestres/frequencia/aprovar"
+    "/admin/ciclos-semestres/frequencia/aprovar",
+    "/admin/ciclos-semestres/frequencia/reconhecer"
   ]
 }
