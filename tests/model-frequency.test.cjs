@@ -1,4 +1,10 @@
 const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('fs'),path=require('path');
+test('PROD candidate routes only original model lifecycle and preserves recognition',()=>{
+ const routing=JSON.parse(fs.readFileSync(path.join(__dirname,'../dist/prod/assets/act-command/act-flow-executor-routes.json')));
+ for(const route of ['/admin/atividades/modelos/original','/admin/atividades/modelos/aprovar','/admin/atividades/modelos/disponibilidade','/admin/ciclos-semestres/frequencia/reconhecer'])a(routing.routes.includes(route));
+ for(const route of ['/admin/ciclos-semestres/frequencia/salvar','/admin/ciclos-semestres/frequencia/aprovar'])a(!routing.routes.includes(route));
+ a.equal(routing.projectId,'portal-geapa');a(!Object.hasOwn(routing,'policyIds'));a(!Object.hasOwn(routing,'actorUids'));
+});
 test('recognition is reachable in DEV and its UI uses only sealed Core proposals',async()=>{const {actFlowContracts}=await import('../dist/dev/assets/act-command/act-flow-contracts.mjs');a(actFlowContracts.types.includes('ACT.CYCLE_FREQUENCY_PLAN_RECOGNIZE'));a(actFlowContracts.routes.includes('/admin/ciclos-semestres/frequencia/reconhecer'));const routing=JSON.parse(fs.readFileSync(path.join(__dirname,'../dist/dev/assets/act-command/act-flow-executor-routes.json')));a(routing.routes.includes('/admin/ciclos-semestres/frequencia/reconhecer'));const source=fs.readFileSync(path.join(__dirname,'../src/components/model-frequency-editor.mts'),'utf8');a(source.includes('for(const r of c.recognitions||[])'));a(source.includes('plan:r.plan'));a(source.includes('Desconhecida'));a(!source.includes('GEAPA_2026'));});
 test('published DEV artifacts include all five model/frequency selectors and keep server routing authoritative',async()=>{
  const {actFlowContracts}=await import('../dist/dev/assets/act-command/act-flow-contracts.mjs');
