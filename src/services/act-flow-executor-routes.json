@@ -5,6 +5,7 @@
   "endpoint": "https://southamerica-east1-portal-geapa.cloudfunctions.net/geapaCommand",
   "siteKey": "6LcbQgAuAAAAAJ_IO0Q8SCuNv66E_gvZb5Qx3aT5",
   "routes": [
+    "/admin/ciclos-semestres/frequencia/reconhecer",
     "/admin/atividades/conferencia",
     "/admin/apresentacoes/planejamento/salvar",
     "/v2/apresentacoes/titulo-eixo/enviar",
