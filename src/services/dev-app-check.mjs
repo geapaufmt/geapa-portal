@@ -27,5 +27,7 @@ export async function devAppCheck(app,siteKey){
  let entry=instances.get(app);
  if(entry&&entry.siteKey!==siteKey)throw Object.assign(Error('APP_CHECK_INVALID'),{code:'APP_CHECK_INVALID'});
  if(!entry){entry={siteKey,instance:sdk.initializeAppCheck(app,{provider:new sdk.ReCaptchaEnterpriseProvider(siteKey),isTokenAutoRefreshEnabled:false})};instances.set(app,entry);}
- return (await sdk.getToken(entry.instance,false)).token;
+ const started=Date.now();
+ try{const result=await sdk.getToken(entry.instance,false);if(deploymentProfile.environment==='DEV')console.info(JSON.stringify({stage:'APP_CHECK_DIAGNOSTIC',phase:'APP_CHECK_TOKEN_OK',ms:Date.now()-started}));return result.token;}
+ catch(error){if(deploymentProfile.environment==='DEV')console.info(JSON.stringify({stage:'APP_CHECK_DIAGNOSTIC',phase:'APP_CHECK_TOKEN_FAILED',ms:Date.now()-started,code:/^[a-zA-Z_/-]{1,80}$/.test(error?.code||'')?error.code:'UNSPECIFIED',httpStatus:Number.isInteger(error?.customData?.httpStatus)?error.customData.httpStatus:null}));throw error;}
 }
