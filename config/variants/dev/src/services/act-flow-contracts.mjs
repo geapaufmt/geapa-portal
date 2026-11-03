@@ -1,6 +1,6 @@
 // Generated selectors from the versioned Core; not an authorization policy.
 export const actFlowContracts=Object.freeze({
-  "routes": [
+  "routes": ["/admin/atividades/modelos/original","/admin/atividades/modelos/aprovar","/admin/atividades/modelos/disponibilidade","/admin/ciclos-semestres/frequencia/salvar","/admin/ciclos-semestres/frequencia/aprovar",
     "/admin/atividades/conferencia",
     "/atividades/chamada/preparar",
     "/atividades/chamada/salvar",
@@ -41,7 +41,7 @@ export const actFlowContracts=Object.freeze({
     "/v2/apresentacoes/foto/revisar",
     "/v2/justificativas/documento/iniciar"
   ],
-  "types": [
+  "types": ["ACT.ACTIVITY_MODEL_DRAFT_SAVE","ACT.ACTIVITY_MODEL_APPROVE","ACT.ACTIVITY_MODEL_AVAILABILITY_SET","ACT.CYCLE_FREQUENCY_PLAN_SAVE","ACT.CYCLE_FREQUENCY_PLAN_APPROVE",
     "ACT.ACTIVITY_ADMIN_REVIEW",
     "ACT.ACTIVITY_SAVE",
     "ACT.ACTIVITY_PUBLICATION_SET",
