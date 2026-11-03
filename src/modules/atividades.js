@@ -3670,7 +3670,7 @@
 
     isChamadaLoading = true;
     pausarPreloadsPorChamada('carregar_chamada');
-    definirTituloModal('Registrar chamada');
+    definirTituloModal(somenteLeitura ? 'Visualizar chamada' : 'Registrar chamada');
     abrirModal({
       idAtividade: idAtividade,
       tituloPublico: 'Carregando chamada',
@@ -3776,15 +3776,17 @@
       '<p class="section-note">',
       ui.escaparHtml([
         ui.formatarData(atividade.dataAtividade),
+        atividade.ciclo || (chamada.somenteLeitura ? 'Ciclo não definido' : ''),
         atividade.horarioCompleto,
         atividade.local,
         atividade.formato
       ].filter(Boolean).join(' · ')),
       '</p>',
       chamada.somenteLeitura?'<p class="section-note">Consulta dos registros preservados. Nenhuma alteração é realizada nesta tela.</p>':'',
-      chamada.finalizacao?'<p class="section-note">'+ui.escaparHtml(chamada.finalizacao.tipo==='REFERENCIA_CONVENCIONAL'?'Referência administrativa convencional: 21h de Cuiabá; não corresponde ao instante real de finalização. Reconciliação: '+formatarDataHoraCurta(chamada.finalizacao.reconciliadaEm):chamada.finalizacao.em?'Encerramento registrado: '+formatarDataHoraCurta(chamada.finalizacao.em):'Importação sem metadados completos de encerramento; isso não habilita operações de frequência.')+'</p>':'',
+      chamada.origemChamada?'<p class="section-note">Origem: '+ui.escaparHtml(chamada.origemChamada==='IMPORTADA'?'Chamada importada':'Registro canônico')+'</p>':'',
+      chamada.finalizacao?'<p class="section-note">'+ui.escaparHtml(chamada.finalizacao.tipo==='REFERENCIA_CONVENCIONAL'?'Referência administrativa convencional: '+formatarDataHoraCurta(chamada.finalizacao.em)+' — 21h de Cuiabá; não corresponde ao instante real de finalização. Reconciliação: '+formatarDataHoraCurta(chamada.finalizacao.reconciliadaEm):chamada.finalizacao.em?'Encerramento registrado: '+formatarDataHoraCurta(chamada.finalizacao.em):'Importação sem metadados completos de encerramento; isso não habilita operações de frequência.')+'</p>':'',
       montarEstadoChamada(chamada),
-      montarResumoChamada(chamada.somenteLeitura?chamada.resumo:calcularResumoChamada(chamada.participantes)),
+      montarResumoChamada(chamada.somenteLeitura?chamada.resumo:calcularResumoChamada(chamada.participantes),chamada.somenteLeitura),
       montarFerramentasChamada(chamada),
       '<div class="attendance-list">',
       participantesVisiveis.length
@@ -3862,7 +3864,11 @@
     return partes.length ? ' ' + partes.join(' ') : '';
   }
 
-  function montarResumoChamada(resumo) {
+  function montarResumoChamada(resumo, somenteLeitura) {
+    if(somenteLeitura)return '<dl class="attendance-summary" data-attendance-summary>'+[
+      ['Total',resumo.totalParticipantes],['Presenças',resumo.totalPresentes],['Faltas',resumo.totalFaltas],
+      ['Justificadas',resumo.totalJustificadas],['Abonadas',resumo.totalAbonadas],['Não se aplica',resumo.totalNaoSeAplica]
+    ].map(function(item){return montarFato(item[0],item[1] == null ? 'Não informado' : item[1]);}).join('')+'</dl>';
     return [
       '<dl class="attendance-summary" data-attendance-summary>',
       montarFato('Total', resumo.totalParticipantes),
@@ -4192,6 +4198,7 @@
 
     return (participantes || []).filter(function filtrar(participante) {
       var status = participante.statusPresenca || '';
+      if(chamadaAtual?.somenteLeitura)return filtro==='TODOS'||({SEM_MARCACAO:'SEM_REGISTRO',PRESENCIAL:'PRESENTE_PRESENCIAL',REMOTO:'PRESENTE_REMOTO',FALTA:'FALTA'}[filtro]===status);
       var bloqueado = participante.bloqueado || participante.aplicavelNaData === false || status === 'NAO_SE_APLICA';
 
       if (filtro === 'SEM_MARCACAO') {
