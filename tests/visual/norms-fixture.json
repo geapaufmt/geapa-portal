@@ -1,1 +1,396 @@
-{"schemaVersion":"institutional-instruments-view-v1","section":"norms","index":{"schemaVersion":"institutional-norm-index-v1","sourceHash":"a313d0f7b9cfcdc0c7ef5275ef8cfa59a330e79c76dfea4467070dd929fcc135","instruments":[{"id":"REGIMENTO_GEAPA","title":"Regimento Interno do GEAPA","description":"","versionIds":["REG-2025","REG-2026"],"currentVersionIds":["REG-2026"]},{"id":"INSTR_NC-01-2025","title":"NC-01-2025","description":"","versionIds":["NC-01-2025"],"currentVersionIds":[]},{"id":"INSTR_NC-01-2026","title":"NC-01-2026","description":"","versionIds":["NC-01-2026"],"currentVersionIds":[]}],"versions":[{"id":"REG-2025","instrumentId":"REGIMENTO_GEAPA","title":"REG-2025","description":"","version":"","documentaryStatus":"SUBSTITUIDO","current":false,"effectiveFrom":null,"files":[],"recordId":"REG-2025"},{"id":"REG-2026","instrumentId":"REGIMENTO_GEAPA","title":"REG-2026","description":"","version":"","documentaryStatus":"VIGENTE","current":true,"effectiveFrom":"2020-01-01","files":[],"recordId":"REG-2026"},{"id":"NC-01-2025","instrumentId":"INSTR_NC-01-2025","title":"NC-01-2025","description":"","version":"","documentaryStatus":"VIGENTE","current":false,"effectiveFrom":null,"files":[],"recordId":"NC-01-2025"},{"id":"NC-01-2026","instrumentId":"INSTR_NC-01-2026","title":"NC-01-2026","description":"","version":"","documentaryStatus":"EM_PROPOSTA","current":false,"effectiveFrom":null,"files":[],"recordId":"NC-01-2026"}]},"instrument":"REGIMENTO_GEAPA","items":[{"id":"FAQ-OLD","title":"FAQ-OLD","kind":"PORTAL_GEAPA","status":"RASCUNHO","classification":"NORMATIVE_CONDITIONAL","fields":[{"label":"DOC_ID","value":"REG-2025"},{"label":"DISPOSITIVO_ID","value":"ART-OLD"},{"label":"CATEGORIA","value":"FAQ"}],"sources":[{"document":"Fonte sintética","sheet":"Config_GEAPA","row":2,"hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"issues":[],"canonical":null,"section":"norms","relation":{"section":"norms","recordId":"FAQ-OLD","group":"faq","links":[{"versionId":"REG-2025","evidence":"DOC_ID = REG-2025","instrumentId":"REGIMENTO_GEAPA","historical":true,"current":false}],"reviewRequired":true},"presentation":null,"presentationHistory":[],"canChangePresentation":false,"sourceRevision":1,"presentationRevision":0},{"id":"MINUTE","title":"MINUTE","kind":"Ata / deliberação","status":"RASCUNHO","classification":"NORMATIVE_CONDITIONAL","fields":[{"label":"DOCUMENTO_RELACIONADO_ID","value":"REG-2026"}],"sources":[{"document":"Fonte sintética","sheet":"Config_GEAPA","row":2,"hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"issues":[],"canonical":null,"section":"governance","relation":{"section":"governance","recordId":"MINUTE","group":"governance","links":[{"versionId":"REG-2026","evidence":"DOCUMENTO_RELACIONADO_ID = REG-2026","instrumentId":"REGIMENTO_GEAPA","historical":false,"current":true}],"reviewRequired":false},"presentation":null,"presentationHistory":[],"canChangePresentation":false,"sourceRevision":1,"presentationRevision":0},{"id":"PARAM","title":"PARAM","kind":"Parâmetro","status":"DOCUMENTAL","classification":"NORMATIVE_CONDITIONAL","fields":[{"label":"BASE_LEGAL","value":"ART-OLD"}],"sources":[{"document":"Fonte sintética","sheet":"Config_GEAPA","row":2,"hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"issues":[],"canonical":null,"section":"parameters","relation":{"section":"parameters","recordId":"PARAM","group":"parameters","links":[{"versionId":"REG-2025","evidence":"BASE_LEGAL = ART-OLD → DOC_ID = REG-2025","instrumentId":"REGIMENTO_GEAPA","historical":true,"current":false}],"reviewRequired":false},"presentation":null,"presentationHistory":[],"canChangePresentation":false,"sourceRevision":1,"presentationRevision":0},{"id":"ART-OLD","title":"ART-OLD","kind":"DISPOSITIVOS_NORMATIVOS","status":"DOCUMENTAL","classification":"NORMATIVE_CONDITIONAL","fields":[{"label":"DOC_ID","value":"REG-2025"}],"sources":[{"document":"Fonte sintética","sheet":"Config_GEAPA","row":2,"hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"issues":[],"canonical":null,"section":"norms","relation":{"section":"norms","recordId":"ART-OLD","group":"provisions","links":[{"versionId":"REG-2025","evidence":"DOC_ID = REG-2025","instrumentId":"REGIMENTO_GEAPA","historical":true,"current":false}],"reviewRequired":false},"presentation":null,"presentationHistory":[],"canChangePresentation":false,"sourceRevision":1,"presentationRevision":0},{"id":"REG-2025","title":"REG-2025","kind":"DOCUMENTOS_NORMATIVOS","status":"SUBSTITUIDO","classification":"NORMATIVE_CONDITIONAL","fields":[{"label":"DOC_ID","value":"REG-2025"},{"label":"TIPO_DOCUMENTO","value":"REGIMENTO"},{"label":"TITULO_COMPLETO","value":"Regimento Interno do GEAPA"}],"sources":[{"document":"Fonte sintética","sheet":"Config_GEAPA","row":2,"hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"issues":[],"canonical":null,"section":"norms","relation":{"section":"norms","recordId":"REG-2025","group":"versions","links":[{"versionId":"REG-2025","evidence":"Identidade documental DOC_ID","instrumentId":"REGIMENTO_GEAPA","historical":true,"current":false}],"reviewRequired":false},"presentation":null,"presentationHistory":[],"canChangePresentation":false,"sourceRevision":1,"presentationRevision":0},{"id":"REG-2026","title":"REG-2026","kind":"DOCUMENTOS_NORMATIVOS","status":"VIGENTE","classification":"NORMATIVE_CONDITIONAL","fields":[{"label":"DOC_ID","value":"REG-2026"},{"label":"TIPO_DOCUMENTO","value":"REGIMENTO"},{"label":"TITULO_COMPLETO","value":"Regimento Interno do GEAPA"}],"sources":[{"document":"Fonte sintética","sheet":"Config_GEAPA","row":2,"hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"issues":[],"canonical":{"path":"institutionalNormVersions/REGIMENTO_2026_OFICIAL_20260514","status":"CURRENT","evidence":"SYNTHETIC"},"section":"norms","relation":{"section":"norms","recordId":"REG-2026","group":"versions","links":[{"versionId":"REG-2026","evidence":"Identidade documental DOC_ID","instrumentId":"REGIMENTO_GEAPA","historical":false,"current":true}],"reviewRequired":false},"presentation":null,"presentationHistory":[],"canChangePresentation":false,"sourceRevision":1,"presentationRevision":0}],"total":6,"page":1,"pages":1,"hiddenCount":0,"unavailableSections":[],"revision":1,"validUntil":1793673657474,"publicationEnabled":false}
+{
+  "ok": true,
+  "data": {
+    "schemaVersion": "institutional-instruments-view-v1",
+    "section": "norms",
+    "index": {
+      "schemaVersion": "institutional-norm-index-v1",
+      "sourceHash": "a313d0f7b9cfcdc0c7ef5275ef8cfa59a330e79c76dfea4467070dd929fcc135",
+      "instruments": [
+        {
+          "id": "REGIMENTO_GEAPA",
+          "title": "Regimento Interno do GEAPA",
+          "description": "",
+          "versionIds": [
+            "REG-2025",
+            "REG-2026"
+          ],
+          "currentVersionIds": [
+            "REG-2026"
+          ]
+        },
+        {
+          "id": "INSTR_NC-01-2025",
+          "title": "NC-01-2025",
+          "description": "",
+          "versionIds": [
+            "NC-01-2025"
+          ],
+          "currentVersionIds": []
+        },
+        {
+          "id": "INSTR_NC-01-2026",
+          "title": "NC-01-2026",
+          "description": "",
+          "versionIds": [
+            "NC-01-2026"
+          ],
+          "currentVersionIds": []
+        }
+      ],
+      "versions": [
+        {
+          "id": "REG-2025",
+          "instrumentId": "REGIMENTO_GEAPA",
+          "title": "REG-2025",
+          "description": "",
+          "version": "",
+          "documentaryStatus": "SUBSTITUIDO",
+          "current": false,
+          "effectiveFrom": null,
+          "files": [],
+          "recordId": "REG-2025"
+        },
+        {
+          "id": "REG-2026",
+          "instrumentId": "REGIMENTO_GEAPA",
+          "title": "REG-2026",
+          "description": "",
+          "version": "",
+          "documentaryStatus": "VIGENTE",
+          "current": true,
+          "effectiveFrom": "2020-01-01",
+          "files": [],
+          "recordId": "REG-2026"
+        },
+        {
+          "id": "NC-01-2025",
+          "instrumentId": "INSTR_NC-01-2025",
+          "title": "NC-01-2025",
+          "description": "",
+          "version": "",
+          "documentaryStatus": "VIGENTE",
+          "current": false,
+          "effectiveFrom": null,
+          "files": [],
+          "recordId": "NC-01-2025"
+        },
+        {
+          "id": "NC-01-2026",
+          "instrumentId": "INSTR_NC-01-2026",
+          "title": "NC-01-2026",
+          "description": "",
+          "version": "",
+          "documentaryStatus": "EM_PROPOSTA",
+          "current": false,
+          "effectiveFrom": null,
+          "files": [],
+          "recordId": "NC-01-2026"
+        }
+      ]
+    },
+    "instrument": "REGIMENTO_GEAPA",
+    "items": [
+      {
+        "id": "REG-2026",
+        "title": "REG-2026",
+        "kind": "DOCUMENTOS_NORMATIVOS",
+        "status": "VIGENTE",
+        "classification": "NORMATIVE_CONDITIONAL",
+        "fields": [
+          {
+            "label": "DOC_ID",
+            "value": "REG-2026"
+          },
+          {
+            "label": "TIPO_DOCUMENTO",
+            "value": "REGIMENTO"
+          },
+          {
+            "label": "TITULO_COMPLETO",
+            "value": "Regimento Interno do GEAPA"
+          }
+        ],
+        "sources": [
+          {
+            "document": "Fonte sintética",
+            "sheet": "Config_GEAPA",
+            "row": 2,
+            "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "issues": [],
+        "canonical": {
+          "path": "institutionalNormVersions/REGIMENTO_2026_OFICIAL_20260514",
+          "status": "CURRENT",
+          "evidence": "SYNTHETIC"
+        },
+        "section": "norms",
+        "relation": {
+          "section": "norms",
+          "recordId": "REG-2026",
+          "group": "versions",
+          "links": [
+            {
+              "versionId": "REG-2026",
+              "evidence": "Identidade documental DOC_ID",
+              "instrumentId": "REGIMENTO_GEAPA",
+              "historical": false,
+              "current": true
+            }
+          ],
+          "reviewRequired": false
+        },
+        "presentation": null,
+        "presentationHistory": [],
+        "canChangePresentation": false,
+        "sourceRevision": 1,
+        "presentationRevision": 0
+      },
+      {
+        "id": "REG-2025",
+        "title": "REG-2025",
+        "kind": "DOCUMENTOS_NORMATIVOS",
+        "status": "SUBSTITUIDO",
+        "classification": "NORMATIVE_CONDITIONAL",
+        "fields": [
+          {
+            "label": "DOC_ID",
+            "value": "REG-2025"
+          },
+          {
+            "label": "TIPO_DOCUMENTO",
+            "value": "REGIMENTO"
+          },
+          {
+            "label": "TITULO_COMPLETO",
+            "value": "Regimento Interno do GEAPA"
+          }
+        ],
+        "sources": [
+          {
+            "document": "Fonte sintética",
+            "sheet": "Config_GEAPA",
+            "row": 2,
+            "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "issues": [],
+        "canonical": null,
+        "section": "norms",
+        "relation": {
+          "section": "norms",
+          "recordId": "REG-2025",
+          "group": "versions",
+          "links": [
+            {
+              "versionId": "REG-2025",
+              "evidence": "Identidade documental DOC_ID",
+              "instrumentId": "REGIMENTO_GEAPA",
+              "historical": true,
+              "current": false
+            }
+          ],
+          "reviewRequired": false
+        },
+        "presentation": null,
+        "presentationHistory": [],
+        "canChangePresentation": false,
+        "sourceRevision": 1,
+        "presentationRevision": 0
+      },
+      {
+        "id": "ART-OLD",
+        "title": "ART-OLD",
+        "kind": "DISPOSITIVOS_NORMATIVOS",
+        "status": "DOCUMENTAL",
+        "classification": "NORMATIVE_CONDITIONAL",
+        "fields": [
+          {
+            "label": "DOC_ID",
+            "value": "REG-2025"
+          }
+        ],
+        "sources": [
+          {
+            "document": "Fonte sintética",
+            "sheet": "Config_GEAPA",
+            "row": 2,
+            "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "issues": [],
+        "canonical": null,
+        "section": "norms",
+        "relation": {
+          "section": "norms",
+          "recordId": "ART-OLD",
+          "group": "provisions",
+          "links": [
+            {
+              "versionId": "REG-2025",
+              "evidence": "DOC_ID = REG-2025",
+              "instrumentId": "REGIMENTO_GEAPA",
+              "historical": true,
+              "current": false
+            }
+          ],
+          "reviewRequired": false
+        },
+        "presentation": null,
+        "presentationHistory": [],
+        "canChangePresentation": false,
+        "sourceRevision": 1,
+        "presentationRevision": 0
+      },
+      {
+        "id": "FAQ-OLD",
+        "title": "FAQ-OLD",
+        "kind": "PORTAL_GEAPA",
+        "status": "RASCUNHO",
+        "classification": "NORMATIVE_CONDITIONAL",
+        "fields": [
+          {
+            "label": "DOC_ID",
+            "value": "REG-2025"
+          },
+          {
+            "label": "DISPOSITIVO_ID",
+            "value": "ART-OLD"
+          },
+          {
+            "label": "CATEGORIA",
+            "value": "FAQ"
+          }
+        ],
+        "sources": [
+          {
+            "document": "Fonte sintética",
+            "sheet": "Config_GEAPA",
+            "row": 2,
+            "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "issues": [],
+        "canonical": null,
+        "section": "norms",
+        "relation": {
+          "section": "norms",
+          "recordId": "FAQ-OLD",
+          "group": "faq",
+          "links": [
+            {
+              "versionId": "REG-2025",
+              "evidence": "DOC_ID = REG-2025",
+              "instrumentId": "REGIMENTO_GEAPA",
+              "historical": true,
+              "current": false
+            }
+          ],
+          "reviewRequired": true
+        },
+        "presentation": null,
+        "presentationHistory": [],
+        "canChangePresentation": false,
+        "sourceRevision": 1,
+        "presentationRevision": 0
+      },
+      {
+        "id": "PARAM",
+        "title": "PARAM",
+        "kind": "Parâmetro",
+        "status": "DOCUMENTAL",
+        "classification": "NORMATIVE_CONDITIONAL",
+        "fields": [
+          {
+            "label": "BASE_LEGAL",
+            "value": "ART-OLD"
+          }
+        ],
+        "sources": [
+          {
+            "document": "Fonte sintética",
+            "sheet": "Config_GEAPA",
+            "row": 2,
+            "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "issues": [],
+        "canonical": null,
+        "section": "parameters",
+        "relation": {
+          "section": "parameters",
+          "recordId": "PARAM",
+          "group": "parameters",
+          "links": [
+            {
+              "versionId": "REG-2025",
+              "evidence": "BASE_LEGAL = ART-OLD → DOC_ID = REG-2025",
+              "instrumentId": "REGIMENTO_GEAPA",
+              "historical": true,
+              "current": false
+            }
+          ],
+          "reviewRequired": false
+        },
+        "presentation": null,
+        "presentationHistory": [],
+        "canChangePresentation": false,
+        "sourceRevision": 1,
+        "presentationRevision": 0
+      },
+      {
+        "id": "MINUTE",
+        "title": "MINUTE",
+        "kind": "Ata / deliberação",
+        "status": "RASCUNHO",
+        "classification": "NORMATIVE_CONDITIONAL",
+        "fields": [
+          {
+            "label": "DOCUMENTO_RELACIONADO_ID",
+            "value": "REG-2026"
+          }
+        ],
+        "sources": [
+          {
+            "document": "Fonte sintética",
+            "sheet": "Config_GEAPA",
+            "row": 2,
+            "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "issues": [],
+        "canonical": null,
+        "section": "governance",
+        "relation": {
+          "section": "governance",
+          "recordId": "MINUTE",
+          "group": "governance",
+          "links": [
+            {
+              "versionId": "REG-2026",
+              "evidence": "DOCUMENTO_RELACIONADO_ID = REG-2026",
+              "instrumentId": "REGIMENTO_GEAPA",
+              "historical": false,
+              "current": true
+            }
+          ],
+          "reviewRequired": false
+        },
+        "presentation": null,
+        "presentationHistory": [],
+        "canChangePresentation": false,
+        "sourceRevision": 1,
+        "presentationRevision": 0
+      }
+    ],
+    "total": 6,
+    "page": 1,
+    "pages": 1,
+    "hiddenCount": 0,
+    "unavailableSections": [],
+    "revision": 1,
+    "validUntil": 1793674340392,
+    "publicationEnabled": false
+  }
+}
