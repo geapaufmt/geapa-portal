@@ -1,4 +1,4 @@
-import {deploymentProfile} from '../deployment-profile.mjs';
+const deploymentProfile={environment:typeof location!=='undefined'&&location.hostname==='geapa-convergencia-dev.web.app'?'DEV':'PROD'};
 const instances=new WeakMap();
 // Temporary DEV diagnostics: stage and fixed error classifications only.
 // No tokens, keys, request bodies, credentials or provider argument values.
