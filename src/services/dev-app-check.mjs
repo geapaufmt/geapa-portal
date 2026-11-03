@@ -28,6 +28,11 @@ export async function devAppCheck(app,siteKey){
  let entry=instances.get(app);
  if(entry&&entry.siteKey!==siteKey)throw Object.assign(Error('APP_CHECK_INVALID'),{code:'APP_CHECK_INVALID'});
  if(!entry){entry={siteKey,instance:sdk.initializeAppCheck(app,{provider:new sdk.ReCaptchaEnterpriseProvider(siteKey),isTokenAutoRefreshEnabled:false})};instances.set(app,entry);}
+ if(deploymentProfile.environment==='DEV'&&!document.getElementById('dev-attestation-check')){
+  const button=document.createElement('button');button.id='dev-attestation-check';button.textContent='Diagnóstico DEV: verificar App Check';
+  button.onclick=async()=>{button.disabled=true;const start=Date.now();try{await sdk.getToken(entry.instance,true);button.textContent='App Check DEV: nova emissão válida';console.info(JSON.stringify({stage:'APP_CHECK_DIAGNOSTIC',phase:'FRESH_TOKEN_OK',ms:Date.now()-start}));}catch(error){button.textContent='App Check DEV: emissão falhou';console.info(JSON.stringify({stage:'APP_CHECK_DIAGNOSTIC',phase:'FRESH_TOKEN_FAILED',ms:Date.now()-start,code:error?.code||'UNKNOWN'}));}};
+  document.querySelector('footer')?.append(button);
+ }
  const started=Date.now();
  try{const result=await sdk.getToken(entry.instance,false);if(deploymentProfile.environment==='DEV')console.info(JSON.stringify({stage:'APP_CHECK_DIAGNOSTIC',phase:'APP_CHECK_TOKEN_OK',ms:Date.now()-started}));return result.token;}
  catch(error){if(deploymentProfile.environment==='DEV')console.info(JSON.stringify({stage:'APP_CHECK_DIAGNOSTIC',phase:'APP_CHECK_TOKEN_FAILED',ms:Date.now()-started,code:/^[a-zA-Z_/-]{1,80}$/.test(error?.code||'')?error.code:'UNSPECIFIED',httpStatus:Number.isInteger(error?.customData?.httpStatus)?error.customData.httpStatus:null}));throw error;}
