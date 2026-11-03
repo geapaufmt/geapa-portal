@@ -42,11 +42,15 @@ async function restoreEnrollment(e){
 }
 async function restoreMaterialAccess(e){if(!current(e))return false;try{if(!await portal.act.refresh(true))return false;}catch{return false;}if(!current(e)||!window.PortalDevContext.act?.materialOnly)return false;clearViews();window.PortalDevContext.accessPending=false;phase($('estado-acesso'),'READY','Acesso aos materiais pendentes');if(window.PortalGeapaNavigation.getRotaAtual()!=='minhas-apresentacoes')window.PortalGeapaNavigation.irPara('minhas-apresentacoes');return true;}
 async function restoreInstitutionalAccess(e){
+ document.body.dataset.institutionalBootstrap='CHECKING';
  const nav=window.PortalGeapaNavigation,requested=nav.getRequestedRoute();
- if(!current(e)||!requested?.startsWith('institutional-'))return false;
- try{if(!await portal.act.refresh(true))return false;}catch{return false;}
+ if(!current(e)||!requested?.startsWith('institutional-')){document.body.dataset.institutionalBootstrap='NOT_CURRENT_SECTION';return false;}
+ try{if(!await portal.act.refresh(true)){document.body.dataset.institutionalBootstrap='CONTEXT_DISABLED';return false;}}catch{document.body.dataset.institutionalBootstrap='CONTEXT_FAILED';return false;}
  const ctx=window.PortalDevContext.act;
- if(!current(e)||nav.getRequestedRoute()!==requested||ctx?.institutionalOnly!==true||ctx.validUntil<=Date.now()||ctx.navigation?.routes?.[requested]!==true)return false;
+ if(!current(e)||nav.getRequestedRoute()!==requested){document.body.dataset.institutionalBootstrap='SESSION_CHANGED';return false;}
+ if(ctx?.institutionalOnly!==true){document.body.dataset.institutionalBootstrap='NOT_INSTITUTIONAL_ONLY';return false;}
+ if(ctx.validUntil<=Date.now()||ctx.navigation?.routes?.[requested]!==true){document.body.dataset.institutionalBootstrap='SECTION_DENIED';return false;}
+ document.body.dataset.institutionalBootstrap='AUTHORIZED';
  clearViews();window.PortalDevContext.accessPending=false;
  phase($('estado-acesso'),'READY','Acesso institucional validado.');
  phase($('mensagem-status'),'READY','Acesso institucional validado.');
