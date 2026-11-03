@@ -1,5 +1,5 @@
 /** UI affordances only. The canonical Core authorizes every read and command. */
-export type ActionId = 'detail'|'edit'|'review'|'hide'|'publish'|'reopen'|'cancel'|'realize'|'attendance'|'window'|'history';
+export type ActionId = 'detail'|'edit'|'review'|'hide'|'publish'|'reopen'|'cancel'|'realize'|'attendance'|'attendance-view'|'window'|'history';
 export interface ActivityAction {id: ActionId; label: string; enabled: boolean; reason: string}
 const discoverable:ReadonlyArray<readonly [ActionId,string]>=[['edit','Editar'],['review','Conferência administrativa'],['publish','Publicar'],['hide','Ocultar'],['cancel','Cancelar atividade'],['reopen','Reabrir'],['realize','Registrar realização'],['attendance','Gerenciar chamada'],['window','Prazo extraordinário de justificativas']];
 export function discoverActions(actions:ActivityAction[],director:boolean):ActivityAction[]{return director?[...actions,...discoverable.filter(([id])=>!actions.some(a=>a.id===id)).map(([id,label])=>({id,label,enabled:false,reason:'🔒 Não habilitado para seu acesso neste recurso. Consulte Perfis e permissões para conhecer as condições institucionais.'}))]:actions;}
@@ -17,7 +17,7 @@ interface MenuOptions {anchor: HTMLElement; title: string; load: ()=>Promise<unk
 interface WindowOptions {activityId: string; anchor: HTMLElement; api: PortalApi}
 declare global {interface Window {PortalRecordActions: Readonly<{open: typeof openRecordActions; close: typeof closeRecordActions; window: typeof openExceptionalWindow}>}}
 
-const actionIds = new Set<ActionId>(['detail','edit','review','hide','publish','reopen','cancel','realize','attendance','window','history']);
+const actionIds = new Set<ActionId>(['detail','edit','review','hide','publish','reopen','cancel','realize','attendance','attendance-view','window','history']);
 const object=(v:unknown):v is Record<string,unknown>=>typeof v==='object'&&v!==null;
 export function parseActions(value:unknown):ActivityActions {
   if(!object(value)||value.schemaVersion!=='activity-actions-v1'||typeof value.activityId!=='string'||typeof value.title!=='string'||!Number.isSafeInteger(value.revision)||typeof value.validUntil!=='number'||!Array.isArray(value.actions))throw Error('INVALID_ACTION_CONTRACT');

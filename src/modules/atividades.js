@@ -2710,6 +2710,7 @@
     }
 
     painel.innerHTML = montarPainelPadroesModelo(modelo);
+    painel.insertAdjacentHTML('beforeend','<p class="geapa-detail-note">O ciclo vigente e o semestre letivo serão identificados pelo Core ao validar a data da atividade.</p>');
     titulo.required = !isMemberPresentation && modelo.exigeTituloPublico === true;
     tituloLabel.hidden = isMemberPresentation;
     descricaoPublicaLabel.hidden = isMemberPresentation;
@@ -3111,6 +3112,8 @@
       'ID previsto: ' + (preview.idAtividade || 'gerado pelo backend'),
       'Titulo: ' + (preview.tituloPublico || 'nao informado'),
       'Data: ' + (preview.dataAtividade || 'nao informada'),
+      'Ciclo: ' + (preview.cycleLabel || preview.cycleId || 'Conferir contexto'),
+      'Semestre letivo: ' + (preview.academicSemesterLabel || 'Semestre não definido'),
       'Horario: ' + [preview.horarioInicio, preview.horarioFim].filter(Boolean).join(' as '),
       'Status: ' + (preview.statusOperacional || 'PLANEJADA') + ' / ' + (preview.statusPublicacaoPortal || 'RASCUNHO')
     ].join('\n');
@@ -3664,13 +3667,13 @@
       });
   }
 
-  document.addEventListener('portal:open-attendance',event=>{var id=event.detail?.idAtividade;if(typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id))carregarChamadaAtividade(id);});
-  function carregarChamadaAtividade(idAtividade) {
+  document.addEventListener('portal:open-attendance',event=>{var id=event.detail?.idAtividade;if(typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id))carregarChamadaAtividade(id,event.detail?.readOnly===true);});
+  function carregarChamadaAtividade(idAtividade, somenteLeitura) {
     var inicio = obterTempoAtual();
 
     isChamadaLoading = true;
     pausarPreloadsPorChamada('carregar_chamada');
-    definirTituloModal('Registrar chamada');
+    definirTituloModal(somenteLeitura ? 'Visualizar chamada' : 'Registrar chamada');
     abrirModal({
       idAtividade: idAtividade,
       tituloPublico: 'Carregando chamada',
@@ -3686,6 +3689,7 @@
       }
 
       chamadaAtual = normalizarChamada(resposta.data);
+      if(somenteLeitura){chamadaAtual.somenteLeitura=true;chamadaAtual.podeSalvar=false;chamadaAtual.podeFinalizar=false;chamadaAtual.podeReabrir=false;chamadaAtual.podeAjustarRegistro=false;}
       renderizarChamada(chamadaAtual);
       registrarPerfAtividades('atividades.chamada.carregada', inicio, mesclarMetaPerfAtividades(resposta, {
         idAtividade: idAtividade,
@@ -3714,6 +3718,9 @@
 
     return {
       atividade: atividade,
+      somenteLeitura: origem.somenteLeitura===true,
+      origemChamada: origem.origemChamada||'',
+      finalizacao: origem.finalizacao||null,
       participantes: participantes.map(function normalizarParticipante(participante, indice) {
         return {
           indice: indice,
@@ -3772,14 +3779,17 @@
       '<p class="section-note">',
       ui.escaparHtml([
         ui.formatarData(atividade.dataAtividade),
+        atividade.ciclo || (chamada.somenteLeitura ? 'Ciclo não definido' : ''),
         atividade.horarioCompleto,
         atividade.local,
         atividade.formato
       ].filter(Boolean).join(' · ')),
       '</p>',
-      '<p class="simulation-warning">Registro em modo ' + ui.escaparHtml(chamada.modo || 'DEV') + '. A chamada é salva pelo sistema.</p>',
+      chamada.somenteLeitura?'<p class="section-note">Consulta dos registros preservados. Nenhuma alteração é realizada nesta tela.</p>':'',
+      chamada.origemChamada?'<p class="section-note">Origem: '+ui.escaparHtml(chamada.origemChamada==='IMPORTADA'?'Chamada importada':'Registro canônico')+'</p>':'',
+      chamada.finalizacao?'<p class="section-note">'+ui.escaparHtml(descreverFinalizacaoChamada(chamada.finalizacao))+'</p>':'',
       montarEstadoChamada(chamada),
-      montarResumoChamada(calcularResumoChamada(chamada.participantes)),
+      montarResumoChamada(chamada.somenteLeitura?chamada.resumo:calcularResumoChamada(chamada.participantes),chamada.somenteLeitura),
       montarFerramentasChamada(chamada),
       '<div class="attendance-list">',
       participantesVisiveis.length
@@ -3809,6 +3819,17 @@
 
     registrarEventosChamada(conteudo);
     atualizarResumoChamada();
+  }
+
+  function descreverFinalizacaoChamada(finalizacao) {
+    if (!finalizacao.em) return 'Importação sem metadados completos de encerramento; isso não habilita operações de frequência.';
+    var data = formatarDataHoraCurta(finalizacao.em);
+    var reconciliacao = finalizacao.reconciliadaEm ? ' Reconciliação atual: ' + formatarDataHoraCurta(finalizacao.reconciliadaEm) + '.' : '';
+    if (finalizacao.tipo === 'REFERENCIA_CONVENCIONAL') return 'Referência administrativa convencional: ' + data + ' — 21h de Cuiabá; não corresponde ao instante real de finalização.' + reconciliacao;
+    if (finalizacao.tipo === 'RECONCILIACAO_HISTORICA') return 'Reconhecimento histórico de encerramento registrado: ' + data + '. É a data da reconciliação anterior, não necessariamente a finalização original.' + reconciliacao;
+    if (finalizacao.tipo === 'RECUPERACAO_HISTORICA') return 'Encerramento documentado na recuperação administrativa: ' + data + '. É a data da recuperação anterior, não necessariamente a finalização original.' + reconciliacao;
+    if (finalizacao.tipo === 'FINALIZACAO_DOCUMENTADA') return 'Finalização registrada no Portal anterior: ' + data + '.' + reconciliacao;
+    return 'Encerramento registrado: ' + data + '.' + reconciliacao;
   }
 
   function montarEstadoChamada(chamada) {
@@ -3857,7 +3878,11 @@
     return partes.length ? ' ' + partes.join(' ') : '';
   }
 
-  function montarResumoChamada(resumo) {
+  function montarResumoChamada(resumo, somenteLeitura) {
+    if(somenteLeitura)return '<dl class="attendance-summary" data-attendance-summary>'+[
+      ['Total',resumo.totalParticipantes],['Presenças',resumo.totalPresentes],['Faltas',resumo.totalFaltas],
+      ['Justificadas',resumo.totalJustificadas],['Abonadas',resumo.totalAbonadas],['Não se aplica',resumo.totalNaoSeAplica]
+    ].map(function(item){return montarFato(item[0],item[1] == null ? 'Não informado' : item[1]);}).join('')+'</dl>';
     return [
       '<dl class="attendance-summary" data-attendance-summary>',
       montarFato('Total', resumo.totalParticipantes),
@@ -3899,6 +3924,7 @@
   }
 
   function montarParticipanteChamada(participante) {
+    if(chamadaAtual?.somenteLeitura){var status={PRESENTE_PRESENCIAL:'Presente presencial',PRESENTE_REMOTO:'Presente remoto',FALTA:'Falta',JUSTIFICADA:'Justificada',ABONADA:'Abonada',NAO_SE_APLICA:'Não se aplica',SEM_REGISTRO:'Sem registro'}[participante.statusPresenca]||'Sem registro';return '<article class="attendance-row"><div><strong>'+ui.escaparHtml(participante.nome)+'</strong><small>'+ui.escaparHtml(participante.idPessoa)+'</small></div><span class="status-pill">'+ui.escaparHtml(status)+'</span></article>';}
     var bloqueado = participante.bloqueado || participante.aplicavelNaData === false;
     var somenteLeitura = chamadaAtual && chamadaAtual.chamadaFinalizada;
     var desabilitado = bloqueado || somenteLeitura;
@@ -4083,6 +4109,7 @@
   }
 
   function atualizarResumoChamada() {
+    if(chamadaAtual?.somenteLeitura)return;
     sincronizarParticipantesChamadaDoModal();
     var resumo = calcularResumoChamada(chamadaAtual ? chamadaAtual.participantes : []);
     var containerResumo = document.querySelector('[data-attendance-summary]');
@@ -4185,6 +4212,7 @@
 
     return (participantes || []).filter(function filtrar(participante) {
       var status = participante.statusPresenca || '';
+      if(chamadaAtual?.somenteLeitura)return filtro==='TODOS'||({SEM_MARCACAO:'SEM_REGISTRO',PRESENCIAL:'PRESENTE_PRESENCIAL',REMOTO:'PRESENTE_REMOTO',FALTA:'FALTA'}[filtro]===status);
       var bloqueado = participante.bloqueado || participante.aplicavelNaData === false || status === 'NAO_SE_APLICA';
 
       if (filtro === 'SEM_MARCACAO') {
@@ -4711,3 +4739,4 @@
     iniciarAtividades();
   }
 })(window);
+

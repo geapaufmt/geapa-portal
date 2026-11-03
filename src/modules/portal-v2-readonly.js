@@ -189,13 +189,14 @@
     }
   }
 
+  var filtroJustificativas = {cycleId:null,queue:"ALL"};
   var paginaJustificativas = {cursor:null, anteriores:[], proxima:null};
   var paginaApresentacoesSelf = {cursor:null, anteriores:[], proxima:null};
   function reiniciarPaginaApresentacoesSelf(){paginaApresentacoesSelf={cursor:null,anteriores:[],proxima:null};}
   document.addEventListener('portal:act-session-cleared',reiniciarPaginaApresentacoesSelf);
   var leituraTelaGeracao = 0;
   function reiniciarPaginaJustificativas() {paginaJustificativas={cursor:null,anteriores:[],proxima:null};}
-  document.addEventListener('portal:act-session-cleared',function(){reiniciarPaginaJustificativas();leituraTelaGeracao++;});
+  document.addEventListener('portal:act-session-cleared',function(){filtroJustificativas={cycleId:null,queue:'ALL'};reiniciarPaginaJustificativas();leituraTelaGeracao++;});
   function carregarTela(idRota, timingHooks) {
     var definicao = ROTAS[idRota]&&Object.assign({},ROTAS[idRota]); if(definicao&&idRota==='admin-apresentacoes'&&estado.apresentacoesTodas)definicao.titulo='Apresentações';
     var container = document.getElementById('placeholder-content');
@@ -211,12 +212,12 @@
     estado.rotaAtual = idRota;
     definicao.idRota = idRota;
     definicao.leituraGeracao=++leituraTelaGeracao;
-    if(idRota==='admin-justificativas')definicao.cursor=paginaJustificativas.cursor;
+    if(idRota==='admin-justificativas'){definicao.cursor=paginaJustificativas.cursor;definicao.filtroJustificativas=Object.assign({},filtroJustificativas);}
     if(idRota==='minhas-apresentacoes')definicao.cursor=paginaApresentacoesSelf.cursor;
     estado.itensPorId = {};
 
     var cacheKey = obterCacheKey(definicao.endpoint+(definicao.idRota==='admin-apresentacoes'&&estado.apresentacoesTodas?'?todas=1':''));
-    if(idRota==='admin-justificativas')cacheKey+='?cursor='+JSON.stringify(definicao.cursor);
+    if(idRota==='admin-justificativas')cacheKey+='?queue='+JSON.stringify(definicao.filtroJustificativas)+'&cursor='+JSON.stringify(definicao.cursor);
     if(idRota==='minhas-apresentacoes')cacheKey+='?cursor='+JSON.stringify(definicao.cursor);
     var cache = lerCachePortal(cacheKey);
 
@@ -233,7 +234,7 @@
   function buscarTela(definicao, container, cacheKey, emSegundoPlano, timingHooks, managementTiming) {
     var hooks = timingHooks || {};
     var params = managementTiming ? { correlationId: managementTiming.correlationId } : {}; if(definicao.idRota==='admin-apresentacoes'&&estado.apresentacoesTodas)params.incluirSemPendencias=true;
-    if(definicao.idRota==='admin-justificativas'&&definicao.cursor)params.cursor=definicao.cursor;
+    if(definicao.idRota==='admin-justificativas'){if(definicao.cursor)params.cursor=definicao.cursor;params.queue=definicao.filtroJustificativas.queue;if(definicao.filtroJustificativas.cycleId)params.cycleId=definicao.filtroJustificativas.cycleId;}
     if(definicao.idRota==='minhas-apresentacoes'&&definicao.cursor)params.cursor=definicao.cursor;
     return api.apiGet(definicao.endpoint, params)
       .then(function tratarResposta(resposta) {
@@ -425,6 +426,7 @@
     indexarItensPorId(itens);
 
     return [
+      definicao.tipo==='pendencias-justificativas'?montarEscopoJustificativas(data):'',
       montarResumo(resumo, itens.length, ultimaAtualizacao,!!data.pagination),
       emCache ? '<p class="updated-at">Atualizando em segundo plano...</p>' : '',
       itens.length && definicao.tipo === 'minhas-apresentacoes'
@@ -447,6 +449,10 @@
     ].join('');
   }
 
+  function montarEscopoJustificativas(data){
+    if(!Array.isArray(data.cycles))return '';filtroJustificativas={cycleId:data.cycleId,queue:data.queue};
+    return '<div class="geapa-filters"><label>Ciclo<select data-justification-scope="cycleId">'+data.cycles.map(function(c){return '<option value="'+ui.escaparHtml(c.id)+'"'+(c.id===data.cycleId?' selected':'')+'>'+ui.escaparHtml(c.label)+'</option>';}).join('')+'</select></label><label>Fila<select data-justification-scope="queue">'+[['ALL','Todas do ciclo'],['ANALYSIS','Aguardando análise'],['ACTION_REQUIRED','Aguardando providências'],['HISTORY','Histórico']].map(function(q){return '<option value="'+q[0]+'"'+(q[0]===data.queue?' selected':'')+'>'+q[1]+'</option>';}).join('')+'</select></label></div>';
+  }
   function montarPaginacaoJustificativas(pagination) {
     if(!pagination)return '';
     paginaJustificativas.proxima=pagination.nextCursor||null;
@@ -987,7 +993,7 @@
 
   function botoesJustificativa(item,id){var acoes=obterAcoesGestaoJustificativa(item);return [acoes.podeDeferir?botaoAcao('justificativa-deferir',id,'Deferir','primary'):'',acoes.podeAbonar?botaoAcao('justificativa-abonar',id,'Abonar','primary'):'',acoes.podeIndeferir?botaoAcao('justificativa-indeferir',id,'Indeferir','warning'):'',acoes.podeSolicitarAjuste?botaoAcao('justificativa-ajuste',id,'Solicitar ajuste','warning'):''].join('');}
   function montarFiltrosJustificativas(itens){return '<details class="geapa-filters"><summary>Filtros <span data-geapa-filter-active></span></summary><label>Status<select data-geapa-collection-filter><option value="">Todos</option>'+Array.from(new Set(itens.map(obterStatusJustificativa))).filter(Boolean).map(function(status){return '<option value="'+ui.escaparHtml(status)+'">'+ui.escaparHtml(status)+'</option>';}).join('')+'</select></label></details>';}
-  function montarPendenciasJustificativas(itens){return '<div class="presentation-actions-list">'+itens.map(function(item){var id=obterIdItem(item),status=obterStatusJustificativa(item),title=item.tituloPublico||item.tituloAtividade||'Atividade';estado.itensPorId[id]=item;return '<article class="presentation-action-card geapa-justification-card" data-geapa-card tabindex="0" aria-label="Justificativa de '+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome||'Membro')+'" data-geapa-status="'+ui.escaparHtml(status)+'"><div class="presentation-card-topline"><span>'+ui.escaparHtml(status||'ENVIADA')+'</span>'+(justificativaForaPrazo(item)?'<span>Fora do prazo</span>':'')+'</div><button type="button" class="geapa-record-title" data-geapa-primary data-portal-v2-action="justificativa-ver" data-id-apresentacao="'+ui.escaparHtml(id)+'">'+ui.escaparHtml(title)+'</button><p class="geapa-person-name">'+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome||'Membro')+'</p><dl class="geapa-record-facts">'+global.PortalDesign.fact('Atividade',formatarDataCurtaPendencia(item.dataAtividade))+global.PortalDesign.fact('Motivo',item.motivoCategoria||item.motivoDeclarado)+global.PortalDesign.fact('Enviada em',formatarDataCurtaPendencia(item.enviadaEm||item.dataEnvio))+'</dl>'+global.PortalDesign.actionDisclosure(botoesJustificativa(item,id))+'</article>';}).join('')+'</div>';}
+  function montarPendenciasJustificativas(itens){return '<div class="presentation-actions-list">'+itens.map(function(item){var id=obterIdItem(item),status=obterStatusJustificativa(item),title=item.tituloPublico||item.tituloAtividade||'Atividade';estado.itensPorId[id]=item;return '<article class="presentation-action-card geapa-justification-card" data-geapa-card tabindex="0" aria-label="Justificativa de '+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome||'Membro')+'" data-geapa-status="'+ui.escaparHtml(status)+'"><div class="presentation-card-topline"><span>'+ui.escaparHtml(status||'ENVIADA')+'</span>'+(justificativaForaPrazo(item)?'<span>Fora do prazo</span>':'')+'</div><button type="button" class="geapa-record-title" data-geapa-primary data-portal-v2-action="justificativa-ver" data-id-apresentacao="'+ui.escaparHtml(id)+'">'+ui.escaparHtml(title)+'</button><p class="geapa-person-name">'+ui.escaparHtml(item.nomeMembro||item.nomePessoa||item.nomeParticipante||item.nome||'Membro')+'</p><dl class="geapa-record-facts">'+global.PortalDesign.fact('Atividade',formatarDataCurtaPendencia(item.dataAtividade))+global.PortalDesign.fact('Motivo',item.motivoCategoria||item.motivoDeclarado)+global.PortalDesign.fact('Enviada em',formatarDataCurtaPendencia(item.enviadaEm||item.dataEnvio))+'</dl>'+(item.impedimentoAnalise?'<p class="section-note">'+ui.escaparHtml(item.impedimentoAnalise)+'</p>':'')+global.PortalDesign.actionDisclosure(botoesJustificativa(item,id))+'</article>';}).join('')+'</div>';}
 
   function agruparPendenciasPorApresentacao(itens) {
     var mapa = {};
@@ -1896,6 +1902,7 @@
   }
 
   function tratarChangeReadonly(evento) {
+    var scope=evento.target?.getAttribute?.('data-justification-scope');if(scope==='cycleId'||scope==='queue'){filtroJustificativas[scope]=evento.target.value;reiniciarPaginaJustificativas();carregarTela('admin-justificativas');return;}
     var alvo = evento.target;
 
     if (!alvo) {

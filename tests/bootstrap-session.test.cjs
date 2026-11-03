@@ -7,10 +7,19 @@ function fixture(){
  const client={context:async()=>({...context}),apiGet:async()=>{if(state.memberError)throw Error('SERVICE_UNAVAILABLE');return {ok:true,data:{canRegister:true,canReview:false,canReadDirectory:true}};},clear(){},dispose(){},enrollment:{},memberOwn(){}};
  const window={PortalDevContext:{act:null,members:null},PortalGeapaNavigation:{atualizarMenu(){},getRotaAtual:()=> 'minha-situacao',irPara(){},restoreCurrentRoute(){}}};
  const el={after(){},remove(){}},document={getElementById:()=>el,dispatchEvent:e=>events.push(e),createElement:()=>el};
- let renewal;
- const attach=new Function('createContextRefresh','createMemberTracking','createActBrowserClient','memberReadRoutes','memberWriteRoutes','ACT_ENABLED','actUid','installActFacade','journalStorage','window','document','CustomEvent','setTimeout','clearTimeout',source+';return attachActivities;')(options=>{renewal=options;return {schedule(){},cancel(){},dispose(){}}},()=>({clear(){},current:()=>false,dispose(){}}),()=>client,[],[],true,()=>true,()=>{}, ()=>({}),window,document,function(type){this.type=type;},()=>1,()=>{});
- return {state,context,client,window,attach:()=>attach({auth},{},{}),auth,get renewal(){return renewal;}};
+ let renewal,facade;
+ const attach=new Function('createContextRefresh','createMemberTracking','createActBrowserClient','memberReadRoutes','memberWriteRoutes','ACT_ENABLED','actUid','installActFacade','journalStorage','window','document','CustomEvent','setTimeout','clearTimeout',source+';return attachActivities;')(options=>{renewal=options;return {schedule(){},cancel(){},dispose(){}}},()=>({clear(){},current:()=>false,dispose(){}}),()=>client,[],[],true,()=>true,value=>{facade=value}, ()=>({}),window,document,function(type){this.type=type;},()=>1,()=>{});
+ return {state,context,client,window,get facade(){return facade;},attach:()=>attach({auth},{},{}),auth,get renewal(){return renewal;}};
 }
+
+test('model and frequency dialogs reach the existing command client while unknown routes stay denied',async()=>{
+ const f=fixture(),app=await f.attach(),calls=[];f.client.apiPost=async(route,params)=>{calls.push({route,params});return {ok:true,data:{receipt:'synthetic'}}};
+ for(const route of ['/admin/atividades/modelos/original','/admin/atividades/modelos/aprovar','/admin/atividades/modelos/disponibilidade','/admin/ciclos-semestres/frequencia/salvar','/admin/ciclos-semestres/frequencia/aprovar']){
+  const params={payload:'synthetic'};a.equal((await f.facade.apiPost(route,params)).ok,true);a.deepEqual(calls.at(-1),{route,params});
+ }
+ a.equal((await f.facade.apiPost('/unregistered',{})).errorCode,'CONTRACT_NOT_AVAILABLE');a.equal(calls.length,5);
+ f.client.context=async()=>{throw Object.assign(Error(),{code:'ACCESS_REVOKED'})};app.clear();a.equal((await f.facade.apiPost('/admin/atividades/modelos/original',{})).ok,false);a.equal(calls.length,5);app.dispose();
+});
 
 test('ACT timer expiry during Members read renews server context without a false denial',async()=>{const f=fixture(),app=await f.attach();await app.refresh();await app.refreshMembers();let release;f.client.apiGet=()=>new Promise(r=>release=r);const pending=app.refreshMembers();f.renewal.invalidate();a.equal(f.window.PortalDevContext.act,null);release({ok:true,data:{canReviewCorrections:true}});a.equal(await pending,true);a.equal(f.window.PortalDevContext.members.canReviewCorrections,true);a.equal(f.window.PortalDevContext.act.available,true);app.dispose();});
 test('revocation during renewed context cannot restore Members permissions',async()=>{const f=fixture(),app=await f.attach();await app.refresh();await app.refreshMembers();let release;f.client.apiGet=()=>new Promise(r=>release=r);const pending=app.refreshMembers();f.renewal.invalidate();f.client.context=async()=>{throw Error('ACCESS_REVOKED')};release({ok:true,data:{canReviewCorrections:true}});a.equal(await pending,false);a.equal(f.window.PortalDevContext.members,null);a.equal(f.window.PortalDevContext.act,null);app.dispose();});

@@ -69,6 +69,9 @@ export function createControlledSave({auth,db,storage,fetchImpl=fetch,attest,act
    need(canonical(answer.key)===canonical(old.key));const decision=answer.result?.state==='RECOVERED'?answer.result.result:answer.result;
    let final=result(decision,old.key.operationId);auth.assert(t);
    if(['COMPLETED','FAILED'].includes(decision?.state)){
+    // A different intent settles only the confirmed terminal journal. Derived
+    // views retain their fences; a fresh explicit action is required to submit.
+    if(old.intentHash!==mark){storage.removeItem(key);fail('COMMAND_NOT_ADMITTED');}
     // Business completion and derived-view readiness are independent. Flow
     // readers still enforce their fences; this never labels a stale view CURRENT.
     const pendingView=decision.state==='COMPLETED'&&answer.projection?.state!=='CURRENT';
