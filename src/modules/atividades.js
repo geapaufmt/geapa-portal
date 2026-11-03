@@ -3664,8 +3664,8 @@
       });
   }
 
-  document.addEventListener('portal:open-attendance',event=>{var id=event.detail?.idAtividade;if(typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id))carregarChamadaAtividade(id);});
-  function carregarChamadaAtividade(idAtividade) {
+  document.addEventListener('portal:open-attendance',event=>{var id=event.detail?.idAtividade;if(typeof id==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(id))carregarChamadaAtividade(id,event.detail?.readOnly===true);});
+  function carregarChamadaAtividade(idAtividade, somenteLeitura) {
     var inicio = obterTempoAtual();
 
     isChamadaLoading = true;
@@ -3686,6 +3686,7 @@
       }
 
       chamadaAtual = normalizarChamada(resposta.data);
+      if(somenteLeitura){chamadaAtual.somenteLeitura=true;chamadaAtual.podeSalvar=false;chamadaAtual.podeFinalizar=false;chamadaAtual.podeReabrir=false;chamadaAtual.podeAjustarRegistro=false;}
       renderizarChamada(chamadaAtual);
       registrarPerfAtividades('atividades.chamada.carregada', inicio, mesclarMetaPerfAtividades(resposta, {
         idAtividade: idAtividade,
@@ -3714,6 +3715,9 @@
 
     return {
       atividade: atividade,
+      somenteLeitura: origem.somenteLeitura===true,
+      origemChamada: origem.origemChamada||'',
+      finalizacao: origem.finalizacao||null,
       participantes: participantes.map(function normalizarParticipante(participante, indice) {
         return {
           indice: indice,
@@ -3777,9 +3781,10 @@
         atividade.formato
       ].filter(Boolean).join(' · ')),
       '</p>',
-      '<p class="simulation-warning">Registro em modo ' + ui.escaparHtml(chamada.modo || 'DEV') + '. A chamada é salva pelo sistema.</p>',
+      chamada.somenteLeitura?'<p class="section-note">Consulta dos registros preservados. Nenhuma alteração é realizada nesta tela.</p>':'',
+      chamada.finalizacao?'<p class="section-note">'+ui.escaparHtml(chamada.finalizacao.tipo==='REFERENCIA_CONVENCIONAL'?'Referência administrativa convencional: 21h de Cuiabá; não corresponde ao instante real de finalização. Reconciliação: '+formatarDataHoraCurta(chamada.finalizacao.reconciliadaEm):chamada.finalizacao.em?'Encerramento registrado: '+formatarDataHoraCurta(chamada.finalizacao.em):'Importação sem metadados completos de encerramento; isso não habilita operações de frequência.')+'</p>':'',
       montarEstadoChamada(chamada),
-      montarResumoChamada(calcularResumoChamada(chamada.participantes)),
+      montarResumoChamada(chamada.somenteLeitura?chamada.resumo:calcularResumoChamada(chamada.participantes)),
       montarFerramentasChamada(chamada),
       '<div class="attendance-list">',
       participantesVisiveis.length
@@ -3899,6 +3904,7 @@
   }
 
   function montarParticipanteChamada(participante) {
+    if(chamadaAtual?.somenteLeitura){var status={PRESENTE_PRESENCIAL:'Presente presencial',PRESENTE_REMOTO:'Presente remoto',FALTA:'Falta',JUSTIFICADA:'Justificada',ABONADA:'Abonada',NAO_SE_APLICA:'Não se aplica',SEM_REGISTRO:'Sem registro'}[participante.statusPresenca]||'Sem registro';return '<article class="attendance-row"><div><strong>'+ui.escaparHtml(participante.nome)+'</strong><small>'+ui.escaparHtml(participante.idPessoa)+'</small></div><span class="status-pill">'+ui.escaparHtml(status)+'</span></article>';}
     var bloqueado = participante.bloqueado || participante.aplicavelNaData === false;
     var somenteLeitura = chamadaAtual && chamadaAtual.chamadaFinalizada;
     var desabilitado = bloqueado || somenteLeitura;
@@ -4083,6 +4089,7 @@
   }
 
   function atualizarResumoChamada() {
+    if(chamadaAtual?.somenteLeitura)return;
     sincronizarParticipantesChamadaDoModal();
     var resumo = calcularResumoChamada(chamadaAtual ? chamadaAtual.participantes : []);
     var containerResumo = document.querySelector('[data-attendance-summary]');

@@ -157,7 +157,7 @@
     var optionsButton=event.target.closest('[data-admin-options]');
     if(optionsButton){event.preventDefault();var id=optionsButton.getAttribute('data-admin-options'),row=state.activities.find(v=>v.idAtividade===id);global.PortalRecordActions.open({anchor:optionsButton,title:row?.tituloPublico||id,load:async()=>{const r=await api.apiGet('/act/context',{idAtividade:id});if(!r.ok)throw Error(r.message);return r.data;},onSelect:(action,data)=>{
       if(action==='window'){global.PortalRecordActions.window({activityId:id,anchor:optionsButton,api});return;}
-      if(action==='attendance'){document.dispatchEvent(new CustomEvent('portal:open-attendance',{detail:{idAtividade:id}}));return;}
+      if(action==='attendance'||action==='attendance-view'){document.dispatchEvent(new CustomEvent('portal:open-attendance',{detail:{idAtividade:id,readOnly:action==='attendance-view'}}));return;}
       const command={publish:'publicar',hide:'ocultar',cancel:'cancelar',reopen:'reabrir'}[action];
       if(command){state.details[id]={...(state.details[id]||{}),canonicalActivityRevision:data.revision};executeStateAction(command,id,optionsButton);return;}
       openDetail(id,true,action);
