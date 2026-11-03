@@ -1166,6 +1166,14 @@
         "prod"
       ],
       "generated": "build/typescript/institutional-parameters.mjs"
+    },
+    {
+      "url": "/assets/act-ui/model-frequency-editor.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/model-frequency-editor.mjs"
     }
   ]
 }
