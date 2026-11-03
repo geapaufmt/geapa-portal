@@ -23,7 +23,8 @@ export function sideRoutes<T extends Route>(routes:T[],all:T[],allowed:(r:T)=>bo
 export function isModuleActive(route:string,current:string):boolean{return route===current||groups.some(g=>g.items.some(([id])=>id===route)&&g.items.some(([id])=>id===current));}
 let timer:ReturnType<typeof setTimeout>|undefined,dialog:HTMLElement|undefined;
 function mount(){const host=window as Host,nav=host.PortalGeapaNavigation,app=document.getElementById('portal-app');if(!nav||!app)return;const current=nav.isAccessGateVisible?.()?nav.getRequestedRoute():nav.getRotaAtual(),group=groups.find(g=>g.items.some(([id])=>id===current));let target=document.getElementById('geapa-module-navigation');clearTimeout(timer);
- const expiry=host.PortalDevContext?.act?.navigation?.validUntil;if(expiry&&expiry>Date.now())timer=setTimeout(()=>{if(!isDirector()){close();document.querySelectorAll('[data-geapa-discovery]').forEach(el=>el.remove());}nav.atualizarMenu?.();mount();},Math.min(expiry-Date.now()+1,2147483647));
+ const expiry=host.PortalDevContext?.act?.navigation?.validUntil;if(expiry&&expiry>Date.now())timer=setTimeout(()=>{if(!isDirector()){close();document.querySelectorAll<HTMLElement>('[data-geapa-discovery]').forEach(el=>{el.hidden=true;});}nav.atualizarMenu?.();mount();},Math.min(expiry-Date.now()+1,2147483647));
+ document.querySelectorAll<HTMLElement>('[data-geapa-discovery]').forEach(el=>{el.hidden=!isDirector();});
  if(!isDirector())close();
  if(!group||!host.PortalDevContext?.authenticated){target?.remove();return;}
  const all=nav.getRotas(),items=group.items.map(([id,label])=>{const route=all.find(r=>r.id===id);return {label,href:'#/'+(route?.path||''),allowed:!!route&&nav.canAccessRoute(null,route),current:id===current};});
