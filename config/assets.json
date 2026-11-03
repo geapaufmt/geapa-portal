@@ -1150,6 +1150,14 @@
       "generated": "build/typescript/admin-navigation.mjs",
       "source": "src/components/admin-navigation.mts",
       "devSource": "src/components/admin-navigation.mts"
+    },
+    {
+      "url": "/assets/act-ui/institutional-norms.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-norms.mjs"
     }
   ]
 }

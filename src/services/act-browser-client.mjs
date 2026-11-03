@@ -57,6 +57,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
  }},{environment:deployment.environment,projectId:PROJECT});
  const commands=new CommandService(auth,transport);
  const institutionalEditor=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:deployment.endpoint,attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl});
+ const institutionalVisibility=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:deployment.endpoint,attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'visibility'});
  const memberNode=createMemberNode({auth,db,storage,config:memberNodeConfig,fetchImpl});
  const controlledSave=createControlledSave({auth,db,storage,fetchImpl});
  const flowCommands=createControlledSave({auth,db,storage,fetchImpl,flowOperations:actFlowContracts});
@@ -196,6 +197,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
   }finally{active.delete(lockName)}
  }
  async function apiPost(route,params={}){
+  if(route==='/admin/gestao-institucional/visibilidade'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalVisibility.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalEditor.run(q.phase,q.payload)};}
 
   let payload;try{payload=memberWriteRoutes.includes(route)&&params&&Object.getPrototypeOf(params)===Object.prototype&&!Object.hasOwn(params,'payload')?params:JSON.parse(params.payload);}catch{fail('SCHEMA_UNSUPPORTED')}
