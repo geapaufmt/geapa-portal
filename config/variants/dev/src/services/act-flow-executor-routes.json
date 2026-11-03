@@ -37,6 +37,11 @@
     "/v2/apresentacoes/foto/registrar",
     "/v2/apresentacoes/foto/revisar",
     "/v2/justificativas/documento/iniciar",
-    "/admin/atividades/conferencia"
+    "/admin/atividades/conferencia",
+    "/admin/atividades/modelos/original",
+    "/admin/atividades/modelos/aprovar",
+    "/admin/atividades/modelos/disponibilidade",
+    "/admin/ciclos-semestres/frequencia/salvar",
+    "/admin/ciclos-semestres/frequencia/aprovar"
   ]
 }
