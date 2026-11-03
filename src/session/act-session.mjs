@@ -28,6 +28,7 @@ export async function attachActivities(portal,db,sdk){
    if(context&&changed)clear();
    context=value;contextPaused=false;contextError=null;if(document.body)delete document.body.dataset.actContextError;badge(value.accessProfile);window.PortalDevContext.act={available:true,board:value.board,materialOnly:value.materialOnly===true,navigation:value.navigation};
    renewal.schedule(value.validUntil);
+   document.dispatchEvent(new CustomEvent('portal:act-context-ready'));
    if(changed){const navigation=window.PortalGeapaNavigation;navigation?.atualizarMenu();const route=navigation?.getRotaAtual?.();if(['atividades','historico-atividades','frequencia','minhas-apresentacoes','admin-apresentacoes','admin-justificativas','admin-atividades','admin-ciclos-semestres'].includes(route))navigation.irPara(route,{atualizarHash:false});}
    return true;
   }catch(error){if(epoch===contextEpoch){clear();contextError=error;if(document.body)document.body.dataset.actContextError=/^[A-Za-z_/-]{1,64}$/.test(error?.code||error?.message||'')?(error.code||error.message):'CONTEXT_UNAVAILABLE';}return false;}
