@@ -28,4 +28,5 @@ test('model form offers canonical optional principal and file choices and techni
 test('canonical validation error is distinct from authorization failure',async()=>{
  const {actDomainFailure}=await import('../dist/dev/assets/act-command/act-browser-client.mjs');
  a.match(actDomainFailure({code:'VALIDATION_ERROR'}).message,/campos enviados/);a.match(actDomainFailure({code:'FORBIDDEN'}).message,/acesso/);
+ a.match(actDomainFailure({code:'INCOMPLETE_REQUEST',reasonCode:'MATERIAL_MODEL_REQUIRED'}).message,/desmarque Exige material/);
 });
