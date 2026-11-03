@@ -74,8 +74,10 @@
     var container = getContainer();
     if (!container || !state.active) return;
     container.classList.add('geapa-admin');
-    var actions='<button type="button" data-route-target="admin-eixos-tematicos">Eixos temáticos</button>'+(global.PortalGeapaAuth?.canCreateActivity?.()?'<button type="button" data-create-activity>Criar atividade</button>':'')+
-      (global.PortalGeapaAuth?.canConfigureActivity?.()?'<button type="button" data-admin-config-open>Modelos e regras</button>':'');
+    var actions=(global.PortalGeapaAuth?.canCreateActivity?.()?'<button type="button" data-create-activity>Criar atividade</button>':'')+
+      (global.PortalGeapaAuth?.canConfigureActivity?.()?'<button type="button" data-admin-config-open>Modelos e regras</button>':'')+
+      (global.PortalAdminNavigation?.isDirector()&&!global.PortalGeapaAuth?.canCreateActivity?.()?global.PortalAdminNavigation.restricted('Criar atividade'):'')+
+      (global.PortalAdminNavigation?.isDirector()&&!global.PortalGeapaAuth?.canConfigureActivity?.()?global.PortalAdminNavigation.restricted('Modelos e regras'):'');
     container.innerHTML = global.PortalDesign.header('Atividades','Calendário, conferência e acompanhamento das atividades.',actions)+
       '<div class="portal-feedback-slot" data-admin-activities-feedback hidden></div>'+content;
   }

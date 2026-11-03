@@ -1140,6 +1140,16 @@
         "prod"
       ],
       "generated": "build/typescript/institutional-editor-client.mjs"
+    },
+    {
+      "url": "/assets/act-ui/admin-navigation.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/admin-navigation.mjs",
+      "source": "src/components/admin-navigation.mts",
+      "devSource": "src/components/admin-navigation.mts"
     }
   ]
 }

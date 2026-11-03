@@ -367,6 +367,8 @@ import {accessIsPending} from './bootstrap-state.mjs';
   }
 
   function resolveRouteAccess(sessao, rota) {
+ const hints=global.PortalDevContext?.act?.navigation;
+ if(rota?.grupoMenu==='gestao-geapa'&&hints?.schemaVersion==='admin-navigation-hints-v1'&&Object.prototype.hasOwnProperty.call(hints.routes||{},rota.id)&&(!(hints.validUntil>Date.now())||hints.routes[rota.id]!==true))return {ok:false,reason:'PERMISSAO_INSUFICIENTE'};
  if(['ingresso','eixos-tematicos','equipe','diretoria-publica','membros-publicos','orientadores'].includes(rota?.id))return {ok:true,reason:''};
  if(global.PortalDevContext?.members?.restrictedTracking&&!['inicio','login','minha-situacao'].includes(rota?.id)&&!(rota?.id==='minhas-apresentacoes'&&global.PortalDevContext?.act?.materialOnly))return {ok:false,reason:'FEATURE_DISABLED'};
  if(global.PortalDevContext?.enrollment&&!['inicio','login'].includes(rota?.id))return {ok:false,reason:'FEATURE_DISABLED'};
@@ -482,6 +484,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
         sessao.portalAtivo !== false && hasAnyProfile(sessao, route.perfisPermitidos) && routeFeatureEnabled(route) &&
         ['UNCHECKED', 'CHECKING', 'UNAVAILABLE', 'SESSION_EXPIRED'].indexOf(editorial.getAccessStatus()) >= 0 &&
         !routes.some(function(item) { return item.id === route.id; })) routes.push(route);
+    if(global.PortalAdminNavigation)routes=global.PortalAdminNavigation.sideRoutes(routes,ROTAS_PORTAL,r=>routeFeatureEnabled(r)&&resolveRouteAccess(sessao,r).ok,global.PortalAdminNavigation.isDirector());
     return routes.sort(ordenarRotas);
   }
 
@@ -538,6 +541,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
   }
 
   function montarBotaoMenu(rota) {
+    if(global.PortalAdminNavigation?.isDirector()&&(!routeFeatureEnabled(rota)||!resolveRouteAccess(getSessaoAtual(),rota).ok))return global.PortalAdminNavigation.restricted(rota.label);
     return [
       '<button class="nav-button" type="button" data-route-target="',
       escaparHtml(rota.id),
@@ -556,7 +560,8 @@ import {accessIsPending} from './bootstrap-state.mjs';
 
   function destacarRotaAtual() {
     Array.prototype.forEach.call(document.querySelectorAll('[data-route-target]'), function destacar(botao) {
-      var ativo = normalizarIdRota(botao.getAttribute('data-route-target')) === rotaAtual;
+      var target=normalizarIdRota(botao.getAttribute('data-route-target'));
+      var ativo=global.PortalAdminNavigation?.isModuleActive(target,rotaAtual)??(target===rotaAtual);
 
       botao.classList.toggle('active', ativo);
       botao.setAttribute('aria-current', ativo ? 'page' : 'false');
@@ -826,7 +831,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     },
     atualizarMenu: atualizarMenu,
     canAccessRoute: function canAccessRoute(sessao, rota) {
-      return resolveRouteAccess(sessao || getSessaoAtual(), rota).ok;
+      return routeFeatureEnabled(rota)&&resolveRouteAccess(sessao || getSessaoAtual(), rota).ok;
     },
     resolveRouteAccess: resolveRouteAccess,
     hasPermission: hasPermission,
