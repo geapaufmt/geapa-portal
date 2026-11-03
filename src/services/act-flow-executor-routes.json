@@ -7,7 +7,7 @@
   "routes": [
     "/admin/atividades/modelos/original",
     "/admin/atividades/modelos/aprovar",
-    "/admin/atividades/modelos/disponibilidade",
+    "/admin/atividades/modelos/disponibilidade","/admin/atividades/modelos/uso",
     "/admin/ciclos-semestres/frequencia/reconhecer",
     "/admin/atividades/conferencia",
     "/admin/apresentacoes/planejamento/salvar",

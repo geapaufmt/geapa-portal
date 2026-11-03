@@ -1,7 +1,7 @@
 const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('fs'),path=require('path');
 test('PROD candidate routes only original model lifecycle and preserves recognition',()=>{
  const routing=JSON.parse(fs.readFileSync(path.join(__dirname,'../dist/prod/assets/act-command/act-flow-executor-routes.json')));
- for(const route of ['/admin/atividades/modelos/original','/admin/atividades/modelos/aprovar','/admin/atividades/modelos/disponibilidade','/admin/ciclos-semestres/frequencia/reconhecer'])a(routing.routes.includes(route));
+ for(const route of ['/admin/atividades/modelos/original','/admin/atividades/modelos/aprovar','/admin/atividades/modelos/disponibilidade','/admin/atividades/modelos/uso','/admin/ciclos-semestres/frequencia/reconhecer'])a(routing.routes.includes(route));
  for(const route of ['/admin/ciclos-semestres/frequencia/salvar','/admin/ciclos-semestres/frequencia/aprovar'])a(!routing.routes.includes(route));
  a.equal(routing.projectId,'portal-geapa');a(!Object.hasOwn(routing,'policyIds'));a(!Object.hasOwn(routing,'actorUids'));
 });
@@ -9,8 +9,8 @@ test('recognition is reachable in DEV and its UI uses only sealed Core proposals
 test('published DEV artifacts include all five model/frequency selectors and keep server routing authoritative',async()=>{
  const {actFlowContracts}=await import('../dist/dev/assets/act-command/act-flow-contracts.mjs');
  const routing=JSON.parse(fs.readFileSync(path.join(__dirname,'../dist/dev/assets/act-command/act-flow-executor-routes.json')));
- for(const route of ['/admin/atividades/modelos/original','/admin/atividades/modelos/aprovar','/admin/atividades/modelos/disponibilidade','/admin/ciclos-semestres/frequencia/salvar','/admin/ciclos-semestres/frequencia/aprovar']){a(actFlowContracts.routes.includes(route),route);a(routing.routes.includes(route),route);}
- for(const type of ['ACTIVITY_MODEL_DRAFT_SAVE','ACTIVITY_MODEL_APPROVE','ACTIVITY_MODEL_AVAILABILITY_SET','CYCLE_FREQUENCY_PLAN_SAVE','CYCLE_FREQUENCY_PLAN_APPROVE'])a(actFlowContracts.types.includes('ACT.'+type),type);
+ for(const route of ['/admin/atividades/modelos/original','/admin/atividades/modelos/aprovar','/admin/atividades/modelos/disponibilidade','/admin/atividades/modelos/uso','/admin/ciclos-semestres/frequencia/salvar','/admin/ciclos-semestres/frequencia/aprovar']){a(actFlowContracts.routes.includes(route),route);a(routing.routes.includes(route),route);}
+ for(const type of ['ACTIVITY_MODEL_DRAFT_SAVE','ACTIVITY_MODEL_APPROVE','ACTIVITY_MODEL_AVAILABILITY_SET','ACTIVITY_MODEL_USAGE_SET','CYCLE_FREQUENCY_PLAN_SAVE','CYCLE_FREQUENCY_PLAN_APPROVE'])a(actFlowContracts.types.includes('ACT.'+type),type);
  a.equal(routing.projectId,'geapa-convergencia-dev');a(!Object.hasOwn(routing,'policyIds'));a(!Object.hasOwn(routing,'actorUids'));
 });
 test('frequency summary separates original denominator, limit and effective requirement, escaping documentary strings',async()=>{const {frequencySummary}=await import('../build/typescript/model-frequency-editor.mjs');const html=frequencySummary({id:'SYN',label:'Fixture',revision:1,status:'DRAFT',civilStart:'2026-01-01',civilEnd:'2026-12-31',canPlanFrequency:false,canApproveFrequency:false,frequencyPlanning:{periods:[{periodId:'<script>',state:'APPROVED',civilStart:'2026-01-01',civilEnd:'2026-12-31',attendanceActivitiesCount:25,normativeMeetingsCount:25,absenceLimit:5,approvalDate:'2026-11-03',approvingBody:'<img>',rules:{minimumAttendanceBasisPoints:8000,maxAbsenceBasisPoints:2000,absenceNorm:'NC01 art.9',attendanceNorm:'Regimento art.12'}}]}});a(html.includes('80%'));a(html.includes('<dd>5</dd>'));a(html.includes('&lt;script&gt;'));a(!html.includes('<script>'));a(!html.includes('data-cycle-frequency'));a(html.includes('Cancelamentos e atividades extraordinárias não recalculam'));});

@@ -2710,6 +2710,7 @@
     }
 
     painel.innerHTML = montarPainelPadroesModelo(modelo);
+    if(modelo.originalModel){painel.insertAdjacentHTML('beforeend','<label>Ciclo autorizado<select name="cycleId" required>'+ (modelo.usageContexts||[]).map(function(c){return '<option value="'+ui.escaparHtml(c.id)+'">'+ui.escaparHtml(c.label||c.id)+'</option>';}).join('')+'</select></label>');}
     titulo.required = !isMemberPresentation && modelo.exigeTituloPublico === true;
     tituloLabel.hidden = isMemberPresentation;
     descricaoPublicaLabel.hidden = isMemberPresentation;
@@ -4736,3 +4737,4 @@
     iniciarAtividades();
   }
 })(window);
+
