@@ -57,12 +57,4 @@ document.addEventListener('submit',async e=>{
 });
 document.addEventListener('portal:navigationchange',e=>{const id=e.detail?.rota?.id;generation++;window.PortalDesign.closeDetailDialog(governanceModal,true);document.getElementById('exceptional-window-entry')?.remove();if(id==='admin-ciclos-semestres')void loadCycles();if(id==='admin-justificativas'&&window.PortalGeapaAuth?.canRegisterAttendance()){const bar=document.createElement('p');bar.id='exceptional-window-entry';bar.innerHTML='<button data-exceptional-window>Histórico de prazos extraordinários</button>';document.getElementById('placeholder-content').before(bar);}});
 document.addEventListener('portal:act-session-cleared',()=>{generation++;shown=null;window.PortalDesign.closeDetailDialog(governanceModal,true);dialog?.close();if(dialog)dialog.textContent='';if(panel())panel().textContent='';document.getElementById('exceptional-window-entry')?.remove();});
-// Extend the existing model form only with the newly approved explicit links.
-new MutationObserver(()=>{
- const form=document.querySelector('[data-activity-form="criar-atividade"]');if(!form||form.dataset.cycleFields)return;form.dataset.cycleFields='loading';
- const box=document.createElement('fieldset');box.innerHTML='<legend>Ciclo e semestre</legend><p>Carregando ciclos…</p>';form.prepend(box);
- void get('/admin/ciclos-semestres').then(d=>{if(!form.isConnected)return;box.innerHTML='<legend>Ciclo e semestre</legend><label>Ciclo de atividades<select name="cycleId" required><option value="">Selecione</option>'+d.cycles.filter(c=>c.status!=='CLOSED').map(c=>`<option value="${esc(c.id)}">${esc(c.label)} · ${dates(c)}</option>`).join('')+'</select></label><label>Semestre letivo<select name="academicSemesterId"><option value="">Fora de semestre letivo</option></select></label>';
-  const cycle=form.elements.cycleId,semester=form.elements.academicSemesterId;
-  cycle.onchange=()=>{semester.innerHTML='<option value="">Fora de semestre letivo</option>'+d.semesters.filter(s=>s.cycleId===cycle.value).map(s=>`<option value="${esc(s.id)}">${esc(s.label)} · ${dates(s)}</option>`).join('');};form.dataset.cycleFields='ready';
- }).catch(e=>{box.textContent=e.message;const blocked=document.createElement('input');blocked.required=true;blocked.setCustomValidity('Atualize os ciclos antes de criar a atividade.');blocked.setAttribute('aria-label','Ciclos indisponíveis');box.append(blocked);});
-}).observe(document.body,{childList:true,subtree:true});
+// Creation resolves the current cycle and the dated canonical semester in Core.

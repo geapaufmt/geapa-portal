@@ -2710,7 +2710,7 @@
     }
 
     painel.innerHTML = montarPainelPadroesModelo(modelo);
-    if(modelo.originalModel){painel.insertAdjacentHTML('beforeend','<label>Ciclo autorizado<select name="cycleId" required>'+ (modelo.usageContexts||[]).map(function(c){return '<option value="'+ui.escaparHtml(c.id)+'">'+ui.escaparHtml(c.label||c.id)+'</option>';}).join('')+'</select></label>');}
+    painel.insertAdjacentHTML('beforeend','<p class="geapa-detail-note">O ciclo vigente e o semestre letivo serão identificados pelo Core ao validar a data da atividade.</p>');
     titulo.required = !isMemberPresentation && modelo.exigeTituloPublico === true;
     tituloLabel.hidden = isMemberPresentation;
     descricaoPublicaLabel.hidden = isMemberPresentation;
@@ -3112,6 +3112,8 @@
       'ID previsto: ' + (preview.idAtividade || 'gerado pelo backend'),
       'Titulo: ' + (preview.tituloPublico || 'nao informado'),
       'Data: ' + (preview.dataAtividade || 'nao informada'),
+      'Ciclo: ' + (preview.cycleLabel || preview.cycleId || 'Conferir contexto'),
+      'Semestre letivo: ' + (preview.academicSemesterLabel || 'Semestre não definido'),
       'Horario: ' + [preview.horarioInicio, preview.horarioFim].filter(Boolean).join(' as '),
       'Status: ' + (preview.statusOperacional || 'PLANEJADA') + ' / ' + (preview.statusPublicacaoPortal || 'RASCUNHO')
     ].join('\n');
