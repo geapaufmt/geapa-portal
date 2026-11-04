@@ -56,6 +56,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
  const commands=new CommandService(auth,transport);
  const institutionalEditor=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:'https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app',attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl});
  const institutionalParameter=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:'https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app',attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'parameter'});
+ const institutionalGovernance=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:'https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app',attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'governance'});
  const institutionalVisibility=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:'https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app',attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'visibility'});
  const memberNode=createMemberNode({auth,db,storage,config:memberNodeConfig,fetchImpl});
  const controlledSave=createControlledSave({auth,db,storage,fetchImpl});
@@ -196,6 +197,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
   }finally{active.delete(lockName)}
  }
  async function apiPost(route,params={}){
+  if(route==='/admin/gestao-institucional/governanca/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalGovernance.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/parametros/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalParameter.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/visibilidade'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalVisibility.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalEditor.run(q.phase,q.payload)};}

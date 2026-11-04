@@ -1174,6 +1174,14 @@
         "dev"
       ],
       "generated": "build/typescript/model-frequency-editor.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-governance.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-governance.mjs"
     }
   ]
 }
