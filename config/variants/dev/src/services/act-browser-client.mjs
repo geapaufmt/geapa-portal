@@ -197,7 +197,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
   }finally{active.delete(lockName)}
  }
  async function apiPost(route,params={}){
-  if(route==='/admin/gestao-institucional/governanca/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status','document'].includes(q.phase));return {ok:true,data:await institutionalGovernance.run(q.phase,q.payload)};}
+  if(route==='/admin/gestao-institucional/governanca/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status','document','attachment'].includes(q.phase));return {ok:true,data:await institutionalGovernance.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/parametros/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalParameter.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/visibilidade'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalVisibility.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalEditor.run(q.phase,q.payload)};}

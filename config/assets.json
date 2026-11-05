@@ -1190,6 +1190,30 @@
         "prod"
       ],
       "generated": "build/typescript/institutional-minutes.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-document-files.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-document-files.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-documentary-links.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-documentary-links.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-governance-search.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-governance-search.mjs"
     }
   ]
 }
