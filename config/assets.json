@@ -1182,6 +1182,14 @@
         "prod"
       ],
       "generated": "build/typescript/institutional-governance.mjs"
+    },
+    {
+      "url": "/assets/act-ui/institutional-minutes.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/institutional-minutes.mjs"
     }
   ]
 }

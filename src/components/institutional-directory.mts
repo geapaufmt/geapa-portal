@@ -34,8 +34,23 @@ const section=()=>{const id=(window as Host).PortalGeapaNavigation?.getRotaAtual
 function close(){const opened=dialog;if(opened){dialog=undefined;closeDetailDialog(opened,true);opened.remove();}}
 function clear(){governanceCleanup?.();governanceCleanup=undefined;generation++;current=undefined;editing=undefined;prepared=undefined;clearTimeout(timer);close();}
 function expired(el:HTMLElement){clear();el.innerHTML='<p>Atualize para revalidar a consulta institucional.</p><button data-institutional-refresh>Atualizar</button>';}
+// A long minute form may outlive a read proof. Renew through the same authenticated
+// reader, retaining the form only while its complete authorized model is unchanged.
+function scheduleExpiry(el:HTMLElement,epoch:number){
+ const deadline=current?.validUntil||0;clearTimeout(timer);
+ timer=setTimeout(async()=>{
+  if(epoch!==generation)return;
+  if(!document.querySelector('[data-minutes-dialog]')){timer=setTimeout(()=>{if(epoch===generation)expired(el);},Math.max(0,deadline-Date.now()));return;}
+  timer=setTimeout(()=>{if(epoch===generation)expired(el);},Math.max(0,deadline-Date.now()));
+  try{const r=await (window as Host).PortalGeapaApi?.apiGet('/admin/gestao-institucional',{section:'governance',view:'instruments',instrument,query,visibility,page});
+   if(epoch!==generation)return;
+   if(!r?.ok||r.data.validUntil<=Date.now()||JSON.stringify(r.data.governance)!==JSON.stringify(current?.governance)){expired(el);return;}
+   current=r.data;scheduleExpiry(el,epoch);
+  }catch{if(epoch===generation)expired(el);}
+ },Math.max(0,deadline-Date.now()-10000));
+}
 async function load(){const s=section(),el=document.getElementById('placeholder-content');if(!s||!el)return;clear();const epoch=generation;el.classList.add('geapa-admin');el.textContent='Consultando informações institucionais…';
- try{const r=await (window as Host).PortalGeapaApi?.apiGet('/admin/gestao-institucional',(['norms','governance'].includes(s)?{section:s,view:'instruments',instrument,query,visibility,page}:{section:s,query,kind,page}));if(epoch!==generation||section()!==s)return;if(!r?.ok)throw Error(['FEATURE_DISABLED','PILOT_DISABLED','PROJECTION_NOT_READY'].includes(r?.code||'')?'A consulta aguarda a aprovação de sua base documental e do escopo de acesso.':r?.message||'Consulta institucional indisponível.');if(!['institutional-consultation-v1','institutional-instruments-view-v1'].includes(r.data.schemaVersion)||r.data.validUntil<=Date.now())throw Error('A autorização da consulta expirou.');current=r.data;el.innerHTML=current.schemaVersion==='institutional-instruments-view-v1'?renderNormView(current as unknown as NormView,query,visibility):renderInstitutionalDirectory(current,query,kind);if(current.governance)governanceCleanup=mountGovernance(el,current.governance,load,query);timer=setTimeout(()=>{if(epoch===generation)expired(el);},current.validUntil-Date.now());}
+ try{const r=await (window as Host).PortalGeapaApi?.apiGet('/admin/gestao-institucional',(['norms','governance'].includes(s)?{section:s,view:'instruments',instrument,query,visibility,page}:{section:s,query,kind,page}));if(epoch!==generation||section()!==s)return;if(!r?.ok)throw Error(['FEATURE_DISABLED','PILOT_DISABLED','PROJECTION_NOT_READY'].includes(r?.code||'')?'A consulta aguarda a aprovação de sua base documental e do escopo de acesso.':r?.message||'Consulta institucional indisponível.');if(!['institutional-consultation-v1','institutional-instruments-view-v1'].includes(r.data.schemaVersion)||r.data.validUntil<=Date.now())throw Error('A autorização da consulta expirou.');current=r.data;el.innerHTML=current.schemaVersion==='institutional-instruments-view-v1'?renderNormView(current as unknown as NormView,query,visibility):renderInstitutionalDirectory(current,query,kind);if(current.governance)governanceCleanup=mountGovernance(el,current.governance,load,query);scheduleExpiry(el,epoch);}
  catch(e){if(epoch===generation){el.replaceChildren();const message=document.createElement('p');message.setAttribute('role','alert');message.textContent=e instanceof Error?e.message:'Consulta indisponível.';const button=document.createElement('button');button.type='button';button.dataset.institutionalRefresh='';button.textContent='Atualizar';el.append(message,button);}}
 }
 export function renderInstitutionalEdit(r:InstitutionalRecord,revision:number):string{
