@@ -3682,7 +3682,8 @@
     });
 
     api.apiGet('/atividades/chamada', {
-      idAtividade: idAtividade
+      idAtividade: idAtividade,
+      readOnly: somenteLeitura===true
     }).then(function tratarResposta(resposta) {
       if (!resposta.ok) {
         throw new Error(resposta.message || 'Não foi possível carregar a chamada.');

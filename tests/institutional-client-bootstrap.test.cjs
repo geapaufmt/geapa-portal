@@ -7,6 +7,6 @@ for(const env of ['dev','prod'])test(env+' client constructs all institutional a
  Object.assign(ctx,{deployment:{environment:env.toUpperCase(),projectId:project,endpoint},specializedReadersConfig:{projectId:project,endpoint},need:a.ok,frozen:x=>x,createInstitutionalEditor:options=>{calls.push(options);return {run(){}}}});
  vm.createContext(ctx);vm.runInContext(source.replace(/^import .+;\r?\n/gm,'').replace(/export /g,''),ctx);
  const client=ctx.createActBrowserClient({auth:{},db:{app:{options:{projectId:project}}},sdk:{},storage:{}});
- a.equal(typeof client.apiPost,'function');a.equal(calls.length,3);a.deepEqual(calls.map(x=>x.mode||'contact'),['contact','parameter','visibility']);
+ a.equal(typeof client.apiPost,'function');a.equal(calls.length,4);a.deepEqual(calls.map(x=>x.mode||'contact'),['contact','parameter','governance','visibility']);
  for(const options of calls){a.equal(options.projectId,project);a.equal(options.endpoint,endpoint);a.equal(typeof options.attest,'function');}
 });
