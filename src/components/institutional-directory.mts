@@ -44,9 +44,9 @@ function scheduleExpiry(el:HTMLElement,epoch:number){
  const deadline=current?.validUntil||0;clearTimeout(timer);
  timer=setTimeout(async()=>{
   if(epoch!==generation)return;
-  if(!document.querySelector('[data-minutes-dialog]')){timer=setTimeout(()=>{if(epoch===generation)expired(el);},Math.max(0,deadline-Date.now()));return;}
+  if(!document.querySelector('[data-minutes-dialog],[data-governance-dialog]')){timer=setTimeout(()=>{if(epoch===generation)expired(el);},Math.max(0,deadline-Date.now()));return;}
   timer=setTimeout(()=>{if(epoch===generation)expired(el);},Math.max(0,deadline-Date.now()));
-  try{const r=await (window as Host).PortalGeapaApi?.apiGet('/admin/gestao-institucional',{section:'governance',view:'instruments',instrument,query,visibility,page});
+  try{const r=await (window as Host).PortalGeapaApi?.apiGet('/admin/gestao-institucional',{section:'governance',view:'instruments',instrument,query,visibility,page,governanceQuery:JSON.stringify(governanceQuery)});
    if(epoch!==generation)return;
    if(!r?.ok||r.data.validUntil<=Date.now()||JSON.stringify(r.data.governance)!==JSON.stringify(current?.governance)){expired(el);return;}
    current=r.data;scheduleExpiry(el,epoch);
