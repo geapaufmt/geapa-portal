@@ -15,10 +15,11 @@ export function createInstitutionalEditor({auth,storage,config,projectId,endpoin
   try{const r=await fetchImpl(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,'X-Firebase-AppCheck':check},body:JSON.stringify({action,request}),credentials:'omit',redirect:'error',cache:'no-store',signal:c.signal});const v=await r.json();auth.assert(t);if(!r.ok||v.error)fail(v.error?.code||'RECONCILIATION_REQUIRED');if(!v.result)fail('SCHEMA_UNSUPPORTED');return v.result;}
   finally{clearTimeout(timer);auth.pending?.delete(c);}
  }
- async function run(phase:'preview'|'execute'|'status',payload:unknown):Promise<Result>{
+ async function run(phase:'preview'|'execute'|'status'|'document',payload:unknown):Promise<Result>{
   if(busy)fail('COMMAND_PENDING');busy=true;
   try{
-   const t=auth.capture(),encoded=new TextEncoder().encode(projectId+'|'+t.uid),digest=await crypto.subtle.digest('SHA-256',encoded),name=(mode==='governance'?'geapa.institutional.governance.pending.v1.':mode==='contact'?'geapa.institutional.pending.v1.':mode==='parameter'?'geapa.institutional.parameter.pending.v1.':'geapa.institutional.visibility.pending.v1.')+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');auth.assert(t);
+   const t=auth.capture();if(phase==='document'){if(mode!=='governance')fail('COMMAND_TYPE_INVALID');return call(prefix+'Document',payload,t);}
+   const encoded=new TextEncoder().encode(projectId+'|'+t.uid),digest=await crypto.subtle.digest('SHA-256',encoded),name=(mode==='governance'?'geapa.institutional.governance.pending.v1.':mode==='contact'?'geapa.institutional.pending.v1.':mode==='parameter'?'geapa.institutional.parameter.pending.v1.':'geapa.institutional.visibility.pending.v1.')+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');auth.assert(t);
    let pending:Key|null=null;try{pending=JSON.parse(storage.getItem(name)||'null');}catch{fail('COMMAND_RECONCILIATION_REQUIRED');}
    if(pending&&(!/^[a-f0-9]{32}$/.test(pending.operationId)||!/^[a-f0-9]{64}$/.test(pending.digest)||Object.keys(pending).sort().join()!=='digest,operationId'))fail('COMMAND_RECONCILIATION_REQUIRED');
    if(pending){const r=await call(prefix+'Status',pending,t);if(['COMPLETED','NOT_ADMITTED'].includes(r.state||'')){auth.assert(t);storage.removeItem(name);}if(phase!=='status')fail(r.state==='COMPLETED'?'PREVIOUS_OPERATION_COMPLETED':'COMMAND_NOT_ADMITTED');return r;}
