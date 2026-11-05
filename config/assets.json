@@ -1208,6 +1208,11 @@
       "generated": "build/typescript/institutional-documentary-links.mjs"
     },
     {
+      "url": "/assets/act-ui/institutional-document-management.mjs",
+      "environments": ["dev", "prod"],
+      "generated": "build/typescript/institutional-document-management.mjs"
+    },
+    {
       "url": "/assets/act-ui/institutional-governance-search.mjs",
       "environments": [
         "dev",
