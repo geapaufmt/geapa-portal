@@ -1209,7 +1209,10 @@
     },
     {
       "url": "/assets/act-ui/institutional-document-management.mjs",
-      "environments": ["dev", "prod"],
+      "environments": [
+        "dev",
+        "prod"
+      ],
       "generated": "build/typescript/institutional-document-management.mjs"
     },
     {
@@ -1219,6 +1222,22 @@
         "prod"
       ],
       "generated": "build/typescript/institutional-governance-search.mjs"
+    },
+    {
+      "url": "/assets/act-ui/private-drafts.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/private-drafts.mjs"
+    },
+    {
+      "url": "/assets/act-ui/session-diagnostics.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/session-diagnostics.mjs"
     }
   ]
 }

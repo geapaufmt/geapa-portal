@@ -6,7 +6,7 @@ const fn=source.slice(source.indexOf('async function performRefresh('),source.in
 function fixture(requested='admin-membros'){
  const calls=[],state={requested,rendered:'inicio',valid:true,allow:true,pending:null,gate:true};
  const elements=new Map(),context={portal:null,uid:'SYNTHETIC',busy:null,epoch:1,enrollmentReadPaused:false,enrollment:null,
-  contextReadPaused:false,navigator:{onLine:true},document:{hidden:false},recoverContextRead:({read})=>read(),routeMap:{'minha-situacao':['minha-situacao','status']},current:()=>state.valid,
+  contextReadPaused:false,navigator:{onLine:true},document:{querySelector:()=>null,hidden:false},recoverContextRead:({read})=>read(),routeMap:{'minha-situacao':['minha-situacao','status']},current:()=>state.valid,
   $:id=>{if(!elements.has(id))elements.set(id,{dataset:{state:'LOADING'}});return elements.get(id)},
   phase:(el,status)=>el.dataset.state=status,deadline:p=>p,scheduleExpiry(){},loadRoute:async()=>calls.push('load:'+state.rendered),observe:async()=>calls.push('observe'),actUid:()=>true,
   safeCode:e=>e.code,clearViews(){calls.push('clear')},failure:async(error)=>{throw error},messages:{},
@@ -33,6 +33,7 @@ for(const route of ['admin-atividades','inicio'])test('unrelated route does not 
 test('empty initial URL keeps existing default route',async()=>{const f=fixture('');await f.run();a.equal(f.state.rendered,'minha-situacao');});
 
 test('manual recovery restores requested board route after initial context failure',async()=>{const f=fixture('diretoria-competencias');await f.run({initial:false});a.equal(f.state.rendered,'diretoria-competencias');a.equal(f.context.window.PortalDevContext.accessPending,false);});
+test('an old access-status response cannot schedule expiry for a new session',async()=>{const f=fixture('inicio');let release,deadlines=0;f.context.scheduleExpiry=()=>deadlines++;f.context.portal.repositories.accessStatus=()=>new Promise(r=>release=r);const old=f.run();await turn();f.state.valid=false;release({data:{status:'ACTIVE',validUntil:'2099-01-01'}});await old;a.equal(deadlines,0);});
 test('background recovery also settles a previously blocked board route',async()=>{const f=fixture('diretoria-competencias');await f.run({background:true});a.equal(f.state.rendered,'diretoria-competencias');});
 test('manual Members recovery waits for fresh Members authorization',async()=>{const f=fixture(),pending=f.run({initial:false});await turn();a.equal(f.state.rendered,'inicio');a(f.state.pending);f.state.pending();await pending;a.equal(f.state.rendered,'admin-membros');});
 test('ordinary refresh never rerenders an already open route or loses a draft',async()=>{const f=fixture('diretoria-competencias');f.state.rendered='diretoria-competencias';f.state.gate=false;await f.run({background:true});a(!f.calls.some(x=>x.startsWith('restore:')));});
