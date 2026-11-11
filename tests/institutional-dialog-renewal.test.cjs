@@ -7,3 +7,37 @@ test('slow renewal crossing proof expiry recovers without changing editor genera
 test('late institutional renewal cannot restore a disposed identity or screen',async()=>{const f=fixture();let release;f.win.PortalGeapaApi.apiGet=()=>new Promise(r=>release=r);await f.advance(30000);vm.runInContext('generation++;current=undefined;',f.context);release({ok:true,data:{validUntil:120000}});await flush();a.equal(vm.runInContext('current',f.context),undefined);});
 test('contact and parameter renewal preserve their own reader contract',async()=>{for(const section of ['identity','parameters']){const f=fixture();f.win.PortalGeapaNavigation.getRotaAtual=()=> 'institutional-'+section;let params;f.win.PortalGeapaApi.apiGet=async(_,p)=>{params=p;return {ok:true,data:{validUntil:120000}};};await f.advance(30000);a.equal(params.section,section);a.equal(params.view,undefined);a.equal(params.kind,'');a.equal(f.blocked,false);}});
 test('norm detail opening signals renewal including an idle checkpoint',()=>{const source=fs.readFileSync('src/components/institutional-directory.mts','utf8');const handler=source.slice(source.lastIndexOf("document.addEventListener('click',e=>{if(!section()"));a.match(handler,/openDetailDialog\(opened,[\s\S]*document\.dispatchEvent\(new CustomEvent\('portal:institutional-dialog-opened'\)\)/);});
+
+function failedListingFixture(){
+ const f=fixture(),listeners={};f.el.classList={add(){}};f.el.replaceChildren=()=>{f.el.innerHTML='';f.el.children=[];};f.el.append=(...x)=>{f.el.children=x;};
+ f.context.document.createElement=tag=>({tag,setAttribute(){},dataset:{}});
+ f.context.institutionalSections=[['governance']];f.context.renderNormView=()=> 'authorized list';
+ f.context.document.addEventListener=(name,callback)=>listeners[name]=callback;
+ // Reinstall only the actual event handlers, preserving the module closure.
+ const source=fs.readFileSync('dist/dev/assets/act-ui/institutional-directory.mjs','utf8');
+ const start=source.indexOf("document.addEventListener('portal:navigationchange'");
+ const end=source.indexOf("document.addEventListener('submit'",start);
+ vm.runInContext(source.slice(start,end),f.context);vm.runInContext('clear();',f.context);
+ return {...f,listeners};
+}
+test('context recovery remounts a failed listing once and reveals only a newly authorized result',async()=>{
+ const f=failedListingFixture();let release,reads=0;f.el.hidden=true;
+ f.win.PortalGeapaApi.apiGet=()=>{reads++;return new Promise(resolve=>release=resolve);};
+ f.listeners['portal:act-context-ready']();f.listeners['portal:act-context-ready']();
+ a.equal(reads,1);f.listeners['portal:act-session-suspended']();a.equal(f.el.hidden,true);
+ release({ok:true,data:{schemaVersion:'institutional-instruments-view-v1',validUntil:60000}});await flush();
+ a.equal(f.el.hidden,false);a.equal(f.el.innerHTML,'authorized list');
+});
+test('listing failure after suspension exposes safe retry feedback rather than an invisible access gate',async()=>{
+ const f=failedListingFixture();let reject;f.win.PortalGeapaApi.apiGet=()=>new Promise((_,r)=>reject=r);
+ f.listeners['portal:act-context-ready']();f.listeners['portal:act-session-suspended']();
+ reject(vm.runInContext("Error('temporary read unavailable')",f.context));await flush();
+ a.equal(f.el.hidden,false);a.equal(f.el.children[0].textContent,'temporary read unavailable');a.equal(f.el.children[1].textContent,'Atualizar');
+ a.equal(vm.runInContext('current',f.context),undefined);
+});
+test('late listing recovery cannot reveal a disposed identity',async()=>{
+ const f=failedListingFixture();let release;f.win.PortalGeapaApi.apiGet=()=>new Promise(r=>release=r);
+ f.listeners['portal:act-context-ready']();f.listeners['portal:act-session-cleared']();f.el.hidden=true;
+ release({ok:true,data:{schemaVersion:'institutional-instruments-view-v1',validUntil:60000}});await flush();
+ a.equal(f.el.hidden,true);a.equal(vm.runInContext('current',f.context),undefined);
+});
