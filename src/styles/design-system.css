@@ -119,6 +119,7 @@
 .geapa-board-grid{align-items:stretch}.geapa-board-card{border-top:0;gap:10px;cursor:pointer;transition:box-shadow 200ms ease,transform 200ms ease,border-color 200ms ease}
 .geapa-board-card:hover,.geapa-board-card:focus-within{border-color:#167d0a55;box-shadow:0 5px 16px #0303020c;transform:translateY(-2px)}
 .geapa-board-card .geapa-record-head h3{font-size:18px;line-height:1.35;color:var(--geapa-ink);margin:0}.geapa-board-card .geapa-badge{flex-shrink:0}
+.geapa-board-history-card{align-self:start}.geapa-board-history-card>p{font-size:13px;line-height:1.5;margin:0}.geapa-board-history-card>button{margin-top:4px}[data-board-procedures]{margin-top:24px}[data-board-procedures]>p{font-size:13px;line-height:1.6;margin:8px 0 16px}[data-board-procedures]>.geapa-record-grid{margin-top:12px}
 .geapa-board-person{font-size:16px;font-weight:650;color:var(--geapa-ink);margin:2px 0 0}
 .geapa-board-card .geapa-detail-facts{gap:8px 14px;margin:2px 0}.geapa-board-card .geapa-detail-facts>div:first-child{grid-column:1/-1}.geapa-board-card .geapa-detail-facts dd{font-size:13px}
 .geapa-board-duty{font-size:13px;line-height:1.5;margin:0;color:var(--geapa-ink)}

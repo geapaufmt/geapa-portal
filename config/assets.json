@@ -1238,6 +1238,30 @@
         "dev"
       ],
       "generated": "build/typescript/session-diagnostics.mjs"
+    },
+    {
+      "url": "/assets/act-ui/auth-loading.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/auth-loading.mjs"
+    },
+    {
+      "url": "/assets/act-ui/board-history.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/board-history.mjs"
+    },
+    {
+      "url": "/assets/act-ui/board-procedures.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/board-procedures.mjs"
     }
   ]
 }
