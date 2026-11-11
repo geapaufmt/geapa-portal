@@ -141,7 +141,22 @@ export function openDetailDialog(modal:HTMLElement,onClose:()=>void=()=>{}):void
   modal.hidden=false;document.body.classList.add('modal-open');panel.tabIndex=-1;
   (panel.querySelector<HTMLElement>('.modal-topbar button')??panel).focus();
 }
+/** A suspended proof blocks actions, not the user's own unsaved text. */
+export function suspendProtectedDialogs(suspended:boolean,message='Acesso em revalidação. Seu texto está preservado nesta aba.',contextOnly=false):void {
+ for(const modal of dialogs.keys()){
+  if(contextOnly&&modal.matches('[data-minutes-dialog],[data-institutional-dialog],[data-governance-dialog]'))continue;
+  if(!modal.hasAttribute('data-geapa-protect-draft')){if(suspended)closeDetailDialog(modal,true);continue;}
+  if(suspended){modal.dataset.geapaSuspended='true';let notice=modal.querySelector<HTMLElement>('[data-session-notice]');if(!notice){notice=document.createElement('p');notice.dataset.sessionNotice='';notice.setAttribute('role','status');modal.querySelector('.modal-topbar')?.after(notice);}notice.textContent=message;}
+  else{delete modal.dataset.geapaSuspended;modal.querySelector('[data-session-notice]')?.remove();}
+  modal.querySelectorAll<HTMLButtonElement>('button').forEach(b=>{if(b.matches('[data-admin-modal-close],[data-keep-draft],[data-discard-draft]'))return;if(suspended){if(!b.hasAttribute('data-session-disabled'))b.dataset.sessionDisabled=String(b.disabled);b.disabled=true;}else if(b.hasAttribute('data-session-disabled')){b.disabled=b.dataset.sessionDisabled==='true';delete b.dataset.sessionDisabled;}});
+ }
+}
 export function install():void {
+  const block=(e:Event)=>{if(e.target instanceof Element&&e.target.closest('[data-geapa-suspended]')&&(e.type==='submit'||e.target.closest('button:not([data-admin-modal-close]):not([data-keep-draft]):not([data-discard-draft]),a'))){e.preventDefault();e.stopImmediatePropagation();}};
+  document.addEventListener('submit',block,true);document.addEventListener('click',block,true);
+  document.addEventListener('portal:act-session-suspended',()=>suspendProtectedDialogs(true));
+  document.addEventListener('portal:act-context-ready',()=>suspendProtectedDialogs(false,undefined,true));
+  window.addEventListener('beforeunload',e=>{if(document.querySelector('[data-geapa-protect-draft][data-geapa-dirty="true"]')){e.preventDefault();e.returnValue='';}});
   const dirty=(e:Event)=>{if(!(e.target instanceof Element))return;e.target.closest<HTMLElement>('[data-geapa-protect-draft]')?.setAttribute('data-geapa-dirty','true');};document.addEventListener('input',dirty);document.addEventListener('change',dirty);
   if(!document.querySelector('link[data-geapa-design]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/assets/act-ui/design-system.css';css.dataset.geapaDesign='';document.head.append(css);}
   const close=(except?:Element)=>document.querySelectorAll<HTMLDetailsElement>('[data-geapa-options][open]').forEach(el=>{if(el!==except)el.open=false;});

@@ -781,10 +781,7 @@
   function montarAcaoJustificativaFrequencia(registro, id) {
     var acao = String((registro || {}).acaoJustificativa || '').toUpperCase();
     var podeEnviar = (registro || {}).podeEnviarJustificativa === true ||
-      (registro || {}).podeComplementarJustificativa === true ||
-      acao === 'ENVIAR_JUSTIFICATIVA' ||
-      acao === 'ENVIAR_JUSTIFICATIVA_FORA_PRAZO' ||
-      acao === 'COMPLEMENTAR_JUSTIFICATIVA';
+      (registro || {}).podeComplementarJustificativa === true;
 
     if (podeEnviar && ((registro || {}).podeComplementarJustificativa === true || acao === 'COMPLEMENTAR_JUSTIFICATIVA')) {
       return botaoAcao('justificativa-enviar', id, 'Complementar justificativa', 'primary');
