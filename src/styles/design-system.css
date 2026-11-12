@@ -180,3 +180,6 @@ body:has([data-axis-public]) #estado-acesso,body:has([data-axis-public]) #sessio
 @media(max-width:650px){.geapa-module-tabs{gap:.25rem}.geapa-module-tabs>a,.geapa-module-tabs>.geapa-restricted{max-width:15rem}}
 @media(prefers-reduced-motion:reduce){.geapa-module-tabs>a{transition:none}}
 .geapa-restricted[hidden]{display:none!important}
+.geapa-page-options-panel>.geapa-restricted>.geapa-restriction-info{flex:0 0 44px;width:44px;padding:0;text-align:center}
+.geapa-page-options-panel:has(.geapa-restricted,[data-board-menu-action]){max-height:min(580px,65dvh);overflow-y:auto;overscroll-behavior:contain}
+.geapa-page-options-panel:has([data-board-menu-action])>button{white-space:normal;overflow-wrap:anywhere;min-width:0;max-width:100%;text-align:left}

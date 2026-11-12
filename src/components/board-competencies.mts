@@ -2,10 +2,26 @@ import {queueProcedureContext,type ProcedureContext} from './board-procedures.mj
 import {boardHistoryCards,boardHistoryDetail,type BoardHistory,type HistoryFilter} from './board-history.mjs';
 import {esc,header,badge,detailFacts,detailSection,openDetailDialog,closeDetailDialog} from './design-system.mjs';
 import {type Tenure,tenureSegments} from './institutional-tenure.mjs';
+import {restricted} from './admin-navigation.mjs';
 type Permission={label:string;module:string;action:string;status:'CONDITIONAL'|'NOT_ENABLED';reason:string;limits:{cycleIds:string[];nominalResources:boolean;nominalPersons:boolean;policyValidUntil:string|null}};
 type ProcedureSummary={balance:{state:string;reason?:string;asOf?:string;remainingAccrued?:number;remainingAfterDocumentedTerms?:number;notice?:string};pending:{id:string;title:string;state:string;effect:string;at:number}[];latest:{id:string;title:string;state:string;effect:string;at:number}|null};
 type Office={procedureSummary?:ProcedureSummary|null;procedureActions?:(ProcedureContext&{label:string})[];personId:string;name:string;roleKey:string;boardId:string;startDate:string;endDate:string|null;tenure?:Tenure;status?:string;duties:{source:string;summary:string;verified:boolean};permissions:Permission[]};
-export type BoardCompetencies={schemaVersion:'board-competencies-v1';asOf:string;validUntil:number;items:Office[];history?:BoardHistory|null;notice:string};
+type BoardAction={id:string;label:string;enabled:boolean;reason:string;reasonCode:string|null;stage:'PROPOSAL'|'READ';condition:string;context?:ProcedureContext};
+type BoardActions={schemaVersion:'board-action-catalog-v1';validUntil:number;items:BoardAction[]};
+export type BoardCompetencies={schemaVersion:'board-competencies-v1';asOf:string;validUntil:number;items:Office[];history?:BoardHistory|null;actionCatalog?:BoardActions;notice:string};
+const menuLabels:Record<string,string>={TEMPORARY_OFFICE:'Criar cargo diretivo temporário',DIRECTOR_APPOINTMENT:'Nomear diretor não eletivo',ADVISOR_APPOINTMENT:'Nomear assessor',ORDINARY_EXTENSION:'Prorrogar vigência ordinariamente',EXTRAORDINARY_EXTENSION:'Propor prorrogação extraordinária',VOLUNTARY_EXIT:'Solicitar desligamento voluntário',DIRECTOR_DISMISSAL:'Propor destituição de diretor não eletivo',ADVISOR_END:'Encerrar assessoria',CONSULT_PROCEDURES:'Consultar procedimentos e deliberações'};
+/** Discovery is display-only; no role names or permission counts authorize actions. */
+export function availableBoardAction(data:BoardCompetencies,id:string,now=Date.now()):BoardAction|undefined{
+ const c=data.actionCatalog;if(!Object.hasOwn(menuLabels,id)||!Number.isFinite(data.validUntil)||data.validUntil<=now||c?.schemaVersion!=='board-action-catalog-v1'||!Number.isFinite(c.validUntil)||c.validUntil<=now||!Array.isArray(c.items))return;
+ const matches=c.items.filter(a=>a.id===id);if(matches.length!==1)return;const a=matches[0]!;
+ if(a.enabled!==true)return;if(id==='CONSULT_PROCEDURES')return a.stage==='READ'?a:undefined;
+ return a.stage==='PROPOSAL'&&a.context?.type===id&&!!a.context.boardId?a:undefined;
+}
+export function boardOptions(data:BoardCompetencies,now=Date.now()):string{
+ return Object.entries(menuLabels).map(([id,label])=>{const a=availableBoardAction(data,id,now),hint=data.actionCatalog?.items.find(v=>v.id===id);
+  return a?`<button type="button" data-board-menu-action="${id}">${esc(label)}</button>`:restricted(label,data.actionCatalog?.schemaVersion!=='board-action-catalog-v1'?'O leitor ainda não informou a disponibilidade desta ação. Atualize a consulta.':data.validUntil<=now||data.actionCatalog.validUntil<=now?'A consulta expirou. Atualize para revalidar o acesso.':hint?.reason||'Operação indisponível nesta consulta.');
+ }).join('')+'<button type="button" data-board-refresh>Atualizar consulta</button>';
+}
 type OfficeSlot={key:string;label:string;offices:Office[]};
 // Display order and aliases only. These values never authorize an operation.
 const offices:readonly (readonly [string,string,readonly string[]])[]=[
@@ -53,7 +69,7 @@ export function renderBoardCompetencies(data:BoardCompetencies,tab:'offices'|'hi
  const slots=boardSlots(data);
  const tabs=`<nav aria-label="Diretoria e competências"><button type="button" data-board-tab="offices" aria-current="${tab==='offices'?'page':'false'}">Cargos e Competências</button> <button type="button" data-board-tab="history" aria-current="${tab==='history'?'page':'false'}">Histórico de Diretorias</button></nav>`;
  if(tab==='history')return header('Diretoria e competências','Gestões, composição e documentação institucional.','<button type="button" data-board-refresh>Atualizar consulta</button>')+tabs+boardHistoryCards(data.history,historyFilter);
- return tabs+header('Diretoria e competências','Quem compõe a gestão e quais acessos estão configurados no Portal.','<button type="button" data-board-refresh>Atualizar consulta</button>')+`<p class="geapa-board-notice">${esc(data.notice)}</p><p class="geapa-results">Consulta atualizada em ${esc(new Date(data.asOf).toLocaleString('pt-BR',{timeZone:'America/Cuiaba'}))}</p><div class="geapa-record-grid geapa-board-grid">${slots.slice(0,7).map((slot,i)=>officeCard(slot,i,data.asOf)).join('')}</div>`+(slots.length>7?`<h3 class="geapa-board-extra">Outros cargos informados pelo Core</h3><div class="geapa-record-grid geapa-board-grid">${slots.slice(7).map((slot,i)=>officeCard(slot,i+7,data.asOf)).join('')}</div>`:'');
+ return tabs+header('Diretoria e competências','Quem compõe a gestão e quais acessos estão configurados no Portal.',boardOptions(data))+`<p class="geapa-board-notice">${esc(data.notice)}</p><p class="geapa-results">Consulta atualizada em ${esc(new Date(data.asOf).toLocaleString('pt-BR',{timeZone:'America/Cuiaba'}))}</p><div class="geapa-record-grid geapa-board-grid">${slots.slice(0,7).map((slot,i)=>officeCard(slot,i,data.asOf)).join('')}</div>`+(slots.length>7?`<h3 class="geapa-board-extra">Outros cargos informados pelo Core</h3><div class="geapa-record-grid geapa-board-grid">${slots.slice(7).map((slot,i)=>officeCard(slot,i+7,data.asOf)).join('')}</div>`:'');
 }
 function permissionGroups(items:Permission[]):string{
  const groups=new Map<string,Permission[]>();for(const p of items){const group=p.module||'Outras permissões informadas';groups.set(group,[...(groups.get(group)||[]),p]);}
@@ -77,6 +93,7 @@ async function load(){const w=window as PortalWindow,el=document.getElementById(
  catch(e){if(epoch===generation){clear();el.replaceChildren();const p=document.createElement('p');p.setAttribute('role','alert');p.textContent=e instanceof Error?e.message:'Consulta indisponível.';const b=document.createElement('button');b.type='button';b.dataset.boardRefresh='';b.textContent='Atualizar consulta';el.append(p,b);}}
 }
 if(typeof document!=='undefined'){
+ document.addEventListener('click',e=>{if(!(e.target instanceof Element)||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;const button=e.target.closest<HTMLElement>('[data-board-menu-action]');if(!button?.closest('#placeholder-content'))return;e.preventDefault();if(!current)return;const action=availableBoardAction(current,button.dataset.boardMenuAction||'');if(!action)return;if(action.context)queueProcedureContext(action.context);closeDialog();location.hash='/admin/gestao-institucional/governance';});
  const applyHistoryFilter=()=>{if(!current?.history||current.validUntil<=Date.now())return;const el=document.querySelector('[data-board-history-results]');if(el){const temp=document.createElement('div');temp.innerHTML=boardHistoryCards(current.history,historyFilter);el.innerHTML=temp.querySelector('[data-board-history-results]')!.innerHTML;}};
  document.addEventListener('input',e=>{const target=e.target;if(target instanceof HTMLInputElement&&target.matches('[data-board-history-query]')){historyFilter.query=target.value;applyHistoryFilter();}});
  document.addEventListener('change',e=>{const target=e.target;if(target instanceof HTMLSelectElement&&target.matches('[data-board-history-state]')){historyFilter.state=target.value;applyHistoryFilter();}});
