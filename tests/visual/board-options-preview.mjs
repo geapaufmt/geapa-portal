@@ -1,0 +1,15 @@
+import '/assets/act-ui/board-competencies.mjs';
+import {mountProcedures} from '/assets/act-ui/board-procedures.mjs';
+// Local-only presentation fixtures; no Firebase, real identity or remote request.
+const mode=new URLSearchParams(location.search).get('role')||'director',now=Date.now(),until=now+600000;
+const types=['TEMPORARY_OFFICE','DIRECTOR_APPOINTMENT','ADVISOR_APPOINTMENT','ORDINARY_EXTENSION','EXTRAORDINARY_EXTENSION','VOLUNTARY_EXIT','DIRECTOR_DISMISSAL','ADVISOR_END'];
+const presidential=new Set(['TEMPORARY_OFFICE','DIRECTOR_APPOINTMENT','ORDINARY_EXTENSION','EXTRAORDINARY_EXTENSION','DIRECTOR_DISMISSAL']);
+const items=types.map(id=>{const enabled=mode!=='closed'&&(!presidential.has(id)||mode==='president');return {id,label:id,enabled,reason:mode==='closed'?'Operação temporariamente indisponível neste ambiente.':'Exclusivo da Presidência.',stage:'PROPOSAL',context:enabled?{type:id,boardId:'SYN_BOARD',...(id==='VOLUNTARY_EXIT'?{personId:'SYN_PERSON',functionId:'SYN_FUNCTION'}:{})}:undefined};});
+items.push({id:'CONSULT_PROCEDURES',enabled:true,stage:'READ'});
+const data={schemaVersion:'board-competencies-v1',asOf:new Date().toISOString(),validUntil:until,notice:'Atribuição institucional não concede acesso técnico automaticamente.',actionCatalog:{schemaVersion:'board-action-catalog-v1',validUntil:until,items},items:[{personId:'SYN_PERSON',name:'Pessoa sintética',roleKey:mode==='president'?'PRESIDENTE':'DIRETOR_ADMINISTRATIVO',boardId:'SYN_BOARD',startDate:'2026-05-19',endDate:'2026-11-18',duties:{summary:'Atribuição sintética para conferir a interface.',source:'Documento sintético',verified:true},permissions:[]}]};
+window.PortalDevContext={authenticated:true,act:{available:true,navigation:{schemaVersion:'admin-navigation-hints-v1',director:true,validUntil:until,routes:{}}}};
+window.PortalGeapaNavigation={getRotaAtual:()=>location.hash.includes('governance')?'institutional-governance':'diretoria-competencias',getRotas:()=>[]};
+let sends=0,dispose;
+window.PortalGeapaApi={apiGet:async route=>{if(route!=='/admin/diretoria-competencias')throw Error('Unexpected local request');return {ok:true,data};},apiPost:async()=>{document.getElementById('requests').textContent=++sends+' envios';throw Error('A fixture não envia comandos.');}};
+function navigate(){dispose?.();dispose=null;const route=window.PortalGeapaNavigation.getRotaAtual();document.dispatchEvent(new CustomEvent('portal:navigationchange',{detail:{rota:{id:route}}}));if(route==='institutional-governance'){const root=document.getElementById('placeholder-content');root.innerHTML='<h1>Governança · Fixture local</h1>';dispose=mountProcedures(root,{revision:1,records:[],boards:[{id:'SYN_BOARD',name:'Gestão sintética'}],procedureTypes:items.filter(x=>x.enabled&&x.stage==='PROPOSAL').map(x=>({id:x.id,label:x.id,allowedDays:[7]})),procedurePeople:[{personId:'SYN_PERSON',name:'Pessoa sintética',eligible:true,links:[{id:'SYN_LINK',type:'MEMBRO_EFETIVO'}],functions:[{id:'SYN_FUNCTION',roleKey:'DIRETOR_ADMINISTRATIVO',boardId:'SYN_BOARD',group:'DIRETORIA'}]}]},async()=>{});}}
+window.addEventListener('hashchange',navigate);navigate();
