@@ -21,12 +21,12 @@ async function loadCycles(){
 let governanceModal=null;
 function editor(title,body){
  if(!governanceModal){governanceModal=document.createElement('div');governanceModal.className='modal-backdrop';governanceModal.hidden=true;governanceModal.innerHTML='<section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="governance-dialog-title"><div class="modal-topbar"><h2 id="governance-dialog-title"></h2><button type="button" data-admin-modal-close>Fechar</button></div><div id="governance-editor"></div></section>';document.body.append(governanceModal);}
- governanceModal.removeAttribute('data-geapa-dirty');governanceModal.querySelector('[data-discard-prompt]')?.remove();governanceModal.setAttribute('data-geapa-protect-draft','');governanceModal.querySelector('h2').textContent=title;const content=governanceModal.querySelector('#governance-editor');content.innerHTML=body;window.PortalDesign.openDetailDialog(governanceModal,()=>{content.replaceChildren();});return content;
+ governanceModal.classList.remove('geapa-parameter-dialog');governanceModal.removeAttribute('data-geapa-dirty');governanceModal.querySelector('[data-discard-prompt]')?.remove();governanceModal.setAttribute('data-geapa-protect-draft','');governanceModal.querySelector('h2').textContent=title;const content=governanceModal.querySelector('#governance-editor');content.innerHTML=body;window.PortalDesign.openDetailDialog(governanceModal,()=>{content.replaceChildren();});return content;
 }
 async function parameters(id,cursor){
  const g=generation,box=editor('Gerenciar parâmetros','<p>Carregando configuração e histórico…</p>');
  try{const d=await get('/admin/ciclos-semestres/parametros',{cycleId:id,...(cursor?{cursor}:{})});if(g!==generation||!box.isConnected)return;
- const c=shown?.cycles.find(c=>c.id===id);mountCycleParameters(box,d,send,async next=>{await loadCycles();await parameters(id,next);},c?frequencySummary(c):'');
+ const c=shown?.cycles.find(c=>c.id===id);mountCycleParameters(box,d,send,async next=>{await Promise.all([loadCycles(),parameters(id,next)]);},c?frequencySummary(c):'');
  }catch(e){if(g===generation)box.textContent=e.message;}
 }
 document.addEventListener('portal:cycle-parameters',e=>void parameters(e.detail.cycleId));
