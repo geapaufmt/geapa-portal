@@ -197,6 +197,7 @@ body:has([data-axis-public]) #estado-acesso,body:has([data-axis-public]) #sessio
 .geapa-parameter-layout>nav button[aria-selected=true]{background:#e0ece3;color:#174b2c;box-shadow:inset 3px 0 #287541}
 .geapa-parameter-viewport{overflow:auto;min-width:0;padding:1.25rem 1.5rem;scrollbar-gutter:stable}
 .geapa-parameter-workspace [hidden]{display:none!important}.geapa-parameter-workspace fieldset{border:0;padding:0;min-width:0}
+.geapa-parameter-workspace button{max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
 .geapa-parameter-workspace .geapa-parameter-section{padding:0;border:0}.geapa-parameter-section>h3{font-size:1.25rem;margin:0 0 1rem}
 .geapa-parameter-workspace .geapa-parameter{padding:1.1rem 0 1.4rem;border-bottom:1px solid #e1e8e3;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.7rem 1rem}
 .geapa-parameter h4{grid-column:1/-1;margin:0;font-size:1rem}.geapa-parameter>details,.geapa-parameter>p,.geapa-parameter>label:has(input[name^=basis_]){grid-column:1/-1}
