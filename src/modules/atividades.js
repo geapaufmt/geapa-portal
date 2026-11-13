@@ -2715,7 +2715,7 @@
     }
 
     painel.innerHTML = montarPainelPadroesModelo(modelo);
-    painel.insertAdjacentHTML('beforeend','<p class="geapa-detail-note">O ciclo vigente e o semestre letivo serão identificados pelo Core ao validar a data da atividade.</p>');
+    var contexts=modelo.usageContexts||[];if(contexts.length){painel.insertAdjacentHTML('beforeend','<label>Ciclo de atividades<select name="cycleId" required><option value="">Selecione o ciclo</option>'+contexts.map(function(c){return '<option value="'+ui.escaparHtml(c.id)+'">'+ui.escaparHtml(c.label)+'</option>';}).join('')+'</select></label><p data-cycle-time-note></p>');var cycleSelect=form.elements.cycleId;cycleSelect.onchange=function(){var c=contexts.find(function(c){return c.id===cycleSelect.value});if(!c)return;['horarioInicio','horarioFim'].forEach(function(key,i){var v=i?c.meetingEndTime:c.meetingStartTime;if(v&&!form.elements[key].value)form.elements[key].value=v;});painel.querySelector('[data-cycle-time-note]').textContent=c.configRevision?'Horários sugeridos pela configuração '+c.configRevision+'. A ocorrência pode ter horário próprio.':'Horário-padrão do ciclo não estabelecido.';};if(contexts.length===1){cycleSelect.value=contexts[0].id;cycleSelect.onchange();}}else painel.insertAdjacentHTML('beforeend','<p class="geapa-detail-note">O ciclo vigente e o semestre letivo serão identificados pelo Core ao validar a data da atividade.</p>');
     titulo.required = !isMemberPresentation && modelo.exigeTituloPublico === true;
     tituloLabel.hidden = isMemberPresentation;
     descricaoPublicaLabel.hidden = isMemberPresentation;

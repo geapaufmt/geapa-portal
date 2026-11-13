@@ -1270,6 +1270,14 @@
         "dev"
       ],
       "generated": "build/typescript/account-binding.mjs"
+    },
+    {
+      "url": "/assets/act-ui/cycle-parameters.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/cycle-parameters.mjs"
     }
   ]
 }
