@@ -40,5 +40,20 @@ export function createMemberNode({auth,db,storage,config,fetchImpl=fetch,attest}
    if(terminal(result.dto)&&!retain)storage.removeItem(name);return result.dto;
   }finally{active.delete(name)}
  }
- return {execute,scope,async enrollment(action){if(!scope({}))return null;const v=await request(action==='open'?'memberEnrollmentOpen':'memberEnrollmentRead',{});return v.result;},dispose(){clear();auth.listeners?.delete(clear);}};
+ async function binding(phase,payload){
+  const t=auth.capture(),name='geapa.binding.v1.'+await hash(PROJECT+'|'+t.uid+'|'+payload.personId);auth.assert(t);
+  let saved;try{saved=JSON.parse(storage.getItem(name)||'null')}catch{fail('COMMAND_RECONCILIATION_REQUIRED')}
+  if(saved&&(!/^[a-f0-9]{32}$/.test(saved.operationId)||Object.keys(saved).join()!=='operationId'))fail('COMMAND_RECONCILIATION_REQUIRED');
+  if(phase==='pending')return saved||{};
+  const names={context:'memberBindingContext',verify:'memberBindingVerify',proposal:'memberBindingProposal',confirm:'memberBindingConfirm',recover:'memberBindingRecover',status:'memberBindingStatus'};need(names[phase]);
+  if(active.has(name))fail('COMMAND_PENDING');active.add(name);
+  try{
+   if(phase==='verify'&&!saved){saved={operationId:crypto.randomUUID().replaceAll('-','')};storage.setItem(name,JSON.stringify(saved));}
+   const input=phase==='context'?{personId:payload.personId}:{...payload,operationId:saved?.operationId};need(phase==='context'||saved);
+   const v=(await request(names[phase],input,t)).result;auth.assert(t);
+   if(v.state==='EXPIRED'||['COMPLETED','FAILED'].includes(v.receiptState))storage.removeItem(name);
+   return v;
+  }finally{active.delete(name)}
+ }
+ return {binding,execute,scope,async enrollment(action){if(!scope({}))return null;const v=await request(action==='open'?'memberEnrollmentOpen':'memberEnrollmentRead',{});return v.result;},dispose(){clear();auth.listeners?.delete(clear);}};
 }

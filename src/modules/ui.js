@@ -6,6 +6,8 @@
   var LOADER_SVG_URL = 'assets/img/geapa-loader-brain.svg';
   var TOAST_DURACAO_PADRAO_MS = 6500;
   var loadingCount = 0;
+  // Authentication owns a lease. Legacy hide calls cannot consume this owner.
+  var loadingOwners = new Set();
   var loaderSvgPromise = null;
   var loaderSvgTextPromise = null;
   var toastSequence = 0;
@@ -48,13 +50,18 @@
   }
 
   function mostrarLoading(mensagem) {
+    if (!obterOverlayLoading()) return;
+    loadingCount += 1;
+    exibirLoading(mensagem);
+  }
+
+  function exibirLoading(mensagem) {
     var overlay = obterOverlayLoading();
 
     if (!overlay) {
       return;
     }
 
-    loadingCount += 1;
     atualizarMensagemLoading(mensagem || 'Carregando...');
     overlay.hidden = false;
     overlay.setAttribute('aria-busy', 'true');
@@ -66,13 +73,35 @@
 
     loadingCount = Math.max(loadingCount - 1, 0);
 
-    if (!overlay || loadingCount > 0) {
+    if (!overlay || loadingCount > 0 || loadingOwners.size > 0) {
       return;
     }
 
     overlay.hidden = true;
     overlay.setAttribute('aria-busy', 'false');
     atualizarMensagemLoading('Carregando...');
+  }
+
+  function adquirirLoading(mensagem) {
+    var owner = {}, released = false;
+    loadingOwners.add(owner);
+    try {
+      exibirLoading(mensagem);
+    } catch (error) {
+      loadingOwners.delete(owner);
+      if (!loadingCount && !loadingOwners.size) ocultarLoading();
+      throw error;
+    }
+    return {
+      message: function (text) { if (!released) atualizarMensagemLoading(text); },
+      release: function () {
+        if (released) return;
+        released = true;
+        loadingOwners.delete(owner);
+        // Balance only the lease, never another caller's loading counter.
+        if (!loadingCount && !loadingOwners.size) ocultarLoading();
+      }
+    };
   }
 
   function atualizarMensagemLoading(mensagem) {
@@ -459,6 +488,7 @@
     formatarData: formatarData,
     formatarBooleano: formatarBooleano,
     mostrarLoading: mostrarLoading,
+    adquirirLoading: adquirirLoading,
     ocultarLoading: ocultarLoading,
     atualizarMensagemLoading: atualizarMensagemLoading,
     normalizarFeedbackResposta: normalizarFeedbackResposta,

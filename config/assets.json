@@ -1262,6 +1262,14 @@
         "dev"
       ],
       "generated": "build/typescript/board-procedures.mjs"
+    },
+    {
+      "url": "/assets/act-ui/account-binding.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/account-binding.mjs"
     }
   ]
 }

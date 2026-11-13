@@ -1011,7 +1011,12 @@
 
   function mesclarDetalheComResumoCanonico_(idAtividade, detalhe) {
     var resumo = atividadesResumoCache[String(idAtividade || '').trim()] || null;
-    return resumo ? Object.assign({}, detalhe || {}, resumo) : Object.assign({}, detalhe || {});
+    var value = resumo ? Object.assign({}, detalhe || {}, resumo) : Object.assign({}, detalhe || {});
+    // Calendar summaries do not carry the separately authorized documentary DTO.
+    if (detalhe && detalhe.documentosConsultados === true) {
+      ['apresentacoes','apresentacoesPublicas','documentosConsultados','documentosEstado'].forEach(function(key) { value[key] = detalhe[key]; });
+    }
+    return value;
   }
 
   function configEmModoMock() {
@@ -3619,7 +3624,7 @@
 
     definirTituloModal('Detalhes da atividade');
 
-    if (detalheCache) {
+    if (detalheCache && detalheCache.documentosConsultados === true) {
       abrirModal(detalheCache);
       registrarPerfAtividades('atividades.detalhe.' + (cache.origem || 'cache_memoria'), inicio, {
         idAtividade: idAtividade,
@@ -4671,6 +4676,10 @@
   function montarApresentacoesVinculadasDetalhe(detalhe) {
     var apresentacoes = obterApresentacoesPublicas(detalhe);
 
+    if (detalhe.documentosEstado === 'RESTRICTED') {
+      return '<section class="activity-detail-section"><h4>Materiais e fotografias</h4><p>A consulta documental desta atividade é restrita às permissões da sua conta.</p></section>';
+    }
+
     if (!apresentacoes.length) {
       return '';
     }
@@ -4711,12 +4720,30 @@
       idArquivoMaterial && !linkMaterial
         ? '<span>' + ui.escaparHtml(nomeArquivoMaterial || 'Material cadastrado sem link publico') + '</span>'
         : '',
-      linkMaterial
+      Array.isArray(apresentacao.documentos) ? montarDocumentosApresentacao(apresentacao) : linkMaterial
         ? '<a href="' + ui.escaparHtml(linkMaterial) + '" target="_blank" rel="noopener noreferrer">' +
           ui.escaparHtml(nomeArquivoMaterial || 'Abrir material da apresentacao') + '</a>'
         : '<small>Material nao disponivel</small>',
       '</article>'
     ].join('');
+  }
+
+  function montarDocumentosApresentacao(apresentacao) {
+    return ['SLIDE_APRESENTACAO','FOTO_REUNIAO'].map(function(kind) {
+      var files = apresentacao.documentos.filter(function(d) { return d.kind === kind; });
+      var label = kind === 'FOTO_REUNIAO' ? 'Foto da reunião' : 'Material da apresentação';
+      if (!files.length) return '<small>' + label + ' não disponível</small>';
+      return files.map(function(d, index) {
+        var text = label + (files.length > 1 ? ' ' + (index + 1) : '') + (d.name ? ': ' + d.name : '');
+        if (d.delivery === 'LEGACY_DRIVE' && /^https:\/\/(drive\.google\.com|docs\.google\.com)\//.test(d.href || '')) {
+          return '<a href="' + ui.escaparHtml(d.href) + '" target="_blank" rel="noopener noreferrer">' + ui.escaparHtml(text) + '</a>';
+        }
+        if (['PRIVATE_STORAGE','CANONICAL'].indexOf(d.delivery) >= 0 && /^[A-Za-z0-9_-]{1,128}$/.test(d.idApresentacao || '')) {
+          return '<a href="#" data-portal-v2-action="' + (kind === 'FOTO_REUNIAO' ? 'abrir-foto-canonica' : 'abrir-material-canonico') + '" data-id-apresentacao="' + ui.escaparHtml(d.idApresentacao) + '"' + (d.idArquivo ? ' data-id-arquivo="' + ui.escaparHtml(d.idArquivo) + '"' : '') + '>' + ui.escaparHtml(text) + '</a>';
+        }
+        return '<small>' + ui.escaparHtml(text) + ' indisponível</small>';
+      }).join('');
+    }).join('');
   }
 
   function definirTituloModal(titulo) {
