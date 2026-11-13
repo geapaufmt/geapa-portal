@@ -3753,6 +3753,7 @@
       podeSalvar: origem.podeSalvar === true,
       podeFinalizar: origem.podeFinalizar === true,
       podeReabrir: origem.podeReabrir === true,
+      autorizacaoExtraordinaria: origem.autorizacaoExtraordinaria === true,
       statusChamada: origem.statusChamada || 'RASCUNHO',
       statusChamadaRotulo: origem.statusChamadaRotulo || 'Chamada pendente',
       chamadaFinalizada: origem.chamadaFinalizada === true,
@@ -3844,6 +3845,7 @@
       '<span class="status-pill">' + ui.escaparHtml(chamada.statusChamadaRotulo || 'Chamada pendente') + '</span>'
     ];
 
+    if (chamada.autorizacaoExtraordinaria && !chamada.chamadaFinalizada) partes.push('<small>Registro mediante autorização extraordinária.</small>');
     if (chamada.statusChamadaAtualizadoEm) {
       partes.push('<small>Atualizada em ' + ui.escaparHtml(formatarDataHoraCurta(chamada.statusChamadaAtualizadoEm)) + '</small>');
     }
