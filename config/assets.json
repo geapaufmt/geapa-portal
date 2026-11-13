@@ -1278,6 +1278,14 @@
         "prod"
       ],
       "generated": "build/typescript/cycle-parameters.mjs"
+    },
+    {
+      "url": "/assets/act-ui/cycle-parameter-workspace.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/cycle-parameter-workspace.mjs"
     }
   ]
 }
