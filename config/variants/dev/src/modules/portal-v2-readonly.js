@@ -1512,12 +1512,12 @@
   function linkComprovanteCanonico(item){return '<a class="secondary-button compact-button presentation-material-link" href="#" data-portal-v2-action="abrir-comprovante-canonico" data-id-apresentacao="'+ui.escaparHtml(item.idJustificativa)+'" target="_blank" rel="noopener noreferrer">Abrir comprovante</a>';}
   function abrirComprovanteCanonico(id){var janela=global.open('about:blank','_blank');if(!janela){ui.mostrarToast({type:'error',title:'Abrir comprovante',message:'Permita abrir a nova aba para visualizar o comprovante.'});return;}janela.opener=null;janela.document.title='Abrir comprovante';janela.document.body.textContent='Carregando comprovante...';api.apiGet('/v2/justificativas/documento/arquivo',{idJustificativa:id}).then(function(answer){if(!answer.ok)throw Error(answer.message||'Não foi possível consultar o comprovante.');var d=answer.data,bytes=Uint8Array.from(atob(d.contentBase64),function(c){return c.charCodeAt(0)}),url=URL.createObjectURL(new Blob([bytes],{type:d.mime}));arquivosAbertos.push(url);janela.location.replace(url);}).catch(function(e){janela.close();ui.mostrarToast({type:'error',title:'Abrir comprovante',message:e.message});});}
   function linkFotoCanonica(item){return '<a class="secondary-button compact-button presentation-material-link" href="#" data-portal-v2-action="abrir-foto-canonica" data-id-apresentacao="'+ui.escaparHtml(item.idApresentacao)+'" target="_blank" rel="noopener noreferrer">Abrir foto</a>';}
-  function abrirFotoCanonica(id){var janela=global.open('about:blank','_blank');if(!janela){ui.mostrarToast({type:'error',title:'Abrir foto',message:'Permita abrir a nova aba para visualizar a foto.'});return;}janela.opener=null;janela.document.title='Foto da reunião';janela.document.body.textContent='Carregando foto...';api.apiGet('/v2/apresentacoes/foto/arquivo',{idApresentacao:id}).then(function(answer){if(!answer.ok)throw Error(answer.message||'Não foi possível consultar a foto.');var d=answer.data,bytes=Uint8Array.from(atob(d.contentBase64),function(c){return c.charCodeAt(0)}),url=URL.createObjectURL(new Blob([bytes],{type:d.mime}));arquivosAbertos.push(url);janela.location.replace(url);}).catch(function(e){janela.close();ui.mostrarToast({type:'error',title:'Abrir foto',message:e.message});});}
-  function abrirMaterialCanonico(id) {
+  function abrirFotoCanonica(id,idArquivo){var janela=global.open('about:blank','_blank');if(!janela){ui.mostrarToast({type:'error',title:'Abrir foto',message:'Permita abrir a nova aba para visualizar a foto.'});return;}janela.opener=null;janela.document.title='Foto da reunião';janela.document.body.textContent='Carregando foto...';api.apiGet('/v2/apresentacoes/foto/arquivo',Object.assign({idApresentacao:id},idArquivo?{idArquivo:idArquivo}:{})).then(function(answer){if(!answer.ok)throw Error(answer.message||'Não foi possível consultar a foto.');var d=answer.data,bytes=Uint8Array.from(atob(d.contentBase64),function(c){return c.charCodeAt(0)}),url=URL.createObjectURL(new Blob([bytes],{type:d.mime}));arquivosAbertos.push(url);janela.location.replace(url);}).catch(function(e){janela.close();ui.mostrarToast({type:'error',title:'Abrir foto',message:e.message});});}
+  function abrirMaterialCanonico(id,idArquivo) {
     var janela=global.open('about:blank','_blank'),generation=geracaoModal_;
     if(!janela){ui.mostrarToast({type:'error',title:'Abrir slide',message:'Permita abrir a nova aba para visualizar o slide.'});return;}
     janela.opener=null;janela.document.title='Abrir slide';janela.document.body.textContent='Carregando slide...';
-    api.apiGet('/v2/apresentacoes/material/arquivo',{idApresentacao:id}).then(function(answer){
+    api.apiGet('/v2/apresentacoes/material/arquivo',Object.assign({idApresentacao:id},idArquivo?{idArquivo:idArquivo}:{})).then(function(answer){
       if(generation!==geracaoModal_||!answer.ok)throw Error(answer.message||'O acesso mudou. Atualize antes de abrir o slide.');
       var d=answer.data,bytes=Uint8Array.from(atob(d.contentBase64),function(c){return c.charCodeAt(0)}),url=URL.createObjectURL(new Blob([bytes],{type:d.mime}));arquivosAbertos.push(url);janela.location.replace(url);
     }).catch(function(error){janela.close();ui.mostrarToast({type:'error',title:'Abrir slide',message:error.message||'Não foi possível abrir o arquivo.'});});
@@ -1724,8 +1724,8 @@
     if (acao === 'alternar-todas-apresentacoes') {estado.apresentacoesTodas=!estado.apresentacoesTodas;carregarTela('admin-apresentacoes');return;}
     if (acao === 'planejamento') {abrirPlanejamento();return;}
     if (acao === 'abrir-comprovante-canonico') {evento.preventDefault();abrirComprovanteCanonico(id);return;}
-    if (acao === 'abrir-foto-canonica') {evento.preventDefault();abrirFotoCanonica(id);return;}
-    if (acao === 'abrir-material-canonico') {evento.preventDefault();abrirMaterialCanonico(id);return;}
+    if (acao === 'abrir-foto-canonica') {evento.preventDefault();abrirFotoCanonica(id,alvo.getAttribute('data-id-arquivo'));return;}
+    if (acao === 'abrir-material-canonico') {evento.preventDefault();abrirMaterialCanonico(id,alvo.getAttribute('data-id-arquivo'));return;}
     if (acao === 'fechar-modal') {
       fecharModal();
       return;

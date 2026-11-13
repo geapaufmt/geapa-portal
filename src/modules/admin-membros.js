@@ -188,7 +188,7 @@
     api.apiGet('/admin/pessoas/detalhe',{personId:personId}).then(function(response){
       if(generation!==state.detailGeneration||session!==state.generation||!state.active)return;
       if(!response?.ok)throw new Error(response?.message||'Consulta não autorizada.');
-      if(title)title.textContent=response.data.displayLabel;content.innerHTML=global.PortalPeople.detail(response.data);
+      if(title)title.textContent=response.data.displayLabel;content.innerHTML=global.PortalPeople.detail(response.data);var accounts=document.createElement('section');accounts.className='geapa-detail-section';content.appendChild(accounts);global.PortalPeople.accounts(accounts,personId,{current:function(){return state.active&&generation===state.detailGeneration&&session===state.generation;},call:async function(phase,payload){var answer=await api.apiPost('/admin/pessoas/contas',{payload:JSON.stringify({phase:phase,payload:payload})});if(!answer.ok)throw Object.assign(Error('Consulta não autorizada'),{code:answer.errorCode});return answer.data;}});
     }).catch(function(error){if(generation===state.detailGeneration&&session===state.generation)content.innerHTML='<p role="alert">'+escape(error.message||'Não foi possível consultar a pessoa.')+'</p>';});
   }
   function montarLoadingLocal(message) {

@@ -1,3 +1,4 @@
+import {mountAccountBinding} from './account-binding.mjs';
 import {esc,badge,card,fact,detailHeader,detailSection,detailFacts} from './design-system.mjs';
 import {type TenurePresentation,tenureCard,institutionalLinks} from './institutional-tenure.mjs';
 export type PersonRelation={id:string;type:string;label:string;startDate:string|null;endDate:string|null};
@@ -25,5 +26,5 @@ export function peopleFilters(values:Record<string,string>,options:{states?:stri
  const select=(name:string,label:string,rows:string[])=>'<label><span>'+esc(label)+'</span><select name="'+name+'"><option value="">'+(name==='category'?'Todas as pessoas':'Todos')+'</option>'+rows.map(v=>'<option value="'+esc(v)+'"'+(values[name]===v?' selected':'')+'>'+esc(personLabel(v))+'</option>').join('')+'</select></label>';
  return select('category','Categoria',['MEMBER','EGRESS','ACADEMIC','EXTERNAL','UNCLASSIFIED'])+select('state','Situação',options.states||[])+select('role','Função',options.roles||[]);
 }
-declare global {interface Window {PortalPeople: {cards:typeof peopleCards;detail:typeof peopleDetail;filters:typeof peopleFilters};}}
-if(typeof window!=='undefined')window.PortalPeople={cards:peopleCards,detail:peopleDetail,filters:peopleFilters};
+declare global {interface Window {PortalPeople: {cards:typeof peopleCards;detail:typeof peopleDetail;filters:typeof peopleFilters;accounts:typeof mountAccountBinding};}}
+if(typeof window!=='undefined')window.PortalPeople={cards:peopleCards,detail:peopleDetail,filters:peopleFilters,accounts:mountAccountBinding};
