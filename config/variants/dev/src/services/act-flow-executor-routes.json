@@ -5,6 +5,7 @@
   "endpoint": "https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app",
   "siteKey": "6LcgEfQtAAAAAPSPgGQs14Jj-iqbhwqgCh5nKxVO",
   "routes": [
+    "/admin/ciclos-semestres/parametros/salvar",
     "/atividades/chamada/preparar",
     "/atividades/chamada/salvar",
     "/v2/justificativas/enviar",
