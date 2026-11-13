@@ -11,6 +11,10 @@ const local=(ms:number|null|undefined)=>Number.isFinite(ms)&&ms?new Date(ms!-4*3
 const date=(ms:number|null|undefined)=>local(ms).replace('T',' ')||'Não comprovada';
 const object=(v:unknown):Data=>v&&typeof v==='object'&&!Array.isArray(v)?v as Data:{};
 const selected=(v:unknown,x:unknown)=>v===x?' selected':'';
+export function renderCycleCriteria(value:unknown):string {
+ const d=object(value);if(!Array.isArray(d.fields)||!d.fields.length)return '';
+ return `<section aria-label="Critérios do ciclo"><h3>Critérios do ciclo</h3><p>Revisão ${esc(d.configId)}. Estes critérios documentais orientam a decisão fundamentada.</p>${detailFacts(d.fields.map(v=>{const f=object(v);return [String(f.label),f.status==='DEFINED'?String(f.value):label(String(f.status||'UNESTABLISHED'))];}))}</section>`;
+}
 function selector(name:string,choices:{id:string;label:string}[],v:unknown,multiple=false):string {const values=Array.isArray(v)?v:[v];return `<select name="${esc(name)}" ${multiple?'multiple':''}><option value="">Selecione</option>${choices.map(c=>`<option value="${esc(c.id)}"${values.includes(c.id)?' selected':''}>${esc(c.label)}</option>`).join('')}</select>`;}
 function control(f:Field):string {
  const name='value_'+f.key,v=f.value;
