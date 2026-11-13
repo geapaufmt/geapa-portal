@@ -5,6 +5,7 @@
   "endpoint": "https://southamerica-east1-portal-geapa.cloudfunctions.net/geapaCommand",
   "siteKey": "6LcbQgAuAAAAAJ_IO0Q8SCuNv66E_gvZb5Qx3aT5",
   "routes": [
+    "/admin/ciclos-semestres/ciclo",
     "/admin/ciclos-semestres/parametros/salvar",
     "/admin/atividades/modelos/original",
     "/admin/atividades/modelos/aprovar",
