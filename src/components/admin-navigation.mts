@@ -1,7 +1,8 @@
+import './attendance-rh.mjs';
 import {esc,openDetailDialog,closeDetailDialog} from './design-system.mjs';
 export const groups=[
  {id:'people',label:'Pessoas',items:[['admin-membros','Pessoas'],['perfis-permissoes','Perfis e permissões'],['admin-correcoes-cadastrais','Correções cadastrais'],['admin-solicitacoes-vinculo','Solicitações de vínculo']]},
- {id:'activities',label:'Atividades',items:[['admin-atividades','Atividades'],['admin-apresentacoes','Apresentações'],['admin-justificativas','Justificativas'],['admin-eixos-tematicos','Eixos temáticos']]},
+ {id:'activities',label:'Atividades',items:[['admin-atividades','Atividades'],['admin-apresentacoes','Apresentações'],['admin-frequencia-rh','Frequência e RH'],['admin-eixos-tematicos','Eixos temáticos']]},
  {id:'institutional',label:'Gestão Institucional',items:[['institutional-identity','Identidade e contatos'],['institutional-parameters','Parâmetros operacionais'],['institutional-norms','Normas e documentos'],['institutional-governance','Governança e deliberações']]}
 ] as const;
 export type Hint={schemaVersion:string;director:boolean;validUntil:number;routes:Record<string,boolean>};
