@@ -156,6 +156,7 @@
     if (!state.active) return;
     var optionsButton=event.target.closest('[data-admin-options]');
     if(optionsButton){event.preventDefault();var id=optionsButton.getAttribute('data-admin-options'),row=state.activities.find(v=>v.idAtividade===id);global.PortalRecordActions.open({anchor:optionsButton,title:row?.tituloPublico||id,load:async()=>{const r=await api.apiGet('/act/context',{idAtividade:id});if(!r.ok)throw Error(r.message);return r.data;},onSelect:(action,data)=>{
+      if(action==='attendance-authorization'){global.PortalRecordActions.attendanceAuthorization({activityId:id,anchor:optionsButton,api});return;}
       if(action==='window'){global.PortalRecordActions.window({activityId:id,anchor:optionsButton,api});return;}
       if(action==='attendance'||action==='attendance-view'){document.dispatchEvent(new CustomEvent('portal:open-attendance',{detail:{idAtividade:id,readOnly:action==='attendance-view'}}));return;}
       const command={publish:'publicar',hide:'ocultar',cancel:'cancelar',reopen:'reabrir'}[action];
