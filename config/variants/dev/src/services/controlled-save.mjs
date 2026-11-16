@@ -37,7 +37,7 @@ export function createControlledSave({auth,db,storage,fetchImpl=fetch,attest,act
  }
  const scope=(route,payload)=>flowOperations?flowOperations.routes.includes(route):activityOperations?payload?.idAtividade!==ID&&(!!OPERATIONS[route]||route==='/atividades/modelo/validar'):route==='/admin/atividades/salvar'&&payload?.idAtividade===ID;
  async function execute(route,payload,context={}){
-  need(db.app.options.projectId===PROJECT);const t=auth.capture(),resource=flowOperations?'flow|'+(route.startsWith('/v2/apresentacoes/')?'presentation':route.startsWith('/v2/justificativas/')?'justification':route.includes('/janelas/')?'window':'activity')+'|'+(payload.idAtividade||payload.idApresentacao||payload.idJustificativa||payload.activityRef?.id||payload.id||'new'):activityOperations?(payload.idAtividade||'new'):ID,key='geapa.cf.pending.v1.'+await hash(PROJECT+'|'+t.uid+'|'+resource);auth.assert(t);
+  need(db.app.options.projectId===PROJECT);const t=auth.capture(),resource=flowOperations?'flow|'+(route.startsWith('/v2/apresentacoes/')?'presentation':route.startsWith('/v2/justificativas/')?'justification':route.includes('/janelas/')?'window':'activity')+'|'+(payload.idAtividade||payload.activityId||payload.idApresentacao||payload.idJustificativa||payload.activityRef?.id||payload.id||'new'):activityOperations?(payload.idAtividade||'new'):ID,key='geapa.cf.pending.v1.'+await hash(PROJECT+'|'+t.uid+'|'+resource);auth.assert(t);
   let old;try{old=JSON.parse(storage.getItem(key)||'null');}catch{fail('COMMAND_RECONCILIATION_REQUIRED');}
   if(busy)fail('COMMAND_PENDING');busy=true;
   try{

@@ -208,7 +208,7 @@
     var managementTiming = idRota === 'admin-apresentacoes'
       ? criarTimingLeituraGestaoApresentacoesDev_()
       : null;
-    if(idRota==='admin-justificativas'&&estado.rotaAtual!==idRota)reiniciarPaginaJustificativas();
+    if(idRota==='admin-justificativas'&&estado.rotaAtual!==idRota){reiniciarPaginaJustificativas();if(global.PortalRH?.cycleId)filtroJustificativas.cycleId=global.PortalRH.cycleId;}
     estado.rotaAtual = idRota;
     definicao.idRota = idRota;
     definicao.leituraGeracao=++leituraTelaGeracao;
@@ -451,7 +451,7 @@
 
   function montarEscopoJustificativas(data){
     if(!Array.isArray(data.cycles))return '';filtroJustificativas={cycleId:data.cycleId,queue:data.queue};
-    return '<div class="geapa-filters"><label>Ciclo<select data-justification-scope="cycleId">'+(!data.cycleId?'<option value="" selected disabled>Selecione o ciclo</option>':'')+data.cycles.map(function(c){return '<option value="'+ui.escaparHtml(c.id)+'"'+(c.id===data.cycleId?' selected':'')+'>'+ui.escaparHtml(c.label)+'</option>';}).join('')+'</select></label><label>Fila<select data-justification-scope="queue">'+[['ALL','Todas do ciclo'],['ANALYSIS','Aguardando análise'],['ACTION_REQUIRED','Aguardando providências'],['HISTORY','Histórico']].map(function(q){return '<option value="'+q[0]+'"'+(q[0]===data.queue?' selected':'')+'>'+q[1]+'</option>';}).join('')+'</select></label></div>';
+    global.PortalRH?.selectCycle(data.cycleId||'');return (global.PortalRH?.sections('justifications')||'')+'<div class="geapa-filters"><label>Ciclo<select data-justification-scope="cycleId">'+(!data.cycleId?'<option value="" selected disabled>Selecione o ciclo</option>':'')+data.cycles.map(function(c){return '<option value="'+ui.escaparHtml(c.id)+'"'+(c.id===data.cycleId?' selected':'')+'>'+ui.escaparHtml(c.label)+'</option>';}).join('')+'</select></label><label>Fila<select data-justification-scope="queue">'+[['ALL','Todas do ciclo'],['ANALYSIS','Aguardando análise'],['ACTION_REQUIRED','Aguardando providências'],['HISTORY','Histórico']].map(function(q){return '<option value="'+q[0]+'"'+(q[0]===data.queue?' selected':'')+'>'+q[1]+'</option>';}).join('')+'</select></label></div>';
   }
   function montarPaginacaoJustificativas(pagination) {
     if(!pagination)return '';

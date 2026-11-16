@@ -5,6 +5,7 @@
   "endpoint": "https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app",
   "siteKey": "6LcgEfQtAAAAAPSPgGQs14Jj-iqbhwqgCh5nKxVO",
   "routes": [
+    "/admin/atividades/substituicao",
     "/admin/ciclos-semestres/ciclo",
     "/admin/ciclos-semestres/parametros/salvar",
     "/atividades/chamada/preparar",
@@ -42,9 +43,12 @@
     "/admin/atividades/conferencia",
     "/admin/atividades/modelos/original",
     "/admin/atividades/modelos/aprovar",
-    "/admin/atividades/modelos/disponibilidade","/admin/atividades/modelos/uso",
+    "/admin/atividades/modelos/disponibilidade",
+    "/admin/atividades/modelos/uso",
     "/admin/ciclos-semestres/frequencia/salvar",
     "/admin/ciclos-semestres/frequencia/aprovar",
-    "/admin/ciclos-semestres/frequencia/reconhecer"
+    "/admin/ciclos-semestres/frequencia/reconhecer",
+    "/atividades/chamada/extraordinaria/autorizar",
+    "/atividades/chamada/extraordinaria/revogar"
   ]
 }

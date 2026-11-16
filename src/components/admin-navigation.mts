@@ -1,7 +1,8 @@
+import './attendance-rh.mjs';
 import {esc,openDetailDialog,closeDetailDialog} from './design-system.mjs';
 export const groups=[
  {id:'people',label:'Pessoas',items:[['admin-membros','Pessoas'],['perfis-permissoes','Perfis e permissões'],['admin-correcoes-cadastrais','Correções cadastrais'],['admin-solicitacoes-vinculo','Solicitações de vínculo']]},
- {id:'activities',label:'Atividades',items:[['admin-atividades','Atividades'],['admin-apresentacoes','Apresentações'],['admin-justificativas','Justificativas'],['admin-eixos-tematicos','Eixos temáticos']]},
+ {id:'activities',label:'Atividades',items:[['admin-atividades','Atividades'],['admin-apresentacoes','Apresentações'],['admin-frequencia-rh','Frequência e RH'],['admin-eixos-tematicos','Eixos temáticos']]},
  {id:'institutional',label:'Gestão Institucional',items:[['institutional-identity','Identidade e contatos'],['institutional-parameters','Parâmetros operacionais'],['institutional-norms','Normas e documentos'],['institutional-governance','Governança e deliberações']]}
 ] as const;
 export type Hint={schemaVersion:string;director:boolean;validUntil:number;routes:Record<string,boolean>};
@@ -20,9 +21,10 @@ export function sideRoutes<T extends Route>(routes:T[],all:T[],allowed:(r:T)=>bo
  for(const group of groups){const entries=group.items.map(([id])=>all.find(r=>r.id===id)).filter((r):r is T=>!!r),first=entries.find(allowed),root=entries[0];if(first)result.push({...first,label:group.label});else if(transparent&&root)result.push({...root,label:group.label});}
  return result;
 }
-export function isModuleActive(route:string,current:string):boolean{return route===current||groups.some(g=>g.items.some(([id])=>id===route)&&g.items.some(([id])=>id===current));}
+const canonicalRoute=(route:string)=>route==='admin-justificativas'?'admin-frequencia-rh':route;
+export function isModuleActive(route:string,current:string):boolean{route=canonicalRoute(route);current=canonicalRoute(current);return route===current||groups.some(g=>g.items.some(([id])=>id===route)&&g.items.some(([id])=>id===current));}
 let timer:ReturnType<typeof setTimeout>|undefined,dialog:HTMLElement|undefined;
-function mount(){const host=window as Host,nav=host.PortalGeapaNavigation,app=document.getElementById('portal-app');if(!nav||!app)return;const current=nav.isAccessGateVisible?.()?nav.getRequestedRoute():nav.getRotaAtual(),group=groups.find(g=>g.items.some(([id])=>id===current));let target=document.getElementById('geapa-module-navigation');clearTimeout(timer);
+function mount(){const host=window as Host,nav=host.PortalGeapaNavigation,app=document.getElementById('portal-app');if(!nav||!app)return;const current=canonicalRoute(nav.isAccessGateVisible?.()?nav.getRequestedRoute():nav.getRotaAtual()),group=groups.find(g=>g.items.some(([id])=>id===current));let target=document.getElementById('geapa-module-navigation');clearTimeout(timer);
  const expiry=host.PortalDevContext?.act?.navigation?.validUntil;if(expiry&&expiry>Date.now())timer=setTimeout(()=>{if(!isDirector()){close();document.querySelectorAll<HTMLElement>('[data-geapa-discovery]').forEach(el=>{el.hidden=true;});}nav.atualizarMenu?.();mount();},Math.min(expiry-Date.now()+1,2147483647));
  document.querySelectorAll<HTMLElement>('[data-geapa-discovery]').forEach(el=>{el.hidden=!isDirector();});
  if(!isDirector())close();
