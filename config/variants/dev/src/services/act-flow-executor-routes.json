@@ -5,7 +5,6 @@
   "endpoint": "https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app",
   "siteKey": "6LcgEfQtAAAAAPSPgGQs14Jj-iqbhwqgCh5nKxVO",
   "routes": [
-    "/admin/atividades/substituicao",
     "/admin/ciclos-semestres/ciclo",
     "/admin/ciclos-semestres/parametros/salvar",
     "/atividades/chamada/preparar",
@@ -49,6 +48,12 @@
     "/admin/ciclos-semestres/frequencia/aprovar",
     "/admin/ciclos-semestres/frequencia/reconhecer",
     "/atividades/chamada/extraordinaria/autorizar",
-    "/atividades/chamada/extraordinaria/revogar"
+    "/atividades/chamada/extraordinaria/revogar",
+    "/admin/atividades/substituicao",
+    "/v2/apresentacoes/titulo-eixo/autorizar",
+    "/v2/apresentacoes/titulo-eixo/revogar",
+    "/v2/apresentacoes/titulo-eixo/regularizar",
+    "/v2/apresentacoes/titulo-eixo/registrar",
+    "/admin/ciclos-semestres/semestre"
   ]
 }

@@ -30,6 +30,11 @@ export const activeFilters=(filters:Record<string,unknown>):number=>Object.entri
 export function header(title:string, description:string, actionsHtml='',headingId='',eyebrow='Gestão do GEAPA'):string {
   return `<header class="geapa-page-header"><div><p class="geapa-eyebrow">${esc(eyebrow)}</p><h2${headingId?` id="${esc(headingId)}"`:''}>${esc(title)}</h2><p>${esc(description)}</p></div>${actionsHtml?`<details class="geapa-page-options" data-geapa-options><summary>Opções <span aria-hidden="true">⌄</span></summary><div class="geapa-page-options-panel">${actionsHtml}</div></details>`:''}</header>`;
 }
+/** Local navigation uses native buttons, so every item works by keyboard and touch. */
+export function sectionNavigation(items:{id:string;label:string}[],current:string,attribute:string,label:string):string{
+ if(!/^data-[a-z-]+$/.test(attribute))throw Error('INVALID_NAVIGATION_ATTRIBUTE');
+ return `<nav class="geapa-module-tabs" aria-label="${esc(label)}">${items.map(i=>`<button type="button" ${attribute}="${esc(i.id)}"${i.id===current?' aria-current="page"':''}>${esc(i.label)}</button>`).join('')}</nav>`;
+}
 export function sortField(value:string, dates=true):string {
   const options=[...(dates?[['date-asc','Data crescente'],['date-desc','Data decrescente']]:[]),['title-asc',dates?'Título A–Z':'Nome A–Z'],['title-desc',dates?'Título Z–A':'Nome Z–A']];
   return `<label class="geapa-sort"><span>Ordenar por</span><select name="ordem">${options.map(([id,label])=>`<option value="${id}"${value===id?' selected':''}>${label}</option>`).join('')}</select></label>`;

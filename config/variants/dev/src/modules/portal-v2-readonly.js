@@ -862,6 +862,8 @@
 
   function montarAcoesMinhasApresentacoes(item, id, acoesMembro) {
     var botoes = [];
+    if(acoesMembro && acoesMembro.podeRegularizarTituloEixo === true)botoes.push(botaoAcao('regularizar-titulo-eixo',id,'Regularizar título/eixos','primary'));
+    if(item.registroPosteriorTema)botoes.push('<div data-theme-documentary-record><strong>Registro documental posterior — sem aprovação temática</strong><p>'+ui.escaparHtml(item.registroPosteriorTema.title)+'<br>'+ui.escaparHtml(item.registroPosteriorTema.summary)+'</p><small>'+ui.escaparHtml(new Date(item.registroPosteriorTema.recordedAt).toLocaleString('pt-BR'))+'</small></div>');
     var temTituloOuEixo = Boolean(item.tema || item.titulo || item.eixoTematicoPrincipal || item.eixoTematicoSecundario);
     var acoes = acoesMembro || {};
 
@@ -915,6 +917,10 @@
         var podeRejeitarTitulo = statusPermiteRejeicaoTitulo(statusTitulo);
         var podeRevisarMaterial = statusPermiteRevisaoMaterial(statusMaterial);
         var acoesTitulo = [
+          acoesGestao.podeAutorizarRegularizacaoTema === true ? botaoAcao('autorizar-tema',id,'Autorizar regularização de título/eixos','secondary') : '',
+          acoesGestao.podeRevogarRegularizacaoTema === true ? '<span class="status-pill">Regularização autorizada</span>'+botaoAcao('revogar-tema',id,'Revogar autorização','secondary') : '',
+          acoesGestao.podeRegistrarRegularizacaoTema === true ? botaoAcao('registrar-tema',id,'Registrar informação recebida','secondary') : '',
+          item.registroPosteriorTema ? '<p>Registro documental posterior: '+ui.escaparHtml(item.registroPosteriorTema.title)+' — sem aprovação temática.</p>' : '',
           acoesGestao.podeAprovarTituloEixo === true && podeRevisarTitulo
             ? botaoAcao('revisar-titulo-aprovar', id, 'Aprovar titulo/eixos', 'primary')
             : '',
@@ -1618,6 +1624,7 @@
 
   function obterAcoesMembro(item) {
     return normalizarObjetoAcoes((item || {}).acoesMembro, [
+      'podeRegularizarTituloEixo',
       'podeEditarTituloEixo',
       'podeEnviarMaterial',
       'podeReenviarMaterial',
@@ -1631,6 +1638,9 @@
 
   function obterAcoesGestao(item) {
     return normalizarObjetoAcoes((item || {}).acoesGestao, [
+      'podeAutorizarRegularizacaoTema',
+      'podeRevogarRegularizacaoTema',
+      'podeRegistrarRegularizacaoTema',
       'podeAprovarTituloEixo',
       'podeEditarAprovarTituloEixo',
       'podeEditarEAprovarTituloEixo',
@@ -1738,6 +1748,12 @@
     if (acao === 'agenda') {abrirAgendaApresentacao(id);return;}
     if (acao === 'dinamica') {abrirDinamica(id);return;}
     if (acao === 'realizacao') {abrirRealizacao(id);return;}
+    if (acao === 'autorizar-tema' || acao === 'revogar-tema') {
+      var targetItem=estado.itensPorId[id];if(!targetItem)return;
+      var modalTicket=abrirModalBase(acao==='autorizar-tema'?'Autorizar regularização de título/eixos':'Revogar autorização','Carregando...');
+      import('/assets/act-ui/theme-extraordinary.mjs').then(function(module){atualizarModalConteudo(module.authorizationForm(id,acao==='revogar-tema',ui.escaparHtml),{geracaoModal:modalTicket});}).catch(function(){atualizarModalConteudo('<p>Não foi possível abrir o formulário.</p>',{geracaoModal:modalTicket});});return;
+    }
+    if(acao==='regularizar-titulo-eixo'||acao==='registrar-tema'){abrirModalTituloEixo(id,acao==='registrar-tema'?'registrar':'regularizar');return;}
     if (acao === 'titulo-eixo') {
       abrirModalTituloEixo(id);
       return;
@@ -1944,18 +1960,23 @@
     if(action==='natureza')payload.materialidade=String(fd.get('materialidade'));
     executarPostApresentacao('/v2/apresentacoes/titulo-eixo/'+action,payload,{form:form,acao:action==='retirar'?'RETIRAR_TEMA':'CLASSIFICAR_TEMA'});
   });
-  function abrirModalTituloEixo(id) {
+  document.addEventListener('submit',function(event){
+    var form=event.target;if(!form.matches('[data-theme-extraordinary-form]'))return;event.preventDefault();
+    import('/assets/act-ui/theme-extraordinary.mjs').then(function(module){var command=module.authorizationPayload(new FormData(form));return executarPostApresentacao('/v2/apresentacoes/titulo-eixo/'+command.action,command.payload,{form:form,acao:'REGULARIZACAO_TEMA_'+command.action.toUpperCase()});}).catch(function(erro){mostrarErroModal(erro.message||'Não foi possível preparar a operação.',form);});
+  });
+  function abrirModalTituloEixo(id, regularizacao) {
     var item = estado.itensPorId[id];
 
     if (!item) {
       return;
     }
 
-    abrirModalBase('Titulo e eixos', '<p class="empty-state">Carregando eixos tematicos...</p>');
-    carregarEixos(id)
-      .then(function renderizar(eixos) {
+    var modalTicket=abrirModalBase(regularizacao?'Regularizar título/eixos':'Titulo e eixos', '<p class="empty-state">Carregando eixos tematicos...</p>');
+    Promise.all([carregarEixos(id),import('/assets/act-ui/theme-extraordinary.mjs')])
+      .then(function renderizar(results) {var eixos=results[0],extra=results[1];
         atualizarModalConteudo([
           '<form class="readonly-form" data-portal-v2-form="titulo-eixo">',
+          extra.registrationFields(regularizacao,item.regularizacaoTema && item.regularizacaoTema.mode==='REALIZED'),
           '<input type="hidden" name="idApresentacao" value="' + ui.escaparHtml(id) + '">',
           '<label>Titulo',
           '<input name="tituloApresentacao" required value="' + ui.escaparHtml(item.tema || item.titulo || '') + '">',
@@ -1970,10 +1991,10 @@
           '<button class="secondary-button" type="button" data-portal-v2-action="fechar-modal">Cancelar</button>',
           '</div>',
           '</form>'
-        ].join(''));
+        ].join(''),{geracaoModal:modalTicket});
       })
       .catch(function falhar(erro) {
-        atualizarModalConteudo('<p class="empty-state readonly-error">' + ui.escaparHtml(erro.message || 'Nao foi possivel carregar os eixos.') + '</p>');
+        atualizarModalConteudo('<p class="empty-state readonly-error">' + ui.escaparHtml(erro.message || 'Nao foi possivel carregar os eixos.') + '</p>',{geracaoModal:modalTicket});
       });
   }
 
@@ -2668,15 +2689,11 @@
   }
 
   function salvarTituloEixo(form) {
-    var dados = new FormData(form);
-
-    executarPostApresentacao('/v2/apresentacoes/titulo-eixo/enviar', {
-      idApresentacao: dados.get('idApresentacao'),
-      tituloApresentacao: dados.get('tituloApresentacao'),
-      eixoTematicoPrincipal: dados.get('eixoTematicoPrincipal'),
-      eixoTematicoSecundario: dados.get('eixoTematicoSecundario'),
-      observacoes: dados.get('observacoes')
-    }, { form: form, acao: 'ENVIAR_TITULO_EIXO' });
+    var dados=new FormData(form),mode=String(dados.get('regularizacao')||'enviar');
+    var payload={idApresentacao:dados.get('idApresentacao'),tituloApresentacao:dados.get('tituloApresentacao'),eixoTematicoPrincipal:dados.get('eixoTematicoPrincipal'),eixoTematicoSecundario:dados.get('eixoTematicoSecundario'),observacoes:dados.get('observacoes')};
+    if(!['enviar','regularizar','registrar'].includes(mode))return;
+    if(mode==='registrar'){import('/assets/act-ui/theme-extraordinary.mjs').then(function(module){Object.assign(payload,module.institutionalEvidence(dados));return executarPostApresentacao('/v2/apresentacoes/titulo-eixo/registrar',payload,{form:form,acao:'REGISTRAR_TEMA_INSTITUCIONAL'});}).catch(function(erro){mostrarErroModal(erro.message,form);});return;}
+    executarPostApresentacao('/v2/apresentacoes/titulo-eixo/'+mode,payload,{form:form,acao:mode==='regularizar'?'REGULARIZAR_TEMA':'ENVIAR_TITULO_EIXO'});
   }
 
   function salvarEditarAprovarTituloEixo(form) {
