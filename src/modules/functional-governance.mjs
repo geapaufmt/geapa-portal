@@ -12,10 +12,15 @@ async function get(route,params={}){const r=await api().apiGet(route,params);if(
 async function send(route,payload){const r=await api().apiPost(route,{payload:JSON.stringify(payload)});if(!r.ok)throw Error(r.message||'Não foi possível confirmar. Tente novamente para recuperar o mesmo envio.');return r.data;}
 function panel(){return document.getElementById('functional-governance-content');}
 async function loadCycles(){
- const g=++generation,el=panel();el.textContent='Carregando ciclos e semestres…';
+ const g=++generation,el=panel();shown=null;el.textContent='Carregando ciclos e semestres…';
  try{const d=await get('/admin/ciclos-semestres');if(g!==generation)return;shown=d;
   el.classList.add('geapa-admin','geapa-governance');el.innerHTML=cycleDashboard(d,window.PortalGeapaNavigation?.getRotaAtual()==='admin-semestres-letivos'?'semesters':'cycles');
- }catch(e){if(g===generation)el.textContent=e.message;}
+ }catch(e){
+  if(g!==generation)return;
+  const message=document.createElement('p');message.setAttribute('role','alert');message.textContent=e.message;
+  const retry=document.createElement('button');retry.type='button';retry.textContent='Atualizar consulta';
+  retry.addEventListener('click',loadCycles,{once:true});el.replaceChildren(message,retry);
+ }
 }
 
 let governanceModal=null;
