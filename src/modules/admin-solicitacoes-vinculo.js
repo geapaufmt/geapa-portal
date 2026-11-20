@@ -176,7 +176,13 @@
     var reinforcedJustification = form.elements.justificativaAdministrativaReforcada;
     if (reinforcedJustification) reinforcedJustification.required = finalDecision && requestNeedsManualReview(request);
     var reinforcedConfirmation = form.elements.confirmacaoReforcada;
-    if (reinforcedConfirmation) reinforcedConfirmation.required = isFinalAction(action);
+    if (reinforcedConfirmation) reinforcedConfirmation.required = finalDecision;
+    // Visibility follows the existing canonical conditions, never relaxes validation.
+    var show = function(input, visible) { var label = input && input.closest('label'); if (label) label.hidden = !visible; };
+    show(form.elements.tratamentoTransicao, finalDecision && (rule.possuiDivergencia || rule.exigeTratamentoTransicao));
+    show(functionConfirmation, finalDecision && functionNeedsConfirmation(request));
+    show(reinforcedJustification, finalDecision && requestNeedsManualReview(request));
+    show(reinforcedConfirmation, finalDecision);
   }
 
   function validateManualReview(form, values, request) {

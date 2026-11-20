@@ -14,7 +14,7 @@ function panel(){return document.getElementById('functional-governance-content')
 async function loadCycles(){
  const g=++generation,el=panel();el.textContent='Carregando ciclos e semestres…';
  try{const d=await get('/admin/ciclos-semestres');if(g!==generation)return;shown=d;
-  el.classList.add('geapa-admin','geapa-governance');el.innerHTML=cycleDashboard(d);
+  el.classList.add('geapa-admin','geapa-governance');el.innerHTML=cycleDashboard(d,window.PortalGeapaNavigation?.getRotaAtual()==='admin-semestres-letivos'?'semesters':'cycles');
  }catch(e){if(g===generation)el.textContent=e.message;}
 }
 
@@ -63,6 +63,6 @@ document.addEventListener('submit',async e=>{
   const result=await send(route,payload);if(epoch!==generation)return;busyModal?.removeAttribute('aria-busy');feedback.textContent='Salvo.';document.dispatchEvent(new CustomEvent('portal:justificativas-atualizadas'));if(route.startsWith('/admin/ciclos')){governanceModal.removeAttribute('data-geapa-dirty');window.PortalDesign.closeDetailDialog(governanceModal);await loadCycles();if(route==='/admin/ciclos-semestres/ciclo'&&!payload.id){const id=result?.result?.cycleRef?.id||result?.cycleRef?.id||shown?.cycles.find(c=>c.label===payload.label&&c.civilStart===payload.civilStart&&c.status==='DRAFT')?.id;if(id)await parameters(id);}}else await windows(payload.action==='CANCEL'?'Prazo extraordinário cancelado e confirmado.':'Prazo extraordinário encerrado e confirmado. Nenhum novo prazo foi aberto.');
  }catch(error){if(epoch===generation)feedback.textContent=error.message;}finally{f.dataset.saving='false';busyModal?.removeAttribute('aria-busy');buttons.forEach(b=>b.disabled=false);}
 });
-document.addEventListener('portal:navigationchange',e=>{const id=e.detail?.rota?.id;generation++;window.PortalDesign.closeDetailDialog(governanceModal,true);document.getElementById('exceptional-window-entry')?.remove();if(id==='admin-ciclos-semestres')void loadCycles();if(id==='admin-justificativas'&&window.PortalGeapaAuth?.canRegisterAttendance()){const bar=document.createElement('p');bar.id='exceptional-window-entry';bar.innerHTML='<button data-exceptional-window>Histórico de prazos extraordinários</button>';document.getElementById('placeholder-content').before(bar);}});
+document.addEventListener('portal:navigationchange',e=>{const id=e.detail?.rota?.id;generation++;window.PortalDesign.closeDetailDialog(governanceModal,true);document.getElementById('exceptional-window-entry')?.remove();if(['admin-ciclos-semestres','admin-semestres-letivos'].includes(id))void loadCycles();if(id==='admin-justificativas'&&window.PortalGeapaAuth?.canRegisterAttendance()){const bar=document.createElement('p');bar.id='exceptional-window-entry';bar.innerHTML='<button data-exceptional-window>Histórico de prazos extraordinários</button>';document.getElementById('placeholder-content').before(bar);}});
 document.addEventListener('portal:act-session-cleared',()=>{generation++;shown=null;window.PortalDesign.closeDetailDialog(governanceModal,true);dialog?.close();if(dialog)dialog.textContent='';if(panel())panel().textContent='';document.getElementById('exceptional-window-entry')?.remove();});
 // Creation resolves the current cycle and the dated canonical semester in Core.

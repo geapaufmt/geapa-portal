@@ -1,6 +1,7 @@
 import './attendance-rh.mjs';
 import {esc,openDetailDialog,closeDetailDialog} from './design-system.mjs';
 export const groups=[
+ {id:'validity',label:'Vigências',items:[['admin-ciclos-semestres','Ciclos de atividades'],['admin-semestres-letivos','Semestres letivos'],['diretoria-competencias','Cargos e competências'],['historico-diretorias','Histórico de Diretorias']]},
  {id:'people',label:'Pessoas',items:[['admin-membros','Pessoas'],['perfis-permissoes','Perfis e permissões'],['admin-correcoes-cadastrais','Correções cadastrais'],['admin-solicitacoes-vinculo','Solicitações de vínculo']]},
  {id:'activities',label:'Atividades',items:[['admin-atividades','Atividades'],['admin-apresentacoes','Apresentações'],['admin-frequencia-rh','Frequência e RH'],['admin-eixos-tematicos','Eixos temáticos']]},
  {id:'institutional',label:'Gestão Institucional',items:[['institutional-identity','Identidade e contatos'],['institutional-parameters','Parâmetros operacionais'],['institutional-norms','Normas e documentos'],['institutional-governance','Governança e deliberações']]}
