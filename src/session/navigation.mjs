@@ -90,8 +90,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     rota('admin-solicitacoes-vinculo', 'Solicitações de vínculo', 'admin/membros/solicitacoes-vinculo', 'gestao-geapa', 27, 'tela-admin-solicitacoes-vinculo', 'view-admin-solicitacoes-vinculo', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['membros:analisar_solicitacoes_vinculo'], 'Análise humana de suspensões e desligamentos voluntários.', 'implementado'),
     rota('admin-atividades', 'Atividades', 'admin/atividades', 'gestao-geapa', 30, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['atividades:gerir'], 'Criação, edição e operação de atividades.', 'implementado'),
     rota('admin-chamadas', 'Chamadas', 'admin/chamadas', 'gestao-geapa', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['presencas:gerir'], 'Registro e acompanhamento de chamadas/presenças.', 'placeholder'),
-    rota('admin-frequencia-rh', 'Frequência e RH', 'admin/frequencia-rh', 'gestao-geapa', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['justificativas:analisar'], 'Análise operacional e decisão de justificativas conforme permissão.', 'implementado'),
-    rota('admin-justificativas', 'Justificativas', 'admin/justificativas', 'gestao-geapa', 50, 'tela-placeholder', 'view-placeholder', false, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['justificativas:analisar'], 'Análise operacional e decisão de justificativas conforme permissão.', 'implementado'),
+    rota('admin-justificativas', 'Justificativas', 'admin/justificativas', 'gestao-geapa', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['justificativas:analisar'], 'Análise operacional e decisão de justificativas conforme permissão.', 'implementado'),
     rota('admin-apresentacoes', 'Apresentações', 'admin/apresentacoes', 'gestao-geapa', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['apresentacoes:gerir'], 'Gestão operacional de apresentações e materiais.', 'implementado'),
     rota('admin-comunicacao', 'Comunicação', 'admin/comunicacao', 'gestao-geapa', 70, 'tela-placeholder', 'view-placeholder', true, [PERFIS.COMUNICACAO, PERFIS.DIRETORIA, PERFIS.ADMIN], ['comunicacoes:gerir', 'mensageria:ler'], 'Conteúdo público, divulgação e materiais de comunicação.', 'placeholder'),
     rota('admin-processo-seletivo', 'Processo seletivo', 'admin/processo-seletivo', 'gestao-geapa', 80, 'tela-placeholder', 'view-placeholder', true, [PERFIS.DIRETORIA, PERFIS.SECRETARIA, PERFIS.ADMIN], ['processo_seletivo:gerir'], 'Gestão de processo seletivo e classificações autorizadas.', 'placeholder'),
@@ -133,10 +132,8 @@ import {accessIsPending} from './bootstrap-state.mjs';
   ROTAS_PORTAL.push(rota('admin-eixos-tematicos','Eixos temáticos','admin/eixos-tematicos','gestao-geapa',31,'tela-placeholder','view-placeholder',true,[],[],'Consulta dos eixos oficiais.','implementado',false));
   [['identity','Gestão Institucional'],['parameters','Parâmetros operacionais'],['norms','Normas e documentos'],['governance','Governança e deliberações']].forEach(([id,label],i)=>ROTAS_PORTAL.push(rota('institutional-'+id,label,'admin/gestao-institucional/'+id,'gestao-geapa',27+i,'tela-placeholder','view-placeholder',true,[],[],'Informações institucionais e proveniência.','implementado',i===0)));
   ROTAS_PORTAL.push(rota('perfis-permissoes','Perfis e permissões','admin/pessoas/perfis-permissoes','gestao-geapa',26,'tela-placeholder','view-placeholder',true,[],[],'Consulta dos perfis e condições de acesso.','implementado',false));
-  ROTAS_PORTAL.push(rota('diretoria-competencias','Cargos e competências','admin/vigencias/cargos','gestao-geapa',25,'tela-placeholder','view-placeholder',true,[],[],'Atribuições e acessos efetivos da gestão.','implementado'));
-  ROTAS_PORTAL.push(rota('historico-diretorias','Histórico de Diretorias','admin/vigencias/diretorias','gestao-geapa',25,'tela-placeholder','view-placeholder',true,[],[],'Gestões, composições e documentos históricos.','implementado',false));
-  ROTAS_PORTAL.push(rota('admin-ciclos-semestres','Ciclos de atividades','admin/vigencias','gestao-geapa',25,'tela-ciclos-semestres','view-ciclos-semestres',true,[],[],'Cadastro e parâmetros dos ciclos.','implementado'));
-  ROTAS_PORTAL.push(rota('admin-semestres-letivos','Semestres letivos','admin/vigencias/semestres','gestao-geapa',25,'tela-ciclos-semestres','view-ciclos-semestres',true,[],[],'Cadastro de semestres e associações aos ciclos.','implementado',false));
+  ROTAS_PORTAL.push(rota('diretoria-competencias','Diretoria e competências','admin/diretoria-competencias','gestao-geapa',25,'tela-placeholder','view-placeholder',true,[],[],'Atribuições e acessos efetivos da gestão.','implementado'));
+  ROTAS_PORTAL.push(rota('admin-ciclos-semestres','Ciclos e semestres','admin/ciclos-semestres','gestao-geapa',35,'tela-ciclos-semestres','view-ciclos-semestres',true,[],[],'Cadastro de ciclos e semestres.','implementado'));
   ROTAS_PORTAL.push(rota('minha-atuacao','Minha atuação','app/minha-atuacao','meu-vinculo',25,'tela-minha-atuacao','view-minha-atuacao',true,[],[],'Vínculo e funções próprias.','implementado',false));
   function publicV2Enabled(page) {
     return global.PortalPublicData && global.PortalPublicData.isEnabled(page);
@@ -261,13 +258,6 @@ import {accessIsPending} from './bootstrap-state.mjs';
     }
 
     acesso = resolveRouteAccess(sessao, rota);
-    // The unified landing page may select an allowed section; legacy and explicit
-    // subsection links still fail closed under their own original authorization.
-    if (!acesso.ok && String(idRota) === 'admin/vigencias') {
-      var boardRoute = resolverRota('diretoria-competencias');
-      var boardAccess = resolveRouteAccess(sessao, boardRoute);
-      if (boardAccess.ok) { rota = boardRoute; acesso = boardAccess; }
-    }
 
     if (!acesso.ok && acesso.reason === MOTIVOS_ACESSO.PORTAL_INATIVO && rota.id !== 'inicio') {
       rota = resolverRota('inicio');
@@ -377,9 +367,6 @@ import {accessIsPending} from './bootstrap-state.mjs';
   }
 
   function resolveRouteAccess(sessao, rota) {
- // Subsections inherit the exact existing authorization, including expiring hints.
- if(rota?.id==='admin-semestres-letivos')return resolveRouteAccess(sessao,resolverRota('admin-ciclos-semestres'));
- if(rota?.id==='historico-diretorias')return resolveRouteAccess(sessao,resolverRota('diretoria-competencias'));
  const hints=global.PortalDevContext?.act?.navigation;
  if(rota?.grupoMenu==='gestao-geapa'&&hints?.schemaVersion==='admin-navigation-hints-v1'&&Object.prototype.hasOwnProperty.call(hints.routes||{},rota.id)&&(!(hints.validUntil>Date.now())||hints.routes[rota.id]!==true))return {ok:false,reason:'PERMISSAO_INSUFICIENTE'};
  if(['ingresso','eixos-tematicos','equipe','diretoria-publica','membros-publicos','orientadores'].includes(rota?.id))return {ok:true,reason:''};
@@ -394,7 +381,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
  if(rota?.id==='admin-ciclos-semestres')return {ok:!!global.PortalDevContext?.act?.available&&!!global.PortalGeapaAuth?.canConfigureActivity(),reason:'FEATURE_DISABLED'};
  if(!rota)return {ok:false,reason:MOTIVOS_ACESSO.ROTA_INEXISTENTE};
  if(['inicio','login'].includes(rota.id))return {ok:true,reason:''};
- if(['atividades','historico-atividades','frequencia','minhas-apresentacoes','admin-apresentacoes','admin-justificativas','admin-frequencia-rh','admin-atividades'].includes(rota.id))return {ok:!!global.PortalDevContext?.act?.available&&(!global.PortalDevContext.act.materialOnly||rota.id==='minhas-apresentacoes')&&(!['admin-atividades','admin-justificativas','admin-frequencia-rh','admin-apresentacoes'].includes(rota.id)||global.PortalDevContext.act.board),reason:'FEATURE_DISABLED'};
+ if(['atividades','historico-atividades','frequencia','minhas-apresentacoes','admin-apresentacoes','admin-justificativas','admin-atividades'].includes(rota.id))return {ok:!!global.PortalDevContext?.act?.available&&(!global.PortalDevContext.act.materialOnly||rota.id==='minhas-apresentacoes')&&(!['admin-atividades','admin-justificativas','admin-apresentacoes'].includes(rota.id)||global.PortalDevContext.act.board),reason:'FEATURE_DISABLED'};
  if(!['meu-perfil','minha-situacao','minha-atuacao'].includes(rota.id))return {ok:false,reason:'PENDENTE_DE_MIGRACAO_PRIVILEGIADA'};
  return {ok:!!global.PortalDevContext?.authenticated,reason:global.PortalDevContext?.authenticated?'':'NOT_AUTHENTICATED'};
  }
@@ -694,8 +681,6 @@ import {accessIsPending} from './bootstrap-state.mjs';
 
   function normalizarIdRota(idRota) {
     var id = String(idRota || '').trim();
-    if(id==='admin/ciclos-semestres'||id==='admin/vigencias/ciclos')return 'admin-ciclos-semestres';
-    if(id==='admin/diretoria-competencias')return 'diretoria-competencias';
     if(['app/meu-vinculo','meu-vinculo','app/minha-situacao','minha-atuacao','app/minha-atuacao','app/minhas-funcoes','minhas-funcoes','app/minha-diretoria','minha-diretoria'].includes(id))return 'minha-situacao';
     if(['admin/membros','admin/pessoas'].includes(id))return 'admin-membros';
     if (['app/minhas-funcoes','minhas-funcoes','app/minha-diretoria','minha-diretoria','app/minha-atuacao'].includes(id)) return 'minha-atuacao';

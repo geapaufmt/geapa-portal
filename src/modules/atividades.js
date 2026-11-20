@@ -46,7 +46,6 @@
   var isChamadaLoading = false;
   var isChamadaSaving = false;
   var isChamadaFinalizing = false;
-  var isChamadaConfirming = false;
   var isCriandoAtividade = false;
   var modelosCriacaoAtividadeCache = [];
   var modelosCriacaoAtividadeExpiraEm = 0;
@@ -1252,7 +1251,7 @@
   }
 
   function chamadaOperacionalAtiva() {
-    return isChamadaLoading || isChamadaSaving || isChamadaFinalizing || isChamadaConfirming;
+    return isChamadaLoading || isChamadaSaving || isChamadaFinalizing;
   }
 
   function pausarPreloadsPorChamada(motivo) {
@@ -2716,7 +2715,7 @@
     }
 
     painel.innerHTML = montarPainelPadroesModelo(modelo);
-    var contexts=modelo.usageContexts||[];if(contexts.length){painel.insertAdjacentHTML('beforeend','<label>Ciclo de atividades<select name="cycleId" required><option value="">Selecione o ciclo</option>'+contexts.map(function(c){return '<option value="'+ui.escaparHtml(c.id)+'">'+ui.escaparHtml(c.label)+'</option>';}).join('')+'</select></label><div data-cycle-attendance-policy></div><p data-cycle-time-note></p>');var cycleSelect=form.elements.cycleId;cycleSelect.onchange=function(){var c=contexts.find(function(c){return c.id===cycleSelect.value});if(!c)return;var policyHost=painel.querySelector('[data-cycle-attendance-policy]'),policies=c.attendancePolicies||[];policyHost.innerHTML=c.attendanceRequired?'<label>Política de chamada do ciclo<select name="attendancePolicyId" required><option value="">Selecione</option>'+policies.map(function(p){return '<option value="'+ui.escaparHtml(p.id)+'">'+ui.escaparHtml(p.label)+' · revisão '+p.revision+'</option>';}).join('')+'</select></label><p class="section-note">A frequência e os prazos da chamada seguem esta política aprovada para o ciclo.</p>':'';if(c.attendanceRequired){var preferred=policies.find(function(p){return p.preferred});if(preferred||policies.length===1)form.elements.attendancePolicyId.value=(preferred||policies[0]).id;if(!policies.length)policyHost.insertAdjacentHTML('beforeend','<p role="status">Este ciclo ainda não possui política de chamada aprovada.</p>');}['horarioInicio','horarioFim'].forEach(function(key,i){var v=i?c.meetingEndTime:c.meetingStartTime;if(v&&!form.elements[key].value)form.elements[key].value=v;});painel.querySelector('[data-cycle-time-note]').textContent=c.configRevision?'Horários sugeridos pela configuração '+c.configRevision+'. A ocorrência pode ter horário próprio.':'Horário-padrão do ciclo não estabelecido.';};if(contexts.length===1){cycleSelect.value=contexts[0].id;cycleSelect.onchange();}}else painel.insertAdjacentHTML('beforeend','<p class="geapa-detail-note">O ciclo vigente e o semestre letivo serão identificados pelo Core ao validar a data da atividade.</p>');
+    var contexts=modelo.usageContexts||[];if(contexts.length){painel.insertAdjacentHTML('beforeend','<label>Ciclo de atividades<select name="cycleId" required><option value="">Selecione o ciclo</option>'+contexts.map(function(c){return '<option value="'+ui.escaparHtml(c.id)+'">'+ui.escaparHtml(c.label)+'</option>';}).join('')+'</select></label><p data-cycle-time-note></p>');var cycleSelect=form.elements.cycleId;cycleSelect.onchange=function(){var c=contexts.find(function(c){return c.id===cycleSelect.value});if(!c)return;['horarioInicio','horarioFim'].forEach(function(key,i){var v=i?c.meetingEndTime:c.meetingStartTime;if(v&&!form.elements[key].value)form.elements[key].value=v;});painel.querySelector('[data-cycle-time-note]').textContent=c.configRevision?'Horários sugeridos pela configuração '+c.configRevision+'. A ocorrência pode ter horário próprio.':'Horário-padrão do ciclo não estabelecido.';};if(contexts.length===1){cycleSelect.value=contexts[0].id;cycleSelect.onchange();}}else painel.insertAdjacentHTML('beforeend','<p class="geapa-detail-note">O ciclo vigente e o semestre letivo serão identificados pelo Core ao validar a data da atividade.</p>');
     titulo.required = !isMemberPresentation && modelo.exigeTituloPublico === true;
     tituloLabel.hidden = isMemberPresentation;
     descricaoPublicaLabel.hidden = isMemberPresentation;
@@ -2933,7 +2932,13 @@
       }
 
       var dadosPrevia = resposta.data || {};
-      // Creating a reversible draft still uses the canonical validation and seal.
+      if (!confirm(montarMensagemConfirmacaoCriarAtividade(dadosPrevia.atividadePreview || {}))) {
+        throw criarErroAtividade({
+          ok: false,
+          message: 'Criacao cancelada pelo usuario.',
+          cancelado: true
+        });
+      }
 
       ui.atualizarMensagemLoading('Criando atividade...');
       ui.atualizarToast(toastId, {
@@ -3005,7 +3010,7 @@
       local: obterValorFormulario(dados, 'local')
     };
     var opcionais = [
-      'cycleId','academicSemesterId','attendancePolicyId',
+      'cycleId','academicSemesterId',
       'descricaoPublica',
       'descricaoInterna',
       'eixoTematicoPrincipal',
@@ -4254,8 +4259,8 @@
     });
   }
 
-  async function salvarChamadaAtual(operacao) {
-    if (isChamadaSaving || isChamadaFinalizing || isChamadaConfirming || !chamadaAtual || !chamadaAtual.atividade) {
+  function salvarChamadaAtual(operacao) {
+    if (!chamadaAtual || !chamadaAtual.atividade) {
       return;
     }
 
@@ -4268,12 +4273,8 @@
       ? '[data-finalize-attendance]'
       : '[data-save-attendance]');
 
-    if (operacaoNormalizada === 'FINALIZAR' && resumo.totalSemMarcacao > 0) {
-      var reviewedAttendance = chamadaAtual;
-      isChamadaConfirming = true;
-      var accepted;
-      try { accepted = await global.PortalDesign.confirmAdministrative({title:'Finalizar chamada?',message:'Os membros sem marcação serão registrados como falta. Confira a chamada antes de finalizar.',confirmLabel:'Finalizar chamada',cancelLabel:'Conferir chamada',parent:document.getElementById('atividade-modal')}); } finally { isChamadaConfirming = false; }
-      if (!accepted || chamadaAtual !== reviewedAttendance) return;
+    if (operacaoNormalizada === 'FINALIZAR' && resumo.totalSemMarcacao > 0 && !global.confirm('Os membros sem marcação serão registrados como falta. Deseja finalizar a chamada?')) {
+      return;
     }
 
     var payload = montarPayloadSalvarChamada(chamadaAtual.atividade.idAtividade, participantes, operacaoNormalizada);

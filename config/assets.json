@@ -1290,12 +1290,18 @@
     {
       "url": "/assets/act-ui/attendance-rh.mjs",
       "environments": [
-        "prod",
         "dev"
       ],
       "source": "src/components/attendance-rh.mts",
       "devSource": "src/components/attendance-rh.mts",
       "generated": "build/typescript/attendance-rh.mjs"
+    },
+    {
+      "url": "/assets/act-ui/theme-extraordinary.mjs",
+      "environments": [
+        "prod"
+      ],
+      "generated": "build/typescript/theme-extraordinary.mjs"
     }
   ]
 }

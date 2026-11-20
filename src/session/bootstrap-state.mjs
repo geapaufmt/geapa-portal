@@ -20,3 +20,9 @@ export async function recoverContextRead({read,isCurrent,visible,online,wait=()=
   return read();
  }
 }
+
+// A module denial must not turn a canonically authorized member into an applicant.
+export async function recoverOwnAccess({read,isCurrent}){
+ if(!isCurrent())return null;
+ try{const result=await read();return isCurrent()&&result?.data?.state?result:null;}catch{return null;}
+}

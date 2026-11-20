@@ -1,6 +1,6 @@
 // Generated selectors from the versioned Core; not an authorization policy.
 export const actFlowContracts=Object.freeze({
-  "routes": ["/admin/atividades/substituicao","/atividades/chamada/extraordinaria/autorizar","/atividades/chamada/extraordinaria/revogar","/admin/atividades/modelos/original","/admin/atividades/modelos/aprovar","/admin/atividades/modelos/disponibilidade","/admin/atividades/modelos/uso","/admin/ciclos-semestres/frequencia/salvar","/admin/ciclos-semestres/frequencia/aprovar","/admin/ciclos-semestres/frequencia/reconhecer",
+  "routes": ["/v2/apresentacoes/titulo-eixo/autorizar","/v2/apresentacoes/titulo-eixo/revogar","/v2/apresentacoes/titulo-eixo/regularizar","/v2/apresentacoes/titulo-eixo/registrar","/atividades/chamada/extraordinaria/autorizar","/atividades/chamada/extraordinaria/revogar","/admin/atividades/modelos/original","/admin/atividades/modelos/aprovar","/admin/atividades/modelos/disponibilidade","/admin/atividades/modelos/uso","/admin/ciclos-semestres/frequencia/salvar","/admin/ciclos-semestres/frequencia/aprovar","/admin/ciclos-semestres/frequencia/reconhecer",
     "/admin/apresentacoes/regras/salvar",
     "/admin/atividades/conferencia",
     "/atividades/chamada/preparar",
@@ -43,7 +43,7 @@ export const actFlowContracts=Object.freeze({
     "/v2/apresentacoes/foto/revisar",
     "/v2/justificativas/documento/iniciar"
   ],
-  "types": ["ACT.ACTIVITY_REPLACE","ACT.ATTENDANCE_EXTRAORDINARY_AUTHORIZE","ACT.ATTENDANCE_EXTRAORDINARY_REVOKE","ACT.ACTIVITY_MODEL_DRAFT_SAVE","ACT.ACTIVITY_MODEL_APPROVE","ACT.ACTIVITY_MODEL_AVAILABILITY_SET","ACT.ACTIVITY_MODEL_USAGE_SET","ACT.CYCLE_FREQUENCY_PLAN_SAVE","ACT.CYCLE_FREQUENCY_PLAN_APPROVE","ACT.CYCLE_FREQUENCY_PLAN_RECOGNIZE","ACT.CYCLE_THEME_SETTINGS_RECORD","ACT.CYCLE_MATERIAL_SETTINGS_RECORD","ACT.HISTORICAL_PREAGENDA_RECOGNIZE","ACT.CYCLE_OPEN","ACT.CAPACITY_ASSESSMENT_SEAL","ACT.PRESENTATION_CONTINUITY_CONNECT",
+  "types": ["ACT.THEME_EXTRAORDINARY_AUTHORIZE","ACT.THEME_EXTRAORDINARY_REVOKE","ACT.THEME_REGULARIZE","ACT.THEME_REGULARIZE_ADMIN","ACT.ATTENDANCE_EXTRAORDINARY_AUTHORIZE","ACT.ATTENDANCE_EXTRAORDINARY_REVOKE","ACT.ACTIVITY_MODEL_DRAFT_SAVE","ACT.ACTIVITY_MODEL_APPROVE","ACT.ACTIVITY_MODEL_AVAILABILITY_SET","ACT.ACTIVITY_MODEL_USAGE_SET","ACT.CYCLE_FREQUENCY_PLAN_SAVE","ACT.CYCLE_FREQUENCY_PLAN_APPROVE","ACT.CYCLE_FREQUENCY_PLAN_RECOGNIZE","ACT.CYCLE_THEME_SETTINGS_RECORD","ACT.CYCLE_MATERIAL_SETTINGS_RECORD","ACT.HISTORICAL_PREAGENDA_RECOGNIZE","ACT.CYCLE_OPEN","ACT.CAPACITY_ASSESSMENT_SEAL","ACT.PRESENTATION_CONTINUITY_CONNECT",
     "ACT.ACTIVITY_ADMIN_REVIEW",
     "ACT.ACTIVITY_SAVE",
     "ACT.ACTIVITY_PUBLICATION_SET",
