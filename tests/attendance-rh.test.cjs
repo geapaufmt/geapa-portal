@@ -7,3 +7,27 @@ function response(id,absence=0){return {ok:true,data:{cycle:{id,label:id},cycles
 test('RH selects the unique current cycle, never hardcodes GEAPA_2026 or an ambiguous open cycle',()=>{const h=setup(async()=>({ok:false})),choose=(cycles)=>vm.runInContext(`defaultCycle(${JSON.stringify(cycles)},'2026-11-15')`,h.context);a.equal(choose([{id:'A',status:'OPEN',civilStart:'2026-01-01',civilEnd:'2026-12-31'},{id:'B',status:'OPEN',civilStart:'2027-01-01',civilEnd:'2027-12-31'}]),'A');a.equal(choose([{id:'A',status:'OPEN'},{id:'B',status:'OPEN'}]),'');h.window.close();});
 test('RH discards a late response from the previous cycle and clears private state on logout',async()=>{const pending={};const h=setup((r,p)=>new Promise(resolve=>pending[p.cycleId]=resolve));h.change('A');h.change('B');pending.B(response('B'));await tick();pending.A(response('A'));await tick();a.equal(h.window.document.querySelector('[data-rh-cycle]').value,'B');h.window.document.querySelector('[data-rh-section="members"]').click();a(h.body().includes('90%'));a(!h.body().includes('80%'));a.equal(h.window.document.querySelectorAll('script').length,0);h.window.document.dispatchEvent(new h.window.Event('portal:act-session-cleared'));a.equal(h.window.PortalRH.cycleId,'');h.window.close();});
 test('RH distinguishes zero absences from unproven totals and retains the legacy justification link',async()=>{const h=setup(async(r,p)=>response(p.cycleId,null));h.change('A');await tick();h.window.document.querySelector('[data-rh-section="members"]').click();a(h.body().includes('Não apurado'));h.window.document.querySelector('[data-rh-section="justifications"]').click();a.equal(h.window.location.hash,'#/admin/justificativas');a.equal(h.window.PortalRH.cycleId,'A');const html=vm.runInContext(`content(${JSON.stringify(response('A',0).data)},'members')`,h.context);a(html.includes('<dd>0</dd>'));h.window.close();});
+
+test('RH form takes its document requirement from the authorized response',async()=>{
+ for(const rules of [{FOLLOW_UP:true,FORMAL_WARNING:false},undefined,{FOLLOW_UP:'false'}]){
+  const detail={cycleId:'A',items:[],institutionalHistory:[],allowedActions:['FOLLOW_UP','FORMAL_WARNING'],
+   documentRequiredByAction:rules,canRecord:true,person:{revision:1,links:[{id:'L',type:'Sintético'}]}};
+  const h=setup(async route=>route.endsWith('/providencias')?{ok:true,data:detail}:response('A'));
+  const posts=[];h.window.PortalGeapaApi.apiPost=async(route,args)=>{posts.push(args);return {ok:true};};
+  h.change('A');await tick();h.window.document.querySelector('[data-rh-section="actions"]').click();await tick();
+  h.window.document.querySelector('[data-rh-case="P"]').click();await tick();
+  const form=h.window.document.querySelector('[data-rh-case-form]'),fields=form.elements;
+  fields.reason.value='Decisão sintética para teste';fields.occurrenceDate.value='2026-10-10';
+  fields.decisionReference.value='TEST';fields.confirmed.checked=true;
+  const send=()=>form.dispatchEvent(new h.window.Event('submit',{cancelable:true,bubbles:true}));
+  const button=form.querySelector('button[type=submit]');
+  a(form.querySelector('details').open);send();a.equal(posts.length,0);
+  if(rules?.FOLLOW_UP===true){
+   a(fields.documentReference.required);a(!button.disabled);
+   fields.action.value='FORMAL_WARNING';fields.action.dispatchEvent(new h.window.Event('change',{bubbles:true}));
+   a(!fields.documentReference.required);a(!form.querySelector('details').open);send();await tick();
+   a.equal(posts.length,1);a.equal(posts[0].documentReference,'');
+  }else{a(button.disabled);a.match(form.querySelector('[data-rh-document-note]').textContent,/indisponível/);}
+  h.window.close();
+ }
+});

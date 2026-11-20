@@ -11,3 +11,38 @@ test('PIA clean and reverted inputs close without confirmation, including select
 test('PIA discard requires explicit decision; no duplicate prompt, busy dispatch or resurrection on logout',async()=>{const h=setup();h.edit('textarea','Novo');h.close();h.close();a.equal(h.d.querySelectorAll('[role=alertdialog]').length,1);h.m.setAttribute('aria-busy','true');h.d.querySelector('[data-discard-draft]').click();await tick();a(!h.m.hidden);h.close();a.equal(h.d.querySelector('[role=alertdialog]'),null);h.m.removeAttribute('aria-busy');h.close();h.d.querySelector('[data-discard-draft]').click();await tick();a(h.m.hidden);a.equal(h.closed(),1);a.equal(h.d.querySelectorAll('.geapa-confirm-modal').length,0);h.w.close();const g=setup();g.edit('textarea','Privado');g.close();g.d.dispatchEvent(new g.w.Event('portal:act-session-cleared'));await tick();a(g.m.hidden);a.equal(g.d.querySelector('[role=alertdialog]'),null);g.w.close();});
 test('PIA asynchronous initial form population establishes baseline without ignoring subsequent edits',async()=>{const h=setup();h.m.querySelector('section').insertAdjacentHTML('beforeend','<input name="late" value="Canônico">');await tick();h.edit('[name=late]','Novo');h.edit('[name=late]','Canônico');h.close();a(h.m.hidden);h.w.close();});
 test('Vigências subroute guards preserve independent permissions and expiring canonical hints',()=>{const dom=new JSDOM('',{runScripts:'outside-only',url:'http://localhost'}),w=dom.window;w.PortalDevContext={authenticated:true,act:{available:true,board:true,navigation:{schemaVersion:'admin-navigation-hints-v1',validUntil:Date.now()+60000,routes:{'admin-ciclos-semestres':false,'diretoria-competencias':true}}}};w.PortalGeapaAuth={canConfigureActivity:()=>true};w.accessIsPending=()=>false;w.eval(fs.readFileSync(p.resolve(__dirname,'../src/session/navigation.mjs'),'utf8').replace(/^import .*;\r?\n/,''));const nav=w.PortalGeapaNavigation,r=id=>nav.getRotas().find(x=>x.id===id);for(const id of ['admin-ciclos-semestres','admin-semestres-letivos'])a.equal(nav.resolveRouteAccess({},r(id)).ok,false);for(const id of ['diretoria-competencias','historico-diretorias'])a.equal(nav.resolveRouteAccess({},r(id)).ok,true);w.PortalDevContext.act.navigation.validUntil=0;a.equal(nav.resolveRouteAccess({},r('historico-diretorias')).ok,false);a.equal(r('admin-ciclos-semestres').path,'admin/vigencias');dom.window.close();});
+
+test('PDF order participates in discard protection even with identical captions',async()=>{
+ for(const caption of ['', 'Mesma legenda']){
+  const h=setup();
+  h.w.eval(fs.readFileSync(p.resolve(__dirname,'../dist/dev/assets/act-ui/institutional-document-files.mjs'),'utf8')
+   .replace(/^import .*;$/mg,'').replace(/^export /gm,'')+'\nwindow.filesFixture={mountFileFields,fileFields};');
+  h.w.esc=String;
+  h.m.querySelector('section').insertAdjacentHTML('beforeend',h.w.filesFixture.fileFields());
+  const files=['A','B'].map(id=>({fileId:id,name:id+'.pdf',mime:'application/pdf',caption,sha256:id}));
+  const editor=h.w.filesFixture.mountFileFields(h.m,files,true);
+  await tick();
+  const move=()=>h.m.querySelector('[data-document-up="1"]').click();
+  move();
+  a.deepEqual(Array.from(editor.input(),r=>r.fileId),['B','A']);
+  h.close();a(h.d.querySelector('[role=alertdialog]'));
+  h.d.querySelector('[data-keep-draft]').click();await tick();
+  move();await tick();h.close();a(h.m.hidden);a.equal(h.closed(),1);
+  editor.dispose();h.w.close();
+ }
+});
+
+test('Vigências retries a failed semester read in place and performs no write',async()=>{
+ const dom=new JSDOM('<main id="functional-governance-content"></main>',{runScripts:'outside-only'}),w=dom.window;
+ const calls=[];
+ w.PortalDesign={closeDetailDialog(){}};
+ w.PortalGeapaNavigation={getRotaAtual:()=> 'admin-semestres-letivos'};
+ w.PortalGeapaApi={apiGet:async route=>{calls.push(route);return calls.length===1?{ok:false,message:'Falha sintética'}:{ok:true,data:{}};}};
+ w.cycleDashboard=(_data,tab)=>'<h2>'+tab+'</h2>';
+ w.eval(fs.readFileSync(p.resolve(__dirname,'../dist/dev/assets/act-ui/functional-governance.mjs'),'utf8').replace(/^import .*;$/gm,''));
+ w.document.dispatchEvent(new w.CustomEvent('portal:navigationchange',{detail:{rota:{id:'admin-semestres-letivos'}}}));
+ await tick();a.equal(w.document.querySelector('[role=alert]').textContent,'Falha sintética');
+ w.document.querySelector('button').click();await tick();
+ a.deepEqual(calls,['/admin/ciclos-semestres','/admin/ciclos-semestres']);
+ a.equal(w.document.querySelector('h2').textContent,'semesters');w.close();
+});
