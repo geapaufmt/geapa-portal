@@ -49,6 +49,11 @@
     "/admin/ciclos-semestres/frequencia/aprovar",
     "/admin/ciclos-semestres/frequencia/reconhecer",
     "/atividades/chamada/extraordinaria/autorizar",
-    "/atividades/chamada/extraordinaria/revogar"
+    "/atividades/chamada/extraordinaria/revogar",
+    "/v2/apresentacoes/titulo-eixo/autorizar",
+    "/v2/apresentacoes/titulo-eixo/revogar",
+    "/v2/apresentacoes/titulo-eixo/regularizar",
+    "/v2/apresentacoes/titulo-eixo/registrar",
+    "/admin/ciclos-semestres/semestre"
   ]
 }
