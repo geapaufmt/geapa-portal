@@ -13,7 +13,8 @@
     "verify": "npm run typecheck && npm run build && npm test",
     "verify:published": "node scripts/verify-published.cjs",
     "deploy": "node -e \"throw Error('EXPLICIT_RELEASE_AUTHORIZATION_REQUIRED')\"",
-    "preview:admin": "node tests/visual/serve.cjs"
+    "preview:admin": "node tests/visual/serve.cjs",
+    "verify:hosting": "node scripts/verify-hosting.cjs"
   },
   "devDependencies": {
     "jsdom": "^26.1.0",
