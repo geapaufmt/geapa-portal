@@ -35,7 +35,7 @@ export function procedureDocumentReferences(v:ProcedureCatalog,indices:string[])
  return indices.map(i=>({...rows[Number(i)]!.ref}));
 }
 export function procedureDocumentFields(v:ProcedureCatalog):string{
- const rows=documentChoices(v);return '<fieldset><legend>Documentos complementares</legend><p>Seleção opcional dos arquivos privados disponíveis nesta consulta. O Core revalida o acesso, a revisão e a integridade ao confirmar.</p>'+ (rows.length?rows.map((x,i)=>'<label><input type="checkbox" name="procedureDocument" value="'+i+'"> '+esc(x.record.title)+' · '+esc(x.file.name)+' · revisão '+x.record.revision+'</label>').join(''):'<p>Nenhum arquivo disponível neste recorte. Cadastre os documentos em Governança ou ajuste a consulta antes de abrir a proposta.</p>')+'</fieldset>';
+ const rows=documentChoices(v);return '<details><summary>Documentos complementares (opcional)</summary><fieldset><legend>Arquivos de apoio</legend><p>Seleção opcional dos arquivos privados disponíveis nesta consulta. O Core revalida o acesso, a revisão e a integridade ao confirmar.</p>'+ (rows.length?rows.map((x,i)=>'<label><input type="checkbox" name="procedureDocument" value="'+i+'"> '+esc(x.record.title)+' · '+esc(x.file.name)+' · revisão '+x.record.revision+'</label>').join(''):'<p>Nenhum arquivo disponível neste recorte. Cadastre os documentos em Governança ou ajuste a consulta antes de abrir a proposta.</p>')+'</fieldset></details>';
 }
 function procedureDocumentsDetail(refs:DocumentReference[],v?:ProcedureCatalog):string{
  if(!refs.length)return detailSection('Documentos complementares','<p>Nenhum documento associado.</p>');

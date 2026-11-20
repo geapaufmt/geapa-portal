@@ -98,23 +98,39 @@ export function mountCollectionSearch(root:HTMLElement):void {
 export function detailHeader(id:unknown,statuses:readonly unknown[],description:unknown=''):string {
   return `<div class="geapa-detail-lead"><small class="geapa-record-id">${esc(id)}</small><div class="geapa-record-status">${statuses.filter(v=>typeof v==='string'&&v).map((v,i)=>badge(v,i>0)).join('')}</div>${typeof description==='string'&&description?`<p class="geapa-detail-description">${esc(description)}</p>`:''}</div>`;
 }
-type DialogState={origin:HTMLElement|null;onClose:()=>void;observer:MutationObserver;key:(e:KeyboardEvent)=>void;click:(e:MouseEvent)=>void};
+type DialogState={origin:HTMLElement|null;onClose:()=>void;observer:MutationObserver;key:(e:KeyboardEvent)=>void;click:(e:MouseEvent)=>void;baseline:string};
 const dialogs=new Map<HTMLElement,DialogState>();
+const discardPrompts=new Map<HTMLElement,HTMLElement>();
+function draftSnapshot(modal:HTMLElement):string {
+  return JSON.stringify([...modal.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>('input,select,textarea')].filter(el=>!el.matches('button,[type="submit"],[type="button"]')).map(el=>[el.name,el.type,el instanceof HTMLInputElement&&['checkbox','radio'].includes(el.type)?el.checked:el instanceof HTMLInputElement&&el.type==='file'?[...(el.files??[])].map(f=>[f.name,f.size,f.lastModified]):el instanceof HTMLSelectElement&&el.multiple?[...el.selectedOptions].map(o=>o.value):el.value]));
+}
+/** Shared, safe-default confirmation. It does not authorize or execute business operations. */
+export function confirmAdministrative(options:{title:string;message:string;confirmLabel:string;cancelLabel?:string;parent?:HTMLElement}):Promise<boolean> {
+  const parent=options.parent,active=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  const positions=parent?[parent,...parent.querySelectorAll<HTMLElement>('*')].filter(el=>el.scrollTop||el.scrollLeft).map(el=>({el,top:el.scrollTop,left:el.scrollLeft})):[];
+  const previousInert=parent?.inert??false;
+  const overlay=document.createElement('div');overlay.className='modal-backdrop geapa-confirm-modal';overlay.hidden=true;
+  overlay.innerHTML=`<section class="geapa-confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="geapa-confirm-title-${dialogs.size}"><h2 id="geapa-confirm-title-${dialogs.size}">${esc(options.title)}</h2><p>${esc(options.message)}</p><div class="geapa-confirm-actions"><button type="button" data-keep-draft>${esc(options.cancelLabel??'Cancelar')}</button><button type="button" class="secondary-button" data-discard-draft>${esc(options.confirmLabel)}</button></div></section>`;
+  document.body.append(overlay);if(parent){parent.inert=true;discardPrompts.set(parent,overlay);}
+  return new Promise(resolve=>{let accepted=false;
+    openDetailDialog(overlay,()=>{overlay.remove();if(parent){discardPrompts.delete(parent);parent.inert=previousInert;}if(active?.isConnected)active.focus({preventScroll:true});positions.forEach(({el,top,left})=>{el.scrollTop=top;el.scrollLeft=left;});resolve(accepted);});
+    overlay.querySelector('[data-keep-draft]')?.addEventListener('click',()=>closeDetailDialog(overlay,true));
+    overlay.querySelector('[data-discard-draft]')?.addEventListener('click',()=>{accepted=parent?.getAttribute('aria-busy')!=='true';closeDetailDialog(overlay,true);});
+    overlay.querySelector<HTMLElement>('[data-keep-draft]')?.focus({preventScroll:true});
+  });
+}
 function finishDialog(modal:HTMLElement):void {
   const entry=dialogs.get(modal);if(!entry)return;dialogs.delete(modal);
+  const prompt=discardPrompts.get(modal);if(prompt)closeDetailDialog(prompt,true);
   entry.observer.disconnect();document.removeEventListener('keydown',entry.key,true);modal.removeEventListener('click',entry.click,true);
   entry.onClose();modal.classList.remove('geapa-detail-modal');
   if(![...document.querySelectorAll<HTMLElement>('.modal-backdrop')].some(el=>!el.hidden))document.body.classList.remove('modal-open');
-  if(entry.origin?.isConnected&&!entry.origin.closest('[hidden]'))entry.origin.focus();
+  if(entry.origin?.isConnected&&!entry.origin.closest('[hidden],[inert]'))entry.origin.focus({preventScroll:true});
 }
 export function closeDetailDialog(modal:HTMLElement|null,force=false):void {
   if(!modal||(!force&&modal.getAttribute?.('aria-busy')==='true'))return;
   if(!force&&modal.getAttribute?.('data-geapa-dirty')==='true'){
-    if(!modal.querySelector('[data-discard-prompt]')){
-      const prompt=document.createElement('div');prompt.className='geapa-discard-prompt';prompt.setAttribute('data-discard-prompt','');prompt.setAttribute('role','alert');
-      prompt.innerHTML='<p>Há alterações não enviadas. Deseja descartá-las?</p><button type="button" data-keep-draft>Continuar editando</button><button type="button" class="secondary-button" data-discard-draft>Descartar e fechar</button>';
-      (modal.querySelector('.modal-topbar')??modal).after(prompt);prompt.querySelector<HTMLElement>('button')?.focus();
-    }
+    if(!discardPrompts.has(modal))void confirmAdministrative({title:'Descartar alterações?',message:'As alterações ainda não salvas serão perdidas.',confirmLabel:'Descartar e sair',cancelLabel:'Continuar editando',parent:modal}).then(accepted=>{if(accepted&&dialogs.has(modal)&&modal.getAttribute('aria-busy')!=='true')closeDetailDialog(modal,true);});
     return;
   }
   modal.removeAttribute?.('data-geapa-dirty');modal.querySelector('[data-discard-prompt]')?.remove();modal.hidden=true;finishDialog(modal);
@@ -125,18 +141,18 @@ export function openDetailDialog(modal:HTMLElement,onClose:()=>void=()=>{}):void
   const existing=dialogs.get(modal);if(existing){existing.onClose=onClose;return;}
   const active=document.activeElement instanceof HTMLElement?document.activeElement:null;
   const origin=active?.closest('details:not([open])')?.querySelector<HTMLElement>('summary')??active;
-  const panel=modal.querySelector<HTMLElement>('[role="dialog"]')??modal;
+  const panel=modal.querySelector<HTMLElement>('[role="dialog"],[role="alertdialog"]')??modal;
   const focusable=()=>[...panel.querySelectorAll<HTMLElement>('button,a[href],input,select,textarea,summary,[tabindex="0"]')].filter(el=>!el.matches(':disabled,[type="hidden"]')&&!el.closest('[hidden]')&&el.getClientRects().length>0);
   const key=(e:KeyboardEvent)=>{
-    if(modal.hidden)return;
+    if(modal.hidden||[...dialogs.keys()].filter(el=>!el.hidden).at(-1)!==modal)return;
     if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();closeDetailDialog(modal);return;}
     if(e.key!=='Tab')return;const list=focusable(),first=list[0],last=list.at(-1);
     if(!first){e.preventDefault();panel.focus();return;}
     if(!panel.contains(document.activeElement)||(e.shiftKey&&document.activeElement===first)||(!e.shiftKey&&document.activeElement===last)){e.preventDefault();(e.shiftKey?last:first)?.focus();}
   };
-  const click=(e:MouseEvent)=>{const target=e.target instanceof Element?e.target:null;if(target?.closest('[data-keep-draft]')){e.preventDefault();modal.querySelector('[data-discard-prompt]')?.remove();modal.querySelector<HTMLElement>('input:not([type=hidden]),textarea,select')?.focus();return;}if(target?.closest('[data-discard-draft]')){e.preventDefault();if(modal.getAttribute('aria-busy')!=='true')closeDetailDialog(modal,true);return;}if(e.target===modal||target?.closest('[data-vinculo-close],[data-profile-correction-close],[data-admin-modal-close],[data-admin-vinculo-close],[data-member-registration-close],[data-admin-correction-close],[data-admin-member-close],#fechar-atividade-modal,[data-portal-v2-action="fechar-modal"]')){e.preventDefault();e.stopImmediatePropagation();closeDetailDialog(modal);}};
-  const observer=new MutationObserver(()=>{if(modal.hidden)finishDialog(modal);});
-  dialogs.set(modal,{origin,onClose,observer,key,click});observer.observe(modal,{attributes:true,attributeFilter:['hidden']});
+  const click=(e:MouseEvent)=>{const target=e.target instanceof Element?e.target:null;if(e.target===modal||target?.closest('[data-vinculo-close],[data-profile-correction-close],[data-admin-modal-close],[data-admin-vinculo-close],[data-member-registration-close],[data-admin-correction-close],[data-admin-member-close],#fechar-atividade-modal,[data-portal-v2-action="fechar-modal"]')){e.preventDefault();e.stopImmediatePropagation();closeDetailDialog(modal);}};
+  const observer=new MutationObserver(records=>{if(modal.hidden){finishDialog(modal);return;}const state=dialogs.get(modal);if(state&&modal.dataset.geapaDirty!=='true'&&records.some(r=>r.type==='childList'))state.baseline=draftSnapshot(modal);});
+  dialogs.set(modal,{origin,onClose,observer,key,click,baseline:draftSnapshot(modal)});observer.observe(modal,{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true});
   document.addEventListener('keydown',key,true);modal.addEventListener('click',click,true);
   modal.hidden=false;document.body.classList.add('modal-open');panel.tabIndex=-1;
   (panel.querySelector<HTMLElement>('.modal-topbar button')??panel).focus();
@@ -157,12 +173,12 @@ export function install():void {
   document.addEventListener('portal:act-session-suspended',()=>suspendProtectedDialogs(true));
   document.addEventListener('portal:act-context-ready',()=>suspendProtectedDialogs(false,undefined,true));
   window.addEventListener('beforeunload',e=>{if(document.querySelector('[data-geapa-protect-draft][data-geapa-dirty="true"]')){e.preventDefault();e.returnValue='';}});
-  const dirty=(e:Event)=>{if(!(e.target instanceof Element))return;e.target.closest<HTMLElement>('[data-geapa-protect-draft]')?.setAttribute('data-geapa-dirty','true');};document.addEventListener('input',dirty);document.addEventListener('change',dirty);
+  const dirty=(e:Event)=>{if(!(e.target instanceof Element))return;const modal=e.target.closest<HTMLElement>('[data-geapa-protect-draft]');if(!modal)return;const state=dialogs.get(modal);if(state&&draftSnapshot(modal)===state.baseline)modal.removeAttribute('data-geapa-dirty');else modal.setAttribute('data-geapa-dirty','true');};document.addEventListener('input',dirty);document.addEventListener('change',dirty);
   if(!document.querySelector('link[data-geapa-design]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/assets/act-ui/design-system.css';css.dataset.geapaDesign='';document.head.append(css);}
   const close=(except?:Element)=>document.querySelectorAll<HTMLDetailsElement>('[data-geapa-options][open]').forEach(el=>{if(el!==except)el.open=false;});
   document.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;close(target?.closest('[data-geapa-options]')??undefined);if(target?.closest('[data-geapa-options] button,[data-geapa-options] a'))close();});
   document.addEventListener('keydown',event=>{if(event.key!=='Escape')return;document.querySelectorAll<HTMLDetailsElement>('[data-geapa-options][open]').forEach(el=>{el.open=false;el.querySelector<HTMLElement>('summary')?.focus();});});
   document.addEventListener('portal:act-session-cleared',()=>{close();for(const modal of [...dialogs.keys()])closeDetailDialog(modal,true);});
 }
-declare global {interface Window {PortalDesign: {academicSemesterLabel:typeof academicSemesterLabel;header:typeof header;filters:typeof filters;sortField:typeof sortField;summary:typeof summary;pagination:typeof pagination;ordered:typeof ordered;pageOf:typeof pageOf;badge:typeof badge;fact:typeof fact;card:typeof card;activeFilters:typeof activeFilters;actionDisclosure:typeof actionDisclosure;metrics:typeof metrics;collectionSearch:typeof collectionSearch;mountCollectionSearch:typeof mountCollectionSearch;detailFacts:typeof detailFacts;detailSection:typeof detailSection;detailHeader:typeof detailHeader;openDetailDialog:typeof openDetailDialog;closeDetailDialog:typeof closeDetailDialog};}}
-if(typeof window!=='undefined'&&typeof document!=='undefined'){install();window.PortalDesign=Object.freeze({academicSemesterLabel,header,filters,sortField,summary,pagination,ordered,pageOf,badge,fact,card,activeFilters,actionDisclosure,metrics,collectionSearch,mountCollectionSearch,detailFacts,detailSection,detailHeader,openDetailDialog,closeDetailDialog});}
+declare global {interface Window {PortalDesign: {confirmAdministrative:typeof confirmAdministrative;academicSemesterLabel:typeof academicSemesterLabel;header:typeof header;filters:typeof filters;sortField:typeof sortField;summary:typeof summary;pagination:typeof pagination;ordered:typeof ordered;pageOf:typeof pageOf;badge:typeof badge;fact:typeof fact;card:typeof card;activeFilters:typeof activeFilters;actionDisclosure:typeof actionDisclosure;metrics:typeof metrics;collectionSearch:typeof collectionSearch;mountCollectionSearch:typeof mountCollectionSearch;detailFacts:typeof detailFacts;detailSection:typeof detailSection;detailHeader:typeof detailHeader;openDetailDialog:typeof openDetailDialog;closeDetailDialog:typeof closeDetailDialog};}}
+if(typeof window!=='undefined'&&typeof document!=='undefined'){install();window.PortalDesign=Object.freeze({confirmAdministrative,academicSemesterLabel,header,filters,sortField,summary,pagination,ordered,pageOf,badge,fact,card,activeFilters,actionDisclosure,metrics,collectionSearch,mountCollectionSearch,detailFacts,detailSection,detailHeader,openDetailDialog,closeDetailDialog});}

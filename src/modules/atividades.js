@@ -46,6 +46,7 @@
   var isChamadaLoading = false;
   var isChamadaSaving = false;
   var isChamadaFinalizing = false;
+  var isChamadaConfirming = false;
   var isCriandoAtividade = false;
   var modelosCriacaoAtividadeCache = [];
   var modelosCriacaoAtividadeExpiraEm = 0;
@@ -1251,7 +1252,7 @@
   }
 
   function chamadaOperacionalAtiva() {
-    return isChamadaLoading || isChamadaSaving || isChamadaFinalizing;
+    return isChamadaLoading || isChamadaSaving || isChamadaFinalizing || isChamadaConfirming;
   }
 
   function pausarPreloadsPorChamada(motivo) {
@@ -2932,13 +2933,7 @@
       }
 
       var dadosPrevia = resposta.data || {};
-      if (!confirm(montarMensagemConfirmacaoCriarAtividade(dadosPrevia.atividadePreview || {}))) {
-        throw criarErroAtividade({
-          ok: false,
-          message: 'Criacao cancelada pelo usuario.',
-          cancelado: true
-        });
-      }
+      // Creating a reversible draft still uses the canonical validation and seal.
 
       ui.atualizarMensagemLoading('Criando atividade...');
       ui.atualizarToast(toastId, {
@@ -4259,8 +4254,8 @@
     });
   }
 
-  function salvarChamadaAtual(operacao) {
-    if (!chamadaAtual || !chamadaAtual.atividade) {
+  async function salvarChamadaAtual(operacao) {
+    if (isChamadaSaving || isChamadaFinalizing || isChamadaConfirming || !chamadaAtual || !chamadaAtual.atividade) {
       return;
     }
 
@@ -4273,8 +4268,12 @@
       ? '[data-finalize-attendance]'
       : '[data-save-attendance]');
 
-    if (operacaoNormalizada === 'FINALIZAR' && resumo.totalSemMarcacao > 0 && !global.confirm('Os membros sem marcação serão registrados como falta. Deseja finalizar a chamada?')) {
-      return;
+    if (operacaoNormalizada === 'FINALIZAR' && resumo.totalSemMarcacao > 0) {
+      var reviewedAttendance = chamadaAtual;
+      isChamadaConfirming = true;
+      var accepted;
+      try { accepted = await global.PortalDesign.confirmAdministrative({title:'Finalizar chamada?',message:'Os membros sem marcação serão registrados como falta. Confira a chamada antes de finalizar.',confirmLabel:'Finalizar chamada',cancelLabel:'Conferir chamada',parent:document.getElementById('atividade-modal')}); } finally { isChamadaConfirming = false; }
+      if (!accepted || chamadaAtual !== reviewedAttendance) return;
     }
 
     var payload = montarPayloadSalvarChamada(chamadaAtual.atividade.idAtividade, participantes, operacaoNormalizada);
