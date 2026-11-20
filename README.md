@@ -35,3 +35,5 @@ As URLs antigas dos assets são preservadas pelo inventário de build, mesmo qua
 Leia [arquitetura](docs/ARCHITECTURE.md), [releases](docs/RELEASES.md) e [convergência](docs/CONVERGENCE.md). Nunca usar `legacy/web` ou um checkpoint antigo para substituir a versão publicada.
 
 A prévia sintética das abas administrativas pode ser aberta com `npm run build` e `npm run preview:admin`. Consulte o [relatório de redesign](docs/GEAPA-ADMIN-PANELS-DESIGN.md) para capturas, contratos preservados e limites da validação local.
+
+As publicações DEV e PROD de 20/11/2026 têm fontes e comandos de reprodução documentados no [relatório de reconciliação](docs/reconciliacao-20261120.md).
