@@ -2,7 +2,7 @@
 export async function restoreAuthentication(app,config,sdk,report=()=>{}){
  if(!['portal-geapa','geapa-convergencia-dev'].includes(config.projectId))throw Error('FIREBASE_CONFIG_REJECTED');
  const modes=[sdk.browserLocalPersistence,sdk.browserSessionPersistence,sdk.inMemoryPersistence];
- const auth=sdk.initializeAuth(app,{persistence:modes,...(config.projectId==='portal-geapa'?{popupRedirectResolver:sdk.browserPopupRedirectResolver}:{})});
+ const auth=sdk.initializeAuth(app,{persistence:modes,popupRedirectResolver:sdk.browserPopupRedirectResolver});
  await auth.authStateReady();
  // Upgrade an existing SESSION login using the SDK, preserving the restored user.
  let mode='MEMORY';
