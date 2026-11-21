@@ -44,7 +44,7 @@ export function input(v){
   if(p.action==='IMAGE')need(['GRANTED','DECLINED','REVOKED'].includes(p.choice)&&id(p.termVersion));
  }else if(type==='members.ingress.execute'&&p?.operation==='MANAGE_INVITATION'){
   exact(t,['personId','linkId']);need(id(t.personId)&&t.linkId===null&&id(v.decisionRef)&&v.evidenceRefs.length>0);
-  exact(p,['operation','enrollmentId','action','reason']);need(operation(p.enrollmentId)&&['SEND','RESEND','CANCEL'].includes(p.action));text(p.reason,500);need(p.reason.trim().length>0);
+  exact(p,['operation','enrollmentId','action','reason',...(p.action==='AMEND'?['field','value']:[])]);if(p.action==='AMEND'){need(['fullName','email','rga','phone'].includes(p.field));text(p.value,180);}need(operation(p.enrollmentId)&&['SEND','RESEND','CANCEL','ACKNOWLEDGE','REQUEST_CORRECTION','RESOLVE_CORRECTION','AMEND'].includes(p.action));text(p.reason,500);need(p.reason.trim().length>0);
  }else if(type==='members.ingress.execute'&&p?.operation==='PRE_REGISTER'){
   exact(t,['personId','linkId']);need(id(t.personId)&&t.linkId===null&&id(v.decisionRef)&&v.evidenceRefs.length>0);
   exact(p,['operation','identity','identifiers','registration','profile','approvalRef']);need(id(p.approvalRef));
