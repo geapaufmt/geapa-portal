@@ -128,6 +128,8 @@ if ($Etapa -eq 'Portal' -and $before.version.Split('/')[-1] -eq $spec.previousVe
     Check-Hosting $before 'anterior'
     Check-Hosting $before 'local'
     $config = Get-Content -Raw -LiteralPath (Join-Path $portal 'config/dev.firebase.json') | ConvertFrom-Json
+    & $n (Join-Path $PSScriptRoot 'verificar-aceite-core-dev.cjs') $Campanha $before.release
+    if ($LASTEXITCODE) { throw 'Publicacao do Hosting exige aceite intermediario desta revisao do Core.' }
     if ($config.hosting.public -cne '../dist/dev') { throw 'Raiz DEV inesperada.' }
     $config.hosting.public = 'dist/dev'
     $tempConfig = Join-Path $portal ('firebase-dev-' + [guid]::NewGuid() + '.json')
