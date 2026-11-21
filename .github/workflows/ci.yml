@@ -16,6 +16,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Validate DEV bootstrap syntax
+        run: bash -n scripts/bootstrap-hosting-dev.sh
       - run: npm run verify
       - name: Repeat deterministic build
         run: node scripts/check-reproducible.cjs

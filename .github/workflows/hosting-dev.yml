@@ -1,0 +1,71 @@
+name: Hosting DEV
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        required: true
+        description: Etapa do Hosting DEV
+        options: [inspect, verify, publish]
+        default: inspect
+  push:
+    branches: [main]
+    paths: ['.github/workflows/hosting-dev.yml']
+permissions: {}
+concurrency:
+  group: geapa-hosting-dev-live
+  cancel-in-progress: false
+jobs:
+  hosting:
+    if: github.repository_id == '1225560111' && github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    environment: geapa-dev
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      OPERATION: ${{ inputs.operation || 'inspect' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: operator
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.22.0
+      - name: Authenticate only to GEAPA DEV
+        id: google
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          project_id: geapa-convergencia-dev
+          workload_identity_provider: projects/520248492623/locations/global/workloadIdentityPools/geapa-portal-dev/providers/github
+          service_account: portal-hosting-ci@geapa-convergencia-dev.iam.gserviceaccount.com
+          create_credentials_file: false
+          export_environment_variables: false
+          token_format: access_token
+          access_token_lifetime: 600s
+      - name: Verify live baseline and select reviewed commit
+        id: preflight
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
+        run: node operator/scripts/hosting-dev.cjs inspect
+      - if: env.OPERATION != 'inspect'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.preflight.outputs.commit }}
+          path: candidate
+          persist-credentials: false
+      - if: env.OPERATION != 'inspect'
+        working-directory: operator
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - if: env.OPERATION != 'inspect'
+        name: Build with private DEV overlay and verify manifest
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
+        run: node operator/scripts/hosting-dev.cjs build
+      - if: env.OPERATION != 'inspect'
+        name: Check inventory and enforce release evidence
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
+        run: node operator/scripts/hosting-dev.cjs ${{ inputs.operation == 'publish' && 'publish' || 'verify' }}
