@@ -75,7 +75,7 @@
     if(['CANCEL','AMEND','REQUEST_CORRECTION','RESOLVE_CORRECTION'].includes(action)){
       var field=card.querySelector('[data-invitation-cancel-reason]');
       if(!field||field.dataset.action!==action){if(field)field.parentElement.remove();modal().setAttribute('data-geapa-protect-draft','');var label=document.createElement('label');label.innerHTML='<span>Motivo ou correção cadastral</span><input type="text" maxlength="500" required data-invitation-cancel-reason>';if(action==='AMEND'){
-        label.insertAdjacentHTML('afterbegin','<span>Campo a corrigir</span><select data-amend-field><option value="fullName">Nome completo</option><option value="phone">Telefone</option>'+(v.status==='ACCEPTED'?'':'<option value="rga">RGA</option><option value="email">E-mail</option>')+'</select><span>Valor correto</span><input data-amend-value maxlength="180" required>');
+        label.insertAdjacentHTML('afterbegin','<span>Campo a corrigir</span><select data-amend-field><option value="fullName">Nome completo</option><option value="phone">Telefone</option><option value="rga">RGA</option>'+(v.status==='ACCEPTED'?'':'<option value="email">E-mail</option>')+'</select><span>Valor correto</span><input data-amend-value maxlength="180" required>');
       }card.appendChild(label);button.textContent='Confirmar registro';label.querySelector('[data-invitation-cancel-reason]').dataset.action=action;label.querySelector('input').focus();return;}
       if(action==='AMEND'){var value=card.querySelector('[data-amend-value]');if(!value.reportValidity())return;patch={field:card.querySelector('[data-amend-field]').value,value:value.value.trim()};}
       reason=field.value; if(!reason.trim()){field.reportValidity();return;}

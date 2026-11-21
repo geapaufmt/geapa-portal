@@ -193,6 +193,11 @@
     content.appendChild(section);
     var form=section.querySelector('form'),date=form.elements.recognizedOn;
     date.value=date.max=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Cuiaba',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    date.addEventListener('input',function(){
+      var historical=!!date.value&&date.value<date.max;
+      form.elements.reference.required=historical;
+      form.querySelector('[role=status]').textContent=historical?'Informe o fundamento da data reconhecida. O Portal atualizará as permissões e obrigações a partir de hoje.':'';
+    });
     form.addEventListener('submit',async function(event){
       event.preventDefault();var button=form.querySelector('button');if(button.disabled)return;button.disabled=true;
       try {
