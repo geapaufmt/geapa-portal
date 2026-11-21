@@ -91,6 +91,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
     rota('admin-atividades', 'Atividades', 'admin/atividades', 'gestao-geapa', 30, 'tela-placeholder', 'view-placeholder', true, OPERACIONAIS, ['atividades:gerir'], 'Criação, edição e operação de atividades.', 'implementado'),
     rota('admin-chamadas', 'Chamadas', 'admin/chamadas', 'gestao-geapa', 40, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['presencas:gerir'], 'Registro e acompanhamento de chamadas/presenças.', 'placeholder'),
     rota('admin-frequencia-rh', 'Frequência e RH', 'admin/frequencia-rh', 'gestao-geapa', 50, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['justificativas:analisar'], 'Análise operacional e decisão de justificativas conforme permissão.', 'implementado'),
+    rota('consulta-providencia', 'Consultar providência individual', 'frequencia/providencia', 'gestao-geapa', 51, 'tela-placeholder', 'view-placeholder', true, [], [], 'Consulta autorizada por pessoa e ciclo.', 'implementado', false),
     rota('admin-justificativas', 'Justificativas', 'admin/justificativas', 'gestao-geapa', 50, 'tela-placeholder', 'view-placeholder', false, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['justificativas:analisar'], 'Análise operacional e decisão de justificativas conforme permissão.', 'implementado'),
     rota('admin-apresentacoes', 'Apresentações', 'admin/apresentacoes', 'gestao-geapa', 60, 'tela-placeholder', 'view-placeholder', true, [PERFIS.SECRETARIA, PERFIS.DIRETORIA, PERFIS.ADMIN], ['apresentacoes:gerir'], 'Gestão operacional de apresentações e materiais.', 'implementado'),
     rota('admin-comunicacao', 'Comunicação', 'admin/comunicacao', 'gestao-geapa', 70, 'tela-placeholder', 'view-placeholder', true, [PERFIS.COMUNICACAO, PERFIS.DIRETORIA, PERFIS.ADMIN], ['comunicacoes:gerir', 'mensageria:ler'], 'Conteúdo público, divulgação e materiais de comunicação.', 'placeholder'),
@@ -389,6 +390,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
  if(rota?.id==='admin-correcoes-cadastrais')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReviewCorrections,reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-membros')return {ok:!!global.PortalDevContext?.members?.available&&!!(global.PortalDevContext.members.canRegister||global.PortalDevContext.members.canSuperviseEnrollment||global.PortalDevContext.members.canReadDirectory),reason:'FEATURE_DISABLED'};
  if(rota?.id==='admin-solicitacoes-vinculo')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReview,reason:'FEATURE_DISABLED'};
+ if(rota?.id==='consulta-providencia')return {ok:!!global.PortalDevContext?.authenticated,reason:'NOT_AUTHENTICATED'};
  // The shell contains no private data; its independent reader validates its own policy.
  if(rota?.id?.startsWith('institutional-'))return {ok:!!global.PortalDevContext?.authenticated,reason:'NOT_AUTHENTICATED'};
  if(['perfis-permissoes','diretoria-competencias','admin-eixos-tematicos'].includes(rota?.id))return {ok:!!global.PortalDevContext?.act?.available&&global.PortalDevContext.act.board,reason:'FEATURE_DISABLED'};
@@ -649,6 +651,8 @@ import {accessIsPending} from './bootstrap-state.mjs';
       '<p class="intro">',
       escaparHtml(mensagem),
       '</p>',
+      rota.id === 'admin-frequencia-rh' && resolveRouteAccess(getSessaoAtual(), resolverRota('consulta-providencia')).ok
+        ? '<p><a href="#/frequencia/providencia">Consultar providência individual</a></p>' : '',
       '<button class="secondary-button" type="button" data-route-target="',
       destino,
       '">',
