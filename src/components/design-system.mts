@@ -102,7 +102,7 @@ type DialogState={origin:HTMLElement|null;onClose:()=>void;observer:MutationObse
 const dialogs=new Map<HTMLElement,DialogState>();
 const discardPrompts=new Map<HTMLElement,HTMLElement>();
 function draftSnapshot(modal:HTMLElement):string {
-  return JSON.stringify([...modal.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>('input,select,textarea')].filter(el=>!el.matches('button,[type="submit"],[type="button"]')).map(el=>[el.name,el.type,el instanceof HTMLInputElement&&['checkbox','radio'].includes(el.type)?el.checked:el instanceof HTMLInputElement&&el.type==='file'?[...(el.files??[])].map(f=>[f.name,f.size,f.lastModified]):el instanceof HTMLSelectElement&&el.multiple?[...el.selectedOptions].map(o=>o.value):el.value]));
+  return JSON.stringify([...modal.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>('input,select,textarea')].filter(el=>!el.matches('button,[type="submit"],[type="button"]')).map(el=>[el.dataset.geapaDraftKey,el.name,el.type,el instanceof HTMLInputElement&&['checkbox','radio'].includes(el.type)?el.checked:el instanceof HTMLInputElement&&el.type==='file'?[...(el.files??[])].map(f=>[f.name,f.size,f.lastModified]):el instanceof HTMLSelectElement&&el.multiple?[...el.selectedOptions].map(o=>o.value):el.value]));
 }
 /** Shared, safe-default confirmation. It does not authorize or execute business operations. */
 export function confirmAdministrative(options:{title:string;message:string;confirmLabel:string;cancelLabel?:string;parent?:HTMLElement}):Promise<boolean> {
