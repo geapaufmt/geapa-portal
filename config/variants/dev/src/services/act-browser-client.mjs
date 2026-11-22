@@ -73,7 +73,9 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
  async function journalName(slot){const t=auth.capture();const name='geapa.act.pending.v1.'+await hash(PROJECT+'|'+t.uid+'|'+slot);auth.assert(t);return {name,t};}
  function load(name){const raw=storage.getItem(name);if(!raw)return null;let value;try{value=JSON.parse(raw);exact(value,['operationId','intentHash','selector']);need(/^[a-f0-9]{32}$/.test(value.operationId)&&/^[a-f0-9]{64}$/.test(value.intentHash));if(value.selector){exact(value.selector,['operationId','commandType','digest']);need(value.selector.operationId===value.operationId&&/^[a-f0-9]{64}$/.test(value.selector.digest)&&(value.selector.commandType.startsWith('ACT.')||MEMBER_OPERATIONAL_TYPES.includes(value.selector.commandType)));}}catch{fail('COMMAND_RECONCILIATION_REQUIRED')}return value;}
  function save(name,value){try{storage.setItem(name,JSON.stringify(value));}catch{fail('COMMAND_RECONCILIATION_REQUIRED')}}
- async function recover(entry){try{const state=await commands.recover(entry.selector);if(terminal(state))return state;}catch(e){if(['FORBIDDEN','ACCESS_REVOKED','STALE_AUTHORIZATION','AUTH_REQUIRED'].includes(e.code))throw e;}
+ async function recover(entry){
+  const terminalRegistration=await memberNode.terminalRegistration(entry.selector);if(terminalRegistration)return terminalRegistration;
+  try{const state=await commands.recover(entry.selector);if(terminal(state))return state;}catch(e){if(['FORBIDDEN','ACCESS_REVOKED','STALE_AUTHORIZATION','AUTH_REQUIRED'].includes(e.code))throw e;}
   // Retrieve the original protected intent, never recalculate a stale operation.
   const original=await request(entry.selector.commandType==='members.onboarding.complete'?'core.members.enrollment.resume.v13':MEMBER_OPERATIONAL_TYPES.includes(entry.selector.commandType)?'core.members.resume.v13':'core.act.resume.v13',entry.selector);return commands.execute(original);
  }
