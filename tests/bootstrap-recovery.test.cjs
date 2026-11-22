@@ -23,3 +23,25 @@ for(const unavailable of ['current','visible','online'])test('no retry when '+un
 test('successful feature-disabled response is not turned into an authorization grant',async()=>{
  const {recoverContextRead}=await load();let calls=0;a.equal(await recoverContextRead({read:async()=>{calls++;return false;},isCurrent:()=>true,visible:()=>true,online:()=>true}),false);a.equal(calls,1);
 });
+
+for(const code of ['AUTHORIZATION_DENIED','M13_AUTHZ_DENIED'])test('own-member authorization admits personal views without granting ACT: '+code,async()=>{
+ const {recoverContextRead}=await load();let ownReads=0;
+ const result=await recoverContextRead({read:async()=>{throw error(code);},readSelf:async()=>{ownReads++;return {data:{schemaVersion:'safe-status-v11'}};},isCurrent:()=>true});
+ a.equal(result,false);a.equal(ownReads,1);
+});
+for(const code of ['ACCESS_REVOKED','APP_CHECK_REQUIRED','REQUEST_TIMEOUT','AUTH_REQUIRED','FORBIDDEN'])test('security and temporary context failures cannot fall back to SELF: '+code,async()=>{
+ const {recoverContextRead}=await load();
+ await a.rejects(recoverContextRead({read:async()=>{throw error(code);},readSelf:async()=>a.fail('must not read SELF'),isCurrent:()=>true}),e=>e.code===code);
+});
+test('SELF denial still blocks the shell',async()=>{
+ const {recoverContextRead}=await load();
+ await a.rejects(recoverContextRead({read:async()=>{throw error('AUTHORIZATION_DENIED');},readSelf:async()=>{throw error('ACCESS_REVOKED');},isCurrent:()=>true}),e=>e.code==='ACCESS_REVOKED');
+});
+test('an account switch during SELF read cannot admit the previous account',async()=>{
+ const {recoverContextRead}=await load();let current=true;
+ await a.rejects(recoverContextRead({read:async()=>{throw error('AUTHORIZATION_DENIED');},readSelf:async()=>{current=false;return {data:{schemaVersion:'safe-status-v11'}};},isCurrent:()=>current}),e=>e.code==='STALE_AUTHORIZATION');
+});
+test('empty or legacy SELF response cannot substitute the canonical authorization',async()=>{
+ const {recoverContextRead}=await load();
+ for(const data of [null,{schemaVersion:'safe-status-v1'}])await a.rejects(recoverContextRead({read:async()=>{throw error('AUTHORIZATION_DENIED');},readSelf:async()=>({data}),isCurrent:()=>true}),e=>e.code==='AUTHORIZATION_DENIED');
+});

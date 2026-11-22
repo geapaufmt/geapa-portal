@@ -11,12 +11,24 @@ export function accessIsPending(context){return context?.accessPending===true;}
 
 // Retry only the failed attestation of a context READ, never a command, denied
 // token exchange or SDK throttle. Persistent failure requires explicit recovery.
-export async function recoverContextRead({read,isCurrent,visible,online,wait=()=>new Promise(resolve=>setTimeout(resolve,1000))}){
- try{return await read();}
+export async function recoverContextRead({read,readSelf,isCurrent,visible,online,wait=()=>new Promise(resolve=>setTimeout(resolve,1000))}){
+ async function contextOrSelf(){
+  try{return await read();}
+  catch(error){
+   // Activities authorization is independent of the canonical own-member read.
+   // Keep ACT unavailable; only a fresh, validated SELF response admits the shell.
+   if(!['AUTHORIZATION_DENIED','M13_AUTHZ_DENIED'].includes(error?.code)||typeof readSelf!=='function'||!isCurrent())throw error;
+   const own=await readSelf();
+   if(!isCurrent())throw Object.assign(Error('STALE_AUTHORIZATION'),{code:'STALE_AUTHORIZATION'});
+   if(own?.data?.schemaVersion!=='safe-status-v11')throw error;
+   return false;
+  }
+ }
+ try{return await contextOrSelf();}
  catch(error){
   if(error?.code!=='appCheck/recaptcha-error'||!isCurrent()||!visible()||!online())throw error;
   await wait();
   if(!isCurrent()||!visible()||!online())throw error;
-  return read();
+  return contextOrSelf();
  }
 }
