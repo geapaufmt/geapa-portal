@@ -8,7 +8,7 @@ export function readAttendanceCase(reader, cycleId, personId) {
  return reader.read({route:'/admin/frequencia-rh/providencias',params:{cycleId,personId}});
 }
 const actions=Object.freeze({'iniciar-analise':'START','solicitar-complemento':'REQUEST_COMPLEMENT','analise-preliminar':'SCHEDULE','disponibilizar-analise-final':'READY','indeferir':'DENY','cancelar':'CANCEL_ADMIN','homologar-efetivar-desligamento':'APPROVE','homologar-suspensao':'APPROVE','iniciar-suspensao':'START_SUSPENSION','registrar-retorno':'RETURN'});
-export const memberReadRoutes=Object.freeze(['/admin/frequencia-rh/providencias','/admin/pessoas','/admin/pessoas/detalhe','/meu-perfil/correcoes','/admin/correcoes-cadastrais','/admin/correcoes-cadastrais/detalhe','/admin/membros','/members/operational-context','/admin/ingressos-membros','/admin/ingressos-membros/catalogos','/meu-vinculo/opcoes','/meu-vinculo/solicitacoes','/admin/solicitacoes-vinculo','/admin/solicitacoes-vinculo/detalhe']);
+export const memberReadRoutes=Object.freeze(['/admin/frequencia-rh/providencias','/admin/pessoas','/admin/pessoas/detalhe','/meu-perfil/correcoes','/admin/correcoes-cadastrais','/admin/correcoes-cadastrais/detalhe','/admin/membros','/members/operational-context','/admin/ingressos-membros','/admin/ingressos-membros/catalogos','/admin/ingressos-membros/aprovacao','/meu-vinculo/opcoes','/meu-vinculo/solicitacoes','/admin/solicitacoes-vinculo','/admin/solicitacoes-vinculo/detalhe']);
 export const memberWriteRoutes=Object.freeze(['/admin/frequencia-rh/providencia','/meu-perfil/correcoes/solicitar','/meu-perfil/correcoes/acao','/admin/correcoes-cadastrais/acao','/meu-perfil/salvar','/admin/membros/corrigir-perfil','/admin/membros/efetivar','/admin/ingressos-membros/cadastrar','/admin/ingressos-membros/convite','/meu-vinculo/desligamento/solicitar','/meu-vinculo/suspensao/solicitar','/meu-vinculo/solicitacao/cancelar','/meu-vinculo/solicitacao/complementar',...Object.keys(actions).map(a=>ADMIN+a)]);
 // Translate the existing form only. Revisions come from the displayed reader;
 // the protected prepare/admit/transaction chain remains the authority.
@@ -62,7 +62,7 @@ export function createMemberOperations({request,execute,read,auth}){
   const registration=route==='/admin/ingressos-membros/cadastrar';
   if(route==='/admin/ingressos-membros/convite'&&['ACKNOWLEDGE','REQUEST_CORRECTION','RESOLVE_CORRECTION','AMEND'].includes(payload.action))return {ok:true,message:'Registro administrativo salvo.'};
   if(route==='/admin/ingressos-membros/convite')return {ok:true,message:payload.action==='CANCEL'?'Convite cancelado. O histórico foi preservado.':'Convite registrado na fila de teste DEV. Nenhum e-mail real foi enviado.',data:{enrollmentId:payload.enrollmentId,notificationMode:'DRY_RUN',emailSent:false}};
-  return {ok:true,message:registration?'Pré-cadastro registrado. O vínculo ainda não está ativo.':'Ação registrada.',data:registration?{idIngresso:answer.operationId,emailQueued:false}:{idSolicitacao:subject||answer.operationId,status:subject?'ATUALIZADO':'RECEBIDO'}};
+  return {ok:true,message:registration?(answer.recoveredExisting?'Pré-cadastro anterior recuperado. Nenhum cadastro duplicado foi criado.':'Pré-cadastro registrado. O vínculo ainda não está ativo.'):'Ação registrada.',data:registration?{idIngresso:answer.operationId,emailQueued:false}:{idSolicitacao:subject||answer.operationId,status:subject?'ATUALIZADO':'RECEBIDO'}};
  }
  return {get,post,clear,dispose(){clear();auth.listeners?.delete(clear);}};
 }

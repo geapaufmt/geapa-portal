@@ -29,11 +29,15 @@ export function createMemberNode({auth,db,storage,config,fetchImpl=fetch,attest}
     if(entry.key){let prior;try{prior=await request('memberRecover',entry.key,t,candidate)}catch(e){if(e.code!=='NOT_FOUND')throw e;}
      if(prior){need(prior.dto?.operationId===entry.operationId);if(terminal(prior.dto)&&!retain)storage.removeItem(name);if(entry.intentHash!==mark)fail(terminal(prior.dto)?'COMMAND_NOT_ADMITTED':'COMMAND_PENDING');return prior.dto;}
     }
-    if(entry.intentHash!==mark){storage.removeItem(name);fail('COMMAND_NOT_ADMITTED');}
+    if(entry.intentHash!==mark){if(entry.key){storage.removeItem(name);fail('COMMAND_NOT_ADMITTED');}entry={version:1,uid:t.uid,operationId:crypto.randomUUID().replaceAll('-',''),intentHash:mark,key:null};persist();}
    }else{entry={version:1,uid:t.uid,operationId:crypto.randomUUID().replaceAll('-',''),intentHash:mark,key:null};persist();}
    // Preparation is idempotent and has no admission effect. Preserve its ID
    // after a lost response; never turn an uncertain command into a fresh one.
    const q=await request(slot.startsWith('enrollment:')?'memberEnrollmentPrepare':'memberPrepare',{operationId:entry.operationId,...intent},t,candidate);
+   if(q.recoveredExisting===true){
+    need(intent.route==='/admin/ingressos-membros/cadastrar'&&entry.key===null&&/^[a-f0-9]{32}$/.test(q.dto?.operationId)&&q.dto.receipt?.state==='COMPLETED'&&q.dto.receipt.code==='OK');
+    storage.removeItem(name);return {...q.dto,recoveredExisting:true};
+   }
    need(q.key?.operationId===entry.operationId&&q.request?.operationId===entry.operationId);
    if(entry.key)need(canonical(entry.key)===canonical(q.key));entry.key=q.key;persist();
    const result=await request('memberExecute',q.request,t,candidate);need(result.dto?.operationId===entry.operationId);
@@ -60,5 +64,5 @@ export function createMemberNode({auth,db,storage,config,fetchImpl=fetch,attest}
   let v;try{v=await request('memberLegacyRegistrationStatus',key);}catch(e){if(['AUTHORIZATION_DENIED','COMMAND_PAYLOAD_INVALID','PILOT_DISABLED','RECONCILIATION_REQUIRED'].includes(e.code))return null;throw e;}
   need(v.dto?.operationId===key.operationId&&terminal(v.dto));return v.dto;
  }
- return {binding,execute,scope,terminalRegistration,async enrollment(action){if(!config.enabled||config.admissionsEnabled===false)return null;const v=await request(action==='open'?'memberEnrollmentOpen':'memberEnrollmentRead',{},auth.capture(),true);return v.result;},dispose(){clear();auth.listeners?.delete(clear);}};
+ return {approval:async params=>(await request('memberRegistrationApproval',params)).result,binding,execute,scope,terminalRegistration,async enrollment(action){if(!config.enabled||config.admissionsEnabled===false)return null;const v=await request(action==='open'?'memberEnrollmentOpen':'memberEnrollmentRead',{},auth.capture(),true);return v.result;},dispose(){clear();auth.listeners?.delete(clear);}};
 }
