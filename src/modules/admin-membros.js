@@ -44,7 +44,12 @@
   /** Solicita ao backend uma pagina filtrada de membros. */
   function loadMembers() {
     if (!state.active) return;
-    state.people=global.PortalDevContext?.members?.canReadPeople===true;
+    var permissions=global.PortalDevContext?.members;
+    if(permissions?.available&&!permissions.canReadDirectory&&!permissions.canReadPeople&&(permissions.canSuperviseEnrollment||permissions.canRegister)){
+      state.generation++;state.loading=false;state.items=[];
+      getContainer().innerHTML=global.PortalDesign.header('Ingresso de membros','',global.PortalGeapaMemberRegistration.renderAction(),'admin-membros-title');return;
+    }
+    state.people=permissions?.canReadPeople===true;
     state.loading = true;
     var generation=++state.generation;
     var focusName=document.activeElement?.closest('[data-admin-members-filters]')?document.activeElement.name:null;
@@ -181,6 +186,27 @@
     renderShell('<div class="admin-members-state admin-members-error"><strong>Falha ao carregar</strong><p>' + escape(message) + '</p><button class="secondary-button compact-button" type="button" data-admin-members-retry>Tentar novamente</button></div>');
   }
 
+  function effectivation(content,personId,stateKey,refresh) {
+    if(stateKey!=='MEMBRO_INGRESSANTE'||personId===global.PortalGeapaAuth.getUsuarioAtual?.()?.idPessoa||!global.PortalGeapaAuth.hasPermissao('membros:cadastrar_novos_membros'))return;
+    var section=document.createElement('details');
+    section.innerHTML='<summary>Efetivar membro</summary><form><label>Data de efetivação<input type="date" name="recognizedOn" required></label><label>Referência ou observação, se necessária<input name="reference" maxlength="500"></label><button type="submit">Confirmar efetivação</button><p role="status"></p></form>';
+    content.appendChild(section);
+    var form=section.querySelector('form'),date=form.elements.recognizedOn;
+    date.value=date.max=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Cuiaba',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    date.addEventListener('input',function(){
+      var historical=!!date.value&&date.value<date.max;
+      form.elements.reference.required=historical;
+      form.querySelector('[role=status]').textContent=historical?'Informe o fundamento da data reconhecida. O Portal atualizará as permissões e obrigações a partir de hoje.':'';
+    });
+    form.addEventListener('submit',async function(event){
+      event.preventDefault();var button=form.querySelector('button');if(button.disabled)return;button.disabled=true;
+      try {
+        var answer=await api.apiPost('/admin/membros/efetivar',{payload:JSON.stringify({personId:personId,recognizedOn:date.value,reference:form.elements.reference.value.trim()})});
+        if(!answer.ok)throw Error(answer.message||'Efetivação não confirmada.');
+        if(section.isConnected)refresh();
+      } catch(error){form.querySelector('[role=status]').textContent=error.message;button.disabled=false;}
+    });
+  }
   function openPersonDetail(personId){
     var modal=document.getElementById('membro-admin-modal'),content=document.getElementById('membro-admin-modal-content'),title=document.getElementById('membro-admin-modal-title'),generation=++state.detailGeneration,session=state.generation;
     if(!modal||!content)return;if(title)title.textContent='Pessoa';content.innerHTML=montarLoadingLocal('Consultando pessoa...');
@@ -188,7 +214,7 @@
     api.apiGet('/admin/pessoas/detalhe',{personId:personId}).then(function(response){
       if(generation!==state.detailGeneration||session!==state.generation||!state.active)return;
       if(!response?.ok)throw new Error(response?.message||'Consulta não autorizada.');
-      if(title)title.textContent=response.data.displayLabel;content.innerHTML=global.PortalPeople.detail(response.data);var accounts=document.createElement('section');accounts.className='geapa-detail-section';content.appendChild(accounts);global.PortalPeople.accounts(accounts,personId,{current:function(){return state.active&&generation===state.detailGeneration&&session===state.generation;},call:async function(phase,payload){var answer=await api.apiPost('/admin/pessoas/contas',{payload:JSON.stringify({phase:phase,payload:payload})});if(!answer.ok)throw Object.assign(Error('Consulta não autorizada'),{code:answer.errorCode});return answer.data;}});
+      if(title)title.textContent=response.data.displayLabel;content.innerHTML=global.PortalPeople.detail(response.data);effectivation(content,personId,response.data.state,function(){openPersonDetail(personId);});var accounts=document.createElement('section');accounts.className='geapa-detail-section';content.appendChild(accounts);global.PortalPeople.accounts(accounts,personId,{current:function(){return state.active&&generation===state.detailGeneration&&session===state.generation;},call:async function(phase,payload){var answer=await api.apiPost('/admin/pessoas/contas',{payload:JSON.stringify({phase:phase,payload:payload})});if(!answer.ok)throw Object.assign(Error('Consulta não autorizada'),{code:answer.errorCode});return answer.data;}});
     }).catch(function(error){if(generation===state.detailGeneration&&session===state.generation)content.innerHTML='<p role="alert">'+escape(error.message||'Não foi possível consultar a pessoa.')+'</p>';});
   }
   function montarLoadingLocal(message) {
@@ -215,6 +241,7 @@
       ds.detailSection('Vínculo e acesso',ds.detailFacts([['Função atual',item.cargoFuncaoAtual],['Perfil no Portal',item.perfilPortalCalculado],['Portal ativo',item.portalAtivo],['Tempo efetivo no grupo',item.tempoEfetivoNoGrupo],['Semestres no grupo',item.qtdSemestresNoGrupo]]))+
       ds.detailSection('Atuação e indicadores',ds.detailFacts([['Apresentações realizadas',item.qtdApresentacoesRealizadas],['Ciclo da última apresentação',item.cicloUltimaApresentacao],['Frequência resumida',item.frequenciaResumida],['Pendências abertas',item.pendenciasAbertas],['Já foi suspenso',item.flagJaFoiSuspenso],['Elegibilidade para Diretoria',item.statusElegibilidadeDiretoria],['Última atualização',updated?formatDateTime(updated):null]]))+
       '<p class="geapa-detail-note">Somente informações autorizadas para seu perfil. Campos não disponíveis nesta consulta não são exibidos. Este detalhe é de consulta; não altera cadastro ou vínculo.</p>';
+    effectivation(content,idPessoa,item.tipoVinculoAtual,function(){closeDetail();document.dispatchEvent(new CustomEvent('portal:memberregistered'));});
     ds.openDetailDialog(modal,function(){content.textContent='';});
   }
 

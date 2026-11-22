@@ -31,3 +31,29 @@ test('RH form takes its document requirement from the authorized response',async
   h.window.close();
  }
 });
+
+test('consulta individual usa somente a leitura nominal e descarta respostas fora do caso ou da sessão',async()=>{
+ const h=setup(()=>{throw Error('consulta administrativa inesperada');});
+ const w=h.window,doc=w.document,reads=[];
+ w.PortalGeapaNavigation.getRotaAtual=()=>'consulta-providencia';
+ w.PortalGeapaApi.readAttendanceCase=(cycle,person)=>new Promise(resolve=>reads.push({cycle,person,resolve}));
+ doc.dispatchEvent(new w.Event('portal:navigationchange'));
+ const form=doc.querySelector('[data-individual-case]');
+ form.elements.cycleId.value='C1';form.elements.personId.value='P1';
+ const submit=()=>form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+ const result=(p)=>({ok:true,data:{person:{id:p},cycleId:'C1',items:[{personId:p,cycleId:'C1',state:'OPEN',history:[]}]}});
+ submit();a.deepEqual([reads[0].cycle,reads[0].person],['C1','P1']);
+ reads[0].resolve(result('P1'));await tick();a.match(h.body(),/Em acompanhamento/);
+ a.equal(doc.querySelector('[data-rh-case-form],[data-rh-cycle],[data-rh-section]'),null);
+ submit();reads[1].resolve(result('P2'));await tick();a.match(h.body(),/Não foi possível/);a(!h.body().includes('P2'));
+ submit();doc.dispatchEvent(new w.Event('portal:act-session-cleared'));reads[2].resolve(result('P1'));await tick();
+ a(!h.body().includes('Em acompanhamento'));h.window.close();
+});
+
+test('leitor individual envia somente pessoa e ciclo ao transporte protegido',async()=>{
+ const {readAttendanceCase}=await import('../src/services/member-operations.mjs');
+ const requests=[],reader={read:r=>{requests.push(r);return 'caso';}};
+ a.equal(readAttendanceCase(reader,'C1','P1'),'caso');
+ for(const ids of [['C1',''],['','P1'],['C1',{}],['../C1','P1']])a.throws(()=>readAttendanceCase(reader,...ids));
+ a.deepEqual(requests,[{route:'/admin/frequencia-rh/providencias',params:{cycleId:'C1',personId:'P1'}}]);
+});

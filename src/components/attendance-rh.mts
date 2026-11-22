@@ -1,6 +1,6 @@
 import {esc,header,badge,fact,card,openDetailDialog,closeDetailDialog} from './design-system.mjs';
 type Row=Record<string,any>;
-type Host=Window&{PortalGeapaApi:{apiGet:(r:string,p?:Row)=>Promise<Row>;apiPost:(r:string,p?:Row)=>Promise<Row>};PortalGeapaNavigation?:{getRotaAtual:()=>string};PortalRH?:{cycleId:string;sections:(active:string)=>string;selectCycle:(id:string)=>void}};
+type Host=Window&{PortalGeapaApi:{readAttendanceCase:(cycleId:string,personId:string)=>Promise<Row>;apiGet:(r:string,p?:Row)=>Promise<Row>;apiPost:(r:string,p?:Row)=>Promise<Row>};PortalGeapaNavigation?:{getRotaAtual:()=>string};PortalRH?:{cycleId:string;sections:(active:string)=>string;selectCycle:(id:string)=>void}};
 const tabs=[['overview','Visão geral'],['members','Membros'],['justifications','Justificativas'],['actions','Providências'],['history','Histórico']];
 let cycleId='',section='overview',generation=0,data:Row|undefined,caseData:Row|undefined,detailGeneration=0,activeDialog:HTMLElement|undefined;
 let memberFilter='',cursor:Row|undefined,pageHistory:(Row|undefined)[]=[];
@@ -49,7 +49,46 @@ async function openCase(personId:string){const token=++detailGeneration,selected
  dialog.querySelector('[name=action]')?.addEventListener('change',syncDocument);syncDocument();openDetailDialog(dialog,()=>{detailGeneration++;dialog.remove();if(activeDialog===dialog)activeDialog=undefined;});
  dialog.querySelector('form')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget as HTMLFormElement,fd=new FormData(form),button=form.querySelector('button[type="submit"]') as HTMLButtonElement,feedback=form.querySelector('[data-rh-feedback]') as HTMLElement;if(dialog.getAttribute('aria-busy')==='true'||!syncDocument()||!form.reportValidity())return;dialog.setAttribute('aria-busy','true');button.disabled=true;feedback.textContent='Conferindo e registrando…';try{const result=await host().PortalGeapaApi.apiPost('/admin/frequencia-rh/providencia',{personId,cycleId:selected,personRevision:d.person.revision,caseRevision:c?.revision||0,...Object.fromEntries(['linkId','action','occurrenceDate','reason','documentReference','decisionReference'].map(k=>[k,String(fd.get(k)||'')])),confirmed:fd.get('confirmed')==='on'});if(token!==detailGeneration||selected!==cycleId)return;if(!result.ok)throw Error(result.message||'Registro não confirmado.');dialog.removeAttribute('data-geapa-dirty');feedback.textContent='Providência registrada. Atualize a consulta para conferir o histórico.';form.querySelectorAll('input,select,textarea').forEach(el=>(el as HTMLInputElement).disabled=true);data=undefined;caseData=undefined;void load();}catch(error){feedback.textContent=(error as Error).message;button.disabled=false;}finally{dialog.removeAttribute('aria-busy');}});
  }catch(error){if(token===detailGeneration){caseData={notice:(error as Error).message};paint();}}}
+function showIndividualCase() {
+ const container=document.getElementById('placeholder-content');
+ if(!container)return;
+ container.innerHTML=header('Consultar providência individual','Informe o ciclo e a pessoa indicados na sua autorização.')+
+  '<form data-individual-case><label>Ciclo institucional<input name="cycleId" pattern="[A-Za-z0-9_\\-]{1,48}" required></label>'+
+  '<label>ID da pessoa<input name="personId" pattern="[A-Za-z0-9_\\-]{1,48}" required></label>'+
+  '<button type="submit">Consultar providência</button><div data-case-result role="status"></div></form>';
+ const form=container.querySelector<HTMLFormElement>('[data-individual-case]')!;
+ const output=form.querySelector<HTMLElement>('[data-case-result]')!;
+ let sequence=0;
+ form.addEventListener('input',()=>{sequence++;output.replaceChildren();});
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!form.reportValidity())return;
+  const request=++sequence,fields=new FormData(form);
+  const cycleId=String(fields.get('cycleId')),personId=String(fields.get('personId'));
+  output.textContent='Consultando a autorização no Core…';
+  try{
+   const answer=await host().PortalGeapaApi.readAttendanceCase(cycleId,personId);
+   if(!form.isConnected||request!==sequence)return;
+   const result=answer?.data;
+   if(answer?.ok!==true||result?.cycleId!==cycleId||result.person?.id!==personId||
+     !Array.isArray(result.items)||result.items.length>1||
+     !result.items.every((item:Row)=>item.personId===personId&&item.cycleId===cycleId))throw Error('CASE_RESPONSE_INVALID');
+   output.innerHTML=result.items.length?caseHistory(result.items[0]):'<p>Nenhuma providência registrada para este caso.</p>';
+  }catch{
+   if(form.isConnected&&request===sequence)output.textContent='Não foi possível consultar este caso. Confira o ciclo, a pessoa e a vigência da autorização.';
+  }
+ });
+}
 if(typeof window!=='undefined'){
+ const clearIndividual=()=>{document.querySelector('[data-individual-case]')?.remove();};
+ document.addEventListener('portal:navigationchange',()=>{
+  clearIndividual();
+  if(host().PortalGeapaNavigation?.getRotaAtual()==='consulta-providencia')showIndividualCase();
+ });
+ for(const event of ['portal:navigationdenied','portal:act-session-cleared','portal:act-session-suspended'])document.addEventListener(event,clearIndividual);
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&document.querySelector('[data-individual-case]'))showIndividualCase();
+ });
  host().PortalRH={cycleId,sections,selectCycle};
  document.addEventListener('portal:navigationchange',()=>{if(host().PortalGeapaNavigation?.getRotaAtual()!=='admin-frequencia-rh')document.getElementById('placeholder-content')?.classList.remove('geapa-rh');generation++;detailGeneration++;if(activeDialog)closeDetailDialog(activeDialog);if(host().PortalGeapaNavigation?.getRotaAtual()==='admin-frequencia-rh')void load();});
  document.addEventListener('portal:act-session-cleared',()=>{selectCycle('');section='overview';});
