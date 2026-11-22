@@ -56,5 +56,5 @@ export function createMemberNode({auth,db,storage,config,fetchImpl=fetch,attest}
    return v;
   }finally{active.delete(name)}
  }
- return {binding,execute,scope,async enrollment(action){if(!config.enabled||config.admissionsEnabled===false)return null;const v=await request(action==='open'?'memberEnrollmentOpen':'memberEnrollmentRead',{},auth.capture(),true);return v.result;},dispose(){clear();auth.listeners?.delete(clear);}};
+ return {approval:async params=>(await request('memberRegistrationApproval',params)).result,binding,execute,scope,async enrollment(action){if(!config.enabled||config.admissionsEnabled===false)return null;const v=await request(action==='open'?'memberEnrollmentOpen':'memberEnrollmentRead',{},auth.capture(),true);return v.result;},dispose(){clear();auth.listeners?.delete(clear);}};
 }
