@@ -55,5 +55,10 @@ export function createMemberNode({auth,db,storage,config,fetchImpl=fetch,attest}
    return v;
   }finally{active.delete(name)}
  }
- return {binding,execute,scope,async enrollment(action){if(!config.enabled||config.admissionsEnabled===false)return null;const v=await request(action==='open'?'memberEnrollmentOpen':'memberEnrollmentRead',{},auth.capture(),true);return v.result;},dispose(){clear();auth.listeners?.delete(clear);}};
+ async function terminalRegistration(key){
+  if(!scope({route:'/admin/ingressos-membros/cadastrar'})||key?.commandType!=='members.ingress.execute')return null;
+  let v;try{v=await request('memberLegacyRegistrationStatus',key);}catch(e){if(['AUTHORIZATION_DENIED','COMMAND_PAYLOAD_INVALID','PILOT_DISABLED','RECONCILIATION_REQUIRED'].includes(e.code))return null;throw e;}
+  need(v.dto?.operationId===key.operationId&&terminal(v.dto));return v.dto;
+ }
+ return {binding,execute,scope,terminalRegistration,async enrollment(action){if(!config.enabled||config.admissionsEnabled===false)return null;const v=await request(action==='open'?'memberEnrollmentOpen':'memberEnrollmentRead',{},auth.capture(),true);return v.result;},dispose(){clear();auth.listeners?.delete(clear);}};
 }
