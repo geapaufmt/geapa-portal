@@ -34,6 +34,10 @@ export function createMemberNode({auth,db,storage,config,fetchImpl=fetch,attest}
    // Preparation is idempotent and has no admission effect. Preserve its ID
    // after a lost response; never turn an uncertain command into a fresh one.
    const q=await request(slot.startsWith('enrollment:')?'memberEnrollmentPrepare':'memberPrepare',{operationId:entry.operationId,...intent},t,candidate);
+   if(q.recoveredExisting===true){
+    need(intent.route==='/admin/ingressos-membros/cadastrar'&&entry.key===null&&/^[a-f0-9]{32}$/.test(q.dto?.operationId)&&q.dto.receipt?.state==='COMPLETED'&&q.dto.receipt.code==='OK');
+    storage.removeItem(name);return {...q.dto,recoveredExisting:true};
+   }
    need(q.key?.operationId===entry.operationId&&q.request?.operationId===entry.operationId);
    if(entry.key)need(canonical(entry.key)===canonical(q.key));entry.key=q.key;persist();
    const result=await request('memberExecute',q.request,t,candidate);need(result.dto?.operationId===entry.operationId);

@@ -122,6 +122,14 @@
     }));
   }
 
+  function registrationError(error) {
+    var code=error?.errorCode||error?.code;
+    if(['ADMISSION_APPROVAL_REQUIRED','HUMAN_DECISION_REQUIRED'].includes(code))return 'A aprovação institucional não foi confirmada para os dados informados. Confira a referência, a categoria, o RGA e o e-mail. Nenhum novo pré-cadastro foi confirmado.';
+    if(['RECONCILIATION_REQUIRED','COMMAND_RECONCILIATION_REQUIRED','REQUEST_TIMEOUT','COMMAND_PENDING'].includes(code))return 'Não foi possível confirmar o pré-cadastro. Seus dados foram preservados. Tente salvar novamente para recuperar o mesmo envio, sem criar outro cadastro.';
+    if(code==='OPERATION_CONFLICT')return 'Há um cadastro ou envio anterior que precisa ser conferido. Consulte os convites de ingresso antes de tentar cadastrar novamente.';
+    if(['AUTHORIZATION_DENIED','ACCESS_REVOKED','M13_AUTHZ_DENIED','FORBIDDEN'].includes(code))return 'Sua autorização não permite este pré-cadastro. Nenhuma nova operação foi confirmada.';
+    return error?.message||'Não foi possível confirmar o pré-cadastro. Seus dados foram preservados.';
+  }
   function submit(form) {
     if (busy || !enabled()) return; if (!form.reportValidity()) return;
     var epoch=viewEpoch;busy = true;modal().setAttribute('aria-busy','true'); var button = form.querySelector('[data-member-registration-submit]'); button.disabled = true; button.textContent = 'Cadastrando...';
@@ -131,8 +139,7 @@
       toast('success', 'Pré-cadastro salvo. Vínculo ainda não ativado.');
       document.dispatchEvent(new CustomEvent('portal:memberregistered'));
     }).catch(function(error) {
-      if(epoch!==viewEpoch||!enabled())return;var feedback = form.querySelector('[data-member-registration-feedback]'); feedback.textContent = ['ADMISSION_APPROVAL_REQUIRED','HUMAN_DECISION_REQUIRED'].includes(error?.code||error?.message)?'Confira se a referência, a categoria, o RGA e o e-mail correspondem à aprovação registrada.':error && error.message || 'Não foi possível cadastrar.'; feedback.className = 'member-registration-feedback is-error';
-      toast('error', feedback.textContent);
+      if(epoch!==viewEpoch||!enabled())return;var feedback = form.querySelector('[data-member-registration-feedback]'); feedback.textContent = registrationError(error); feedback.className = 'member-registration-feedback is-error';
     }).then(function() { if(epoch===viewEpoch){busy=false;modal()?.removeAttribute('aria-busy');} if (button && button.isConnected) { button.disabled = false; button.textContent = 'Salvar pré-cadastro'; } });
   }
 

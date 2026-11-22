@@ -62,7 +62,7 @@ export function createMemberOperations({request,execute,read,auth}){
   const registration=route==='/admin/ingressos-membros/cadastrar';
   if(route==='/admin/ingressos-membros/convite'&&['ACKNOWLEDGE','REQUEST_CORRECTION','RESOLVE_CORRECTION','AMEND'].includes(payload.action))return {ok:true,message:'Registro administrativo salvo.'};
   if(route==='/admin/ingressos-membros/convite')return {ok:true,message:payload.action==='CANCEL'?'Convite cancelado. O histórico foi preservado.':'Convite registrado na fila de teste DEV. Nenhum e-mail real foi enviado.',data:{enrollmentId:payload.enrollmentId,notificationMode:'DRY_RUN',emailSent:false}};
-  return {ok:true,message:registration?'Pré-cadastro registrado. O vínculo ainda não está ativo.':'Ação registrada.',data:registration?{idIngresso:answer.operationId,emailQueued:false}:{idSolicitacao:subject||answer.operationId,status:subject?'ATUALIZADO':'RECEBIDO'}};
+  return {ok:true,message:registration?(answer.recoveredExisting?'Pré-cadastro anterior recuperado. Nenhum cadastro duplicado foi criado.':'Pré-cadastro registrado. O vínculo ainda não está ativo.'):'Ação registrada.',data:registration?{idIngresso:answer.operationId,emailQueued:false}:{idSolicitacao:subject||answer.operationId,status:subject?'ATUALIZADO':'RECEBIDO'}};
  }
  return {get,post,clear,dispose(){clear();auth.listeners?.delete(clear);}};
 }
