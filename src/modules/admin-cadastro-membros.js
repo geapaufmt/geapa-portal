@@ -31,7 +31,9 @@
     renderForm();
   }
 
-  function show(node){if(mode==='registration')node.setAttribute('data-geapa-protect-draft','');else node.removeAttribute('data-geapa-protect-draft');node.removeAttribute('data-geapa-dirty');global.PortalDesign.openDetailDialog(node,function(){viewEpoch++;invitations=[];invitationCursor=null;node.querySelector('[data-member-registration-content]').replaceChildren();});}
+  // Invitation commands must retain their view epoch while the session proof renews.
+  // The shared dialog controller suspends actions; hard revocation still closes it.
+  function show(node){node.setAttribute('data-geapa-protect-draft','');node.removeAttribute('data-geapa-dirty');global.PortalDesign.openDetailDialog(node,function(){viewEpoch++;invitations=[];invitationCursor=null;node.querySelector('[data-member-registration-content]').replaceChildren();});}
   function close() { if (busy) return; global.PortalDesign.closeDetailDialog(modal()); }
   function openInvitations(more) {
     if (!canSeeInvitations() || busy) return;
