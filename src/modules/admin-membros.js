@@ -189,6 +189,7 @@
   function effectivation(content,personId,stateKey,refresh) {
     if(stateKey!=='MEMBRO_INGRESSANTE'||personId===global.PortalGeapaAuth.getUsuarioAtual?.()?.idPessoa||!global.PortalGeapaAuth.hasPermissao('membros:cadastrar_novos_membros'))return;
     var section=document.createElement('details');
+    var modal=content.closest('.modal-backdrop');modal?.setAttribute('data-geapa-protect-draft','');
     section.innerHTML='<summary>Efetivar membro</summary><form><label>Data de efetivação<input type="date" name="recognizedOn" required></label><label>Referência ou observação, se necessária<input name="reference" maxlength="500"></label><button type="submit">Confirmar efetivação</button><p role="status"></p></form>';
     content.appendChild(section);
     var form=section.querySelector('form'),date=form.elements.recognizedOn;
@@ -199,18 +200,19 @@
       form.querySelector('[role=status]').textContent=historical?'Informe o fundamento da data reconhecida. O Portal atualizará as permissões e obrigações a partir de hoje.':'';
     });
     form.addEventListener('submit',async function(event){
-      event.preventDefault();var button=form.querySelector('button');if(button.disabled)return;button.disabled=true;
+      event.preventDefault();var button=form.querySelector('button');if(button.disabled)return;button.disabled=true;modal?.setAttribute('aria-busy','true');
       try {
         var answer=await api.apiPost('/admin/membros/efetivar',{payload:JSON.stringify({personId:personId,recognizedOn:date.value,reference:form.elements.reference.value.trim()})});
         if(!answer.ok)throw Error(answer.message||'Efetivação não confirmada.');
-        if(section.isConnected)refresh();
+        if(section.isConnected){modal?.removeAttribute('data-geapa-dirty');refresh();}
       } catch(error){form.querySelector('[role=status]').textContent=error.message;button.disabled=false;}
+      finally{modal?.removeAttribute('aria-busy');}
     });
   }
   function openPersonDetail(personId){
     var modal=document.getElementById('membro-admin-modal'),content=document.getElementById('membro-admin-modal-content'),title=document.getElementById('membro-admin-modal-title'),generation=++state.detailGeneration,session=state.generation;
     if(!modal||!content)return;if(title)title.textContent='Pessoa';content.innerHTML=montarLoadingLocal('Consultando pessoa...');
-    global.PortalDesign.openDetailDialog(modal,function(){state.detailGeneration++;content.textContent='';});
+    global.PortalDesign.openDetailDialog(modal,function(){state.detailGeneration++;content.textContent='';modal.removeAttribute('data-geapa-protect-draft');modal.removeAttribute('aria-busy');});
     api.apiGet('/admin/pessoas/detalhe',{personId:personId}).then(function(response){
       if(generation!==state.detailGeneration||session!==state.generation||!state.active)return;
       if(!response?.ok)throw new Error(response?.message||'Consulta não autorizada.');
