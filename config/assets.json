@@ -1100,6 +1100,23 @@
       "generated": "build/typescript/access-catalog.mjs"
     },
     {
+      "url": "/assets/act-ui/public-pages.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/public-pages.mjs"
+    },
+    {
+      "url": "/assets/act-command/public-pages.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "source": "src/services/public-pages.mjs",
+      "devSource": "src/services/public-pages.mjs"
+    },
+    {
       "url": "/assets/act-ui/team-directory.mjs",
       "environments": [
         "dev",
