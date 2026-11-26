@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-for(const file of ['src/modules/portal-v2-readonly.js','config/variants/dev/src/modules/portal-v2-readonly.js']){
+for(const file of ['dist/dev/assets/act-ui/portal-v2-readonly.js','dist/prod/assets/act-ui/portal-v2-readonly.js']){
  const source=fs.readFileSync(file,'utf8'),start=source.indexOf('  function montarAcaoJustificativaFrequencia('),end=source.indexOf('\n  function ',start+10);
  const context=vm.createContext({botaoAcao:(action,id,label)=>label,temJustificativaFrequencia:()=>false});
  vm.runInContext(source.slice(start,end),context);
