@@ -34,7 +34,7 @@ export function createMemberOperations({request,execute,read,auth}){
   }else if(route==='/admin/membros/efetivar'){
    exact(payload,['personId','recognizedOn','reference']);body={...payload};targetRoute=route;slot+='effectivation:'+payload.personId;
   }else if(route==='/admin/ingressos-membros/convite'){
-   exact(payload,['enrollmentId','revision','action','reason',...(payload.action==='AMEND'?['field','value']:[])]);body={...payload};targetRoute=route;slot+='invitation:'+payload.enrollmentId;
+   exact(payload,['enrollmentId','revision','action','reason',...(payload.action==='AMEND'?['field','value']:payload.action==='CONFIRM_ADMISSION'?['membershipType','approvedOn','confirmed']:[])]);body={...payload};targetRoute=route;slot+='invitation:'+payload.enrollmentId;
   }else if(route==='/admin/ingressos-membros/cadastrar'){
    body={...payload};delete body.chaveIdempotencia;targetRoute=route;slot+='registration';
   }else if(route==='/meu-vinculo/suspensao/solicitar'){
@@ -60,6 +60,7 @@ export function createMemberOperations({request,execute,read,auth}){
   if(answer.receipt?.state==='FAILED')return {ok:false,errorCode:answer.receipt.code==='REVISION_CONFLICT'?'STALE_REVISION':'FORBIDDEN',message:answer.receipt.code==='REVISION_CONFLICT'?'Os dados mudaram. Atualize o pedido antes de confirmar.':'A operação não foi autorizada ou suas condições deixaram de ser válidas.'};
   if(answer.receipt?.state!=='COMPLETED')return {ok:false,errorCode:'COMMAND_PENDING',message:'O envio ainda está sendo confirmado. Tente novamente para recuperar a mesma operação.'};
   const registration=route==='/admin/ingressos-membros/cadastrar';
+  if(route==='/admin/ingressos-membros/convite'&&payload.action==='CONFIRM_ADMISSION')return {ok:true,message:'Decisão de admissão registrada. O vínculo aguarda o aceite e a conclusão cadastral.'};
   if(route==='/admin/ingressos-membros/convite'&&['ACKNOWLEDGE','REQUEST_CORRECTION','RESOLVE_CORRECTION','AMEND'].includes(payload.action))return {ok:true,message:'Registro administrativo salvo.'};
   if(route==='/admin/ingressos-membros/convite')return {ok:true,message:payload.action==='CANCEL'?'Convite cancelado. O histórico foi preservado.':'Convite registrado na fila de teste DEV. Nenhum e-mail real foi enviado.',data:{enrollmentId:payload.enrollmentId,notificationMode:'DRY_RUN',emailSent:false}};
   return {ok:true,message:registration?(answer.recoveredExisting?'Pré-cadastro anterior recuperado. Nenhum cadastro duplicado foi criado.':'Pré-cadastro registrado. O vínculo ainda não está ativo.'):'Ação registrada.',data:registration?{idIngresso:answer.operationId,emailQueued:false}:{idSolicitacao:subject||answer.operationId,status:subject?'ATUALIZADO':'RECEBIDO'}};
