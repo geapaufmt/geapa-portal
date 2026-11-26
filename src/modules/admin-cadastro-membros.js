@@ -81,7 +81,8 @@
       if(!decision){
         decision=document.createElement('section');decision.dataset.admissionDecision='';
         decision.innerHTML='<h4>Confirmação da admissão pelo RH</h4><p>Registre sua decisão para este cadastro. O vínculo só será ativado após o aceite e a conclusão cadastral da pessoa.</p><label>Categoria de entrada<select data-admission-category required><option value="">Selecione a categoria</option><option value="MEMBRO_INGRESSANTE">Membro ingressante</option><option value="MEMBRO_EFETIVO">Membro efetivo</option></select></label><label>Data da decisão<input type="date" data-admission-date required></label><label>Observação da decisão<textarea data-admission-reason minlength="10" maxlength="500" required></textarea></label><label><input type="checkbox" data-admission-confirmed required>Confirmo a admissão desta pessoa na categoria informada.</label>';
-        card.appendChild(decision);modal().setAttribute('data-geapa-dirty','');button.textContent='Registrar confirmação';decision.querySelector('select').focus();return;
+        var options=button.closest('[data-geapa-options]');if(options)options.open=false;
+        card.appendChild(decision);modal().setAttribute('data-geapa-dirty','');button.textContent='Registrar confirmação';button.classList.add('primary-button');decision.appendChild(button);decision.querySelector('select').focus();return;
       }
       var fields=Array.from(decision.querySelectorAll('input,select,textarea'));
       for(var item of fields)if(!item.reportValidity())return;

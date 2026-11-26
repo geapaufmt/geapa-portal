@@ -11,7 +11,7 @@ async function fixture(allowed=true){
  return {w,d:w.document,calls,finish:r=>finish(r)};
 }
 test('RH confirmation requires a deliberate category, date and acknowledgement, keeps failed decision and blocks duplicates',async()=>{
- const f=await fixture(),b=f.d.querySelector('[data-invitation-action="CONFIRM_ADMISSION"]');b.click();a.equal(f.calls.length,0);b.click();a.equal(f.calls.length,0);
+ const f=await fixture(),b=f.d.querySelector('[data-invitation-action="CONFIRM_ADMISSION"]');b.click();a.equal(f.calls.length,0);a(b.closest('[data-admission-decision]'));a.equal(b.closest('details'),null);b.click();a.equal(f.calls.length,0);
  f.d.querySelector('[data-admission-category]').value='MEMBRO_INGRESSANTE';f.d.querySelector('[data-admission-date]').value='2026-11-26';f.d.querySelector('[data-admission-reason]').value='Decisão exclusivamente sintética';b.click();a.equal(f.calls.length,0);
  f.d.querySelector('[data-admission-confirmed]').checked=true;b.click();b.click();a.equal(f.calls.length,1);
  a.deepEqual(f.calls[0],{route:'/admin/ingressos-membros/convite',payload:{enrollmentId:'SYN',revision:3,action:'CONFIRM_ADMISSION',reason:'Decisão exclusivamente sintética',membershipType:'MEMBRO_INGRESSANTE',approvedOn:'2026-11-26',confirmed:true}});
