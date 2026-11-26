@@ -75,6 +75,19 @@
     if (!v) return;
     var reason=action==='ACKNOWLEDGE'?'Ciência da Presidência':'Envio administrativo de convite de ingresso';
     var patch={};
+    if(action==='CONFIRM_ADMISSION'){
+      if(!v.canConfirmAdmission)return;
+      var decision=card.querySelector('[data-admission-decision]');
+      if(!decision){
+        decision=document.createElement('section');decision.dataset.admissionDecision='';
+        decision.innerHTML='<h4>Confirmação da admissão pelo RH</h4><p>Registre sua decisão para este cadastro. O vínculo só será ativado após o aceite e a conclusão cadastral da pessoa.</p><label>Categoria de entrada<select data-admission-category required><option value="">Selecione a categoria</option><option value="MEMBRO_INGRESSANTE">Membro ingressante</option><option value="MEMBRO_EFETIVO">Membro efetivo</option></select></label><label>Data da decisão<input type="date" data-admission-date required></label><label>Observação da decisão<textarea data-admission-reason maxlength="500" required></textarea></label><label><input type="checkbox" data-admission-confirmed required>Confirmo a admissão desta pessoa na categoria informada.</label>';
+        card.appendChild(decision);modal().setAttribute('data-geapa-dirty','');button.textContent='Registrar confirmação';decision.querySelector('select').focus();return;
+      }
+      var fields=Array.from(decision.querySelectorAll('input,select,textarea'));
+      for(var item of fields)if(!item.reportValidity())return;
+      reason=decision.querySelector('[data-admission-reason]').value.trim();if(!reason)return;
+      patch={membershipType:decision.querySelector('[data-admission-category]').value,approvedOn:decision.querySelector('[data-admission-date]').value,confirmed:decision.querySelector('[data-admission-confirmed]').checked};
+    }
     if(['CANCEL','AMEND','REQUEST_CORRECTION','RESOLVE_CORRECTION'].includes(action)){
       var field=card.querySelector('[data-invitation-cancel-reason]');
       if(!field||field.dataset.action!==action){if(field)field.parentElement.remove();modal().setAttribute('data-geapa-protect-draft','');var label=document.createElement('label');label.innerHTML='<span>Motivo ou correção cadastral</span><input type="text" maxlength="500" required data-invitation-cancel-reason>';if(action==='AMEND'){
@@ -87,7 +100,7 @@
     if (reason===null || !String(reason).trim()) return;
     busy=true;modal().setAttribute('aria-busy','true');var buttons=Array.from(content().querySelectorAll('button'));buttons.forEach(function(b){b.disabled=true;});
     api.apiPost('/admin/ingressos-membros/convite',{payload:JSON.stringify(Object.assign({enrollmentId:v.enrollmentId,revision:v.revision,action:action,reason:String(reason).trim()},patch))}).then(function(response){
-      if(epoch!==viewEpoch)return;if(!canSeeInvitations()){refreshInvitationsWhenReady=true;return;}if(!response||response.ok!==true)throw response||new Error('Não foi possível confirmar o convite.');busy=false;modal().removeAttribute('aria-busy');modal().removeAttribute('data-geapa-dirty');toast('success',response.message);openInvitations(false);
+      if(epoch!==viewEpoch)return;if(!canSeeInvitations()){refreshInvitationsWhenReady=true;return;}if(!response||response.ok!==true)throw response||new Error('Não foi possível confirmar o convite.');busy=false;modal().removeAttribute('aria-busy');modal().removeAttribute('data-geapa-dirty');toast('success',['SEND','RESEND'].includes(action)?'Convite disponível no Portal. Nenhum e-mail foi enviado.':response.message);openInvitations(false);
     }).catch(function(error){if(epoch!==viewEpoch)return;if(!canSeeInvitations()){refreshInvitationsWhenReady=true;return;}var feedback=content().querySelector('[data-member-registration-feedback]');if(feedback)feedback.textContent=error.message||'Não foi possível confirmar o envio. Tente novamente para recuperar a mesma operação.';}).finally(function(){if(epoch===viewEpoch){busy=false;modal()?.removeAttribute('aria-busy');}buttons.forEach(function(b){if(b.isConnected)b.disabled=false;});});
   }
   function content() { return ensureModal().querySelector('[data-member-registration-content]'); }
@@ -156,5 +169,3 @@
   document.addEventListener('portal:navigationchange',function(){if(modal()&&!modal().hidden)global.PortalDesign.closeDetailDialog(modal(),true);});
   global.PortalGeapaMemberRegistration = Object.freeze({ renderAction: renderAction, open: open });
 })(window);
-
-
