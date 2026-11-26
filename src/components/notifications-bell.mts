@@ -11,27 +11,29 @@ export interface NotificationItem {
   targetRoute?: string;
   category?: string;
   read: boolean;
-  readAt?: string | null;
-  createdAt: string;
+  readAt?: number | null;
+  createdAt: number;
   metadata?: Record<string, unknown>;
 }
 
 export interface NotificationsData {
   personId?: string;
   unreadCount: number;
-  notifications: NotificationItem[];
+  schemaVersion: string;
+  revision: number;
+  items: NotificationItem[];
 }
 
 export interface NotificationsBellOptions {
   nav?: { irPara?(route: string): void; fecharMenu?(): void };
-  context?: () => { authenticated?: boolean; accessPending?: boolean };
+  context?: () => { authenticated?: boolean; accessPending?: boolean; identityScope?: string | null; act?: {available?: boolean} | null; members?: {restrictedTracking?: boolean} | null };
   api?: {
     apiGet(route: string, params?: Record<string, unknown>): Promise<{ ok: boolean; data?: unknown; message?: string }>;
     apiPost?(route: string, params?: Record<string, unknown>): Promise<{ ok: boolean; data?: unknown; message?: string }>;
   };
 }
 
-export function formatNotificationDate(isoString: string): string {
+export function formatNotificationDate(isoString: number | string): string {
   try {
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return '';
@@ -61,7 +63,7 @@ export function renderNotificationItem(item: NotificationItem): string {
     ? `<div class="notification-item-actions">${routeBtn}${markBtn}</div>`
     : '';
 
-  return `<article class="notification-item${unreadClass}" data-id="${esc(item.id)}">` +
+  return `<article role="listitem" class="notification-item${unreadClass}" data-id="${esc(item.id)}">` +
     `<div class="notification-item-header">` +
       `<strong class="notification-item-title">${esc(item.title)}</strong>` +
       (dateFormatted ? `<time class="notification-item-date">${esc(dateFormatted)}</time>` : '') +
@@ -96,7 +98,21 @@ export function setupNotificationsBell(options: NotificationsBellOptions = {}) {
 
   let items: NotificationItem[] = [];
   let unreadCount = 0;
-  let activeEpoch = 0;
+  let revision = 0;
+  let version = 0;
+  let scope = '';
+  let writing = false;
+  let warning = '';
+  const feedback = document.createElement('p');
+  feedback.setAttribute('role','status');
+  feedback.hidden = true;
+  list.before(feedback);
+  panel.tabIndex = -1;
+  panel.setAttribute('role','region');
+  const currentScope = () => {
+    const c = options.context?.();
+    return c?.authenticated && !c.accessPending && c.act?.available && !c.members?.restrictedTracking ? c.identityScope || '' : '';
+  };
 
   const close = (focus = false) => {
     panel.hidden = true;
@@ -113,7 +129,7 @@ export function setupNotificationsBell(options: NotificationsBellOptions = {}) {
     options.nav?.fecharMenu?.();
     panel.hidden = false;
     button.setAttribute('aria-expanded', 'true');
-    (panel.querySelector('button') as HTMLElement | null)?.focus();
+    (panel.querySelector<HTMLElement>('button:not(:disabled)') || panel).focus();
   };
 
   const updateBadge = (count: number) => {
@@ -130,87 +146,81 @@ export function setupNotificationsBell(options: NotificationsBellOptions = {}) {
   };
 
   const renderList = () => {
+    feedback.textContent = warning;
+    feedback.hidden = !warning;
     if (items.length === 0) {
-      list.innerHTML = '<p class="notifications-empty">Nenhuma notificação no momento.</p>';
+      list.innerHTML = warning ? '' : '<p class="notifications-empty">Nenhuma notificação no momento.</p>';
       if (markAllBtn) markAllBtn.disabled = true;
       return;
     }
     list.innerHTML = items.map(renderNotificationItem).join('');
-    if (markAllBtn) markAllBtn.disabled = unreadCount === 0;
+    if (markAllBtn) markAllBtn.disabled = writing || unreadCount === 0;
   };
 
   const getApi = () => options.api || (window as unknown as { PortalGeapaApi?: typeof options.api }).PortalGeapaApi;
 
-  const refresh = async () => {
-    const epoch = ++activeEpoch;
-    const api = getApi();
-    if (!api?.apiGet) return;
-    try {
-      const res = await api.apiGet('/meu-vinculo/notificacoes', {});
-      if (epoch !== activeEpoch) return;
-      if (res && res.ok && res.data) {
-        const data = res.data as NotificationsData;
-        items = Array.isArray(data.notifications) ? data.notifications : [];
-        updateBadge(typeof data.unreadCount === 'number' ? data.unreadCount : items.filter(i => !i.read).length);
-        renderList();
-      }
-    } catch {
-      // In case of error, preserve state or handle silently
-    }
-  };
-
-  const markRead = async (id: string) => {
-    const epoch = activeEpoch;
-    const item = items.find(i => i.id === id);
-    if (!item || item.read) return;
-    item.read = true;
-    item.readAt = new Date().toISOString();
-    updateBadge(unreadCount - 1);
+  const valid = (ticket: number) => ticket === version && !!scope && scope === currentScope();
+  const apply = (res: {ok: boolean; data?: unknown} | undefined) => {
+    const data = res?.data as Partial<NotificationsData> | undefined;
+    if (!res?.ok || data?.schemaVersion !== 'member-notification-view-v1' || !Array.isArray(data.items) ||
+        typeof data.revision !== 'number' || !Number.isSafeInteger(data.revision) || data.revision < 0 ||
+        data.items.length > 100 || !data.items.every(i => i && typeof i.id === 'string' && /^[a-f0-9]{32}$/.test(i.id) &&
+          typeof i.title === 'string' && typeof i.body === 'string' && typeof i.read === 'boolean' && Number.isSafeInteger(i.createdAt)) ||
+        data.unreadCount !== data.items.filter(i => !i.read).length) throw Error('Invalid notification response');
+    revision = data.revision;
+    items = data.items;
+    warning = '';
+    updateBadge(data.unreadCount);
     renderList();
-
-    const api = getApi();
-    if (api?.apiGet) {
-      try {
-        const res = await api.apiGet('/meu-vinculo/notificacoes', { action: 'MARK_READ', notificationId: id });
-        if (epoch !== activeEpoch) return;
-        if (res?.ok && res.data && typeof (res.data as { unreadCount?: number }).unreadCount === 'number') {
-          updateBadge((res.data as { unreadCount: number }).unreadCount);
-        }
-      } catch {
-        // Rollback on network failure if needed
-      }
-    }
   };
-
-  const markAllRead = async () => {
-    const epoch = activeEpoch;
-    if (unreadCount === 0) return;
-    for (const item of items) {
-      item.read = true;
-      item.readAt = new Date().toISOString();
-    }
-    updateBadge(0);
-    renderList();
-
-    const api = getApi();
-    if (api?.apiGet) {
-      try {
-        const res = await api.apiGet('/meu-vinculo/notificacoes', { action: 'MARK_ALL_READ' });
-        if (epoch !== activeEpoch) return;
-        if (res?.ok && res.data && typeof (res.data as { unreadCount?: number }).unreadCount === 'number') {
-          updateBadge((res.data as { unreadCount: number }).unreadCount);
-        }
-      } catch {
-        // Rollback on network failure if needed
-      }
-    }
-  };
-
-  const clear = () => {
-    activeEpoch++;
+  const unavailable = (message: string) => {
     items = [];
+    warning = message;
     updateBadge(0);
     renderList();
+  };
+  const refresh = async () => {
+    if (!scope || writing || scope !== currentScope()) return;
+    const ticket = ++version;
+    try {
+      const res = await getApi()?.apiGet('/meu-vinculo/notificacoes', {});
+      if (valid(ticket)) apply(res);
+    } catch {
+      if (valid(ticket)) unavailable('Não foi possível consultar as notificações. Reabra o painel para tentar novamente.');
+    }
+  };
+  const mark = async (params: Record<string,unknown>) => {
+    if (!scope || scope !== currentScope() || writing) return;
+    const ticket = ++version;
+    writing = true;
+    const restoreFocus = panel.contains(document.activeElement);
+    list.querySelectorAll<HTMLButtonElement>('[data-mark-read]').forEach(b => b.disabled = true);
+    if (markAllBtn) markAllBtn.disabled = true;
+    try {
+      const res = await getApi()?.apiPost?.('/meu-vinculo/notificacoes/leitura',params);
+      if (valid(ticket)) apply(res);
+    } catch {
+      if (valid(ticket)) unavailable('Leitura sem confirmação. Reabra o painel para consultar o estado atual.');
+    } finally {
+      if (valid(ticket)) {
+        writing = false;
+        renderList();
+        if (restoreFocus && !panel.hidden && (document.activeElement === document.body || panel.contains(document.activeElement)))
+          (panel.querySelector<HTMLElement>('button:not(:disabled)') || panel).focus();
+      }
+    }
+  };
+  const markRead = async (id: string) => {
+    if (items.some(i => i.id === id && !i.read)) await mark({action:'MARK_READ',notificationId:id});
+  };
+  const markAllRead = async () => {
+    if (unreadCount) await mark({action:'MARK_ALL_READ',expectedRevision:revision});
+  };
+  const clear = () => {
+    ++version;
+    scope = '';
+    writing = false;
+    unavailable('');
     close(false);
     host.hidden = true;
   };
@@ -272,14 +282,21 @@ export function setupNotificationsBell(options: NotificationsBellOptions = {}) {
   });
 
   const update = () => {
-    const c = options.context?.() || {};
-    host.hidden = !c.authenticated;
-    if (host.hidden) {
-      clear();
-    } else {
+    const next = currentScope();
+    if (next === scope && next) return;
+    clear();
+    if (next) {
+      scope = next;
+      host.hidden = false;
       void refresh();
     }
   };
+  document.addEventListener('portal:act-session-cleared', clear);
+  document.addEventListener('portal:act-session-suspended', clear);
+  document.addEventListener('portal:act-context-ready', update);
+  const refreshVisible = () => { if (!document.hidden) void refresh(); };
+  document.addEventListener('visibilitychange', refreshVisible);
+  window.setInterval(refreshVisible, 300000);
 
   document.addEventListener('portal:menuupdated', update);
   document.addEventListener('portal:navigationchange', () => {

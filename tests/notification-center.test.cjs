@@ -2,7 +2,7 @@
 // Notification Center — Portal UI unit tests
 // Tests: bell toggle, panel, badge, mark-read, mark-all-read, session isolation,
 // late-response drop after identity change, Escape key, outside-click dismissal.
-const {test,describe}=require('node:test'),a=require('node:assert/strict'),{JSDOM}=require('jsdom'),p=require('path'),{pathToFileURL}=require('url');
+const {test}=require('node:test'),a=require('node:assert/strict'),{JSDOM}=require('jsdom'),p=require('path'),{pathToFileURL}=require('url');
 const root=p.resolve('dist/prod');
 
 function buildDOM(){
@@ -32,16 +32,7 @@ function buildDOM(){
 }
 
 function makeNotification(id,{read=false,title='Teste',body='Corpo da notificação',event='SYNTHETIC_TEST',targetRoute=null}={}){
-  return {id,personId:'p1',revision:1,event,title,body,targetRoute,category:'INFO',read,readAt:read?new Date().toISOString():null,createdAt:new Date().toISOString(),metadata:{}};
-}
-
-async function loadBell(dom,opts={}){
-  const {window}=dom;
-  const url=pathToFileURL(root+'/assets/act-ui/notifications-bell.mjs').href;
-  const mod=await import(url);
-  const bell=mod.setupNotificationsBell({nav:{irPara:()=>{},fecharMenu:()=>{}},...opts,context:opts.context||(() => ({authenticated:true}))});
-  // override document.getElementById to use jsdom window
-  return {bell,mod,window};
+  return {id,personId:'p1',revision:1,event,title,body,targetRoute,category:'INFO',read,readAt:read?Date.now():null,createdAt:Date.now(),metadata:{}};
 }
 
 test('renderNotificationItem — unread item has correct classes and mark button', async()=>{
@@ -174,4 +165,39 @@ test('bell: notification items do not contain cross-user personId', async()=>{
   const item={id:'n10',personId:'secret-person-id-should-not-appear',revision:1,event:'SYNTHETIC_TEST',title:'Test',body:'Body',targetRoute:null,category:'INFO',read:false,readAt:null,createdAt:new Date().toISOString(),metadata:{}};
   const html=renderNotificationItem(item);
   a(!html.includes('secret-person-id-should-not-appear'),'personId must not be rendered in HTML');
+});
+
+test('the mounted bell uses the Core view and confirmed receipts and clears private state',async t=>{
+ const dom=buildDOM(),win=dom.window,doc=win.document;
+ for(const [key,value] of Object.entries({window:win,document:doc,Node:win.Node})){
+  const previous=Object.getOwnPropertyDescriptor(globalThis,key);
+  Object.defineProperty(globalThis,key,{value,configurable:true});
+  t.after(()=>previous?Object.defineProperty(globalThis,key,previous):delete globalThis[key]);
+ }
+ t.after(()=>win.close());
+ const {setupNotificationsBell}=await import(pathToFileURL(root+'/assets/act-ui/notifications-bell.mjs').href);
+ const row=makeNotification('a'.repeat(32),{targetRoute:'minha-situacao'});
+ const response=()=>({ok:true,data:{schemaVersion:'member-notification-view-v1',revision:1,items:[{...row}],unreadCount:row.read?0:1}});
+ const context={authenticated:true,identityScope:'SYN:A:1',act:{available:true}};
+ let get=async()=>response(),rejectWrite=true;
+ const api={apiGet:route=>{a.equal(route,'/meu-vinculo/notificacoes');return get();},apiPost:async(route,params)=>{
+  a.equal(route,'/meu-vinculo/notificacoes/leitura');
+  a(['MARK_READ','MARK_ALL_READ'].includes(params.action));
+  if(rejectWrite)return {ok:false};
+  row.read=true;return response();
+ }};
+ const bell=setupNotificationsBell({context:()=>context,api});
+ await bell.refresh();a.equal(bell.getUnreadCount(),1);a.equal(bell.getItems()[0].id,row.id);
+ const button=doc.getElementById('notifications-toggle'),panel=doc.getElementById('notifications-panel');
+ button.click();await new Promise(setImmediate);a.equal(panel.hidden,false);
+ doc.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Escape'}));a.equal(doc.activeElement,button);
+ await bell.markRead(row.id);a.equal(row.read,false);a.match(doc.querySelector('[role=status]').textContent,/sem confirmação/i);
+ await bell.refresh();a.equal(bell.getUnreadCount(),1);
+ rejectWrite=false;await bell.markAllRead();a.equal(bell.getUnreadCount(),0);a.equal(bell.getItems()[0].read,true);
+ let resolve;get=()=>new Promise(done=>{resolve=done;});const pending=bell.refresh();
+ context.identityScope='SYN:B:2';doc.dispatchEvent(new win.Event('portal:act-session-cleared'));
+ resolve(response());await pending;a.equal(bell.getItems().length,0);a.equal(doc.getElementById('notifications-menu').hidden,true);
+ get=async()=>({ok:true,data:{schemaVersion:'member-notification-view-v1',revision:1,items:[],unreadCount:0}});
+ doc.dispatchEvent(new win.Event('portal:act-context-ready'));await bell.refresh();bell.open();a.equal(doc.activeElement,panel);
+ doc.body.dispatchEvent(new win.Event('pointerdown',{bubbles:true}));a.equal(panel.hidden,true);
 });
