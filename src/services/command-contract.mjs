@@ -43,11 +43,12 @@ export function input(v){
   if(p.action==='ACKNOWLEDGE'){need(p.accepted===true&&id(p.termVersion)&&Array.isArray(p.documents)&&p.documents.length>0&&p.documents.length<=20);for(const d of p.documents){exact(d,['id','version']);need(id(d.id)&&id(d.version));}}
   if(p.action==='IMAGE')need(['GRANTED','DECLINED','REVOKED'].includes(p.choice)&&id(p.termVersion));
  }else if(type==='members.ingress.execute'&&p?.operation==='MANAGE_INVITATION'){
-  exact(t,['personId','linkId']);need(id(t.personId)&&t.linkId===null&&id(v.decisionRef)&&v.evidenceRefs.length>0);
-  exact(p,['operation','enrollmentId','action','reason',...(p.action==='AMEND'?['field','value']:[])]);if(p.action==='AMEND'){need(['fullName','email','rga','phone'].includes(p.field));text(p.value,180);}need(operation(p.enrollmentId)&&['SEND','RESEND','CANCEL','ACKNOWLEDGE','REQUEST_CORRECTION','RESOLVE_CORRECTION','AMEND'].includes(p.action));text(p.reason,500);need(p.reason.trim().length>0);
+  exact(t,['personId','linkId']);need(id(t.personId)&&t.linkId===null&&(v.decisionRef===null||id(v.decisionRef))&&v.evidenceRefs.length>0);
+  exact(p,['operation','enrollmentId','action','reason',...(p.action==='AMEND'?['field','value']:p.action==='CONFIRM_ADMISSION'?['membershipType','approvedOn','confirmed']:[])]);if(p.action==='AMEND'){need(['fullName','email','rga','phone'].includes(p.field));text(p.value,180);}need(operation(p.enrollmentId)&&['SEND','RESEND','CANCEL','ACKNOWLEDGE','REQUEST_CORRECTION','RESOLVE_CORRECTION','AMEND','CONFIRM_ADMISSION'].includes(p.action));text(p.reason,500);need(p.reason.trim().length>0);
+  if(p.action==='CONFIRM_ADMISSION'){need(v.decisionRef==='DEC_'+v.operationId&&p.confirmed===true&&['MEMBRO_INGRESSANTE','MEMBRO_EFETIVO'].includes(p.membershipType)&&p.reason.trim().length>=10);civil(p.approvedOn);}
  }else if(type==='members.ingress.execute'&&p?.operation==='PRE_REGISTER'){
-  exact(t,['personId','linkId']);need(id(t.personId)&&t.linkId===null&&id(v.decisionRef)&&v.evidenceRefs.length>0);
-  exact(p,['operation','identity','identifiers','registration','profile','approvalRef']);need(id(p.approvalRef));
+  exact(t,['personId','linkId']);need(id(t.personId)&&t.linkId===null&&(v.decisionRef===null||id(v.decisionRef))&&v.evidenceRefs.length>0);
+  exact(p,['operation','identity','identifiers','registration','profile','approvalRef']);need(p.approvalRef===null?v.decisionRef===null:id(p.approvalRef)&&id(v.decisionRef));
   if(p.identity!==null){exact(p.identity,['displayName']);text(p.identity.displayName,120);}
   exact(p.registration,['fullName','email','rga','phone']);text(p.registration.fullName,180);text(p.registration.email,180);text(p.registration.rga,30);text(p.registration.phone,20);
   need(Array.isArray(p.identifiers));for(const row of p.identifiers){exact(row,['id','kind','value']);need(id(row.id)&&['EMAIL','RGA'].includes(row.kind)&&typeof row.value==='string');}
@@ -65,7 +66,7 @@ export function input(v){
  }
  if(!['members.voluntary.submit','members.voluntary.review','members.self.update','members.onboarding.complete'].includes(type))need(v.evidenceRefs.length>0);
  if(type==='members.membership.voluntaryExit')need(v.decisionRef===null);
- else if(!['members.voluntary.submit','members.voluntary.review','members.self.update','members.onboarding.complete','members.profile.correct'].includes(type))need(id(v.decisionRef));
+ else if(!(type==='members.ingress.execute'&&['PRE_REGISTER','MANAGE_INVITATION'].includes(p.operation))&&!['members.voluntary.submit','members.voluntary.review','members.self.update','members.onboarding.complete','members.profile.correct'].includes(type))need(id(v.decisionRef));
  need(new TextEncoder().encode(canonical(v)).length<=65536);return frozen(clone(v));
 }
 // Preconditions are supplied by protected admission, never selected by a form.

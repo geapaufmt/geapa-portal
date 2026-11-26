@@ -33,3 +33,12 @@ test('candidate saves fields, reads current version, declines optional image and
  await click('[data-image-choice=DECLINED]');await click('[data-enrollment-action=COMPLETE]');
  assert.deepEqual(actions,['ACCEPT','SAVE','ACKNOWLEDGE','IMAGE','COMPLETE']);assert.equal(activated,1);
 });
+
+test('draft invitation accepts nullable category and keeps completion pending without blocking saved data',async t=>{
+ const {enrollmentHtml,createEnrollmentView}=await import('../src/session/enrollment.mjs');
+ const draft={...full,membershipType:null,admissionApprovalPending:true},dom=new JSDOM('<main></main>'),target=dom.window.document.querySelector('main'),actions=[];
+ t.after(()=>dom.window.close());const view=createEnrollmentView({target,client:{open:async()=>({ok:true,data:draft}),read:async()=>({ok:true,data:draft}),submit:async(_r,action)=>{actions.push(action);return {receipt:{state:'COMPLETED'}};}},auth:{capture:()=>1,assert:()=>{}},onActivated:async()=>assert.fail('No activation before institutional decision')});
+ await view.open();assert.match(target.textContent,/Ainda não definida/);assert.match(target.textContent,/aguarda análise institucional/);assert(target.querySelector('[data-enrollment-action=COMPLETE]').disabled);assert(!target.querySelector('button[type=submit]').disabled);
+ target.querySelector('[data-image-choice=DECLINED]').click();await new Promise(setImmediate);assert.deepEqual(actions,['IMAGE']);assert(target.querySelector('[data-enrollment-action=COMPLETE]').disabled);
+ target.querySelector('[data-enrollment-action=COMPLETE]').disabled=false;target.querySelector('[data-enrollment-action=COMPLETE]').click();await new Promise(setImmediate);assert.deepEqual(actions,['IMAGE']);
+});
