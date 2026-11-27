@@ -1,6 +1,8 @@
 import {mountDocumentManagement} from './institutional-document-management.mjs';
 import {mountFileDownloads} from './institutional-document-files.mjs';
-import {emptyGovernanceQuery,type GovernanceQuery} from './institutional-governance-search.mjs';
+import {mountProcedures} from './board-procedures.mjs';
+import {mountMinutes} from './institutional-minutes.mjs';
+import {governanceSections,archiveCollections,governanceNavigation,scopedQuery,mountGovernanceSearch,emptyGovernanceQuery,type GovernanceQuery,type GovernanceSection,type ArchiveCollection} from './institutional-governance-search.mjs';
 import {mountGovernance,type Governance} from './institutional-governance.mjs';
 import {parameterCards,parameterDetail,parameterForm,parameterEvidenceDetail,type Parameter} from './institutional-parameters.mjs';
 import {renderNormView,normDetail,visibilityForm,type NormRecord,type NormView} from './institutional-norms.mjs';
@@ -31,33 +33,91 @@ export function renderInstitutionalDetail(r:InstitutionalRecord,editable=false):
 }
 type Host=Window&{PortalGeapaApi?:{apiPost:(route:string,params:{payload:string})=>Promise<{ok:boolean;data:any;message?:string}>;apiGet:(route:string,params:Record<string,string|number>)=>Promise<{ok:boolean;data:InstitutionalDirectory;code?:string;message?:string}>};PortalGeapaNavigation?:{getRotaAtual:()=>string}};
 let instrument='',visibility='VISIBLE',parameterFilters={type:'',status:'',competence:''};
-let governanceQuery:GovernanceQuery=emptyGovernanceQuery();
+let governanceSession=0;
+let governanceTab:GovernanceSection='procedures',archiveCollection:ArchiveCollection='completed';
+const governanceFilters=new Map<string,GovernanceQuery>();
+const filterKey=()=>governanceTab==='archive'?'archive-'+archiveCollection:governanceTab;
+function governanceQuery(){return scopedQuery(governanceTab,archiveCollection,governanceFilters.get(filterKey())||emptyGovernanceQuery());}
+function resetGovernance(){governanceTab='procedures';archiveCollection='completed';governanceFilters.clear();}
+function restoreGovernanceNavigation(){
+ const state=window.history?.state;
+ const same=state?.governanceSession===governanceSession;
+ governanceTab=same&&Object.hasOwn(governanceSections,state.governanceTab)?state.governanceTab:'procedures';
+ archiveCollection=same&&Object.hasOwn(archiveCollections,state.archiveCollection)?state.archiveCollection:'completed';
+}
+function governanceShell(el:HTMLElement){
+ el.innerHTML=header('Governança e deliberações','','<button type="button" data-institutional-refresh>Atualizar consulta</button>')+governanceNavigation(governanceTab,archiveCollection);
+ return el.querySelector<HTMLElement>('[data-governance-panel]')!;
+}
+function governanceView(v:Governance):Governance {
+ return governanceTab==='archive'?{...v,procedureTypes:[],canCreateMinute:false,canEdit:false,records:v.records.map(r=>({...r,actions:[]}))}:v;
+}
+function paintGovernance(panel:HTMLElement,data:InstitutionalDirectory){
+ panel.replaceChildren();
+ if(governanceTab==='archive'&&archiveCollection==='index'){
+  panel.innerHTML=data.schemaVersion==='institutional-instruments-view-v1'?renderNormView(data as unknown as NormView,query,visibility,true):renderInstitutionalDirectory(data,query,kind);
+  return;
+ }
+ const v=data.governance,q=governanceQuery();
+ if(!v?.pagination||!v.filters||v.filters.section!==q.section||v.filters.bucket!==q.bucket||v.filters.state!==q.state){
+  panel.textContent='Consulta desta seção indisponível. Atualize para tentar novamente.';return;
+ }
+ mountGovernanceSearch(panel,q,v.boards||[],v.normativeVersions||[],v.pagination,next=>{governanceFilters.set(filterKey(),next);void load();},governanceTab==='archive'&&['minutes','cancelled'].includes(archiveCollection));
+ const rows=document.createElement('div');panel.append(rows);
+ const receiptHost=document.getElementById('placeholder-content')!;
+ const refreshAfterSave=async()=>{const expected=generation+1;await load();return generation===expected&&!!current;};
+ const view=governanceView(v);
+ if(q.section==='procedures')governanceCleanup=mountProcedures(rows,view,load,governanceTab==='archive');
+ else if(q.section==='minutes')governanceCleanup=mountMinutes(rows,view,refreshAfterSave,'',receiptHost);
+ else governanceCleanup=mountGovernance(rows,view,refreshAfterSave,'',receiptHost);
+ if(v.pagination.total===0)rows.insertAdjacentHTML('beforeend','<p role="status">Nenhum registro encontrado nesta consulta autorizada.</p>');
+}
+function navigateGovernance(tab:GovernanceSection,collection:ArchiveCollection,remember=true){
+ if(section()!=='governance'||(tab===governanceTab&&collection===archiveCollection))return;
+ const modal=document.querySelector<HTMLElement>('.modal-backdrop:not([hidden])');
+ if(modal){modal.querySelector<HTMLElement>('button')?.focus();return;}
+ governanceTab=tab;archiveCollection=collection;
+ const focusCollection=document.activeElement?.matches('[data-governance-collection]');
+ if(remember)window.history.pushState({...window.history.state,governanceSession,governanceTab:tab,archiveCollection:collection},'');
+ void load();
+ document.querySelector<HTMLElement>(tab==='archive'&&focusCollection?'[data-governance-collection]':'[data-governance-tab][aria-current="page"]')?.focus();
+}
 let governanceCleanup:(()=>void)|undefined;
 let generation=0,current:InstitutionalDirectory|undefined,timer:ReturnType<typeof setTimeout>|undefined,dialog:HTMLElement|undefined,query='',kind='',page=1,editing:InstitutionalRecord|undefined,prepared:any,busy=false;
-let loading=false;
+let loading=false,accessNotice:HTMLElement|undefined;
 let expiryTimer:ReturnType<typeof setTimeout>|undefined,renewing:Promise<void>|undefined;
 const section=()=>{const id=(window as Host).PortalGeapaNavigation?.getRotaAtual();return institutionalSections.find(([s])=>id==='institutional-'+s)?.[0];};
 let proofDownloads:(()=>void)[]=[];
  function close(){proofDownloads.forEach(f=>f());proofDownloads=[];const opened=dialog;if(opened){dialog=undefined;closeDetailDialog(opened,true);opened.remove();}}
-function clear(){loading=false;governanceCleanup?.();governanceCleanup=undefined;generation++;current=undefined;editing=undefined;prepared=undefined;clearTimeout(timer);clearTimeout(expiryTimer);renewing=undefined;close();}
+function clear(){accessNotice?.remove();accessNotice=undefined;loading=false;governanceCleanup?.();governanceCleanup=undefined;generation++;current=undefined;editing=undefined;prepared=undefined;clearTimeout(timer);clearTimeout(expiryTimer);renewing=undefined;close();}
 function expired(_el:HTMLElement,reason='PROOF_EXPIRED'){
  _el.hidden=true;
+ if(section()==='governance'&&_el.after){
+  accessNotice?.remove();accessNotice=document.createElement('div');accessNotice.setAttribute('role','status');
+  accessNotice.textContent=reason==='READER_DENIED'?'Conteúdo não autorizado para esta sessão.':reason==='READER_UNAVAILABLE'?'Consulta indisponível no momento.':'Acesso em revalidação.';
+  const retry=document.createElement('button');retry.type='button';retry.dataset.institutionalRefresh='';retry.textContent='Atualizar consulta';accessNotice.append(retry);_el.after(accessNotice);
+ }
  suspendProtectedDialogs(true,reason==='READER_DENIED'?'A consulta não está autorizada neste momento. Seu texto permanece nesta aba; nenhum envio está liberado.':'Acesso em revalidação. Seu texto permanece nesta aba; aguarde antes de enviar.');
 }
-function readerParams():Record<string,string|number>{const s=section()||'governance';return ['norms','governance'].includes(s)?{section:s,view:'instruments',instrument,query,visibility,page,...(s==='governance'?{governanceQuery:JSON.stringify(governanceQuery)}:{})}:{section:s,query,kind,page};}
+function readerParams():Record<string,string|number>{const s=section()||'governance';return ['norms','governance'].includes(s)?{section:s,view:'instruments',instrument,query,visibility,page,...(s==='governance'?{governanceQuery:JSON.stringify(governanceQuery())}:{})}:{section:s,query,kind,page};}
 function renew(el:HTMLElement,epoch:number):Promise<void>{
  if(renewing)return renewing;if(document.hidden)return Promise.resolve();const s=section();let succeeded=false;
  const task=Promise.resolve().then(async()=>{try{
   const r=await (window as Host).PortalGeapaApi?.apiGet('/admin/gestao-institucional',readerParams());
   if(epoch!==generation||section()!==s)return;
-  if(!r?.ok||r.data.validUntil<=Date.now()){expired(el,'READER_DENIED');return;}
+  if(!r?.ok||r.data.validUntil<=Date.now()){expired(el,['AUTHORIZATION_DENIED','M13_AUTHZ_DENIED','ACCESS_REVOKED','PERMISSION_DENIED'].includes(r?.code||'')?'READER_DENIED':'READER_UNAVAILABLE');return;}
   // Listing and document revisions are not authorization revisions. The editor
   // retains its original CAS base; a concurrent edit is reported by the writer.
   const changed=JSON.stringify(r.data.governance)!==JSON.stringify(current?.governance);
-  current=r.data;el.hidden=false;suspendProtectedDialogs(false);document.dispatchEvent(new CustomEvent('portal:institutional-view-renewed',{detail:r.data}));
+  accessNotice?.remove();accessNotice=undefined;current=r.data;el.hidden=false;suspendProtectedDialogs(false);const detail=s==='governance'&&r.data.governance?{...r.data,governance:governanceView(r.data.governance)}:r.data;
+  document.dispatchEvent(new CustomEvent('portal:institutional-view-renewed',{detail}));
+  if(s==='governance'&&changed&&!document.querySelector('.modal-backdrop:not([hidden])')){
+   const panel=el.querySelector<HTMLElement>('[data-governance-panel]');
+   if(panel){governanceCleanup?.();governanceCleanup=undefined;paintGovernance(panel,r.data);}
+  }
   if(changed)document.querySelectorAll('[data-minutes-dialog] form').forEach(f=>{if(!f.querySelector('[data-document-update]')){const p=document.createElement('p');p.dataset.documentUpdate='';p.setAttribute('role','status');p.textContent='O acervo foi atualizado. Seu texto está preservado; o salvamento conferirá a revisão do documento.';f.prepend(p);}});
   succeeded=true;scheduleExpiry(el,epoch);
- }catch{if(epoch===generation)expired(el);}finally{
+ }catch{if(epoch===generation)expired(el,'READER_UNAVAILABLE');}finally{
   if(renewing===task)renewing=undefined;
   if(epoch===generation&&!succeeded){clearTimeout(timer);timer=setTimeout(()=>{void renew(el,epoch);},15000);}
  }});renewing=task;return task;
@@ -67,9 +127,9 @@ function scheduleExpiry(el:HTMLElement,epoch:number){
  expiryTimer=setTimeout(()=>{if(epoch===generation)expired(el);},remaining);
  timer=setTimeout(()=>{if(epoch===generation)void renew(el,epoch);},Math.max(0,remaining-Math.min(30000,remaining/2)));
 }
-async function load(){const s=section(),el=document.getElementById('placeholder-content');if(!s||!el)return;if(document.querySelector('[data-geapa-protect-draft][data-geapa-dirty="true"]')){await renew(el,generation);return;}clear();loading=true;el.hidden=false;const epoch=generation;el.classList.add('geapa-admin');el.textContent='Consultando informações institucionais…';
- try{const r=await (window as Host).PortalGeapaApi?.apiGet('/admin/gestao-institucional',(['norms','governance'].includes(s)?{section:s,view:'instruments',instrument,query,visibility,page,...(s==='governance'?{governanceQuery:JSON.stringify(governanceQuery)}:{})}:{section:s,query,kind,page}));if(epoch!==generation||section()!==s)return;if(!r?.ok)throw Error(['FEATURE_DISABLED','PILOT_DISABLED','PROJECTION_NOT_READY'].includes(r?.code||'')?'A consulta aguarda a aprovação de sua base documental e do escopo de acesso.':r?.message||'Consulta institucional indisponível.');if(!['institutional-consultation-v1','institutional-instruments-view-v1'].includes(r.data.schemaVersion)||r.data.validUntil<=Date.now())throw Error('A autorização da consulta expirou.');current=r.data;el.hidden=false;suspendProtectedDialogs(false);el.innerHTML=current.schemaVersion==='institutional-instruments-view-v1'?renderNormView(current as unknown as NormView,query,visibility):renderInstitutionalDirectory(current,query,kind);if(current.governance)governanceCleanup=mountGovernance(el,current.governance,load,'',async q=>{governanceQuery=q;await load();});scheduleExpiry(el,epoch);}
- catch(e){if(epoch===generation){el.hidden=false;el.replaceChildren();const message=document.createElement('p');message.setAttribute('role','alert');message.textContent=e instanceof Error?e.message:'Consulta indisponível.';const button=document.createElement('button');button.type='button';button.dataset.institutionalRefresh='';button.textContent='Atualizar';el.append(message,button);}}finally{if(epoch===generation)loading=false;}
+async function load(){const s=section(),el=document.getElementById('placeholder-content');if(!s||!el)return;if(document.querySelector('[data-geapa-protect-draft][data-geapa-dirty="true"]')){await renew(el,generation);return;}clear();loading=true;el.hidden=false;const epoch=generation;el.classList.add('geapa-admin');const panel=s==='governance'?governanceShell(el):el;panel.textContent='Consultando informações institucionais…';
+ try{const r=await (window as Host).PortalGeapaApi?.apiGet('/admin/gestao-institucional',readerParams());if(epoch!==generation||section()!==s)return;if(!r?.ok)throw Error(['AUTHORIZATION_DENIED','ACCESS_REVOKED','M13_AUTHZ_DENIED','PERMISSION_DENIED'].includes(r?.code||'')?'Conteúdo não autorizado para esta sessão.':['FEATURE_DISABLED','PILOT_DISABLED','PROJECTION_NOT_READY'].includes(r?.code||'')?'A consulta aguarda a aprovação de sua base documental e do escopo de acesso.':r?.message||'Consulta institucional indisponível.');if(!['institutional-consultation-v1','institutional-instruments-view-v1'].includes(r.data.schemaVersion)||r.data.validUntil<=Date.now())throw Error('A autorização da consulta expirou.');current=r.data;el.hidden=false;suspendProtectedDialogs(false);if(s==='governance')paintGovernance(panel,current);else el.innerHTML=current.schemaVersion==='institutional-instruments-view-v1'?renderNormView(current as unknown as NormView,query,visibility):renderInstitutionalDirectory(current,query,kind);scheduleExpiry(el,epoch);}
+ catch(e){if(epoch===generation){el.hidden=false;panel.replaceChildren();const message=document.createElement('p');message.setAttribute('role','alert');message.textContent=e instanceof Error?e.message:'Consulta indisponível.';const button=document.createElement('button');button.type='button';button.dataset.institutionalRefresh='';button.textContent='Atualizar';panel.append(message,button);}}finally{if(epoch===generation)loading=false;}
 }
 export function renderInstitutionalEdit(r:InstitutionalRecord,revision:number):string{
  return '<section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="institutional-edit-title"><header class="modal-topbar"><h2 id="institutional-edit-title">Editar '+esc(r.title)+'</h2><button type="button" data-admin-modal-close aria-label="Fechar edição">×</button></header><p>Alteração interna, sem publicação pública. Revisão '+revision+'.</p><form data-institutional-edit-form data-source-revision="'+revision+'"><label>Novo valor<input name="value" maxlength="300" required value="'+esc(r.fields.find(f=>f.label==='Valor')?.value||'')+'"></label><label>Motivo administrativo<textarea name="reason" minlength="10" maxlength="1000" required></textarea></label><div data-institutional-edit-feedback role="status" aria-live="polite"></div><button type="submit">Revisar alteração</button></form></section>';
@@ -96,13 +156,32 @@ if(typeof document!=='undefined'){
  document.addEventListener('submit',e=>{if(!(e.target instanceof HTMLFormElement)||!e.target.matches('[data-institutional-edit-form]'))return;e.preventDefault();if(!current||!editing||current.validUntil<=Date.now())return;const f=new FormData(e.target);void editAction('preview',{fieldId:editing.id,value:String(f.get('value')||'').trim(),reason:String(f.get('reason')||'').trim(),expectedRevision:Number(e.target.dataset.sourceRevision)});});
  document.addEventListener('input',e=>{if(e.target instanceof Element&&e.target.closest('[data-institutional-edit-form],[data-institutional-visibility-form],[data-parameter-form]')){prepared=undefined;dialog?.querySelector('[data-institutional-edit-feedback]')?.replaceChildren();}});
  document.addEventListener('click',e=>{if(!(e.target instanceof Element)||!section())return;if(e.target.closest('[data-institutional-recover]')){void editAction('status',{});return;}if(e.target.closest('[data-institutional-confirm]')){if(prepared)void editAction('execute',prepared);return;}if(e.target.closest('[data-institutional-edit]')&&editing&&current&&current.validUntil>Date.now()&&current.editableFields?.includes(editing.id)&&dialog){prepared=undefined;const html=renderInstitutionalEdit(editing,current.revision);close();dialog=document.createElement('div');dialog.className='modal-backdrop';dialog.dataset.institutionalDialog='';dialog.hidden=true;dialog.setAttribute('data-geapa-protect-draft','');dialog.innerHTML=html;document.body.append(dialog);const opened=dialog;openDetailDialog(opened,()=>{opened.remove();if(dialog===opened)dialog=undefined;});dialog.querySelector<HTMLElement>('input')?.focus();}});
- document.addEventListener('portal:navigationchange',()=>{clear();query='';kind='';instrument='';visibility='VISIBLE';page=1;if(section())void load();});
+ document.addEventListener('click',event=>{
+  if(!(event.target instanceof Element))return;
+  const tab=event.target.closest<HTMLElement>('[data-governance-tab]')?.dataset.governanceTab;
+  if(tab&&Object.hasOwn(governanceSections,tab))navigateGovernance(tab as GovernanceSection,archiveCollection);
+ });
+ document.addEventListener('keydown',event=>{
+  if(!(event.target instanceof HTMLElement)||!event.target.matches('[data-governance-tab]'))return;
+  const tabs=Object.keys(governanceSections) as GovernanceSection[],i=tabs.indexOf(governanceTab);
+  const next:Record<string,number>={Home:0,End:tabs.length-1,ArrowRight:(i+1)%tabs.length,ArrowLeft:(i+tabs.length-1)%tabs.length};
+  if(Object.hasOwn(next,event.key)){event.preventDefault();navigateGovernance(tabs[next[event.key]!]!,archiveCollection);}
+ });
+ document.addEventListener('change',event=>{
+  if(event.target instanceof HTMLSelectElement&&event.target.matches('[data-governance-collection]')&&Object.hasOwn(archiveCollections,event.target.value))navigateGovernance('archive',event.target.value as ArchiveCollection);
+ });
+ window.addEventListener?.('popstate',()=>{
+  if(section()!=='governance')return;
+  const state=window.history.state?.governanceSession===governanceSession?window.history.state:null;
+  navigateGovernance(state?.governanceTab&&Object.hasOwn(governanceSections,state.governanceTab)?state.governanceTab:'procedures',state?.archiveCollection&&Object.hasOwn(archiveCollections,state.archiveCollection)?state.archiveCollection:'completed',false);
+ });
+ document.addEventListener('portal:navigationchange',()=>{clear();if(section()==='governance')restoreGovernanceNavigation();query='';kind='';instrument='';visibility='VISIBLE';page=1;if(section())void load();});
  document.addEventListener('visibilitychange',()=>{const el=section()?document.getElementById('placeholder-content'):null;if(!document.hidden&&el&&current)void renew(el,generation);});
  document.addEventListener('portal:act-context-ready',()=>{const el=section()?document.getElementById('placeholder-content'):null;if(el){if(current)void renew(el,generation);else if(!loading)void load();}});
  document.addEventListener('portal:act-session-suspended',()=>{const el=section()?document.getElementById('placeholder-content'):null;if(el)expired(el);});
- document.addEventListener('portal:act-session-cleared',()=>{const el=section()?document.getElementById('placeholder-content'):null;clear();if(el)el.replaceChildren();});
+ document.addEventListener('portal:act-session-cleared',()=>{governanceSession++;resetGovernance();const el=section()?document.getElementById('placeholder-content'):null;clear();query='';kind='';instrument='';visibility='VISIBLE';page=1;if(el)el.replaceChildren();});
  document.addEventListener('submit',e=>{if(!(e.target instanceof HTMLFormElement)||!e.target.matches('[data-institutional-search]'))return;e.preventDefault();const data=new FormData(e.target);query=String(data.get('query')||'');kind=String(data.get('kind')||'');parameterFilters={type:String(data.get('parameterType')||''),status:String(data.get('parameterStatus')||''),competence:String(data.get('parameterCompetence')||'')};instrument=String(data.get('instrument')||'');visibility=String(data.get('visibility')||'VISIBLE');page=1;void load();});
- document.addEventListener('click',e=>{if(!section()||!(e.target instanceof Element)||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey)return;if(e.target.closest('[data-institutional-refresh]')){void load();return;}const pg=e.target.closest<HTMLElement>('[data-institutional-page]');if(pg){page=Number(pg.dataset.institutionalPage);void load();return;}const button=e.target.closest<HTMLElement>('[data-institutional-detail]'),card=e.target.closest<HTMLElement>('[data-institutional-card]');if(!card||(!button&&(e.target.closest('button,a,input,select')||window.getSelection()?.toString())))return;
+ document.addEventListener('click',e=>{if(!section()||!(e.target instanceof Element)||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey)return;if(e.target.closest('[data-institutional-refresh]')){void load();return;}const pg=e.target.closest<HTMLElement>('[data-institutional-page]');if(pg){page=pg.dataset.institutionalPage==='prev'?Math.max(1,page-1):pg.dataset.institutionalPage==='next'?page+1:Number(pg.dataset.institutionalPage);void load();return;}const button=e.target.closest<HTMLElement>('[data-institutional-detail]'),card=e.target.closest<HTMLElement>('[data-institutional-card]');if(!card||(!button&&(e.target.closest('button,a,input,select')||window.getSelection()?.toString())))return;
   if(!current||current.validUntil<=Date.now()){void load();return;}const r=current.items[Number(button?.dataset.institutionalDetail??card.dataset.institutionalCard)];if(!r)return;close();if(!button)card.querySelector<HTMLElement>('button')?.focus();dialog=document.createElement('div');dialog.className='modal-backdrop';dialog.dataset.institutionalDialog='';dialog.hidden=true;editing=r;dialog.innerHTML=renderInstitutionalDetail(r,current.editingEnabled===true&&current.editableFields?.includes(r.id)===true);if(current.schemaVersion==='institutional-instruments-view-v1')dialog.querySelector('.modal-panel')?.insertAdjacentHTML('beforeend',normDetail(r as NormRecord));document.body.append(dialog);proofDownloads.push(mountDocumentManagement(dialog,r as NormRecord,load));for(const proof of (r as NormRecord).documentaryProofs||[]){const root=dialog.querySelector<HTMLElement>('[data-norm-proof="'+proof.id+'"]');if(root)proofDownloads.push(mountFileDownloads(root,proof,async(phase,payload)=>{const answer=await (window as Host).PortalGeapaApi?.apiPost('/admin/gestao-institucional/governanca/editar',{payload:JSON.stringify({phase,payload})});if(!answer?.ok)throw Error(answer?.message||'Arquivo indisponível.');return answer.data;}));}const opened=dialog;openDetailDialog(opened,()=>{proofDownloads.forEach(f=>f());proofDownloads=[];opened.remove();if(dialog===opened)dialog=undefined;});document.dispatchEvent(new CustomEvent('portal:institutional-dialog-opened'));
  });
 }
