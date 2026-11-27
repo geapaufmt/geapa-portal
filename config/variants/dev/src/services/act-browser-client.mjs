@@ -205,6 +205,25 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
   if(route==='/admin/gestao-institucional/visibilidade'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalVisibility.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalEditor.run(q.phase,q.payload)};}
   let payload;try{payload=memberWriteRoutes.includes(route)&&params&&Object.getPrototypeOf(params)===Object.prototype&&!Object.hasOwn(params,'payload')?params:JSON.parse(params.payload);}catch{fail('SCHEMA_UNSUPPORTED')}
+  if(route==='/v2/apresentacoes/titulo-eixo/registrar'&&payload.arquivo){
+   const {arquivo,requestId,...registration}=payload,id=registration.idApresentacao,t=auth.capture(),shown=presentationGenerations.get(id);
+   if(!shown||shown.uid!==t.uid||shown.generation!==t.generation)fail('STALE_AUTHORIZATION');
+   need(typeof arquivo.conteudoBase64==='string'&&arquivo.conteudoBase64.length<=69905068);
+   const bytes=Uint8Array.from(atob(arquivo.conteudoBase64),c=>c.charCodeAt(0));
+   need(bytes.length>0&&bytes.length<=50*1024*1024);
+   const sha256=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');
+   auth.assert(t);
+   const descriptor={name:arquivo.name,mime:arquivo.mime,size:bytes.length,sha256};
+   const answer=await storageFlow.execute({kind:'administrative-'+registration.section,resourceId:id,descriptor,bytes,context:{basis:shown.basis},
+    begin:{route,payload:{...registration,fileDescriptor:descriptor}},submit:{route,payload:registration},
+    uploadFile:(provider,effectRef)=>{
+     auth.assert(t);
+     if(provider==='GOOGLE_DRIVE_V3')return request('core.act.workspace-upload.v13',{effectRef,contentBase64:arquivo.conteudoBase64});
+     need(provider==='GOOGLE_CLOUD_STORAGE'&&storageFiles.scope('presentationIds',id));
+     return storageFiles.upload(effectRef,bytes);
+    }});
+   return legacyResult(answer);
+  }
   if(memberWriteRoutes.includes(route))return memberOperations.post(route,payload);
   if(controlledSave.scope(route,payload)){const answer=await controlledSave.execute(route,payload);if(answer)return legacyResult(answer);}
   if(activityCommands.scope(route,payload)){const answer=await activityCommands.execute(route,payload);if(answer)return route==='/atividades/modelo/validar'?answer:legacyResult(answer);}

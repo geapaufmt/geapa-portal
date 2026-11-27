@@ -7,8 +7,8 @@ const hash=async v=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new 
 // session storage is an effect/receipt reference, never bytes or session URLs.
 export function createStorageFlow({auth,db,storage,fetchImpl,files,clientFactory=createControlledSave}){
  let busy=false;
- return {async execute({kind,resourceId,descriptor,bytes,begin,submit,context={},notice}){
-  if(!files.scope(kind==='proof'?'activityIds':'presentationIds',resourceId))return null;
+ return {async execute({kind,resourceId,descriptor,bytes,begin,submit,context={},notice,uploadFile}){
+  if(!uploadFile&&!files.scope(kind==='proof'?'activityIds':'presentationIds',resourceId))return null;
   const t=auth.capture(),key='geapa.storage.flow.v1.'+await hash(t.uid+'|'+kind+'|'+resourceId),intent=await hash(canonical({kind,resourceId,descriptor,submit,notice:notice||null}));auth.assert(t);
   if(busy)fail('COMMAND_PENDING');busy=true;
   try{
@@ -31,10 +31,10 @@ export function createStorageFlow({auth,db,storage,fetchImpl,files,clientFactory
     }
     return result;
    };
-   if(!saved.effectRef){const started=await step('begin',saved.begin);if(started.businessState!=='COMMIT_APPLIED')return started;need(started.result?.effectRef?.kind==='outbox');saved.effectRef=started.result.effectRef;persist();}
+   if(!saved.effectRef){const started=await step('begin',saved.begin);if(started.businessState!=='COMMIT_APPLIED')return started;need(started.result?.effectRef?.kind==='outbox');saved.effectRef=started.result.effectRef;if(uploadFile)saved.provider=started.result.provider;persist();}
    // A final command may already have committed while its response was lost.
    // Its preserved journal is reconciled before touching the file again.
-   if(!saved.journals.submit){const uploaded=await files.upload(saved.effectRef,bytes);if(uploaded.state!=='CONFIRMED')fail('COMMAND_PENDING');}
+   if(!saved.journals.submit){const uploaded=uploadFile?await uploadFile(saved.provider,saved.effectRef):await files.upload(saved.effectRef,bytes);if(uploaded.state!=='CONFIRMED')fail('COMMAND_PENDING');}
    const payload={...saved.submit.payload,[kind==='proof'?'proofUploadRef':'effectRef']:saved.effectRef};
    const answer=await step('submit',{route:saved.submit.route,payload});auth.assert(t);
    if(answer.businessState==='COMMIT_APPLIED')storage.removeItem(key);return answer;
