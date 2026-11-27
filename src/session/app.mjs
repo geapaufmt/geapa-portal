@@ -47,7 +47,7 @@ async function restoreMaterialAccess(e){if(!current(e))return false;try{if(!awai
 async function restoreInstitutionalAccess(e){
  document.body.dataset.institutionalBootstrap='CHECKING';
  const nav=window.PortalGeapaNavigation,requested=nav.getRequestedRoute();
- if(!current(e)||!requested?.startsWith('institutional-')){document.body.dataset.institutionalBootstrap='NOT_CURRENT_SECTION';return false;}
+ if(!current(e)||(!requested?.startsWith('institutional-')&&requested!=='admin-conteudo-publico')){document.body.dataset.institutionalBootstrap='NOT_CURRENT_SECTION';return false;}
  try{if(!await portal.act.refresh(true)){document.body.dataset.institutionalBootstrap='CONTEXT_DISABLED';return false;}}catch{document.body.dataset.institutionalBootstrap='CONTEXT_FAILED';return false;}
  const ctx=window.PortalDevContext.act;
  if(!current(e)||nav.getRequestedRoute()!==requested){document.body.dataset.institutionalBootstrap='SESSION_CHANGED';return false;}

@@ -5,6 +5,7 @@ import {devAppCheck} from './dev-app-check.mjs';
 import {specializedReadersConfig} from './specialized-readers-config.mjs';
 
 export const PUBLIC_SCHEMA_VERSION = 'geapa-public-v2.1';
+export const PUBLIC_DOCUMENT_SCHEMA_VERSION = 'geapa-public-document-v1';
 const ALLOWED_PAGE_IDS = ['home', 'about'];
 const ALLOWED_SECTION_TYPES = ['TEXT', 'HERO', 'CTA', 'IMAGE_TEXT', 'DOCUMENT_LIST'];
 
@@ -68,7 +69,7 @@ export function normalizePublicPage(raw, expectedId) {
   if (expectedId && !ALLOWED_PAGE_IDS.includes(expectedId)) throw Error('PAGE_ID_NOT_PERMITTED');
   if (raw.schemaVersion !== PUBLIC_SCHEMA_VERSION) throw Error('SCHEMA_VERSION_MISMATCH');
   if (raw.published !== true || raw.sanitized !== true) throw Error('PAGE_NOT_PUBLIC');
-  const id = sanitizeText(raw.id, 80);
+  const id = sanitizeText(recordId(raw), 80);
   if (expectedId && id !== expectedId) throw Error('PAGE_ID_MISMATCH');
   if (!Array.isArray(raw.sections) || raw.sections.length > 30) throw Error('PAGE_SECTIONS_LIMIT');
 
@@ -88,6 +89,10 @@ export function normalizePublicPage(raw, expectedId) {
     sourceHash: sanitizeText(raw.sourceHash, 100),
     sections
   });
+}
+
+function recordId(raw) {
+  return raw.id;
 }
 
 export function normalizeTimelineItem(raw) {
@@ -117,13 +122,50 @@ export function normalizeTimelineItem(raw) {
   });
 }
 
+export function normalizePublicDocument(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw Error('PUBLIC_DOCUMENT_INVALID');
+  if (raw.schemaVersion !== PUBLIC_DOCUMENT_SCHEMA_VERSION) throw Error('SCHEMA_VERSION_MISMATCH');
+  if (raw.published !== true || raw.sanitized !== true || raw.status !== 'VIGENTE') return null;
+  const id = sanitizeText(raw.id, 100);
+  const publicUrl = sanitizeUrl(raw.publicUrl, true);
+  if (!id || !publicUrl) return null;
+  const year = Number(raw.year);
+  if (!Number.isInteger(year) || year < 1900 || year > 2200) return null;
+  const order = Number(raw.order);
+  if (!Number.isFinite(order)) return null;
+
+  return Object.freeze({
+    id,
+    schemaVersion: PUBLIC_DOCUMENT_SCHEMA_VERSION,
+    published: true,
+    sanitized: true,
+    type: sanitizeText(raw.type, 100),
+    title: sanitizeText(raw.title, 240),
+    summary: sanitizeText(raw.summary, 2000),
+    status: 'VIGENTE',
+    year,
+    publicUrl,
+    order
+  });
+}
+
 export function createPublicPagesReader({db, sdk}) {
   if (!db || !sdk) throw Error('READER_DEPENDENCIES_REQUIRED');
   return Object.freeze({
     async getPage(id) {
       if (!ALLOWED_PAGE_IDS.includes(id)) throw Error('PAGE_NOT_FOUND');
       const snap = await sdk.getDocFromServer(sdk.doc(db, 'publicPages/' + id));
-      if (!snap.exists()) throw Error('Conteúdo da página ainda não publicado.');
+      if (!snap.exists()) {
+        const err = Error('Conteúdo da página ainda não publicado.');
+        err.code = 'PAGE_NOT_PUBLISHED';
+        throw err;
+      }
+      return normalizePublicPage(snap.data(), id);
+    },
+    async getPageOptional(id) {
+      if (!ALLOWED_PAGE_IDS.includes(id)) throw Error('PAGE_NOT_FOUND');
+      const snap = await sdk.getDocFromServer(sdk.doc(db, 'publicPages/' + id));
+      if (!snap.exists()) return null;
       return normalizePublicPage(snap.data(), id);
     },
     async getTimeline() {
@@ -140,6 +182,21 @@ export function createPublicPagesReader({db, sdk}) {
         .map(d => normalizeTimelineItem(d.data()))
         .filter(Boolean)
         .sort((a, b) => a.order - b.order || a.year - b.year || a.id.localeCompare(b.id));
+    },
+    async getDocuments() {
+      const q = sdk.query(
+        sdk.collection(db, 'publicDocuments'),
+        sdk.where('published', '==', true),
+        sdk.where('sanitized', '==', true),
+        sdk.where('schemaVersion', '==', PUBLIC_DOCUMENT_SCHEMA_VERSION),
+        sdk.limit(101)
+      );
+      const snap = await sdk.getDocsFromServer(q);
+      if (snap.size > 100) throw Error('DOCUMENTS_LIMIT_EXCEEDED');
+      return snap.docs
+        .map(d => normalizePublicDocument(d.data()))
+        .filter(Boolean)
+        .sort((a, b) => a.order - b.order || b.year - a.year || a.id.localeCompare(b.id));
     }
   });
 }
@@ -167,7 +224,17 @@ export async function readPublicPage(pageId) {
   return reader.getPage(pageId);
 }
 
+export async function readPublicPageOptional(pageId) {
+  const reader = await getReader();
+  return reader.getPageOptional(pageId);
+}
+
 export async function readPublicTimeline() {
   const reader = await getReader();
   return reader.getTimeline();
+}
+
+export async function readPublicDocuments() {
+  const reader = await getReader();
+  return reader.getDocuments();
 }

@@ -60,6 +60,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
  const institutionalParameter=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:deployment.endpoint,attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'parameter'});
  const institutionalGovernance=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:deployment.endpoint,attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'governance'});
  const institutionalVisibility=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:deployment.endpoint,attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'visibility'});
+ const editorialEditor=createInstitutionalEditor({auth,storage,config:specializedReadersConfig,projectId:PROJECT,endpoint:deployment.endpoint,attest:()=>institutionalAppCheck(db.app,specializedReadersConfig.siteKey),fetchImpl,mode:'editorial'});
  const memberNode=createMemberNode({auth,db,storage,config:memberNodeConfig,fetchImpl});
  const controlledSave=createControlledSave({auth,db,storage,fetchImpl});
  const flowCommands=createControlledSave({auth,db,storage,fetchImpl,flowOperations:actFlowContracts});
@@ -204,6 +205,7 @@ export function createActBrowserClient({auth,db,sdk,storage,fetchImpl=fetch,enab
   if(route==='/admin/gestao-institucional/parametros/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalParameter.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/visibilidade'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalVisibility.run(q.phase,q.payload)};}
   if(route==='/admin/gestao-institucional/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));return {ok:true,data:await institutionalEditor.run(q.phase,q.payload)};}
+  if(route==='/admin/conteudo-publico/editar'){const q=JSON.parse(params.payload);exact(q,['phase','payload']);need(['preview','execute','status'].includes(q.phase));const data=await editorialEditor.run(q.phase,q.payload);if(typeof document!=='undefined'&&data?.publicUpdate)document.dispatchEvent(new CustomEvent('portal:public-content-updated',{detail:data}));return {ok:true,data};}
 
   let payload;try{payload=memberWriteRoutes.includes(route)&&params&&Object.getPrototypeOf(params)===Object.prototype&&!Object.hasOwn(params,'payload')?params:JSON.parse(params.payload);}catch{fail('SCHEMA_UNSUPPORTED')}
   if(memberWriteRoutes.includes(route))return memberOperations.post(route,payload);

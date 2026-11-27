@@ -54,7 +54,7 @@ import {accessIsPending} from './bootstrap-state.mjs';
   };
   var ROTAS_PORTAL = [
     rota('admin-conteudo-publico', 'Conteúdo Público', 'admin/conteudo-publico', 'gestao-geapa', 72,
-      'tela-public-admin', 'view-public-admin', true, [PERFIS.ADMIN, PERFIS.ADMIN_TECNICO, PERFIS.DIRETORIA],
+      'tela-public-admin', 'view-public-admin', true, [PERFIS.ADMIN, PERFIS.ADMIN_TECNICO, PERFIS.DIRETORIA, PERFIS.COMUNICACAO],
       ['PUBLIC_CONTENT_MANAGE'], 'Gestão editorial de Início, Sobre e História.', 'implementado'),
     rota('inicio', 'Início', 'inicio', 'publico', 10, 'tela-inicio', 'view-inicio', false, PUBLICO, [], 'Home pública do Portal GEAPA.', 'implementado'),
     rota('sobre', 'Sobre o GEAPA', 'sobre', 'publico', 20, 'tela-placeholder', 'view-placeholder', false, PUBLICO, [], 'Apresentação institucional pública do GEAPA.', 'implementado'),
@@ -384,7 +384,8 @@ import {accessIsPending} from './bootstrap-state.mjs';
  const hints=global.PortalDevContext?.act?.navigation;
  if(rota?.grupoMenu==='gestao-geapa'&&hints?.schemaVersion==='admin-navigation-hints-v1'&&Object.prototype.hasOwnProperty.call(hints.routes||{},rota.id)&&(!(hints.validUntil>Date.now())||hints.routes[rota.id]!==true))return {ok:false,reason:'PERMISSAO_INSUFICIENTE'};
  if(global.PortalDevContext?.enrollment&&!['ingresso','login'].includes(rota?.id))return {ok:false,reason:'FEATURE_DISABLED'};
-  if(['ingresso','eixos-tematicos','equipe','diretoria-publica','membros-publicos','orientadores'].includes(rota?.id))return {ok:true,reason:''};
+  if(['ingresso','sobre','historia','normas','eixos-tematicos','equipe','diretoria-publica','membros-publicos','orientadores'].includes(rota?.id))return {ok:true,reason:''};
+ if(rota?.id==='admin-conteudo-publico'){if(!global.PortalDevContext?.authenticated)return {ok:false,reason:MOTIVOS_ACESSO.NOT_AUTHENTICATED};return {ok:!!global.PortalDevContext?.act?.available&&hints?.routes?.['admin-conteudo-publico']===true&&hints.validUntil>Date.now(),reason:'PERMISSAO_INSUFICIENTE'};}
  if(global.PortalDevContext?.members?.restrictedTracking&&!['inicio','login','minha-situacao'].includes(rota?.id)&&!(rota?.id==='minhas-apresentacoes'&&global.PortalDevContext?.act?.materialOnly))return {ok:false,reason:'FEATURE_DISABLED'};
 
  if(rota?.id==='admin-correcoes-cadastrais')return {ok:!!global.PortalDevContext?.members?.available&&!!global.PortalDevContext.members.canReviewCorrections,reason:'FEATURE_DISABLED'};

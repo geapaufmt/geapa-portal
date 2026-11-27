@@ -8,8 +8,8 @@ type Request=Key&{input:unknown;documentHash:string;epoch:number;controlRevision
 type Result={state?:string;preview?:unknown;request?:Request;operationId?:string;revision?:number};
 const locks=new Map<string,Promise<unknown>>();
 async function journalLock<T>(name:string,work:()=>Promise<T>):Promise<T>{if(typeof navigator!=='undefined'&&navigator.locks)return navigator.locks.request(name,work);const prior=locks.get(name)||Promise.resolve();const task=prior.catch(()=>{}).then(work);locks.set(name,task);try{return await task;}finally{if(locks.get(name)===task)locks.delete(name);}}
-export function createInstitutionalEditor({auth,storage,config,projectId,endpoint,attest,fetchImpl=fetch,mode='contact'}:{auth:Auth;storage:Storage;config:Config;projectId:string;endpoint:string;attest:()=>Promise<string>;fetchImpl?:typeof fetch;mode?:'contact'|'visibility'|'parameter'|'governance'}){
- let busy=false;const prefix=mode==='governance'?'institutionalGovernance':mode==='parameter'?'institutionalParameter':mode==='visibility'?'institutionalVisibility':'institutional';
+export function createInstitutionalEditor({auth,storage,config,projectId,endpoint,attest,fetchImpl=fetch,mode='contact'}:{auth:Auth;storage:Storage;config:Config;projectId:string;endpoint:string;attest:()=>Promise<string>;fetchImpl?:typeof fetch;mode?:'contact'|'visibility'|'parameter'|'governance'|'editorial'}){
+ let busy=false;const prefix=mode==='governance'?'institutionalGovernance':mode==='parameter'?'institutionalParameter':mode==='visibility'?'institutionalVisibility':mode==='editorial'?'editorial':'institutional';
  const fail=(code:string):never=>{throw Object.assign(Error(code),{code});};
  async function call(action:string,request:unknown,t:Ticket):Promise<Result>{
   if(config.projectId!==projectId||config.endpoint!==endpoint)fail('DESTINATION_INVALID');
@@ -22,7 +22,7 @@ export function createInstitutionalEditor({auth,storage,config,projectId,endpoin
   if(busy)fail('COMMAND_PENDING');busy=true;
   try{
    const t=auth.capture();if(phase==='document'||phase==='attachment'){if(mode!=='governance')fail('COMMAND_TYPE_INVALID');return call(prefix+(phase==='document'?'Document':'Attachment'),payload,t);}
-   const encoded=new TextEncoder().encode(projectId+'|'+t.uid),digest=await crypto.subtle.digest('SHA-256',encoded),name=(mode==='governance'?'geapa.institutional.governance.pending.v1.':mode==='contact'?'geapa.institutional.pending.v1.':mode==='parameter'?'geapa.institutional.parameter.pending.v1.':'geapa.institutional.visibility.pending.v1.')+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');auth.assert(t);
+   const encoded=new TextEncoder().encode(projectId+'|'+t.uid),digest=await crypto.subtle.digest('SHA-256',encoded),name=(mode==='governance'?'geapa.institutional.governance.pending.v1.':mode==='contact'?'geapa.institutional.pending.v1.':mode==='parameter'?'geapa.institutional.parameter.pending.v1.':mode==='editorial'?'geapa.editorial.pending.v1.':'geapa.institutional.visibility.pending.v1.')+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');auth.assert(t);
    return await journalLock(name,async()=>{auth.assert(t);let pending:Key|null=null;try{pending=JSON.parse(storage.getItem(name)||'null');}catch{fail('COMMAND_RECONCILIATION_REQUIRED');}
    if(pending&&(!/^[a-f0-9]{32}$/.test(pending.operationId)||!/^[a-f0-9]{64}$/.test(pending.digest)||Object.keys(pending).sort().join()!=='digest,operationId'))fail('COMMAND_RECONCILIATION_REQUIRED');
    if(!pending&&phase==='status'){try{pending=JSON.parse(storage.getItem(name+'.last')||'null');}catch{fail('COMMAND_RECONCILIATION_REQUIRED');}if(pending&&(!/^[a-f0-9]{32}$/.test(pending.operationId)||!/^[a-f0-9]{64}$/.test(pending.digest)||Object.keys(pending).sort().join()!=='digest,operationId'))fail('COMMAND_RECONCILIATION_REQUIRED');}

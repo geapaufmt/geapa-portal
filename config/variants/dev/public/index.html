@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://script.google.com https://script.googleusercontent.com https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com/recaptcha/; script-src 'self' https://apis.google.com https://www.gstatic.com https://www.google.com/recaptcha/; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-src https://geapa-convergencia-dev.firebaseapp.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; base-uri 'self'; form-action 'self'; worker-src 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://script.google.com https://script.googleusercontent.com https://geapacommanddevpilot-fkat4fslbq-rj.a.run.app https://content-firebaseappcheck.googleapis.com https://www.google.com/recaptcha/; script-src 'self' https://apis.google.com https://www.gstatic.com https://www.google.com/recaptcha/; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://firebasestorage.googleapis.com; object-src 'none'; frame-src https://geapa-convergencia-dev.firebaseapp.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; base-uri 'self'; form-action 'self'; worker-src 'self'">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Portal GEAPA</title>
     <meta
@@ -23,6 +23,8 @@
 <script type="module" src="/assets/act-ui/institutional-directory.mjs"></script>
 <link rel="stylesheet" href="/assets/act-ui/institutional-directory.css">
 <script type="module" src="/assets/act-ui/team-directory.mjs"></script>
+<script type="module" src="/assets/act-ui/public-pages.mjs"></script>
+<script type="module" src="/assets/act-ui/public-admin-editor.mjs"></script>
 </head>
   <body>
     <div class="portal-frame">
@@ -112,6 +114,7 @@
                 <strong>Acesso restrito para comunicação, secretaria, diretoria e administração.</strong>
               </article>
             </div>
+          <div id="home-editorial-content" class="geapa-home-editorial" hidden></div>
           </section>
 
           <section class="access-panel geapa-page" id="tela-acesso" aria-labelledby="login-title" hidden><p class="eyebrow">Entrada DEV</p><h1 id="login-title">Entrar no Portal GEAPA</h1><form id="acesso-form" class="access-form"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required><button id="entrar-email" type="submit">Entrar</button></form><p id="mensagem-status" class="status-message" role="status" aria-live="polite">Use a conta autorizada para este ensaio DEV.</p></section>

@@ -1108,6 +1108,14 @@
       "generated": "build/typescript/public-pages.mjs"
     },
     {
+      "url": "/assets/act-ui/public-admin-editor.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/public-admin-editor.mjs"
+    },
+    {
       "url": "/assets/act-command/public-pages.mjs",
       "environments": [
         "dev",
