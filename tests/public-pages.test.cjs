@@ -222,12 +222,13 @@ test('home editorial renderer, public documents parser/renderer, and optional re
   a(docsHtml.includes('Regimento Interno'));
   a(renderPublicDocumentsHtml([]).includes('Nenhum documento normativo público vigente'));
 
+  const documentFilters = [];
   const mockReader = svc.createPublicPagesReader({
     db: {},
     sdk: {
       doc: (_db, path) => ({path}),
       collection: (_db, path) => ({path}),
-      where: (...args) => ({where: args}),
+      where: (...args) => { documentFilters.push(args); return {where:args}; },
       limit: n => ({limit: n}),
       query: (...args) => ({query: args}),
       getDocFromServer: async () => ({exists: () => false}),
@@ -242,6 +243,7 @@ test('home editorial renderer, public documents parser/renderer, and optional re
   });
   a.equal(await mockReader.getPageOptional('home'), null);
   const loadedDocs = await mockReader.getDocuments();
+  a(documentFilters.some(([field, op, value]) => field === 'status' && op === '==' && value === 'VIGENTE'));
   a.equal(loadedDocs.length, 1);
   a.equal(loadedDocs[0].id, 'd-ok');
 });

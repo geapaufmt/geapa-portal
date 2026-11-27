@@ -202,6 +202,17 @@ test('editorial transport uses editorial namespace and recovers interrupted oper
   a([...map.keys()].some(k => k.startsWith('geapa.editorial.pending.v1.')));
   a.equal((await contact.run('status', {})).state, 'NOT_ADMITTED');
 
+  state.uid = 'SYN_OTHER_EDITOR';
+  state.generation++;
+  a.equal((await editorial.run('status', {})).state, 'NOT_ADMITTED');
+  state.uid = 'SYN_EDITOR';
+  state.generation++;
+  const otherProject = createInstitutionalEditor({
+    auth, storage, config: {projectId:'other-project',endpoint:'https://test.invalid/command',siteKey:'k'},
+    projectId:'other-project',endpoint:'https://test.invalid/command',mode:'editorial',
+    attest:async()=>'synthetic-check', fetchImpl:async()=>{throw Error('Unexpected cross-project recovery');}
+  });
+  a.equal((await otherProject.run('status', {})).state, 'NOT_ADMITTED');
   const recovered = await editorial.run('status', {});
   a.equal(recovered.state, 'COMPLETED');
   a.deepEqual(calls.map(c => c.action), ['editorialPreview', 'editorialExecute', 'editorialStatus']);

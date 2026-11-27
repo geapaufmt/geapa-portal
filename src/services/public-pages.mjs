@@ -189,6 +189,7 @@ export function createPublicPagesReader({db, sdk}) {
         sdk.where('published', '==', true),
         sdk.where('sanitized', '==', true),
         sdk.where('schemaVersion', '==', PUBLIC_DOCUMENT_SCHEMA_VERSION),
+        sdk.where('status', '==', 'VIGENTE'),
         sdk.limit(101)
       );
       const snap = await sdk.getDocsFromServer(q);

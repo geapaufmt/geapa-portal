@@ -92,10 +92,12 @@ type Host = Window & {
     getRequestedRoute?: () => string;
   };
   PortalGeapaApi?: {
-    apiGet: (route: string, params: Record<string, unknown>) => Promise<{ ok: boolean; data?: EditorialAdminView; code?: string; errorCode?: string; message?: string }>;
+    apiGet(route: string, params: {historyTarget: string; operationId: string}): Promise<{ok: boolean; data?: {snapshot: unknown}; message?: string}>;
+    apiGet(route: string, params: Record<string, unknown>): Promise<{ ok: boolean; data?: EditorialAdminView; code?: string; errorCode?: string; message?: string }>;
     apiPost: (route: string, params: { payload: string }) => Promise<{ ok: boolean; data?: any; code?: string; errorCode?: string; message?: string }>;
   };
   PortalDevContext?: {
+    identityScope?: string;
     authenticated?: boolean;
     accessPending?: boolean;
     act?: {
@@ -408,10 +410,11 @@ function renderHistoryTab(): string {
           const when = ev.at ? new Date(ev.at).toLocaleString('pt-BR', { timeZone: 'America/Cuiaba' }) : '—';
           return (
             `<article class="editor-timeline-row">` +
-            `<div><strong>${esc(ACTION_LABELS[ev.action] || ev.action)}</strong> · revisão ${ev.revisionBefore} → ${ev.revisionAfter}` +
+            `<div><strong>${esc(ACTION_LABELS[ev.action] || ev.action)}</strong> · revisão ${esc(String(ev.revisionBefore))} → ${esc(String(ev.revisionAfter))}` +
             `<p>${esc(ev.summary)}</p>` +
             `<small>Responsável: ${esc(ev.actorPersonId)} · Em: ${esc(when)} · Operação: ${esc(ev.operationId)}</small>` +
-            (ev.snapshot ? `<details><summary>Snapshot da versão</summary><pre>${esc(JSON.stringify(ev.snapshot, null, 2))}</pre></details>` : '') +
+            (ev.snapshot ? `<details><summary>Conteúdo da versão</summary><pre>${esc(JSON.stringify(ev.snapshot, null, 2))}</pre></details>` :
+              `<button type="button" data-editor-action="version" data-operation="${esc(ev.operationId)}" data-target="${ev.action.startsWith('TIMELINE_') ? 'timeline' : esc(ev.targetId)}">Consultar versão</button>`) +
             `</div></article>`
           );
         }).join('')
@@ -502,11 +505,12 @@ async function load(): Promise<void> {
     const r = await api.apiGet('/admin/conteudo-publico', {});
     if (epoch !== state.generation || !active()) return;
     if (!r.ok || !r.data) {
+      discardPrivateView();
       setMessage(r.message || 'Não foi possível consultar o conteúdo editorial.', 'alert');
+      render();
       return;
     }
-    state.view = r.data;
-    syncDraftFromView(state.tab);
+    acceptView(r.data);
     setMessage('');
     state.needsRecovery = false;
   } catch (e: unknown) {
@@ -543,11 +547,10 @@ async function runCommand(input: Record<string, unknown>, successText: string): 
       }
       setMessage(`${successText} (Recibo ${exec.operationId})`);
       const refreshed = await (window as Host).PortalGeapaApi?.apiGet('/admin/conteudo-publico', {});
-      if (epoch === state.generation && refreshed?.ok && refreshed.data) {
-        state.view = refreshed.data;
-        syncDraftFromView(state.tab);
-        setMessage(`${successText} (Recibo ${exec.operationId})`);
-      }
+      if (epoch !== state.generation) return;
+      if (!refreshed?.ok || !refreshed.data) { discardPrivateView(); void load(); return; }
+      acceptView(refreshed.data);
+      setMessage(`${successText} (Recibo ${exec.operationId})`);
       return;
     }
     state.needsRecovery = true;
@@ -555,6 +558,11 @@ async function runCommand(input: Record<string, unknown>, successText: string): 
   } catch (e: unknown) {
     if (epoch !== state.generation) return;
     const code = (e as { code?: string })?.code || '';
+    if (['ACCESS_REVOKED','AUTHORIZATION_DENIED','M13_AUTHZ_DENIED','PILOT_DISABLED','AUTH_BINDING_INVALID','STALE_AUTHORIZATION'].includes(code)) {
+      discardPrivateView();
+      render();
+      return;
+    }
     if (code === 'REVISION_CONFLICT') {
       setMessage('A revisão mudou em outra sessão. Seu texto local foi preservado; recarregue antes de reenviar.', 'alert');
     } else if (['PREVIOUS_OPERATION_COMPLETED', 'COMMAND_PENDING', 'COMMAND_RECONCILIATION_REQUIRED', 'REQUEST_TIMEOUT'].includes(code)) {
@@ -584,10 +592,9 @@ async function recoverPending(): Promise<void> {
       state.needsRecovery = false;
       setMessage(`Operação anterior confirmada (${ACTION_LABELS[res.action] || res.action}, revisão ${res.revision}).`);
       const refreshed = await (window as Host).PortalGeapaApi?.apiGet('/admin/conteudo-publico', {});
-      if (epoch === state.generation && refreshed?.ok && refreshed.data) {
-        state.view = refreshed.data;
-        syncDraftFromView(state.tab);
-      }
+      if (epoch !== state.generation) return;
+      if (!refreshed?.ok || !refreshed.data) { discardPrivateView(); void load(); return; }
+      acceptView(refreshed.data);
     } else if (res?.state === 'NOT_ADMITTED') {
       state.needsRecovery = false;
       setMessage('Nenhuma operação pendente ou admitida encontrada.');
@@ -740,6 +747,22 @@ function handleFieldChange(target: Element): void {
 
 async function handleAction(action: string, el: HTMLElement): Promise<void> {
   if (!active() || getAccessStatus() !== 'ALLOWED') return;
+  if (action === 'version') {
+    const epoch = state.generation;
+    try {
+      const response = await (window as Host).PortalGeapaApi?.apiGet('/admin/conteudo-publico', {
+        historyTarget: el.dataset.target || '', operationId: el.dataset.operation || ''
+      });
+      if (epoch !== state.generation || !el.isConnected || getAccessStatus() !== 'ALLOWED') return;
+      if (!response?.ok || !response.data) throw Error(response?.message || 'Versão indisponível.');
+      const content = document.createElement('pre');
+      content.textContent = JSON.stringify(response.data.snapshot, null, 2);
+      el.replaceWith(content);
+    } catch {
+      if (epoch === state.generation) { discardPrivateView(); void load(); }
+    }
+    return;
+  }
   if (action === 'recover') {
     await recoverPending();
     return;
@@ -881,6 +904,58 @@ async function handleAction(action: string, el: HTMLElement): Promise<void> {
   }
 }
 
+let viewIdentity: string | undefined;
+let viewExpiry: number | undefined;
+let viewRenewal: number | undefined;
+
+function discardPrivateView(): void {
+  state.generation++;
+  viewIdentity = undefined;
+  if (viewExpiry !== undefined) window.clearTimeout(viewExpiry);
+  if (viewRenewal !== undefined) window.clearTimeout(viewRenewal);
+  resetEditorialStateForTest();
+  root()?.replaceChildren();
+}
+
+// Renew the proof while typing. Keep the revision the user actually edited for CAS.
+function scheduleViewExpiry(view: EditorialAdminView): void {
+  if (viewExpiry !== undefined) window.clearTimeout(viewExpiry);
+  if (viewRenewal !== undefined) window.clearTimeout(viewRenewal);
+  const remaining = view.validUntil - Date.now();
+  viewExpiry = window.setTimeout(() => { discardPrivateView(); if (active()) void load(); }, remaining);
+  if (remaining <= 5000) return;
+  viewRenewal = window.setTimeout(async () => {
+    try {
+      const result = await (window as Host).PortalGeapaApi?.apiGet('/admin/conteudo-publico', {});
+      if (state.view !== view) return;
+      const fresh = result?.data;
+      if (!result?.ok || !fresh || getAccessStatus() !== 'ALLOWED' || fresh.validUntil <= Date.now()) {
+        discardPrivateView(); render(); return;
+      }
+      if (fresh.canManagePages !== view.canManagePages || fresh.canManageTimeline !== view.canManageTimeline) {
+        discardPrivateView(); acceptView(fresh); render(); return;
+      }
+      view.validUntil = fresh.validUntil;
+      scheduleViewExpiry(view);
+    } catch { /* The existing expiry still clears private state. */ }
+  }, remaining - 4000);
+}
+
+function acceptView(view: EditorialAdminView): void {
+  if (!(view.validUntil > Date.now()) || getAccessStatus() !== 'ALLOWED') {
+    discardPrivateView();
+    render();
+    return;
+  }
+  if (viewExpiry !== undefined) window.clearTimeout(viewExpiry);
+  state.view = view;
+  viewIdentity = (window as Host).PortalDevContext?.identityScope;
+  if ((state.tab === 'home' || state.tab === 'about') && !view.canManagePages) state.tab = view.canManageTimeline ? 'timeline' : 'history';
+  if (state.tab === 'timeline' && !view.canManageTimeline) state.tab = view.canManagePages ? 'home' : 'history';
+  syncDraftFromView(state.tab);
+  scheduleViewExpiry(view);
+}
+
 export function resetEditorialStateForTest(): void {
   state.tab = 'home';
   state.view = null;
@@ -911,21 +986,19 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   });
 
   document.addEventListener('portal:navigationchange', () => {
-    state.generation++;
+    discardPrivateView();
     if (active()) void load();
-    else if (root()) root()!.replaceChildren();
   });
 
   document.addEventListener('portal:act-context-ready', () => {
+    if (viewIdentity !== (window as Host).PortalDevContext?.identityScope) discardPrivateView();
+    if (getAccessStatus() !== 'ALLOWED') { discardPrivateView(); render(); return; }
     if (active() && !state.view && !state.loading) void load();
     else if (active()) render();
   });
 
-  document.addEventListener('portal:act-session-cleared', () => {
-    state.generation++;
-    resetEditorialStateForTest();
-    root()?.replaceChildren();
-  });
+  document.addEventListener('portal:act-session-cleared', discardPrivateView);
+  document.addEventListener('portal:act-session-suspended', discardPrivateView);
 
   document.addEventListener('input', e => {
     if (e.target instanceof Element && root()?.contains(e.target)) handleFieldChange(e.target);
