@@ -564,7 +564,7 @@
         "dev"
       ],
       "source": "src/modules/portal-v2-readonly.js",
-      "devSource": "config/variants/dev/src/modules/portal-v2-readonly.js"
+      "devSource": "src/modules/portal-v2-readonly.js"
     },
     {
       "url": "/assets/act-ui/record-actions.css",
