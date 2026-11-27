@@ -1,0 +1,43 @@
+name: Conferir Hosting público de Governança
+on:
+  push:
+    branches: [verify/governanca-publicacao-hosting-20261126]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Conferir conteúdos públicos de DEV e PROD
+        run: |
+          node <<'NODE'
+          const {createHash}=require('node:crypto');
+          const catalog=require('./config/assets.json').assets;
+          const environments=[
+            ['dev','geapa-convergencia-dev',148,'385e008cbda16ea135f14b0d4182bdfcd0d684f08cd1c7f4261e418f6d04ddc9'],
+            ['prod','portal-geapa',147,'ac86a54dbcc90cb272fed9e61d3b1f8847816acdebbe95599b8f02c80eb8af2f']
+          ];
+          const digest=data=>createHash('sha256').update(data).digest('hex');
+          (async()=>{
+            for(const [env,project,count,expected] of environments){
+              const paths=catalog.filter(item=>item.environments.includes(env)).map(item=>item.url).sort();
+              if(paths.length!==count)throw Error('Unexpected inventory');
+              const rows=[];
+              for(let i=0;i<paths.length;i+=6){
+                const batch=await Promise.all(paths.slice(i,i+6).map(async path=>{
+                  const response=await fetch('https://'+project+'.web.app'+path,{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(30000)});
+                  if(!response.ok)throw Error(env+' '+path+' HTTP '+response.status);
+                  return [path,digest(Buffer.from(await response.arrayBuffer()))];
+                }));
+                rows.push(...batch);
+              }
+              const actual=digest(JSON.stringify(rows));
+              console.log(env,rows.length,'assets',actual,actual===expected?'MATCH':'DRIFT');
+              if(actual!==expected)process.exitCode=1;
+            }
+          })().catch(error=>{console.error(error.message);process.exitCode=1;});
+          NODE
