@@ -917,9 +917,9 @@
         var podeRejeitarTitulo = statusPermiteRejeicaoTitulo(statusTitulo);
         var podeRevisarMaterial = statusPermiteRevisaoMaterial(statusMaterial);
         var acoesTitulo = [
-          acoesGestao.podeAutorizarRegularizacaoTema === true ? botaoAcao('autorizar-tema',id,'Autorizar regularização de título/eixos','secondary') : '',
+
           acoesGestao.podeRevogarRegularizacaoTema === true ? '<span class="status-pill">Regularização autorizada</span>'+botaoAcao('revogar-tema',id,'Revogar autorização','secondary') : '',
-          acoesGestao.podeRegistrarRegularizacaoTema === true ? botaoAcao('registrar-tema',id,'Registrar informação recebida','secondary') : '',
+          acoesGestao.podeRegistrarRegularizacaoTema === true ? botaoAcao('registrar-tema',id,'Registro administrativo extraordinário','secondary') : '',
           item.registroPosteriorTema ? '<p>Registro documental posterior: '+ui.escaparHtml(item.registroPosteriorTema.title)+' — sem aprovação temática.</p>' : '',
           acoesGestao.podeAprovarTituloEixo === true && podeRevisarTitulo
             ? botaoAcao('revisar-titulo-aprovar', id, 'Aprovar titulo/eixos', 'primary')
@@ -1748,12 +1748,13 @@
     if (acao === 'agenda') {abrirAgendaApresentacao(id);return;}
     if (acao === 'dinamica') {abrirDinamica(id);return;}
     if (acao === 'realizacao') {abrirRealizacao(id);return;}
-    if (acao === 'autorizar-tema' || acao === 'revogar-tema') {
+    if (acao === 'revogar-tema') {
       var targetItem=estado.itensPorId[id];if(!targetItem)return;
-      var modalTicket=abrirModalBase(acao==='autorizar-tema'?'Autorizar regularização de título/eixos':'Revogar autorização','Carregando...');
-      import('/assets/act-ui/theme-extraordinary.mjs').then(function(module){atualizarModalConteudo(module.authorizationForm(id,acao==='revogar-tema',ui.escaparHtml),{geracaoModal:modalTicket});}).catch(function(){atualizarModalConteudo('<p>Não foi possível abrir o formulário.</p>',{geracaoModal:modalTicket});});return;
+      var modalTicket=abrirModalBase('Revogar autorização','Carregando...');
+      import('/assets/act-ui/theme-extraordinary.mjs').then(function(module){atualizarModalConteudo(module.revocationForm(id,ui.escaparHtml),{geracaoModal:modalTicket});}).catch(function(){atualizarModalConteudo('<p>Não foi possível abrir o formulário.</p>',{geracaoModal:modalTicket});});return;
     }
-    if(acao==='regularizar-titulo-eixo'||acao==='registrar-tema'){abrirModalTituloEixo(id,acao==='registrar-tema'?'registrar':'regularizar');return;}
+    if(acao==='registrar-tema'){abrirRegistroAdministrativo(id);return;}
+    if(acao==='regularizar-titulo-eixo'){abrirModalTituloEixo(id,'regularizar');return;}
     if (acao === 'titulo-eixo') {
       abrirModalTituloEixo(id);
       return;
@@ -1962,8 +1963,55 @@
   });
   document.addEventListener('submit',function(event){
     var form=event.target;if(!form.matches('[data-theme-extraordinary-form]'))return;event.preventDefault();
-    import('/assets/act-ui/theme-extraordinary.mjs').then(function(module){var command=module.authorizationPayload(new FormData(form));return executarPostApresentacao('/v2/apresentacoes/titulo-eixo/'+command.action,command.payload,{form:form,acao:'REGULARIZACAO_TEMA_'+command.action.toUpperCase()});}).catch(function(erro){mostrarErroModal(erro.message||'Não foi possível preparar a operação.',form);});
+    executarPostApresentacao('/v2/apresentacoes/titulo-eixo/revogar',{idApresentacao:new FormData(form).get('idApresentacao'),confirmed:true},{form:form,acao:'REVOGAR_REGULARIZACAO'});
   });
+  async function abrirRegistroAdministrativo(id){
+    const item=estado.itensPorId[id],sections=item?.regularizacaoDocumental;
+    if(!sections||!item.acoesGestao?.podeRegistrarRegularizacaoTema)return;
+    const ticket=abrirModalBase('Registro administrativo extraordinário','<p>Carregando apresentação…</p>');
+    try{
+      const module=await import('/assets/act-ui/theme-extraordinary.mjs');
+      const esc=ui.escaparHtml,available=Object.assign({},sections);
+      let fields='',axisError='';
+      if(available.tema){
+        try{
+          const axes=await carregarEixos(id);
+          fields='<label>Título<input name="tituloApresentacao" required maxlength="4000" value="'+esc(item.tema||'')+'"></label>'+
+            '<label>Resumo<textarea name="observacoes" required maxlength="4000">'+esc(item.resumoTema||'')+'</textarea></label>'+
+            montarSelectEixo('eixoTematicoPrincipal','Eixo principal',axes,item.eixoTematicoPrincipal,item.eixoPrincipalObrigatorio!==false)+
+            (item.eixoSecundarioPermitido===false?'':montarSelectEixo('eixoTematicoSecundario','Eixo secundário',axes,item.eixoTematicoSecundario,false));
+        }catch{available.tema=false;axisError='<p role="alert">Não foi possível carregar os eixos. Reabra a apresentação para tentar novamente.</p>';}
+      }
+      const html=module.administrativeForm(id,item.nomeApresentador||item.idPessoaPrincipal||'',available,
+        {tema:item.statusTituloEixo,material:item.statusMaterial,foto:item.statusFotoReuniao},fields,item.statusApresentacao==='REALIZADA',esc);
+      if(!atualizarModalConteudo(axisError+html,{geracaoModal:ticket}))return;
+      const form=document.querySelector('[data-administrative-registration]');
+      form.elements.section.addEventListener('change',()=>module.selectSection(form));
+      form.addEventListener('submit',async event=>{
+        event.preventDefault();if(form.dataset.busy)return;
+        form.dataset.busy='true';
+        try{
+          const data=new FormData(form),section=data.get('section');
+          const payload={idApresentacao:id,motivo:String(data.get('motivo')||'').trim(),confirmed:true};
+          if(!payload.motivo)throw Error('Informe a justificativa administrativa.');
+          if(section==='tema'){
+            for(const key of ['tituloApresentacao','observacoes','eixoTematicoPrincipal','eixoTematicoSecundario'])payload[key]=String(data.get(key)||'');
+          }else{
+            const file=data.get(section);
+            if(!file?.size||file.size>50*1024*1024)throw Error('Selecione um arquivo de até 50 MB.');
+            payload.institutionalEvidence=module.receiptEvidence(data);
+            payload.section=section==='foto'?'PHOTO':'MATERIAL';
+            payload.fileRevision=section==='foto'?item.canonicalPhotoRevision:item.canonicalMaterialBasis.requirementRevision;
+            const mime={pdf:'application/pdf',ppt:'application/vnd.ms-powerpoint',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',odp:'application/vnd.oasis.opendocument.presentation',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'}[file.name.split('.').pop().toLowerCase()];
+            if(!mime||(file.type&&file.type!==mime))throw Error('O formato do arquivo é incompatível.');
+            payload.arquivo={name:file.name,mime,conteudoBase64:await lerArquivoBase64(file)};
+          }
+          if(ticket!==geracaoModal_||!form.isConnected)return;
+          await executarPostApresentacao('/v2/apresentacoes/titulo-eixo/registrar',payload,{form:form,acao:'REGISTRO_ADMINISTRATIVO'});
+        }catch(error){mostrarErroModal(error.message,form);}finally{delete form.dataset.busy;}
+      });
+    }catch(error){atualizarModalConteudo('<p role="alert">'+ui.escaparHtml(error.message)+'</p>',{geracaoModal:ticket});}
+  }
   function abrirModalTituloEixo(id, regularizacao) {
     var item = estado.itensPorId[id];
 
@@ -2691,8 +2739,7 @@
   function salvarTituloEixo(form) {
     var dados=new FormData(form),mode=String(dados.get('regularizacao')||'enviar');
     var payload={idApresentacao:dados.get('idApresentacao'),tituloApresentacao:dados.get('tituloApresentacao'),eixoTematicoPrincipal:dados.get('eixoTematicoPrincipal'),eixoTematicoSecundario:dados.get('eixoTematicoSecundario'),observacoes:dados.get('observacoes')};
-    if(!['enviar','regularizar','registrar'].includes(mode))return;
-    if(mode==='registrar'){import('/assets/act-ui/theme-extraordinary.mjs').then(function(module){Object.assign(payload,module.institutionalEvidence(dados));return executarPostApresentacao('/v2/apresentacoes/titulo-eixo/registrar',payload,{form:form,acao:'REGISTRAR_TEMA_INSTITUCIONAL'});}).catch(function(erro){mostrarErroModal(erro.message,form);});return;}
+    if(!['enviar','regularizar'].includes(mode))return;
     executarPostApresentacao('/v2/apresentacoes/titulo-eixo/'+mode,payload,{form:form,acao:mode==='regularizar'?'REGULARIZAR_TEMA':'ENVIAR_TITULO_EIXO'});
   }
 
