@@ -1,6 +1,14 @@
 const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),{pathToFileURL}=require('node:url'),{JSDOM}=require('jsdom');
 const root=path.resolve(__dirname,'..'),component=()=>import(pathToFileURL(root+'/dist/prod/assets/act-ui/theme-extraordinary.mjs'));
 const escape=v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
+test('partial complement preserves populated controls across section changes',async()=>{
+ const m=await component(),d=new JSDOM(m.administrativeForm('APU_SYN','Pessoa',{tema:true,material:true,foto:true},{tema:'Aprovado',material:'Pendente',foto:'Pendente'},'<input name="tituloApresentacao" value="Título aprovado"><textarea name="observacoes"></textarea><select name="eixoTematicoPrincipal"><option value="SYN_AXIS" selected>Eixo</option></select>',true,escape));
+ const f=d.window.document.querySelector('form');m.protectExistingTheme(f,{tema:'Título aprovado',eixoTematicoPrincipal:'SYN_AXIS'});
+ for(const value of ['tema','material','tema']){f.elements.section.value=value;m.selectSection(f);}
+ f.elements.observacoes.value='Resumo complementado';const data=new d.window.FormData(f);
+ a(!data.has('tituloApresentacao'));a(!data.has('eixoTematicoPrincipal'));a.equal(data.get('observacoes'),'Resumo complementado');
+ a(!f.textContent.includes('análise temática manual'));a.equal(f.querySelectorAll('[type=submit]').length,1);
+});
 test('one confirmation registers only the selected group and requires provenance for files',async()=>{
  const m=await component(),d=new JSDOM(m.administrativeForm('APU_SYN','<Pessoa>',{tema:true,material:true,foto:false},{tema:'Pendente',material:'Pendente',foto:'Aprovada'},'<input name="tituloApresentacao" required>',true,escape));
  const f=d.window.document.querySelector('form'),section=f.querySelector('select');

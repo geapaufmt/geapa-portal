@@ -1976,9 +1976,9 @@
       if(available.tema){
         try{
           const axes=await carregarEixos(id);
-          fields='<label>Título<input name="tituloApresentacao" required maxlength="4000" value="'+esc(item.tema||'')+'"></label>'+
-            '<label>Resumo<textarea name="observacoes" required maxlength="4000">'+esc(item.resumoTema||'')+'</textarea></label>'+
-            montarSelectEixo('eixoTematicoPrincipal','Eixo principal',axes,item.eixoTematicoPrincipal,item.eixoPrincipalObrigatorio!==false)+
+          fields='<label>Título<input name="tituloApresentacao" maxlength="4000" value="'+esc(item.tema||'')+'"></label>'+
+            '<label>Resumo<textarea name="observacoes" maxlength="4000">'+esc(item.resumoTema||'')+'</textarea></label>'+
+            montarSelectEixo('eixoTematicoPrincipal','Eixo principal',axes,item.eixoTematicoPrincipal,false)+
             (item.eixoSecundarioPermitido===false?'':montarSelectEixo('eixoTematicoSecundario','Eixo secundário',axes,item.eixoTematicoSecundario,false));
         }catch{available.tema=false;axisError='<p role="alert">Não foi possível carregar os eixos. Reabra a apresentação para tentar novamente.</p>';}
       }
@@ -1986,6 +1986,7 @@
         {tema:item.statusTituloEixo,material:item.statusMaterial,foto:item.statusFotoReuniao},fields,item.statusApresentacao==='REALIZADA',esc);
       if(!atualizarModalConteudo(axisError+html,{geracaoModal:ticket}))return;
       const form=document.querySelector('[data-administrative-registration]');
+      module.protectExistingTheme(form,item);
       form.elements.section.addEventListener('change',()=>module.selectSection(form));
       form.addEventListener('submit',async event=>{
         event.preventDefault();if(form.dataset.busy)return;
