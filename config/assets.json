@@ -1075,6 +1075,14 @@
       "generated": "build/typescript/global-shell.mjs"
     },
     {
+      "url": "/assets/act-ui/notifications-bell.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/notifications-bell.mjs"
+    },
+    {
       "url": "/assets/act-ui/axis-directory.mjs",
       "environments": [
         "dev",
@@ -1098,6 +1106,31 @@
         "prod"
       ],
       "generated": "build/typescript/access-catalog.mjs"
+    },
+    {
+      "url": "/assets/act-ui/public-pages.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/public-pages.mjs"
+    },
+    {
+      "url": "/assets/act-ui/public-admin-editor.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "generated": "build/typescript/public-admin-editor.mjs"
+    },
+    {
+      "url": "/assets/act-command/public-pages.mjs",
+      "environments": [
+        "dev",
+        "prod"
+      ],
+      "source": "src/services/public-pages.mjs",
+      "devSource": "src/services/public-pages.mjs"
     },
     {
       "url": "/assets/act-ui/team-directory.mjs",
