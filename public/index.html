@@ -58,6 +58,21 @@
             Instalar app
           </button>
         </div>
+        <div class="notifications-menu" id="notifications-menu" hidden>
+          <button id="notifications-toggle" type="button" aria-expanded="false" aria-controls="notifications-panel" aria-label="Notificações" class="notifications-toggle">
+            <span class="notifications-icon" aria-hidden="true">🔔</span>
+            <span id="notifications-badge" class="notifications-badge" aria-hidden="true" hidden>0</span>
+          </button>
+          <div id="notifications-panel" class="notifications-panel" hidden aria-label="Notificações">
+            <div class="notifications-header">
+              <span class="notifications-title">Notificações</span>
+              <button id="notifications-mark-all" type="button" class="notifications-action-btn" disabled>Marcar todas como lidas</button>
+            </div>
+            <div id="notifications-list" class="notifications-list" role="list">
+              <p class="notifications-empty">Nenhuma notificação no momento.</p>
+            </div>
+          </div>
+        </div>
         <div class="personal-menu" id="personal-menu" hidden>
           <button id="personal-toggle" type="button" aria-expanded="false" aria-controls="personal-panel" aria-label="Abrir menu pessoal"><span class="personal-avatar" aria-hidden="true">•</span><span class="personal-greeting">Minha conta</span><span aria-hidden="true">⌄</span></button>
           <div id="personal-panel" class="personal-panel" hidden>

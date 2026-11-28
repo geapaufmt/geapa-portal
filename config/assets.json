@@ -1075,6 +1075,14 @@
       "generated": "build/typescript/global-shell.mjs"
     },
     {
+      "url": "/assets/act-ui/notifications-bell.mjs",
+      "environments": [
+        "prod",
+        "dev"
+      ],
+      "generated": "build/typescript/notifications-bell.mjs"
+    },
+    {
       "url": "/assets/act-ui/axis-directory.mjs",
       "environments": [
         "dev",
